@@ -7,7 +7,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Navigate to="/i/mafe-8842" replace />} />
+        <Route path="/" element={<Navigate to="/i/invalido" replace />} />
         <Route path="/i/:token" element={<GuestPage />} />
         <Route
           path="/admin"
