@@ -2,13 +2,42 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { motion, useReducedMotion, AnimatePresence } from 'framer-motion';
 import { getGuestByToken, submitRsvp } from '../lib/guestApi';
-import { event } from '../mocks/event';
+import { getEventConfig } from '../lib/eventApi';
 import type { FaderValue } from '../components/FaderToggle';
 import WristbandCard from '../components/WristbandCard';
 import FaderToggle from '../components/FaderToggle';
 import RsvpDeadlineStrip from '../components/RsvpDeadlineStrip';
 import SignalToast from '../components/SignalToast';
-import type { Guest, RsvpStatus } from '../types';
+import type { EventConfig, EventInfo, Guest, RsvpStatus } from '../types';
+
+const NOT_SET = 'Por confirmar';
+
+// WristbandCard/HeadcountMeter still expect the richer EventInfo shape.
+// event_config only carries a subset of those fields, so anything it
+// doesn't have degrades to a neutral placeholder instead of crashing on
+// `undefined` or leaking a raw null into the UI.
+function toEventInfo(config: EventConfig | null): EventInfo {
+  return {
+    name: config?.eventName ?? NOT_SET,
+    tagline: '',
+    date: config?.eventDate ? formatEventDate(config.eventDate) : NOT_SET,
+    doorsTime: NOT_SET,
+    rsvpDeadline: config?.rsvpDeadline ?? '',
+    venueName: config?.location ?? NOT_SET,
+    venueAddress: '',
+    dresscode: config?.theme ?? NOT_SET,
+    lineup: '',
+    capacityTotal: 0,
+  };
+}
+
+function formatEventDate(iso: string) {
+  try {
+    return new Date(iso).toLocaleDateString('es-CL', { weekday: 'short', day: '2-digit', month: 'short' });
+  } catch {
+    return iso;
+  }
+}
 
 const STATUS_TO_FADER: Record<RsvpStatus, FaderValue> = {
   confirmed: 'yes',
@@ -23,6 +52,7 @@ export default function GuestPage() {
   const [loading, setLoading] = useState(true);
   const [guest, setGuest] = useState<Guest | null>(null);
   const [invalid, setInvalid] = useState(false);
+  const [eventConfig, setEventConfig] = useState<EventConfig | null>(null);
 
   const [fader, setFader] = useState<FaderValue>('neutral');
   const [plusOne, setPlusOne] = useState(0);
@@ -57,6 +87,27 @@ export default function GuestPage() {
       active = false;
     };
   }, [token]);
+
+  useEffect(() => {
+    let active = true;
+
+    // The event may genuinely not be configured yet (pre-launch), so a
+    // failed/empty fetch here just leaves eventConfig as null — the UI
+    // degrades gracefully instead of treating it like an invalid token.
+    getEventConfig()
+      .then((config) => {
+        if (active) setEventConfig(config);
+      })
+      .catch(() => {
+        if (active) setEventConfig(null);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const event = toEventInfo(eventConfig);
 
   if (invalid || (!loading && !guest)) {
     return <InvalidTokenScreen token={token} />;
@@ -103,7 +154,7 @@ export default function GuestPage() {
               exit={{ opacity: 0 }}
               className="flex flex-col gap-4"
             >
-              <RsvpDeadlineStrip deadline={event.rsvpDeadline} />
+              {event.rsvpDeadline && <RsvpDeadlineStrip deadline={event.rsvpDeadline} />}
               <WristbandCard guest={{ ...guest, plusOnesConfirmed: plusOne }} event={event} />
 
               <section className="flex flex-col gap-2 bg-ink-900 p-4 shadow-xl">
