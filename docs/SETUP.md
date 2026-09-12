@@ -16,10 +16,11 @@ Para que estos workflows funcionen hay que crear los siguientes **GitHub Secrets
 | `SUPABASE_PUBLISHABLE_KEY` | (el mismo valor que ya tenés en tu `.env` local) | Dashboard de Supabase → Project Settings → API → anon/public key. Mismo comentario: si el frontend la consume como `VITE_SUPABASE_ANON_KEY`, duplicar/renombrar según corresponda (en `.env.local` ya existe con ese nombre). |
 | `SUPABASE_PROJECT_ID` | (el mismo valor que ya tenés en tu `.env` local) | Dashboard de Supabase → Project Settings → General → Reference ID. Se usa en `supabase link --project-ref`. |
 | `SUPABASE_ACCESS_TOKEN` | **Nuevo, todavía no existe en `.env`** | Se genera en [supabase.com/dashboard/account/tokens](https://supabase.com/dashboard/account/tokens). Es un token de cuenta (personal access token), necesario para que el CLI de Supabase se autentique en CI y pueda correr `supabase link` / `supabase db push`. **No confundir con `SUPABASE_SECRET_KEY`**, que es la service role key de la API (para llamadas server-side a la base de datos), no sirve para autenticar el CLI. |
+| `SUPABASE_PASSWORD` | (el mismo valor que ya tenés en tu `.env` local) | Es la contraseña de la base de datos Postgres (la que se definió al crear el proyecto Supabase). `supabase db push` la necesita para conectarse directo a Postgres — `SUPABASE_ACCESS_TOKEN` solo autentica contra la Management API (`supabase link`), no alcanza para el push de migraciones. Se pasa como `supabase db push --password "${{ secrets.SUPABASE_PASSWORD }}"`. |
 
 > `VERCEL_ORG_ID` y `VERCEL_PROJECT_ID` no son especialmente sensibles (identifican el proyecto, no dan acceso por sí solos), así que si preferís también podés cargarlos como **Actions "Variables"** en vez de "Secrets" — ambos workflows los referencian igual con `${{ secrets.NOMBRE }}` en este repo, así que si los movés a "Variables" hay que cambiar esas referencias a `${{ vars.NOMBRE }}` en `.github/workflows/deploy.yml`.
 
-> Los valores exactos de `VERCEL_TOKEN`, `SUPABASE_PROJECT_URL`, `SUPABASE_PUBLISHABLE_KEY` y `SUPABASE_PROJECT_ID` están en tu `.env` local (no se listan acá porque ese archivo nunca se commitea).
+> Los valores exactos de `VERCEL_TOKEN`, `SUPABASE_PROJECT_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_PROJECT_ID` y `SUPABASE_PASSWORD` están en tu `.env` local (no se listan acá porque ese archivo nunca se commitea).
 
 ## Nunca commitear `.env` / `.env.local`
 
@@ -27,7 +28,7 @@ Ambos archivos ya están en `.gitignore`. No los subas manualmente ni los pegues
 
 ## Checklist de primera vez
 
-1. Crear los 6 secrets de la tabla de arriba en GitHub (Settings → Secrets and variables → Actions).
+1. Crear los 8 secrets de la tabla de arriba en GitHub (Settings → Secrets and variables → Actions) — **como Repository secrets**, no como "Variables" ni agrupados bajo un Environment; el workflow los lee con `${{ secrets.NOMBRE_EXACTO }}` y cada uno necesita existir con ese nombre propio, no todos juntos bajo un único secret.
 2. Hacer el primer `git push` a `main`.
 3. Ir a la pestaña **Actions** del repo y verificar que:
    - `CI` corra en verde (typecheck, tests, build; `db-tests` puede aparecer como "skipped" hasta que exista el script `test:db`).
