@@ -20,6 +20,12 @@ formato que espera `supabase db push`):
 | `..._create_event_config.sql` | Tabla `event_config` (fila única) + RLS (lectura pública, escritura solo `authenticated`). |
 | `..._rpc_get_guest_by_token.sql` | Función pública de lectura por token. |
 | `..._rpc_submit_rsvp.sql` | Función pública de escritura del RSVP por token. |
+| `20260912090000_create_posts.sql` | Tabla `posts` (avisos/anuncios) + RLS. |
+| `20260912100001_add_photo_quota_and_reveal.sql` | Columna `photo_quota` en `guests`, columna `photos_revealed_at` en `event_config`. |
+| `20260912100002_create_photos.sql` | Tabla `photos` (metadata de moderación) + RLS. |
+| `20260912100003_storage_party_photos.sql` | Bucket `party-photos` + políticas RLS de `storage.objects`. |
+| `20260912100004_rpc_submit_photo.sql` | Función pública de registro de metadata de foto por token, valida cupo. |
+| `20260912100005_rpc_get_photo_quota.sql` | Función pública de lectura de cupo/usado por token. |
 
 Aplicarlas a un proyecto hosted real es un paso posterior (`supabase db
 push`), fuera del alcance de este trabajo — acá solo se versionan y se
@@ -64,6 +70,123 @@ Ambas funciones son `security definer` con `search_path` fijado a `public`
 explícitamente (para que un `search_path` manipulado no pueda secuestrar un
 identificador sin calificar dentro del cuerpo de la función), y tienen
 `grant execute` para `anon` y `authenticated`.
+
+## Galería de fotos (`photos` + Storage)
+
+Ver decisiones de producto en `docs/BACKLOG.md` (Etapa 2) y
+`docs/DESEO-DISENO-USUARIO.md` §9. Contrato para el frontend:
+
+### Bucket y convención de paths
+
+- Bucket: `party-photos`, privado (`public = false`), creado por la
+  migración `20260912100003_storage_party_photos.sql` vía
+  `insert into storage.buckets (...)`. Se confirmó que este `insert` corre
+  sin problema en una migración (probado en el Postgres de test), así que
+  **no hace falta crear el bucket a mano en el dashboard**.
+- Path esperado de cada objeto: `{token}/{uuid}.jpg` — el primer segmento
+  del path (`(storage.foldername(name))[1]`) tiene que ser exactamente el
+  token del invitado. El frontend sube primero el archivo a ese path en
+  Storage, y después llama a `submit_photo` con el mismo path para
+  registrar la metadata.
+
+### `submit_photo(p_token text, p_storage_path text)`
+
+Devuelve la fila insertada:
+
+```ts
+{
+  id: string;              // uuid
+  guest_id: string;        // uuid
+  storage_path: string;
+  status: 'pending';       // siempre 'pending' al insertar
+  created_at: string;      // timestamptz ISO
+}
+```
+
+- Tira excepción si `p_token` no matchea ningún invitado (`errcode P0002`).
+- Tira excepción si `p_storage_path` no empieza exactamente con `{token}/`
+  (`errcode 22023`) — evita que alguien registre metadata apuntando al
+  archivo de otro invitado.
+- Tira excepción si el invitado ya alcanzó `photo_quota` (`errcode 22023`).
+  Cuenta **todas** las fotos del invitado sin importar `status` (pending +
+  approved + rejected), para que reintentar después de un rechazo no evada
+  el cupo.
+- Esta función solo registra la metadata; no valida ni escribe el archivo
+  en Storage — eso ya tiene que haber pasado (la policy de `storage.objects`
+  para `anon` INSERT es la que valida que el path pertenezca a un invitado
+  real, ver más abajo).
+
+### `get_photo_quota(p_token text)`
+
+Devuelve 0 o 1 fila:
+
+```ts
+{
+  quota: number; // guests.photo_quota del invitado
+  used: number;  // count(*) de public.photos de ese guest_id, cualquier status
+}
+```
+
+Un token inexistente devuelve 0 filas, mismo criterio que `get_guest_by_token`.
+
+### Revelado del rollo
+
+`event_config.photos_revealed_at` (`timestamptz`, `null` por defecto = sin
+revelar). No hay RPC pública para setearlo ni para volverlo a `null` —
+el admin lo hace directo por SQL/dashboard como `authenticated`
+(`update public.event_config set photos_revealed_at = now() where id = true`).
+Mientras sea `null`, nadie (ni siquiera quien subió la foto) puede leer
+ningún objeto del bucket, sin importar su `status`.
+
+### Políticas de `storage.objects` para `party-photos`
+
+- `anon` **INSERT**: solo si el primer segmento del path matchea el token
+  de algún invitado real. No valida cupo (ver comentario en la migración
+  sobre por qué eso queda enteramente en `submit_photo`, para evitar una
+  condición de carrera entre el chequeo y el insert real del archivo).
+- `anon` **SELECT**: solo para objetos con una fila `approved` en `photos`
+  y `event_config.photos_revealed_at` no nulo.
+- `anon`: sin política de UPDATE ni DELETE — no puede modificar ni borrar
+  nada, ni siquiera lo que subió.
+- `authenticated`: acceso completo (SELECT/UPDATE/DELETE, y de hecho
+  cualquier operación) sobre objetos de `party-photos`, para moderar y
+  limpiar.
+
+**Limitación encontrada al probar contra Postgres real** (documentada,
+no es una decisión de producto): una policy de RLS sobre `storage.objects`
+corre con los privilegios del rol que hace la consulta (`anon`), no como
+dueño de la tabla. Como `guests` y `photos` tienen `revoke all ... from
+anon` a propósito, un `exists (select 1 from public.guests ...)` puesto
+directo dentro de la policy fallaba con `permission denied for table
+guests` apenas `anon` intentaba insertar — antes de que la propia RLS de
+`guests` entrara siquiera a jugar. La migración resuelve esto con dos
+funciones puente `security definer` (`public.token_matches_guest`,
+`public.storage_path_is_revealed`), el mismo patrón que ya usan
+`submit_rsvp`/`get_guest_by_token`: corren con los privilegios del dueño
+de la función, devuelven un booleano y no exponen ninguna tabla nueva a
+`anon`. Sigue siendo 100% RLS de Postgres, sin URLs firmadas ni backend
+nuevo — es la misma pieza de diseño, solo que expresada a través de una
+función en vez de un `exists()` inline para que compile con los `revoke`
+existentes.
+
+Otra observación de las mismas pruebas: a diferencia de `guests`/`posts`
+(que además de RLS usan `revoke`/`grant` a nivel de tabla para bloquear a
+`anon`), `storage.objects` en Supabase real ya viene con privilegios de
+tabla amplios para `anon`/`authenticated` de fábrica — el control de acceso
+ahí es 100% vía RLS, nunca vía `GRANT`/`REVOKE`. Por eso un `UPDATE`/`DELETE`
+de `anon` sin política que lo permita no tira una excepción: sencillamente
+afecta 0 filas (RLS lo filtra en silencio). El test
+`supabase/tests/photos.test.ts` verifica explícitamente ese comportamiento
+(0 filas afectadas, no una excepción) en vez de asumir que iba a tirar
+error como en `guests`/`posts`.
+
+Esto se probó completo contra el schema `storage` real: el harness de test
+en Docker (`postgres:16-alpine` puro) no trae ese schema de fábrica, así
+que `supabase/tests/apply-migrations.ts` agrega `createStorageSchema()`,
+un stand-in mínimo pero fiel de `storage.buckets`/`storage.objects`/
+`storage.foldername()` (mismo espíritu que `createSupabaseRoles()` para
+`anon`/`authenticated`/`service_role`) — scaffolding solo de test, nunca
+parte de las migraciones versionadas.
 
 ## Autenticación del admin
 
