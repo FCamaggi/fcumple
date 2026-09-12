@@ -13,6 +13,7 @@ const guests: Guest[] = [
     plusOnesConfirmed: 1,
     guestNote: null,
     respondedAt: null,
+    checkedInAt: null,
   },
 ];
 

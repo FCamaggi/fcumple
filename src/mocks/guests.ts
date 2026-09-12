@@ -16,6 +16,7 @@ export const guests: Guest[] = [
     respondedAt: '2026-05-20T00:35:00-04:00',
     createdAt: '2026-05-20T00:32:00-04:00',
     updatedAt: '2026-05-20T00:35:00-04:00',
+    checkedInAt: null,
   },
   {
     id: 'g2',
@@ -29,6 +30,7 @@ export const guests: Guest[] = [
     respondedAt: '2026-05-20T00:44:00-04:00',
     createdAt: '2026-05-20T00:41:00-04:00',
     updatedAt: '2026-05-20T00:44:00-04:00',
+    checkedInAt: null,
   },
   {
     id: 'g3',
@@ -42,6 +44,7 @@ export const guests: Guest[] = [
     respondedAt: null,
     createdAt: '2026-05-20T00:52:00-04:00',
     updatedAt: '2026-05-20T00:52:00-04:00',
+    checkedInAt: null,
   },
   {
     id: 'g5',
@@ -55,6 +58,7 @@ export const guests: Guest[] = [
     respondedAt: '2026-05-20T01:10:00-04:00',
     createdAt: '2026-05-20T01:05:00-04:00',
     updatedAt: '2026-05-20T01:10:00-04:00',
+    checkedInAt: null,
   },
 ];
 

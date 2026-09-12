@@ -12,6 +12,7 @@ import EventSettingsForm from '../components/EventSettingsForm';
 import ExportGuestsButton from '../components/ExportGuestsButton';
 import ImportGuestsModal from '../components/ImportGuestsModal';
 import PostsPanel from '../components/PostsPanel';
+import QrScanner from '../components/QrScanner';
 
 /**
  * /admin — la consola de la puerta.
@@ -28,6 +29,7 @@ export default function AdminPage() {
   const [toastKind, setToastKind] = useState<'success' | 'error'>('success');
   const [showEventSettings, setShowEventSettings] = useState(false);
   const [showPosts, setShowPosts] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
   const [eventConfig, setEventConfig] = useState<EventConfig | null>(null);
 
   useEffect(() => {
@@ -121,6 +123,26 @@ export default function AdminPage() {
     await signOut();
   }
 
+  // check_in_guest() doesn't return token/adminNote/createdAt/updatedAt (see
+  // supabase/README.md) -- only overlay the fields it actually refreshed,
+  // so those admin-only fields already in the list aren't wiped to undefined.
+  function handleCheckedIn(checkedInGuest: Guest) {
+    setGuests((prev) =>
+      prev.map((g) =>
+        g.id === checkedInGuest.id
+          ? {
+              ...g,
+              status: checkedInGuest.status,
+              plusOnesConfirmed: checkedInGuest.plusOnesConfirmed,
+              guestNote: checkedInGuest.guestNote,
+              respondedAt: checkedInGuest.respondedAt,
+              checkedInAt: checkedInGuest.checkedInAt,
+            }
+          : g,
+      ),
+    );
+  }
+
   function handleImported(created: Guest[]) {
     setGuests((prev) => [...prev, ...created]);
     setToastKind('success');
@@ -155,6 +177,13 @@ export default function AdminPage() {
           </button>
           <button
             type="button"
+            onClick={() => setShowScanner((v) => !v)}
+            className="border border-smoke-700/50 px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-hotpink-500 transition-colors hover:bg-hotpink-500/10"
+          >
+            Escáner
+          </button>
+          <button
+            type="button"
             onClick={handleLogout}
             className="border border-smoke-700/50 px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-flame-500 transition-colors hover:bg-flame-500/10"
           >
@@ -166,6 +195,7 @@ export default function AdminPage() {
       <main className="mx-auto flex max-w-7xl flex-col gap-6 px-6 py-6">
         {showEventSettings && <EventSettingsForm onSaved={setEventConfig} />}
         {showPosts && <PostsPanel />}
+        {showScanner && <QrScanner guests={guests} onCheckedIn={handleCheckedIn} />}
 
         <section className="grid grid-cols-1 gap-4 bg-ink-900 p-4 shadow-2xl lg:grid-cols-3">
           <div className="lg:col-span-2">
