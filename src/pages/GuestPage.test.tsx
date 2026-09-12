@@ -18,9 +18,16 @@ vi.mock('../lib/postsApi', () => ({
   listPublishedPosts: vi.fn(),
 }));
 
+vi.mock('../lib/photosApi', () => ({
+  getPhotoQuota: vi.fn(),
+  listRevealedPhotos: vi.fn(),
+  getSignedPhotoUrl: vi.fn(),
+}));
+
 import { getGuestByToken, submitRsvp } from '../lib/guestApi';
 import { getEventConfig } from '../lib/eventApi';
 import { listPublishedPosts } from '../lib/postsApi';
+import { getPhotoQuota, listRevealedPhotos, getSignedPhotoUrl } from '../lib/photosApi';
 
 const pendingGuest: Guest = {
   id: 'g1',
@@ -70,9 +77,16 @@ beforeEach(() => {
     location: 'The Warehouse Club',
     theme: 'All black',
     rsvpDeadline: '2026-05-21T23:59:00Z',
+    photosRevealedAt: null,
   });
   vi.mocked(listPublishedPosts).mockReset();
   vi.mocked(listPublishedPosts).mockResolvedValue([]);
+  vi.mocked(getPhotoQuota).mockReset();
+  vi.mocked(getPhotoQuota).mockResolvedValue({ quota: 5, used: 2 });
+  vi.mocked(listRevealedPhotos).mockReset();
+  vi.mocked(listRevealedPhotos).mockResolvedValue([]);
+  vi.mocked(getSignedPhotoUrl).mockReset();
+  vi.mocked(getSignedPhotoUrl).mockResolvedValue('https://signed.example/a.jpg');
 });
 
 describe('GuestPage', () => {
@@ -241,5 +255,78 @@ describe('GuestPage', () => {
     renderAt('mafe-8842');
 
     expect(await screen.findByText(/maria fernanda contreras/i)).toBeInTheDocument();
+  });
+
+  it('shows the camera section with the remaining shots once the quota loads', async () => {
+    vi.mocked(getGuestByToken).mockResolvedValueOnce(pendingGuest);
+    vi.mocked(getPhotoQuota).mockResolvedValueOnce({ quota: 5, used: 4 });
+
+    renderAt('mafe-8842');
+    await screen.findByText(/maria fernanda contreras/i);
+
+    expect(await screen.findByLabelText('Cámara')).toBeInTheDocument();
+    expect(screen.getByText('1')).toBeInTheDocument();
+  });
+
+  it('does not break the page when the photo quota fetch fails', async () => {
+    vi.mocked(getGuestByToken).mockResolvedValueOnce(pendingGuest);
+    vi.mocked(getPhotoQuota).mockRejectedValueOnce(new Error('network down'));
+
+    renderAt('mafe-8842');
+
+    expect(await screen.findByText(/maria fernanda contreras/i)).toBeInTheDocument();
+    expect(screen.queryByLabelText('Cámara')).not.toBeInTheDocument();
+  });
+
+  it('does not show the revealed roll before the admin reveals it', async () => {
+    vi.mocked(getGuestByToken).mockResolvedValueOnce(pendingGuest);
+
+    renderAt('mafe-8842');
+    await screen.findByText(/maria fernanda contreras/i);
+
+    expect(listRevealedPhotos).not.toHaveBeenCalled();
+    expect(screen.queryByLabelText('Rollo revelado')).not.toBeInTheDocument();
+  });
+
+  it('shows the revealed roll once photosRevealedAt is set and photos come back', async () => {
+    vi.mocked(getGuestByToken).mockResolvedValueOnce(pendingGuest);
+    vi.mocked(getEventConfig).mockReset();
+    vi.mocked(getEventConfig).mockResolvedValue({
+      eventName: 'NOCTURNA',
+      eventDate: '2026-05-24T02:00:00Z',
+      location: 'The Warehouse Club',
+      theme: 'All black',
+      rsvpDeadline: '2026-05-21T23:59:00Z',
+      photosRevealedAt: '2026-06-01T00:00:00Z',
+    });
+    vi.mocked(listRevealedPhotos).mockResolvedValueOnce([
+      { id: 'tok1/a.jpg', guestId: '', storagePath: 'tok1/a.jpg', status: 'approved', createdAt: '' },
+    ]);
+
+    renderAt('mafe-8842');
+
+    expect(await screen.findByLabelText('Rollo revelado')).toBeInTheDocument();
+    expect(getSignedPhotoUrl).toHaveBeenCalledWith('tok1/a.jpg');
+  });
+
+  it('does not break the page when the revealed-roll fetch fails (e.g. the RPC is not deployed yet)', async () => {
+    vi.mocked(getGuestByToken).mockResolvedValueOnce(pendingGuest);
+    vi.mocked(getEventConfig).mockReset();
+    vi.mocked(getEventConfig).mockResolvedValue({
+      eventName: 'NOCTURNA',
+      eventDate: '2026-05-24T02:00:00Z',
+      location: 'The Warehouse Club',
+      theme: 'All black',
+      rsvpDeadline: '2026-05-21T23:59:00Z',
+      photosRevealedAt: '2026-06-01T00:00:00Z',
+    });
+    vi.mocked(listRevealedPhotos).mockRejectedValueOnce(
+      new Error('No pudimos cargar el rollo revelado: function list_revealed_photos() does not exist'),
+    );
+
+    renderAt('mafe-8842');
+
+    expect(await screen.findByText(/maria fernanda contreras/i)).toBeInTheDocument();
+    expect(screen.queryByLabelText('Rollo revelado')).not.toBeInTheDocument();
   });
 });

@@ -304,3 +304,36 @@ describe('RLS on storage.objects (party-photos)', () => {
     expect(afterDelete.rows).toHaveLength(0);
   });
 });
+
+describe('list_revealed_photos', () => {
+  it('returns nothing before the roll is revealed, even if photos are approved', async () => {
+    const guest = await insertGuest();
+    await insertPhoto(guest.id, `${guest.token}/a.jpg`, 'approved');
+
+    const result = await asRole(admin, 'anon', () => admin.query('select * from list_revealed_photos()'));
+
+    expect(result.rows).toHaveLength(0);
+  });
+
+  it('returns only approved photos once the roll is revealed', async () => {
+    const guest = await insertGuest();
+    await insertPhoto(guest.id, `${guest.token}/a.jpg`, 'approved');
+    await insertPhoto(guest.id, `${guest.token}/b.jpg`, 'pending');
+    await insertPhoto(guest.id, `${guest.token}/c.jpg`, 'rejected');
+    await admin.query('update public.event_config set photos_revealed_at = now() where id = true');
+
+    const result = await asRole(admin, 'anon', () => admin.query('select * from list_revealed_photos()'));
+
+    expect(result.rows.map((r) => r.storage_path)).toEqual([`${guest.token}/a.jpg`]);
+  });
+
+  it('never exposes guest_id or status, only storage_path', async () => {
+    const guest = await insertGuest();
+    await insertPhoto(guest.id, `${guest.token}/a.jpg`, 'approved');
+    await admin.query('update public.event_config set photos_revealed_at = now() where id = true');
+
+    const result = await asRole(admin, 'anon', () => admin.query('select * from list_revealed_photos()'));
+
+    expect(Object.keys(result.rows[0])).toEqual(['storage_path']);
+  });
+});
