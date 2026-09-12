@@ -326,7 +326,7 @@ export default function GuestPage() {
 
         <AnnouncementTicker posts={posts} />
 
-        {!loading && guest && photoQuota && (
+        {!loading && guest && guest.checkedInAt && photoQuota && (
           <CameraCapture token={guest.token ?? token ?? ''} quota={photoQuota} onQuotaChange={setPhotoQuota} />
         )}
 

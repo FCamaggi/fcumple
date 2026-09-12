@@ -57,6 +57,11 @@ const declinedGuest: Guest = {
   respondedAt: '2026-05-01T00:00:00Z',
 };
 
+const checkedInGuest: Guest = {
+  ...confirmedGuest,
+  checkedInAt: '2026-05-20T23:00:00Z',
+};
+
 function renderAt(token: string) {
   return render(
     <MemoryRouter initialEntries={[`/i/${token}`]}>
@@ -257,8 +262,8 @@ describe('GuestPage', () => {
     expect(await screen.findByText(/maria fernanda contreras/i)).toBeInTheDocument();
   });
 
-  it('shows the camera section with the remaining shots once the quota loads', async () => {
-    vi.mocked(getGuestByToken).mockResolvedValueOnce(pendingGuest);
+  it('shows the camera section with the remaining shots once checked in at the door', async () => {
+    vi.mocked(getGuestByToken).mockResolvedValueOnce(checkedInGuest);
     vi.mocked(getPhotoQuota).mockResolvedValueOnce({ quota: 5, used: 4 });
 
     renderAt('mafe-8842');
@@ -269,8 +274,18 @@ describe('GuestPage', () => {
   });
 
   it('does not break the page when the photo quota fetch fails', async () => {
-    vi.mocked(getGuestByToken).mockResolvedValueOnce(pendingGuest);
+    vi.mocked(getGuestByToken).mockResolvedValueOnce(checkedInGuest);
     vi.mocked(getPhotoQuota).mockRejectedValueOnce(new Error('network down'));
+
+    renderAt('mafe-8842');
+
+    expect(await screen.findByText(/maria fernanda contreras/i)).toBeInTheDocument();
+    expect(screen.queryByLabelText('Cámara')).not.toBeInTheDocument();
+  });
+
+  it('hides the camera section until the guest has actually checked in at the door', async () => {
+    vi.mocked(getGuestByToken).mockResolvedValueOnce(confirmedGuest);
+    vi.mocked(getPhotoQuota).mockResolvedValueOnce({ quota: 5, used: 0 });
 
     renderAt('mafe-8842');
 
