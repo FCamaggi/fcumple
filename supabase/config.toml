@@ -1,0 +1,29 @@
+# Minimal Supabase project config. This is NOT linked to a hosted project
+# here on purpose -- `project_id` is filled in (or the project is linked via
+# `supabase link`) in CI/deploy using SUPABASE_PROJECT_ID, not committed.
+project_id = ""
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public"]
+extra_search_path = ["public"]
+max_rows = 1000
+
+[db]
+port = 54322
+major_version = 16
+
+[studio]
+enabled = true
+port = 54323
+
+[auth]
+enabled = true
+# Email/password only, for the single admin account (docs/02-arquitectura-tecnica.md, section 5).
+# No public sign-up: the admin user is created once, out of band -- see README.md.
+enable_signup = false
+
+[auth.email]
+enable_signup = false
+enable_confirmations = false

@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="es"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Space+Grotesk:wght@400;600;700&amp;family=Space+Mono:wght@400;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{width:100vw;margin:0;padding:0;background-color:#141219;}body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "on-primary-container": "#58002d", "tertiary-fixed": "#3ffbed", "on-secondary-container": "#435a00", "error-container": "#93000a", "tertiary-fixed-dim": "#00ded0", "outline": "#a98891", "surface-container-lowest": "#0f0d14", "inverse-on-surface": "#322f37", "on-primary": "#650034", "secondary-container": "#a3d700", "on-tertiary": "#003733", "on-primary-fixed-variant": "#8e004c", "error": "#ffb4ab", "on-secondary": "#263500", "tertiary": "#00ded0", "surface-container-high": "#2b2931", "surface-variant": "#36333c", "surface-container": "#211e26", "secondary-fixed-dim": "#a3d700", "surface-dim": "#141219", "on-secondary-fixed-variant": "#394d00", "secondary-fixed": "#bef532", "inverse-primary": "#b90065", "surface-bright": "#3b3840", "surface-container-highest": "#36333c", "tertiary-container": "#00a298", "on-surface-variant": "#e2bdc7", "on-tertiary-fixed": "#00201d", "on-error": "#690005", "on-error-container": "#ffdad6", "primary-container": "#ff4898", "secondary": "#bef532", "surface-tint": "#ffb0c9", "on-secondary-fixed": "#151f00", "outline-variant": "#5a3f47", "primary-fixed-dim": "#ffb0c9", "surface-container-low": "#1d1a22", "on-primary-fixed": "#3e001e", "on-tertiary-fixed-variant": "#00504b", "inverse-surface": "#e7e0eb", "on-surface": "#e7e0eb", "primary": "#ffb0c9", "surface": "#141219", "on-background": "#e7e0eb", "primary-fixed": "#ffd9e2", "on-tertiary-container": "#00302c", "background": "#141219" }, borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, spacing: { "space-sm": "0.5rem", "space-md": "1rem", "gutter": "1rem", "margin": "1rem", "gutter-desktop": "1.5rem", "margin-desktop": "2.5rem", "space-lg": "1.5rem", "space-xl": "2.5rem", "space-xs": "0.25rem" }, fontFamily: { "label-mono-md": ["Space Mono"], "title-md": ["Space Grotesk"], "body-lg": ["Space Grotesk"], "title-lg": ["Space Grotesk"], "headline-lg-mobile": ["Anton"], "stamp-code": ["Space Mono"], "headline-md": ["Anton"], "body-md": ["Space Grotesk"], "headline-xl-mobile": ["Anton"], "headline-lg": ["Anton"], "headline-xl": ["Anton"], "label-mono-lg": ["Space Mono"] }, fontSize: { "label-mono-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.06em", "fontWeight": "400" }], "title-md": ["18px", { "lineHeight": "22px", "letterSpacing": "0em", "fontWeight": "600" }], "body-lg": ["16px", { "lineHeight": "24px", "letterSpacing": "0.01em", "fontWeight": "400" }], "title-lg": ["22px", { "lineHeight": "26px", "letterSpacing": "-0.01em", "fontWeight": "700" }], "headline-lg-mobile": ["32px", { "lineHeight": "32px", "letterSpacing": "0.03em", "fontWeight": "400" }], "stamp-code": ["11px", { "lineHeight": "14px", "letterSpacing": "0.14em", "fontWeight": "700" }], "headline-md": ["28px", { "lineHeight": "30px", "letterSpacing": "0.04em", "fontWeight": "400" }], "body-md": ["14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "400" }], "headline-xl-mobile": ["42px", { "lineHeight": "40px", "letterSpacing": "0.03em", "fontWeight": "400" }], "headline-lg": ["44px", { "lineHeight": "44px", "letterSpacing": "0.04em", "fontWeight": "400" }], "headline-xl": ["64px", { "lineHeight": "60px", "letterSpacing": "0.04em", "fontWeight": "400" }], "label-mono-lg": ["14px", { "lineHeight": "18px", "letterSpacing": "0.08em", "fontWeight": "700" }] } } } }</script><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface text-on-surface flex flex-col min-h-screen selection:bg-secondary selection:text-on-secondary"><header class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-xl pt-safe shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-16 px-gutter flex items-center justify-between"><div class="flex items-center gap-space-sm"><span class="w-2 h-2 rounded-full bg-secondary shadow-[0_0_8px_#bef532] animate-pulse"></span><span class="font-headline-md text-headline-md tracking-wider uppercase text-on-surface">Guest Pass</span></div><div class="flex items-center gap-space-sm"><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex flex-col relative w-full pt-16 pb-20 bg-surface min-h-screen"><div class="flex flex-col w-full px-gutter pb-space-xl relative overflow-hidden">
+<!-- Dynamic Ambient Glow and Rave Atmosphere -->
+<div class="absolute -top-16 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full bg-primary-container/20 blur-[90px] pointer-events-none"></div>
+<div class="absolute top-1/3 -right-20 w-64 h-64 rounded-full bg-secondary/10 blur-[80px] pointer-events-none"></div>
+<!-- Live Rave Alert / Urgency Ticker -->
+<div class="w-full flex items-center justify-between py-space-sm mb-space-sm">
+<div class="flex items-center gap-space-xs">
+<span class="w-2 h-2 rounded-full bg-secondary animate-ping"></span>
+<span class="font-stamp-code text-stamp-code text-secondary tracking-widest uppercase">CORTE EN PUERTA: 01:30 AM</span>
+</div>
+<div class="flex items-center gap-space-xs bg-surface-container-high px-space-sm py-1 rounded">
+<span class="material-symbols-outlined text-tertiary text-[14px]">bolt</span>
+<span class="font-label-mono-md text-label-mono-md text-tertiary uppercase">INVITACIÓN ACTIVA</span>
+</div>
+</div>
+<!-- Ticket Master Container with Magenta Laser Underglow -->
+<div class="relative w-full my-space-xs">
+<!-- Laser Halo Effect -->
+<div class="absolute inset-0 bg-primary-container/30 blur-2xl transform scale-[0.98] rounded-xl pointer-events-none"></div>
+<!-- Main Physical Club Pass Card -->
+<div class="relative w-full bg-surface-container-low text-on-surface rounded-lg shadow-2xl overflow-hidden flex flex-col">
+<!-- Top Ticket Header: Status Bar & Metadata -->
+<div class="bg-surface-container px-space-md py-space-sm flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="font-stamp-code text-stamp-code bg-surface text-secondary px-space-xs py-0.5 uppercase tracking-wider font-bold">VIP ACCESS</span>
+<span class="font-stamp-code text-stamp-code text-on-surface-variant uppercase tracking-widest">LISTA PRIVADA</span>
+</div>
+<span class="font-stamp-code text-stamp-code text-primary uppercase font-bold tracking-widest">FOLIO #8842-X7</span>
+</div>
+<!-- Ticket Body -->
+<div class="p-space-md flex flex-col gap-space-md">
+<!-- Pass Issuer & Stage Tag -->
+<div class="flex justify-between items-end">
+<div class="flex flex-col">
+<span class="font-stamp-code text-stamp-code text-outline tracking-widest uppercase">INVITADO NOMINAL</span>
+<span class="font-label-mono-md text-label-mono-md text-on-surface-variant font-bold">CÓDIGO INTRANSFERIBLE</span>
+</div>
+<div class="flex items-center gap-1 bg-surface-container-highest px-space-xs py-0.5 rounded">
+<span class="material-symbols-outlined text-secondary text-[16px]">verified</span>
+<span class="font-stamp-code text-stamp-code text-secondary">VALIDADO</span>
+</div>
+</div>
+<!-- Huge Display Name: Designed specifically not to break on long names -->
+<div class="flex flex-col bg-surface-container-lowest p-space-sm rounded">
+<span class="font-stamp-code text-stamp-code text-tertiary uppercase tracking-widest mb-1">// INVITACIÓN EXCLUSIVA PARA</span>
+<h1 class="font-headline-xl-mobile text-headline-xl-mobile text-on-surface uppercase tracking-tight leading-none break-words hyphens-auto">
+            MARIA FERNANDA CONTRERAS ESPINOZA
+          </h1>
+<div class="mt-space-xs flex items-center justify-between">
+<span class="font-label-mono-md text-label-mono-md text-outline tracking-wider">PASAPORTE UNDERGROUND</span>
+<span class="font-stamp-code text-stamp-code text-secondary font-bold">CUPO: +1 INCLUIDO</span>
+</div>
+</div>
+<!-- Event Spec Details Matrix -->
+<div class="grid grid-cols-2 gap-space-sm bg-surface-container-high p-space-sm rounded">
+<div class="flex flex-col">
+<span class="font-stamp-code text-stamp-code text-outline uppercase tracking-wider">EVENTO</span>
+<span class="font-title-md text-title-md text-on-surface uppercase tracking-tight">NOCTURNA</span>
+<span class="font-label-mono-md text-label-mono-md text-tertiary">RAW TECHNO // WAREHOUSE</span>
+</div>
+<div class="flex flex-col">
+<span class="font-stamp-code text-stamp-code text-outline uppercase tracking-wider">FECHA</span>
+<span class="font-title-md text-title-md text-secondary uppercase">SÁB. 24 MAY</span>
+<span class="font-label-mono-md text-label-mono-md text-on-surface-variant">EDICIÓN ANIVERSARIO</span>
+</div>
+<div class="flex flex-col">
+<span class="font-stamp-code text-stamp-code text-outline uppercase tracking-wider">HORARIO</span>
+<span class="font-body-md text-body-md text-on-surface font-semibold">PUERTAS 23:30 HRS</span>
+<span class="font-stamp-code text-stamp-code text-error font-bold">LÍMITE: 01:30 HRS</span>
+</div>
+<div class="flex flex-col">
+<span class="font-stamp-code text-stamp-code text-outline uppercase tracking-wider">DRESSCODE</span>
+<span class="font-body-md text-body-md text-on-surface font-semibold">ALL BLACK</span>
+<span class="font-label-mono-md text-label-mono-md text-primary font-bold">ACCENT NEON RIG</span>
+</div>
+</div>
+<!-- Venue Spot Info -->
+<div class="flex items-center gap-space-sm bg-surface-container px-space-sm py-space-sm rounded">
+<div class="w-8 h-8 rounded bg-surface-container-highest flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-tertiary text-[20px]">warehouse</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-stamp-code text-stamp-code text-outline uppercase">UBICACIÓN CONFIDENCIAL</span>
+<span class="font-title-md text-title-md text-on-surface uppercase truncate">BASEMENT CLUB // SUBTERRÁNEO</span>
+<span class="font-label-mono-md text-label-mono-md text-on-surface-variant">SE LIBERA COORDENADA EXACTA 4H ANTES</span>
+</div>
+</div>
+</div>
+<!-- Ticket Sawtooth / Perforation Section (Physical Tear Line Simulation) -->
+<div class="relative w-full h-8 flex items-center justify-between px-2 bg-surface-container-low overflow-hidden">
+<!-- Left Notch Cutout -->
+<div class="w-5 h-8 bg-surface rounded-r-full -ml-4 z-10"></div>
+<!-- Dashed Perforation Graphic -->
+<div class="flex-1 border-b-2 border-dashed border-outline-variant/40 mx-2"></div>
+<!-- Center Stamp on Cut Line -->
+<span class="font-stamp-code text-stamp-code text-outline bg-surface-container px-2 py-0.5 rounded tracking-widest shrink-0 uppercase">
+          DESPRENDER EN ACCESO // DO NOT TEAR
+        </span>
+<div class="flex-1 border-b-2 border-dashed border-outline-variant/40 mx-2"></div>
+<!-- Right Notch Cutout -->
+<div class="w-5 h-8 bg-surface rounded-l-full -mr-4 z-10"></div>
+</div>
+<!-- Ticket Stub (El Talón Desprendible de Puerta) -->
+<div class="p-space-md bg-surface-container-lowest flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<div class="flex flex-col">
+<span class="font-stamp-code text-stamp-code text-secondary tracking-widest uppercase font-bold">TALÓN DE CONTROL #0048-REV-24</span>
+<span class="font-label-mono-md text-label-mono-md text-outline">VALIDACIÓN RIGUROSA: DNI + CÓDIGO</span>
+</div>
+<span class="font-stamp-code text-stamp-code text-error bg-error-container/40 px-2 py-0.5 rounded font-bold uppercase">
+            +18 ONLY
+          </span>
+</div>
+<!-- Barcode and QR Access Verification Box -->
+<div class="bg-surface-container p-space-sm rounded flex items-center justify-between gap-space-sm">
+<!-- Minimalist Vector Club Barcode -->
+<div class="flex flex-col flex-1 min-w-0">
+<div class="h-10 w-full flex items-stretch gap-[2px] opacity-90 overflow-hidden">
+<span class="w-1 bg-on-surface"></span>
+<span class="w-0.5 bg-on-surface"></span>
+<span class="w-2 bg-on-surface"></span>
+<span class="w-0.5 bg-on-surface"></span>
+<span class="w-1 bg-on-surface"></span>
+<span class="w-1.5 bg-on-surface"></span>
+<span class="w-0.5 bg-on-surface"></span>
+<span class="w-3 bg-on-surface"></span>
+<span class="w-0.5 bg-on-surface"></span>
+<span class="w-1 bg-on-surface"></span>
+<span class="w-2 bg-on-surface"></span>
+<span class="w-0.5 bg-on-surface"></span>
+<span class="w-1.5 bg-on-surface"></span>
+<span class="w-1 bg-on-surface"></span>
+<span class="w-0.5 bg-on-surface"></span>
+<span class="w-2 bg-on-surface"></span>
+<span class="w-1 bg-on-surface"></span>
+<span class="w-0.5 bg-on-surface"></span>
+<span class="w-3 bg-on-surface"></span>
+<span class="w-0.5 bg-on-surface"></span>
+<span class="w-1 bg-on-surface"></span>
+<span class="w-2 bg-on-surface"></span>
+<span class="w-1 bg-on-surface"></span>
+<span class="w-0.5 bg-on-surface"></span>
+<span class="w-1.5 bg-on-surface"></span>
+<span class="w-1 bg-on-surface"></span>
+<span class="w-2 bg-on-surface"></span>
+<span class="w-0.5 bg-on-surface"></span>
+<span class="w-1 bg-on-surface"></span>
+<span class="w-3 bg-on-surface"></span>
+</div>
+<span class="font-stamp-code text-stamp-code text-on-surface-variant tracking-widest mt-1">PASS# NOCT-8842-X7</span>
+</div>
+<!-- Stylized Ticket QR Stub Icon Badge -->
+<div class="w-12 h-12 bg-on-surface text-surface flex items-center justify-center rounded shrink-0 p-1">
+<span class="material-symbols-outlined text-surface text-[32px]">qr_code_2</span>
+</div>
+</div>
+<div class="flex items-center justify-between text-outline">
+<span class="font-stamp-code text-stamp-code">NO ENTRY WITHOUT ID</span>
+<span class="font-stamp-code text-stamp-code">DERECHO DE ADMISIÓN RESERVADO</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Rave Capacity Pulse Indicator -->
+<div class="w-full mt-space-md bg-surface-container-low p-space-sm rounded flex flex-col gap-space-xs">
+<div class="flex justify-between items-center">
+<span class="font-stamp-code text-stamp-code text-on-surface uppercase tracking-widest">AFORO DE LISTA</span>
+<span class="font-stamp-code text-stamp-code text-secondary font-bold">84% LLENO</span>
+</div>
+<!-- LED Segmented Style Gauge -->
+<div class="w-full h-2 bg-surface-container-highest rounded-full overflow-hidden flex gap-0.5">
+<div class="h-full w-[20%] bg-secondary"></div>
+<div class="h-full w-[20%] bg-secondary"></div>
+<div class="h-full w-[20%] bg-secondary"></div>
+<div class="h-full w-[24%] bg-primary"></div>
+<div class="h-full w-[16%] bg-surface-container-highest"></div>
+</div>
+<div class="flex items-center justify-between">
+<span class="font-label-mono-md text-label-mono-md text-outline">ÚLTIMOS CUPOS ASIGNADOS</span>
+<span class="font-stamp-code text-stamp-code text-primary">ALTA DEMANDA</span>
+</div>
+</div>
+<!-- Direct Party RSVP Action Engine -->
+<div class="w-full flex flex-col gap-space-sm mt-space-md">
+<!-- Primary Rave Confirmation CTA -->
+<button class="w-full py-4 px-space-md bg-secondary text-on-secondary rounded-none font-headline-md text-headline-md tracking-wider uppercase flex items-center justify-center gap-space-sm shadow-[0_0_20px_rgba(190,245,50,0.35)] active:scale-[0.98] transition-transform duration-100" id="btn-confirm" onclick="handleAcceptPass()">
+<span>¿VAS O TE ABRES? CONFIRMAR</span>
+<span class="material-symbols-outlined text-[26px]">arrow_forward</span>
+</button>
+<!-- Urgency Microcopy -->
+<p class="font-label-mono-md text-label-mono-md text-center text-on-surface-variant tracking-wide">
+      Tenés hasta el jueves para asegurar tu cupo en puerta. La lista se traba al completar el cupo.
+    </p>
+<!-- Secondary Low-Friction Decline Action -->
+<button class="w-full py-space-sm px-space-md bg-transparent text-outline hover:text-on-surface transition-colors font-label-mono-md text-label-mono-md tracking-widest uppercase flex items-center justify-center gap-1" id="btn-decline" onclick="handleDeclinePass()">
+<span class="material-symbols-outlined text-[16px]">close</span>
+<span>Paso por esta vez (Liberar mi cupo)</span>
+</button>
+</div>
+<!-- Guest Notice & Social Lineup Snippet -->
+<div class="w-full mt-space-md p-space-sm bg-surface-container-lowest rounded flex items-center gap-space-sm">
+<div class="w-10 h-10 rounded bg-surface-container-high flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-primary text-[20px]">graphic_eq</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-stamp-code text-stamp-code text-tertiary uppercase">LINEUP // CONFIRMADO</span>
+<span class="font-body-md text-body-md text-on-surface truncate">VORTEX (LIVE) // DJ VALK // RESIDENT SOUND</span>
+</div>
+</div>
+<!-- Micro Interaction Script for Fast RSVP Feedback -->
+<script>
+    function handleAcceptPass() {
+      const btn = document.getElementById('btn-confirm');
+      btn.classList.remove('bg-secondary', 'text-on-secondary');
+      btn.classList.add('bg-primary', 'text-on-primary');
+      btn.innerHTML = `
+        <span class="material-symbols-outlined text-[24px]">check_circle</span>
+        <span>¡ESTÁS DENTRO! GUARDANDO PASE...</span>
+      `;
+      setTimeout(() => {
+        btn.innerHTML = `
+          <span class="material-symbols-outlined text-[24px]">confirmation_number</span>
+          <span>PASE CONFIRMADO // NOS VEMOS DENTRO</span>
+        `;
+      }, 900);
+    }
+
+    function handleDeclinePass() {
+      const btnSec = document.getElementById('btn-decline');
+      btnSec.innerHTML = `
+        <span class="text-error font-bold">CUPO LIBERADO. ¡TE ESPERAMOS EN LA PRÓXIMA!</span>
+      `;
+    }
+  </script>
+</div></main><nav class="fixed bottom-0 w-full z-50 pb-safe bg-surface/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]" data-active-classes="text-secondary"><div class="flex justify-around items-center h-16 px-gutter"><a aria-current="page" class="flex flex-col items-center justify-center min-w-[44px] min-h-[44px] transition-colors text-secondary" data-path="guest-pass" href="#"><span class="material-symbols-outlined">confirmation_number</span><span class="font-label-mono-md text-label-mono-md uppercase tracking-wider mt-space-xs">Pase</span></a><a class="flex flex-col items-center justify-center min-w-[44px] min-h-[44px] text-on-surface-variant transition-colors" data-path="lineup" href="#"><span class="material-symbols-outlined">graphic_eq</span><span class="font-label-mono-md text-label-mono-md uppercase tracking-wider mt-space-xs">Lineup</span></a><a class="flex flex-col items-center justify-center min-w-[44px] min-h-[44px] text-on-surface-variant transition-colors" data-path="club-info" href="#"><span class="material-symbols-outlined">location_on</span><span class="font-label-mono-md text-label-mono-md uppercase tracking-wider mt-space-xs">Acceso</span></a></div></nav></body></html>

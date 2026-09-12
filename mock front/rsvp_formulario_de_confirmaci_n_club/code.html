@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="es"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Space+Grotesk:wght@400;600;700&amp;family=Space+Mono:wght@400;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{width:100vw;margin:0;padding:0;background-color:#141219;}body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "on-primary-container": "#58002d", "tertiary-fixed": "#3ffbed", "on-secondary-container": "#435a00", "error-container": "#93000a", "tertiary-fixed-dim": "#00ded0", "outline": "#a98891", "surface-container-lowest": "#0f0d14", "inverse-on-surface": "#322f37", "on-primary": "#650034", "secondary-container": "#a3d700", "on-tertiary": "#003733", "on-primary-fixed-variant": "#8e004c", "error": "#ffb4ab", "on-secondary": "#263500", "tertiary": "#00ded0", "surface-container-high": "#2b2931", "surface-variant": "#36333c", "surface-container": "#211e26", "secondary-fixed-dim": "#a3d700", "surface-dim": "#141219", "on-secondary-fixed-variant": "#394d00", "secondary-fixed": "#bef532", "inverse-primary": "#b90065", "surface-bright": "#3b3840", "surface-container-highest": "#36333c", "tertiary-container": "#00a298", "on-surface-variant": "#e2bdc7", "on-tertiary-fixed": "#00201d", "on-error": "#690005", "on-error-container": "#ffdad6", "primary-container": "#ff4898", "secondary": "#bef532", "surface-tint": "#ffb0c9", "on-secondary-fixed": "#151f00", "outline-variant": "#5a3f47", "primary-fixed-dim": "#ffb0c9", "surface-container-low": "#1d1a22", "on-primary-fixed": "#3e001e", "on-tertiary-fixed-variant": "#00504b", "inverse-surface": "#e7e0eb", "on-surface": "#e7e0eb", "primary": "#ffb0c9", "surface": "#141219", "on-background": "#e7e0eb", "primary-fixed": "#ffd9e2", "on-tertiary-container": "#00302c", "background": "#141219" }, borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, spacing: { "space-sm": "0.5rem", "space-md": "1rem", "gutter": "1rem", "margin": "1rem", "gutter-desktop": "1.5rem", "margin-desktop": "2.5rem", "space-lg": "1.5rem", "space-xl": "2.5rem", "space-xs": "0.25rem" }, fontFamily: { "label-mono-md": ["Space Mono"], "title-md": ["Space Grotesk"], "body-lg": ["Space Grotesk"], "title-lg": ["Space Grotesk"], "headline-lg-mobile": ["Anton"], "stamp-code": ["Space Mono"], "headline-md": ["Anton"], "body-md": ["Space Grotesk"], "headline-xl-mobile": ["Anton"], "headline-lg": ["Anton"], "headline-xl": ["Anton"], "label-mono-lg": ["Space Mono"] }, fontSize: { "label-mono-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.06em", "fontWeight": "400" }], "title-md": ["18px", { "lineHeight": "22px", "letterSpacing": "0em", "fontWeight": "600" }], "body-lg": ["16px", { "lineHeight": "24px", "letterSpacing": "0.01em", "fontWeight": "400" }], "title-lg": ["22px", { "lineHeight": "26px", "letterSpacing": "-0.01em", "fontWeight": "700" }], "headline-lg-mobile": ["32px", { "lineHeight": "32px", "letterSpacing": "0.03em", "fontWeight": "400" }], "stamp-code": ["11px", { "lineHeight": "14px", "letterSpacing": "0.14em", "fontWeight": "700" }], "headline-md": ["28px", { "lineHeight": "30px", "letterSpacing": "0.04em", "fontWeight": "400" }], "body-md": ["14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "400" }], "headline-xl-mobile": ["42px", { "lineHeight": "40px", "letterSpacing": "0.03em", "fontWeight": "400" }], "headline-lg": ["44px", { "lineHeight": "44px", "letterSpacing": "0.04em", "fontWeight": "400" }], "headline-xl": ["64px", { "lineHeight": "60px", "letterSpacing": "0.04em", "fontWeight": "400" }], "label-mono-lg": ["14px", { "lineHeight": "18px", "letterSpacing": "0.08em", "fontWeight": "700" }] } } } }</script><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface text-on-surface flex flex-col min-h-screen selection:bg-secondary selection:text-on-secondary"><header class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-xl pt-safe shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-16 px-gutter flex items-center justify-between"><div class="flex items-center gap-space-sm"><span class="w-2 h-2 rounded-full bg-secondary shadow-[0_0_8px_#bef532] animate-pulse"></span><span class="font-headline-md text-headline-md tracking-wider uppercase text-on-surface">Guest Pass</span></div><div class="flex items-center gap-space-sm"><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex flex-col relative w-full pt-16 pb-20 bg-surface min-h-screen"><div class="flex flex-col w-full px-gutter pb-space-xl text-on-surface select-none">
+<!-- LIVING RADIAL GLOW UNDERLAY -->
+<div class="fixed inset-0 pointer-events-none -z-10 flex items-center justify-center">
+<div class="w-80 h-80 rounded-full bg-secondary/10 blur-[90px] transition-all duration-700" id="ambient-rave-glow"></div>
+</div>
+<!-- TICKET / PASSPORT SUMMARY HEADER -->
+<section class="w-full bg-surface-container-low rounded-lg p-space-md shadow-xl relative overflow-hidden mb-space-md">
+<!-- Top Hardware Indicator & Live Status -->
+<div class="flex items-center justify-between gap-space-sm mb-space-sm">
+<div class="flex items-center gap-space-xs">
+<span class="w-2 h-2 rounded-full bg-secondary animate-ping"></span>
+<span class="font-stamp-code text-stamp-code uppercase text-secondary">LIVE LINK // GATE 01</span>
+</div>
+<span class="font-stamp-code text-stamp-code bg-surface-container-highest px-space-xs py-0.5 rounded text-on-surface-variant tracking-wider">
+        FOLIO #8842-X7
+      </span>
+</div>
+<!-- Pass Name & Date -->
+<div class="flex flex-col mb-space-sm">
+<span class="font-label-mono-md text-label-mono-md uppercase text-outline tracking-widest">PASAPORTE VIP ACCESS</span>
+<h2 class="font-headline-md text-headline-md tracking-wider text-on-surface uppercase leading-none mt-space-xs">
+        MAFE CONTRERAS
+      </h2>
+<div class="flex items-center gap-space-sm mt-space-xs">
+<span class="font-stamp-code text-stamp-code text-tertiary uppercase">SÁB. 24 MAY // NOCTURNA</span>
+<span class="text-outline text-xs">/</span>
+<span class="font-stamp-code text-stamp-code text-primary uppercase tracking-widest">WAREHOUSE 04</span>
+</div>
+</div>
+<!-- Urgent Door Policy Banner -->
+<div class="w-full bg-surface-container-lowest px-space-sm py-space-xs rounded flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-[16px] text-error">timer</span>
+<span class="font-stamp-code text-stamp-code text-error uppercase font-bold">CORTE DE LISTA: 01:30 AM</span>
+</div>
+<span class="font-stamp-code text-stamp-code text-secondary uppercase tracking-widest animate-pulse">ESTÁS EN LISTA</span>
+</div>
+<!-- Decorative Perforation Teeth Edge -->
+<div class="absolute -bottom-1 left-0 right-0 flex justify-between px-2 pointer-events-none opacity-40">
+<div class="w-2 h-2 rounded-full bg-surface"></div>
+<div class="w-2 h-2 rounded-full bg-surface"></div>
+<div class="w-2 h-2 rounded-full bg-surface"></div>
+<div class="w-2 h-2 rounded-full bg-surface"></div>
+<div class="w-2 h-2 rounded-full bg-surface"></div>
+<div class="w-2 h-2 rounded-full bg-surface"></div>
+<div class="w-2 h-2 rounded-full bg-surface"></div>
+</div>
+</section>
+<!-- DJ CROSSFADER INTERACTION BLOCK (DECISION CONTROL) -->
+<section class="w-full bg-surface-container rounded-lg p-space-md shadow-xl mb-space-md relative">
+<div class="flex items-center justify-between mb-space-xs">
+<span class="font-label-mono-md text-label-mono-md text-on-surface-variant uppercase tracking-wider flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-[15px] text-secondary">tune</span>
+        CROSSFADER MASTER // RSVP
+      </span>
+<span class="font-stamp-code text-stamp-code text-secondary uppercase bg-surface-container-lowest px-2 py-0.5 rounded" id="fader-mode-indicator">
+        CH-B: ACTIVADO (VOY)
+      </span>
+</div>
+<!-- Mixer Visual Faceplate Graphic -->
+<div class="w-full bg-surface-container-lowest rounded p-space-sm shadow-inner relative">
+<!-- dB Graduations & Audio Markers -->
+<div class="flex justify-between items-center text-outline text-[9px] font-stamp-code uppercase px-2 mb-1">
+<span class="text-error font-bold tracking-widest">OUT [ME ABRO]</span>
+<span class="text-outline opacity-60">0 dB [NEUTRAL]</span>
+<span class="text-secondary font-bold tracking-widest">IN [ADENTRO]</span>
+</div>
+<!-- Tick Marks Line -->
+<div class="flex justify-between items-center px-3 mb-2 opacity-50">
+<span class="w-[2px] h-3 bg-error"></span>
+<span class="w-[1px] h-2 bg-outline"></span>
+<span class="w-[1px] h-2 bg-outline"></span>
+<span class="w-[1px] h-2 bg-outline"></span>
+<span class="w-[2px] h-3 bg-on-surface"></span>
+<span class="w-[1px] h-2 bg-outline"></span>
+<span class="w-[1px] h-2 bg-outline"></span>
+<span class="w-[1px] h-2 bg-outline"></span>
+<span class="w-[2px] h-3 bg-secondary"></span>
+</div>
+<!-- Horizontal Fader Channel Track -->
+<div class="relative w-full h-14 bg-surface-container-low rounded flex items-center px-1">
+<!-- Physical Deep Slot in Mixer -->
+<div class="w-full h-3 bg-surface-container-lowest rounded-full relative overflow-hidden shadow-inner mx-2">
+<!-- Active Track Illumination -->
+<div class="absolute right-0 top-0 bottom-0 w-1/2 bg-secondary/30 transition-all duration-300" id="fader-track-glow"></div>
+</div>
+<!-- 3 Interactive Snap Touch Targets Overlay -->
+<div class="absolute inset-0 flex justify-between z-10">
+<button class="w-1/3 h-full cursor-pointer focus:outline-none flex items-center justify-start pl-4 group" id="snap-left-btn" type="button">
+<span class="font-stamp-code text-stamp-code text-error opacity-70 group-hover:opacity-100 uppercase">CH-A</span>
+</button>
+<button class="w-1/3 h-full cursor-pointer focus:outline-none flex items-center justify-center group" id="snap-center-btn" type="button">
+<span class="font-stamp-code text-stamp-code text-outline opacity-40 group-hover:opacity-100 uppercase">CUT</span>
+</button>
+<button class="w-1/3 h-full cursor-pointer focus:outline-none flex items-center justify-end pr-4 group" id="snap-right-btn" type="button">
+<span class="font-stamp-code text-stamp-code text-secondary opacity-70 group-hover:opacity-100 uppercase">CH-B</span>
+</button>
+</div>
+<!-- Physical Tactile Fader Knob (Pioneer DJ Style Ribbed Grip) -->
+<div class="absolute z-20 top-1 bottom-1 w-14 rounded bg-surface-container-high shadow-2xl flex flex-col justify-center items-center cursor-grab active:cursor-grabbing transition-all duration-300 left-[calc(100%-4rem)]" id="fader-knob">
+<!-- Ribbed Texture Grips -->
+<div class="flex flex-col gap-[2px] w-6 opacity-60">
+<div class="h-[2px] bg-outline rounded-full w-full"></div>
+<div class="h-[2px] bg-outline rounded-full w-full"></div>
+<div class="h-[2px] bg-outline rounded-full w-full"></div>
+</div>
+<!-- Illuminated Neon Position Line -->
+<div class="w-1 h-7 bg-secondary rounded-full my-1 shadow-[0_0_8px_#bef532] transition-colors duration-300" id="fader-line-indicator"></div>
+<div class="flex flex-col gap-[2px] w-6 opacity-60">
+<div class="h-[2px] bg-outline rounded-full w-full"></div>
+<div class="h-[2px] bg-outline rounded-full w-full"></div>
+<div class="h-[2px] bg-outline rounded-full w-full"></div>
+</div>
+</div>
+</div>
+<!-- Tactile Legend Under Fader -->
+<div class="flex justify-between items-center mt-2 px-1 text-label-mono-md font-label-mono-md">
+<span class="text-outline uppercase text-[11px] font-bold transition-colors" id="label-no-voy">NO VOY / BAJA</span>
+<span class="text-outline opacity-40 uppercase text-[10px] tracking-widest transition-colors" id="label-center">CENTRO (OFF)</span>
+<span class="text-secondary uppercase text-[11px] font-bold transition-colors tracking-wide" id="label-voy">ADENTRO / VOY</span>
+</div>
+</div>
+</section>
+<!-- HARDWARE STEPPER (+1 GUEST RACK) -->
+<section class="w-full bg-surface-container rounded-lg p-space-md shadow-xl mb-space-md">
+<div class="flex items-center justify-between mb-space-xs">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-[16px] text-primary">group_add</span>
+<span class="font-label-mono-md text-label-mono-md text-on-surface uppercase tracking-wider">ACOMPAÑANTES (+1)</span>
+</div>
+<span class="font-stamp-code text-stamp-code text-error bg-error/15 px-space-xs py-0.5 rounded font-bold uppercase tracking-widest">
+        LÍMITE ALCANZADO // FULL PASS
+      </span>
+</div>
+<!-- Stepper Controller Box -->
+<div class="w-full bg-surface-container-lowest rounded p-space-md flex items-center justify-between gap-space-md">
+<!-- Minus Button -->
+<button class="w-14 h-14 bg-surface-container-high rounded flex items-center justify-center text-on-surface active:bg-surface-bright active:scale-95 transition-transform shadow-md focus:outline-none" id="stepper-minus-btn" type="button">
+<span class="material-symbols-outlined text-[24px]">remove</span>
+</button>
+<!-- Digital Rack Counter Display -->
+<div class="flex flex-col items-center justify-center flex-1">
+<div class="flex items-baseline gap-1">
+<span class="font-headline-xl-mobile text-headline-xl-mobile text-secondary font-bold leading-none tracking-tight">
+            +<span id="guest-count">2</span>
+</span>
+<span class="font-stamp-code text-stamp-code text-outline uppercase tracking-wider">/ MÁX 2</span>
+</div>
+<span class="font-stamp-code text-stamp-code text-primary uppercase tracking-widest mt-space-xs">
+          3 TICKETS EN PUERTA (1+2)
+        </span>
+</div>
+<!-- Plus Button (Disabled Visual State at Cap) -->
+<button class="w-14 h-14 bg-surface-container-low rounded flex items-center justify-center text-outline cursor-not-allowed opacity-50 shadow-md focus:outline-none" id="stepper-plus-btn" title="Máximo alcanzado" type="button">
+<span class="material-symbols-outlined text-[24px]">add</span>
+</button>
+</div>
+<!-- Policy Footnote -->
+<div class="flex items-start gap-space-xs mt-space-sm px-1">
+<span class="material-symbols-outlined text-[15px] text-outline shrink-0 mt-0.5">verified_user</span>
+<p class="font-body-md text-body-md text-on-surface-variant text-xs leading-relaxed">
+        Los acompañantes deben ingresar juntos con la titular en puerta física con DNI vigente. No transferible.
+      </p>
+</div>
+</section>
+<!-- GAFFER TAPE / BACKSTAGE MEMO NOTE -->
+<section class="w-full relative mb-space-lg pt-3">
+<!-- Top Gaffer Tape Strip Strip Effect -->
+<div class="absolute -top-1 left-8 w-28 h-5 bg-surface-bright/80 rotate-[-3deg] shadow-sm z-10 flex items-center justify-center">
+<span class="font-stamp-code text-[8px] text-outline-variant uppercase tracking-widest opacity-80">GAFFER TAPE #09</span>
+</div>
+<!-- Technical Pass Card Note -->
+<div class="w-full bg-surface-container-low rounded-lg p-space-md shadow-2xl relative overflow-hidden">
+<!-- Header of Memo -->
+<div class="flex items-center justify-between mb-space-sm">
+<span class="font-stamp-code text-stamp-code text-tertiary uppercase tracking-widest flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-[14px]">edit_note</span>
+          MENSAJE A PUERTA // NOTA PRIVADA
+        </span>
+<span class="font-stamp-code text-stamp-code text-outline uppercase">
+          142 / 200 CHARS
+        </span>
+</div>
+<!-- Real Club Memo Copy in Rough Grotesk -->
+<div class="w-full bg-surface-container-lowest/80 rounded p-space-sm relative">
+<p class="font-body-md text-body-md text-on-surface italic leading-relaxed tracking-normal">
+          “Avisale a DJ Valk que prepare el remix de acid techno de las 3 AM. Llegamos con el crew en taxi antes de las 12:30 para no comernos la fila.”
+        </p>
+<div class="flex justify-between items-center mt-space-sm pt-space-xs">
+<span class="font-stamp-code text-stamp-code text-primary uppercase">FIRMA: @MAFE_CONTRERAS</span>
+<span class="material-symbols-outlined text-[16px] text-secondary">done_all</span>
+</div>
+</div>
+</div>
+</section>
+<!-- MASSIVE SUBMISSION CTA & SEAL ACTION -->
+<section class="w-full flex flex-col gap-space-sm">
+<!-- Big Raving CTA Button -->
+<button class="w-full h-16 bg-secondary text-on-secondary font-headline-md text-headline-md uppercase tracking-wider rounded-none flex items-center justify-center gap-space-sm active:scale-[0.99] transition-all shadow-[0_0_24px_rgba(190,245,50,0.35)] cursor-pointer" id="rsvp-submit-btn" type="button">
+<span id="btn-label-text">CONFIRMAR ASISTENCIA // EN PUERTA</span>
+<span class="material-symbols-outlined text-[24px]">arrow_forward</span>
+</button>
+<!-- Subtext Explainer & State Notice -->
+<div class="w-full flex flex-col items-center text-center px-space-md mt-space-xs">
+<span class="font-stamp-code text-stamp-code text-on-surface-variant uppercase tracking-widest mb-1">
+        CÓDIGO QR ENCRIPTADO // SE LIBERA 4 HORAS ANTES DEL DROP
+      </span>
+<span class="font-body-md text-body-md text-outline text-xs">
+        Al confirmar, tu nombre queda sellado en la lista oficial de cabina.
+      </span>
+</div>
+</section>
+</div>
+<script>
+  (function() {
+    var knob = document.getElementById('fader-knob');
+    var modeInd = document.getElementById('fader-mode-indicator');
+    var trackGlow = document.getElementById('fader-track-glow');
+    var lineInd = document.getElementById('fader-line-indicator');
+    var submitBtn = document.getElementById('rsvp-submit-btn');
+    var btnLabel = document.getElementById('btn-label-text');
+    var labelNo = document.getElementById('label-no-voy');
+    var labelCenter = document.getElementById('label-center');
+    var labelVoy = document.getElementById('label-voy');
+    var glowUnderlay = document.getElementById('ambient-rave-glow');
+
+    var snapLeft = document.getElementById('snap-left-btn');
+    var snapCenter = document.getElementById('snap-center-btn');
+    var snapRight = document.getElementById('snap-right-btn');
+
+    var stepperMinus = document.getElementById('stepper-minus-btn');
+    var stepperPlus = document.getElementById('stepper-plus-btn');
+    var guestCountSpan = document.getElementById('guest-count');
+    var currentGuests = 2;
+
+    function applyFaderState(state) {
+      if (state === 'voy') {
+        knob.style.left = 'calc(100% - 4rem)';
+        modeInd.textContent = 'CH-B: ACTIVADO (VOY)';
+        modeInd.className = 'font-stamp-code text-stamp-code text-secondary uppercase bg-surface-container-lowest px-2 py-0.5 rounded';
+        trackGlow.className = 'absolute right-0 top-0 bottom-0 w-1/2 bg-secondary/30 transition-all duration-300';
+        lineInd.className = 'w-1 h-7 bg-secondary rounded-full my-1 shadow-[0_0_8px_#bef532] transition-colors duration-300';
+        glowUnderlay.className = 'w-80 h-80 rounded-full bg-secondary/10 blur-[90px] transition-all duration-700';
+
+        labelVoy.className = 'text-secondary uppercase text-[11px] font-bold transition-colors tracking-wide';
+        labelNo.className = 'text-outline uppercase text-[11px] font-bold transition-colors opacity-40';
+        labelCenter.className = 'text-outline opacity-40 uppercase text-[10px] tracking-widest transition-colors';
+
+        submitBtn.className = 'w-full h-16 bg-secondary text-on-secondary font-headline-md text-headline-md uppercase tracking-wider rounded-none flex items-center justify-center gap-space-sm active:scale-[0.99] transition-all shadow-[0_0_24px_rgba(190,245,50,0.35)] cursor-pointer';
+        btnLabel.textContent = 'CONFIRMAR ASISTENCIA // EN PUERTA';
+        submitBtn.disabled = false;
+      } else if (state === 'neutral') {
+        knob.style.left = 'calc(50% - 1.75rem)';
+        modeInd.textContent = 'CUT: SIN DECIDIR (NEUTRO)';
+        modeInd.className = 'font-stamp-code text-stamp-code text-outline uppercase bg-surface-container-lowest px-2 py-0.5 rounded';
+        trackGlow.className = 'absolute left-1/4 top-0 bottom-0 w-1/2 bg-outline/10 transition-all duration-300';
+        lineInd.className = 'w-1 h-7 bg-outline rounded-full my-1 shadow-none transition-colors duration-300';
+        glowUnderlay.className = 'w-80 h-80 rounded-full bg-outline/5 blur-[90px] transition-all duration-700';
+
+        labelCenter.className = 'text-on-surface uppercase text-[10px] font-bold tracking-widest transition-colors';
+        labelNo.className = 'text-outline uppercase text-[11px] font-bold transition-colors opacity-40';
+        labelVoy.className = 'text-outline uppercase text-[11px] font-bold transition-colors opacity-40';
+
+        submitBtn.className = 'w-full h-16 bg-surface-container-highest text-outline font-headline-md text-headline-md uppercase tracking-wider rounded-none flex items-center justify-center gap-space-sm transition-all cursor-not-allowed opacity-70';
+        btnLabel.textContent = '[FADER AL CENTRO: DEFINÍ TU POSTURA]';
+        submitBtn.disabled = true;
+      } else if (state === 'no-voy') {
+        knob.style.left = '0.5rem';
+        modeInd.textContent = 'CH-A: CORTE (ME ABRO)';
+        modeInd.className = 'font-stamp-code text-stamp-code text-error uppercase bg-surface-container-lowest px-2 py-0.5 rounded';
+        trackGlow.className = 'absolute left-0 top-0 bottom-0 w-1/2 bg-error/30 transition-all duration-300';
+        lineInd.className = 'w-1 h-7 bg-error rounded-full my-1 shadow-[0_0_8px_#ff5a1f] transition-colors duration-300';
+        glowUnderlay.className = 'w-80 h-80 rounded-full bg-error/15 blur-[90px] transition-all duration-700';
+
+        labelNo.className = 'text-error uppercase text-[11px] font-bold transition-colors tracking-wide';
+        labelVoy.className = 'text-outline uppercase text-[11px] font-bold transition-colors opacity-40';
+        labelCenter.className = 'text-outline opacity-40 uppercase text-[10px] tracking-widest transition-colors';
+
+        submitBtn.className = 'w-full h-16 bg-error text-on-error font-headline-md text-headline-md uppercase tracking-wider rounded-none flex items-center justify-center gap-space-sm active:scale-[0.99] transition-all shadow-[0_0_24px_rgba(255,90,31,0.35)] cursor-pointer';
+        btnLabel.textContent = 'LIBERAR CUPO // NO ASISTIRÉ';
+        submitBtn.disabled = false;
+      }
+    }
+
+    if (snapLeft) snapLeft.addEventListener('click', function() { applyFaderState('no-voy'); });
+    if (snapCenter) snapCenter.addEventListener('click', function() { applyFaderState('neutral'); });
+    if (snapRight) snapRight.addEventListener('click', function() { applyFaderState('voy'); });
+
+    // Stepper controls
+    if (stepperMinus) {
+      stepperMinus.addEventListener('click', function() {
+        if (currentGuests > 0) {
+          currentGuests--;
+          guestCountSpan.textContent = currentGuests;
+          stepperPlus.classList.remove('opacity-50', 'cursor-not-allowed');
+          if (currentGuests === 0) {
+            stepperMinus.classList.add('opacity-50', 'cursor-not-allowed');
+          }
+        }
+      });
+    }
+
+    if (stepperPlus) {
+      stepperPlus.addEventListener('click', function() {
+        if (currentGuests < 2) {
+          currentGuests++;
+          guestCountSpan.textContent = currentGuests;
+          stepperMinus.classList.remove('opacity-50', 'cursor-not-allowed');
+          if (currentGuests === 2) {
+            stepperPlus.classList.add('opacity-50', 'cursor-not-allowed');
+          }
+        }
+      });
+    }
+  })();
+</script></main><nav class="fixed bottom-0 w-full z-50 pb-safe bg-surface/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]" data-active-classes="text-secondary"><div class="flex justify-around items-center h-16 px-gutter"><a aria-current="page" class="flex flex-col items-center justify-center min-w-[44px] min-h-[44px] transition-colors text-secondary" data-path="guest-pass" href="#"><span class="material-symbols-outlined">confirmation_number</span><span class="font-label-mono-md text-label-mono-md uppercase tracking-wider mt-space-xs">Pase</span></a><a class="flex flex-col items-center justify-center min-w-[44px] min-h-[44px] text-on-surface-variant transition-colors" data-path="lineup" href="#"><span class="material-symbols-outlined">graphic_eq</span><span class="font-label-mono-md text-label-mono-md uppercase tracking-wider mt-space-xs">Lineup</span></a><a class="flex flex-col items-center justify-center min-w-[44px] min-h-[44px] text-on-surface-variant transition-colors" data-path="club-info" href="#"><span class="material-symbols-outlined">location_on</span><span class="font-label-mono-md text-label-mono-md uppercase tracking-wider mt-space-xs">Acceso</span></a></div></nav></body></html>

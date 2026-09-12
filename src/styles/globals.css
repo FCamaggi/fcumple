@@ -1,0 +1,72 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body {
+    background-color: theme('colors.ink.950');
+    overscroll-behavior: none;
+  }
+
+  ::selection {
+    background-color: theme('colors.hotpink.500');
+    color: theme('colors.ink.950');
+  }
+}
+
+@layer utilities {
+  /* Ticket perforation: dashed cut line simulating a tear-off stub. */
+  .perforation {
+    background-image: repeating-linear-gradient(
+      to right,
+      theme('colors.smoke.700') 0,
+      theme('colors.smoke.700') 6px,
+      transparent 6px,
+      transparent 14px
+    );
+    background-size: 100% 2px;
+    background-repeat: no-repeat;
+    background-position: center;
+  }
+
+  /* Perforation notches: the semicircle cutouts at each end of a ticket edge. */
+  .notch-left::before,
+  .notch-right::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 16px;
+    height: 16px;
+    border-radius: 9999px;
+    background-color: theme('colors.ink.950');
+    transform: translateY(-50%);
+  }
+  .notch-left::before {
+    left: -8px;
+  }
+  .notch-right::after {
+    right: -8px;
+  }
+
+  .film-grain {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.35'/%3E%3C/svg%3E");
+    mix-blend-mode: overlay;
+  }
+
+  .tap-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

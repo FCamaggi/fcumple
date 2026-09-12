@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="es"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Space+Grotesk:wght@400;600;700&amp;family=Space+Mono:wght@400;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{width:100vw;margin:0;padding:0;background-color:#141219;}body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "on-primary-container": "#58002d", "tertiary-fixed": "#3ffbed", "on-secondary-container": "#435a00", "error-container": "#93000a", "tertiary-fixed-dim": "#00ded0", "outline": "#a98891", "surface-container-lowest": "#0f0d14", "inverse-on-surface": "#322f37", "on-primary": "#650034", "secondary-container": "#a3d700", "on-tertiary": "#003733", "on-primary-fixed-variant": "#8e004c", "error": "#ffb4ab", "on-secondary": "#263500", "tertiary": "#00ded0", "surface-container-high": "#2b2931", "surface-variant": "#36333c", "surface-container": "#211e26", "secondary-fixed-dim": "#a3d700", "surface-dim": "#141219", "on-secondary-fixed-variant": "#394d00", "secondary-fixed": "#bef532", "inverse-primary": "#b90065", "surface-bright": "#3b3840", "surface-container-highest": "#36333c", "tertiary-container": "#00a298", "on-surface-variant": "#e2bdc7", "on-tertiary-fixed": "#00201d", "on-error": "#690005", "on-error-container": "#ffdad6", "primary-container": "#ff4898", "secondary": "#bef532", "surface-tint": "#ffb0c9", "on-secondary-fixed": "#151f00", "outline-variant": "#5a3f47", "primary-fixed-dim": "#ffb0c9", "surface-container-low": "#1d1a22", "on-primary-fixed": "#3e001e", "on-tertiary-fixed-variant": "#00504b", "inverse-surface": "#e7e0eb", "on-surface": "#e7e0eb", "primary": "#ffb0c9", "surface": "#141219", "on-background": "#e7e0eb", "primary-fixed": "#ffd9e2", "on-tertiary-container": "#00302c", "background": "#141219" }, borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, spacing: { "space-sm": "0.5rem", "space-md": "1rem", "gutter": "1rem", "margin": "1rem", "gutter-desktop": "1.5rem", "margin-desktop": "2.5rem", "space-lg": "1.5rem", "space-xl": "2.5rem", "space-xs": "0.25rem" }, fontFamily: { "label-mono-md": ["Space Mono"], "title-md": ["Space Grotesk"], "body-lg": ["Space Grotesk"], "title-lg": ["Space Grotesk"], "headline-lg-mobile": ["Anton"], "stamp-code": ["Space Mono"], "headline-md": ["Anton"], "body-md": ["Space Grotesk"], "headline-xl-mobile": ["Anton"], "headline-lg": ["Anton"], "headline-xl": ["Anton"], "label-mono-lg": ["Space Mono"] }, fontSize: { "label-mono-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.06em", "fontWeight": "400" }], "title-md": ["18px", { "lineHeight": "22px", "letterSpacing": "0em", "fontWeight": "600" }], "body-lg": ["16px", { "lineHeight": "24px", "letterSpacing": "0.01em", "fontWeight": "400" }], "title-lg": ["22px", { "lineHeight": "26px", "letterSpacing": "-0.01em", "fontWeight": "700" }], "headline-lg-mobile": ["32px", { "lineHeight": "32px", "letterSpacing": "0.03em", "fontWeight": "400" }], "stamp-code": ["11px", { "lineHeight": "14px", "letterSpacing": "0.14em", "fontWeight": "700" }], "headline-md": ["28px", { "lineHeight": "30px", "letterSpacing": "0.04em", "fontWeight": "400" }], "body-md": ["14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "400" }], "headline-xl-mobile": ["42px", { "lineHeight": "40px", "letterSpacing": "0.03em", "fontWeight": "400" }], "headline-lg": ["44px", { "lineHeight": "44px", "letterSpacing": "0.04em", "fontWeight": "400" }], "headline-xl": ["64px", { "lineHeight": "60px", "letterSpacing": "0.04em", "fontWeight": "400" }], "label-mono-lg": ["14px", { "lineHeight": "18px", "letterSpacing": "0.08em", "fontWeight": "700" }] } } } }</script><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface text-on-surface flex flex-col min-h-screen selection:bg-secondary selection:text-on-secondary"><header class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-xl pt-safe shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-16 px-gutter flex items-center justify-between"><div class="flex items-center gap-space-sm"><span class="w-2 h-2 rounded-full bg-secondary shadow-[0_0_8px_#bef532] animate-pulse"></span><span class="font-headline-md text-headline-md tracking-wider uppercase text-on-surface">Guest Pass</span></div><div class="flex items-center gap-space-sm"><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex flex-col relative w-full pt-16 pb-20 bg-surface min-h-screen"><div class="flex flex-col w-full relative overflow-hidden px-gutter pb-space-xl">
+<div class="pointer-events-none absolute inset-0 z-0 flex items-center justify-center">
+<div class="w-[340px] h-[340px] rounded-full bg-secondary/15 blur-[90px] animate-pulse"></div>
+<div class="w-[260px] h-[260px] rounded-full bg-primary-container/20 blur-[70px] -mt-20"></div>
+<div class="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-secondary/10 via-transparent to-transparent"></div>
+</div>
+<canvas class="pointer-events-none absolute inset-0 z-10 w-full h-full" id="club-confetti-canvas"></canvas>
+<section class="relative z-20 flex flex-col items-center text-center mt-space-md">
+<div class="inline-flex items-center gap-space-xs px-space-sm py-1 bg-surface-container-lowest shadow-[0_0_12px_rgba(190,245,50,0.35)] mb-space-md">
+<span class="w-2 h-2 bg-secondary animate-ping"></span>
+<span class="font-stamp-code text-stamp-code uppercase text-secondary tracking-widest">[ ACCESS GRANTED // DROP 01 ACTIVE ]</span>
+</div>
+<h1 class="font-headline-xl-mobile text-headline-xl-mobile uppercase text-on-surface tracking-wider leading-none select-none">
+      ¡ESTÁS <span class="text-secondary underline decoration-primary-container decoration-4">ADENTRO</span>!
+    </h1>
+<p class="font-title-md text-title-md uppercase text-primary tracking-wide mt-space-xs max-w-[320px]">
+      SE PRENDIERON LAS LUCES. NOS VEMOS EN LA PISTA.
+    </p>
+<div class="flex items-center gap-1.5 mt-space-md bg-surface-container-lowest px-space-md py-space-xs">
+<span class="font-label-mono-md text-label-mono-md text-tertiary">LISTA BOOTH SYNC:</span>
+<div class="flex items-end gap-1 h-3">
+<span class="w-1 bg-secondary animate-[bounce_0.6s_infinite_0ms] h-full"></span>
+<span class="w-1 bg-secondary animate-[bounce_0.8s_infinite_100ms] h-2"></span>
+<span class="w-1 bg-primary-container animate-[bounce_0.5s_infinite_200ms] h-full"></span>
+<span class="w-1 bg-secondary animate-[bounce_0.7s_infinite_150ms] h-3"></span>
+<span class="w-1 bg-primary animate-[bounce_0.9s_infinite_50ms] h-2"></span>
+</div>
+<span class="font-label-mono-md text-label-mono-md text-secondary tracking-wider uppercase ml-1 font-bold">138 BPM</span>
+</div>
+</section>
+<section class="relative z-20 mt-space-lg w-full">
+<div class="relative bg-surface-container-lowest shadow-2xl">
+<div class="relative p-space-md bg-surface-container">
+<div class="flex justify-between items-start">
+<div>
+<span class="font-stamp-code text-stamp-code uppercase text-outline tracking-widest block">PASS IDENTIFIER</span>
+<span class="font-label-mono-lg text-label-mono-lg text-secondary tracking-widest">#0048-REV-25</span>
+</div>
+<div class="bg-surface-container-lowest px-space-sm py-0.5">
+<span class="font-stamp-code text-stamp-code text-primary uppercase font-bold tracking-widest">VIP CANAL B</span>
+</div>
+</div>
+<div class="mt-space-md">
+<span class="font-stamp-code text-stamp-code uppercase text-on-surface-variant tracking-wider block">GUEST OF HONOR</span>
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile uppercase text-on-surface tracking-wider leading-none mt-1">
+            MAFE CONTRERAS
+          </h2>
+<div class="inline-flex items-center gap-2 mt-2 bg-secondary/10 px-2 py-1">
+<span class="w-1.5 h-1.5 bg-secondary"></span>
+<span class="font-label-mono-md text-label-mono-md text-secondary uppercase font-bold tracking-wider">
+              + 2 INVITADOS (3 CUPOS ASEGURADOS)
+            </span>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-space-sm mt-space-md pt-space-sm bg-surface-container-low p-space-sm">
+<div>
+<span class="font-stamp-code text-stamp-code uppercase text-outline block">CORTE DE LISTA</span>
+<span class="font-title-md text-title-md text-on-surface uppercase font-bold">02:00 AM</span>
+</div>
+<div>
+<span class="font-stamp-code text-stamp-code uppercase text-outline block">PUERTAS CLUB</span>
+<span class="font-title-md text-title-md text-secondary uppercase font-bold">23:30 HRS</span>
+</div>
+</div>
+</div>
+<div class="relative h-6 bg-surface-container flex items-center justify-between px-3 overflow-hidden">
+<div class="w-5 h-5 -ml-6 rounded-full bg-surface"></div>
+<div class="flex-1 border-t-2 border-dashed border-outline-variant mx-2 opacity-50"></div>
+<div class="w-5 h-5 -mr-6 rounded-full bg-surface"></div>
+</div>
+<div class="p-space-md bg-surface-container-low flex flex-col items-center text-center">
+<div class="relative w-44 h-44 bg-surface-container-lowest p-3 flex flex-col items-center justify-center group">
+<div class="absolute inset-0 bg-secondary/5 pointer-events-none"></div>
+<div class="grid grid-cols-6 grid-rows-6 gap-1 w-32 h-32 opacity-40">
+<div class="bg-on-surface"></div><div class="bg-on-surface"></div><div class="bg-transparent"></div><div class="bg-on-surface"></div><div class="bg-on-surface"></div><div class="bg-on-surface"></div>
+<div class="bg-on-surface"></div><div class="bg-transparent"></div><div class="bg-on-surface"></div><div class="bg-transparent"></div><div class="bg-transparent"></div><div class="bg-on-surface"></div>
+<div class="bg-transparent"></div><div class="bg-on-surface"></div><div class="bg-on-surface"></div><div class="bg-on-surface"></div><div class="bg-transparent"></div><div class="bg-transparent"></div>
+<div class="bg-on-surface"></div><div class="bg-transparent"></div><div class="bg-on-surface"></div><div class="bg-on-surface"></div><div class="bg-on-surface"></div><div class="bg-on-surface"></div>
+<div class="bg-on-surface"></div><div class="bg-on-surface"></div><div class="bg-transparent"></div><div class="bg-transparent"></div><div class="bg-transparent"></div><div class="bg-on-surface"></div>
+<div class="bg-on-surface"></div><div class="bg-on-surface"></div><div class="bg-on-surface"></div><div class="bg-on-surface"></div><div class="bg-on-surface"></div><div class="bg-on-surface"></div>
+</div>
+<div class="absolute inset-0 flex flex-col items-center justify-center p-3 bg-surface-container-lowest/80 backdrop-blur-[1px]">
+<span class="material-symbols-outlined text-secondary text-[32px] animate-pulse">lock_clock</span>
+<span class="font-stamp-code text-stamp-code text-on-surface uppercase mt-2 font-bold tracking-wider">
+              QR ENCRIPTADO
+            </span>
+<span class="font-label-mono-md text-label-mono-md text-outline mt-0.5">
+              SE LIBERA EN T - 04:00:00
+            </span>
+</div>
+</div>
+<p class="font-label-mono-md text-label-mono-md text-outline-variant uppercase mt-space-sm tracking-wider">
+          PRESENTAR DNI FÍSICO + CÓDIGO DIRECTO EN PUERTA VIP
+        </p>
+<div class="w-full mt-space-md pt-space-xs flex justify-center items-center opacity-70">
+<svg class="h-8 w-60 fill-current text-on-surface" viewbox="0 0 240 32" xmlns="http://www.w3.org/2000/svg">
+<rect height="32" width="4" x="0"></rect>
+<rect height="32" width="2" x="7"></rect>
+<rect height="32" width="6" x="12"></rect>
+<rect height="32" width="2" x="22"></rect>
+<rect height="32" width="8" x="27"></rect>
+<rect height="32" width="4" x="38"></rect>
+<rect height="32" width="2" x="45"></rect>
+<rect height="32" width="7" x="50"></rect>
+<rect height="32" width="3" x="60"></rect>
+<rect height="32" width="5" x="66"></rect>
+<rect height="32" width="2" x="74"></rect>
+<rect height="32" width="6" x="79"></rect>
+<rect height="32" width="4" x="88"></rect>
+<rect height="32" width="2" x="95"></rect>
+<rect height="32" width="9" x="100"></rect>
+<rect height="32" width="3" x="112"></rect>
+<rect height="32" width="5" x="118"></rect>
+<rect height="32" width="2" x="126"></rect>
+<rect height="32" width="8" x="131"></rect>
+<rect height="32" width="4" x="142"></rect>
+<rect height="32" width="3" x="149"></rect>
+<rect height="32" width="6" x="155"></rect>
+<rect height="32" width="2" x="164"></rect>
+<rect height="32" width="7" x="169"></rect>
+<rect height="32" width="5" x="179"></rect>
+<rect height="32" width="2" x="187"></rect>
+<rect height="32" width="8" x="192"></rect>
+<rect height="32" width="3" x="203"></rect>
+<rect height="32" width="5" x="209"></rect>
+<rect height="32" width="2" x="217"></rect>
+<rect height="32" width="7" x="222"></rect>
+<rect height="32" width="4" x="232"></rect>
+</svg>
+</div>
+</div>
+</div>
+</section>
+<section class="relative z-20 mt-space-md flex flex-col gap-space-sm w-full">
+<button class="w-full py-space-md px-space-md bg-primary-container text-on-primary-container flex items-center justify-center gap-space-sm font-headline-md text-headline-md uppercase tracking-wider transition-transform active:scale-[0.98] shadow-[4px_4px_0px_#bef532]" id="wallet-btn">
+<span class="material-symbols-outlined text-[24px]">wallet</span>
+<span>GUARDAR EN WALLET</span>
+</button>
+<button class="w-full py-space-sm px-space-md bg-surface-container-high text-secondary flex items-center justify-center gap-space-xs font-label-mono-lg text-label-mono-lg uppercase tracking-wider transition-colors hover:bg-surface-bright" id="share-btn">
+<span class="material-symbols-outlined text-[18px]">ios_share</span>
+<span>COMPARTIR EN STORIES // DROPEAR</span>
+</button>
+</section>
+<section class="relative z-20 mt-space-lg flex flex-col gap-space-xs items-center text-center">
+<a class="font-label-mono-md text-label-mono-md text-tertiary uppercase tracking-widest hover:text-secondary transition-colors inline-flex items-center gap-1" href="#">
+<span class="material-symbols-outlined text-[14px]">graphic_eq</span>
+      VER LINEUP Y HORARIOS DEL DROP
+    </a>
+<a class="font-stamp-code text-stamp-code text-outline uppercase tracking-wider hover:text-on-surface transition-colors mt-space-xs" href="#">
+      MODIFICAR NOTA A PUERTA O ACOMPAÑANTES
+    </a>
+</section>
+</div>
+<script>
+  (function initClubConfetti() {
+    const canvas = document.getElementById('club-confetti-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    let width = (canvas.width = canvas.offsetWidth);
+    let height = (canvas.height = canvas.offsetHeight);
+
+    const colors = ['#c8ff3d', '#ff2f92'];
+    const particleCount = 42;
+    const particles = [];
+
+    for (let i = 0; i < particleCount; i++) {
+      particles.push({
+        x: Math.random() * width,
+        y: Math.random() * -height,
+        w: Math.random() * 4 + 3,
+        h: Math.random() * 14 + 8,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        vy: Math.random() * 3.5 + 2.0,
+        vx: (Math.random() - 0.5) * 2,
+        rot: Math.random() * 360,
+        vrot: (Math.random() - 0.5) * 8,
+        glow: Math.random() > 0.4
+      });
+    }
+
+    let animationFrame;
+    function render() {
+      ctx.clearRect(0, 0, width, height);
+
+      particles.forEach((p) => {
+        p.y += p.vy;
+        p.x += p.vx;
+        p.rot += p.vrot;
+
+        if (p.y > height + 20) {
+          p.y = -20;
+          p.x = Math.random() * width;
+        }
+
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate((p.rot * Math.PI) / 180);
+
+        if (p.glow) {
+          ctx.shadowColor = p.color;
+          ctx.shadowBlur = 10;
+        }
+
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+        ctx.restore();
+      });
+
+      animationFrame = requestAnimationFrame(render);
+    }
+
+    render();
+
+    window.addEventListener('resize', () => {
+      width = canvas.width = canvas.offsetWidth;
+      height = canvas.height = canvas.offsetHeight;
+    });
+
+    const shareBtn = document.getElementById('share-btn');
+    if (shareBtn) {
+      shareBtn.addEventListener('click', () => {
+        if (navigator.share) {
+          navigator.share({
+            title: 'ACCESO VIP // DROP CONFIRMADO',
+            text: '¡Quedé en lista para el fiestón! Nos vemos adentro.',
+            url: window.location.href
+          }).catch(() => {});
+        } else {
+          const original = shareBtn.innerHTML;
+          shareBtn.innerHTML = '<span class="material-symbols-outlined text-[18px]">done</span><span>ENLACE COPIADO // LISTO</span>';
+          setTimeout(() => { shareBtn.innerHTML = original; }, 2000);
+        }
+      });
+    }
+  })();
+</script></main><nav class="fixed bottom-0 w-full z-50 pb-safe bg-surface/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]" data-active-classes="text-secondary"><div class="flex justify-around items-center h-16 px-gutter"><a aria-current="page" class="flex flex-col items-center justify-center min-w-[44px] min-h-[44px] transition-colors text-secondary" data-path="guest-pass" href="#"><span class="material-symbols-outlined">confirmation_number</span><span class="font-label-mono-md text-label-mono-md uppercase tracking-wider mt-space-xs">Pase</span></a><a class="flex flex-col items-center justify-center min-w-[44px] min-h-[44px] text-on-surface-variant transition-colors" data-path="lineup" href="#"><span class="material-symbols-outlined">graphic_eq</span><span class="font-label-mono-md text-label-mono-md uppercase tracking-wider mt-space-xs">Lineup</span></a><a class="flex flex-col items-center justify-center min-w-[44px] min-h-[44px] text-on-surface-variant transition-colors" data-path="club-info" href="#"><span class="material-symbols-outlined">location_on</span><span class="font-label-mono-md text-label-mono-md uppercase tracking-wider mt-space-xs">Acceso</span></a></div></nav></body></html>
