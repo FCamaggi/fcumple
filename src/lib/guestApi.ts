@@ -21,6 +21,10 @@ function mapRow(row: GuestRow, token: string): Guest {
     plusOnesConfirmed: row.plus_ones_confirmed,
     guestNote: row.guest_note,
     respondedAt: row.responded_at,
+    // get_guest_by_token/submit_rsvp don't expose checked_in_at (that's
+    // check_in_guest's job, called only from the admin's scanner) --
+    // guest-facing screens simply don't know this yet.
+    checkedInAt: null,
   };
 }
 

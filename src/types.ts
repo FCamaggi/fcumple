@@ -60,4 +60,6 @@ export interface Guest {
   respondedAt: string | null;
   createdAt?: string;
   updatedAt?: string;
+  /** Null until the guest is scanned in at the door (Etapa 3: check-in QR). */
+  checkedInAt: string | null;
 }

@@ -11,6 +11,7 @@ const guests: Guest[] = [
     plusOnesConfirmed: 1,
     guestNote: 'sin nueces, sin lácteos',
     respondedAt: null,
+    checkedInAt: null,
   },
   {
     id: 'g2',
@@ -20,6 +21,7 @@ const guests: Guest[] = [
     plusOnesConfirmed: 0,
     guestNote: null,
     respondedAt: null,
+    checkedInAt: null,
   },
 ];
 
@@ -40,6 +42,7 @@ describe('guestsToCsv', () => {
         plusOnesConfirmed: 0,
         guestNote: 'trae "algo especial", llega tarde\ny se va temprano',
         respondedAt: null,
+        checkedInAt: null,
       },
     ];
     const csv = guestsToCsv(withCommas);

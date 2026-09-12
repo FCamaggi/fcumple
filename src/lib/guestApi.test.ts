@@ -37,6 +37,7 @@ describe('getGuestByToken', () => {
       status: 'pending',
       plusOnesAllowed: 3,
       plusOnesConfirmed: 0,
+      checkedInAt: null,
       guestNote: null,
       respondedAt: null,
     });

@@ -2,7 +2,7 @@ import { supabase } from './supabaseClient';
 import type { Guest, RsvpStatus } from '../types';
 
 const GUEST_COLUMNS =
-  'id, token, full_name, status, plus_ones_allowed, plus_ones_confirmed, guest_note, admin_note, responded_at, created_at, updated_at';
+  'id, token, full_name, status, plus_ones_allowed, plus_ones_confirmed, guest_note, admin_note, responded_at, created_at, updated_at, checked_in_at';
 
 interface GuestRow {
   id: string;
@@ -16,6 +16,7 @@ interface GuestRow {
   responded_at: string | null;
   created_at: string;
   updated_at: string;
+  checked_in_at: string | null;
 }
 
 function mapRow(row: GuestRow): Guest {
@@ -31,6 +32,7 @@ function mapRow(row: GuestRow): Guest {
     respondedAt: row.responded_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    checkedInAt: row.checked_in_at,
   };
 }
 
@@ -102,4 +104,43 @@ export async function updateGuest(id: string, patch: UpdateGuestPatch): Promise<
 export async function deleteGuest(id: string): Promise<void> {
   const { error } = await supabase.from('guests').delete().eq('id', id);
   if (error) fail('eliminar el invitado', error);
+}
+
+interface CheckInRow {
+  id: string;
+  full_name: string;
+  status: RsvpStatus;
+  plus_ones_allowed: number;
+  plus_ones_confirmed: number;
+  guest_note: string | null;
+  responded_at: string | null;
+  checked_in_at: string | null;
+}
+
+function mapCheckInRow(row: CheckInRow): Guest {
+  return {
+    id: row.id,
+    fullName: row.full_name,
+    status: row.status,
+    plusOnesAllowed: row.plus_ones_allowed,
+    plusOnesConfirmed: row.plus_ones_confirmed,
+    guestNote: row.guest_note,
+    respondedAt: row.responded_at,
+    checkedInAt: row.checked_in_at,
+  };
+}
+
+// check_in_guest() is the door scanner's only entry point (see
+// supabase/README.md). It never rejects an already-checked-in guest: it
+// simply returns the row unchanged with its original checked_in_at, so the
+// caller can tell "first arrival" from "already here" by comparing that
+// value, not by catching an error. A token matching no guest throws.
+export async function checkInGuest(token: string): Promise<Guest> {
+  const { data, error } = await supabase.rpc('check_in_guest', { p_token: token });
+
+  if (error) fail('registrar el check-in', error);
+
+  const row = (data as unknown as CheckInRow[])?.[0];
+  if (!row) fail('registrar el check-in', { message: 'no se encontró la fila' });
+  return mapCheckInRow(row);
 }

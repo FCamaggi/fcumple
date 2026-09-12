@@ -31,6 +31,7 @@ const pendingGuest: Guest = {
   plusOnesConfirmed: 0,
   guestNote: null,
   respondedAt: null,
+  checkedInAt: null,
 };
 
 const confirmedGuest: Guest = {

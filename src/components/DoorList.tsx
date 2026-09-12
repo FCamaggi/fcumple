@@ -120,6 +120,7 @@ export default function DoorList({ guests, loading = false, onEditGuest, onCreat
                 <th className="px-4 py-2">Token / hora</th>
                 <th className="px-4 py-2">Invitado</th>
                 <th className="px-4 py-2">Estado</th>
+                <th className="px-4 py-2">Puerta</th>
                 <th className="px-4 py-2 text-center">+N</th>
                 <th className="px-4 py-2">Nota</th>
                 <th className="px-4 py-2 text-right">Mando</th>
@@ -212,6 +213,9 @@ function DoorListRow({ guest, index, onEditGuest }: DoorListRowProps) {
           {STATUS_LABEL[guest.status]}
         </span>
       </td>
+      <td className="px-4 py-3 align-top">
+        <CheckInChip checkedInAt={guest.checkedInAt} />
+      </td>
       <td className="px-4 py-3 text-center align-top">
         <span className="font-display text-lg leading-none text-acid-400">
           +{guest.plusOnesConfirmed}
@@ -231,6 +235,25 @@ function DoorListRow({ guest, index, onEditGuest }: DoorListRowProps) {
         </button>
       </td>
     </motion.tr>
+  );
+}
+
+/**
+ * CheckInChip — indicador de "llegó a la puerta" (checked_in_at, Etapa 3),
+ * un dato distinto y adicional al chip de estado de RSVP: alguien puede
+ * estar Confirmado y todavía no haber llegado, o (raro, pero no bloqueado)
+ * llegar sin haber respondido. Usa un símbolo + texto propio, nunca solo
+ * color, para no depender de la percepción de color (DESIGN.md §11).
+ */
+function CheckInChip({ checkedInAt }: { checkedInAt: string | null }) {
+  if (!checkedInAt) {
+    return <span className="font-mono text-[11px] text-paper-100/40">—</span>;
+  }
+  return (
+    <span className="inline-flex items-center gap-1 bg-hotpink-500/10 px-2 py-1 font-mono text-[11px] font-bold uppercase tracking-wider text-hotpink-500">
+      <span aria-hidden>●</span>
+      En la puerta // {formatTime(checkedInAt)}
+    </span>
   );
 }
 
