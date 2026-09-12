@@ -3,12 +3,14 @@ import { useParams } from 'react-router-dom';
 import { motion, useReducedMotion, AnimatePresence } from 'framer-motion';
 import { getGuestByToken, submitRsvp } from '../lib/guestApi';
 import { getEventConfig } from '../lib/eventApi';
+import { listPublishedPosts } from '../lib/postsApi';
 import type { FaderValue } from '../components/FaderToggle';
 import WristbandCard from '../components/WristbandCard';
 import FaderToggle from '../components/FaderToggle';
 import RsvpDeadlineStrip from '../components/RsvpDeadlineStrip';
 import SignalToast from '../components/SignalToast';
-import type { EventConfig, EventInfo, Guest, RsvpStatus } from '../types';
+import AnnouncementTicker from '../components/AnnouncementTicker';
+import type { EventConfig, EventInfo, Guest, Post, RsvpStatus } from '../types';
 
 const NOT_SET = 'Por confirmar';
 
@@ -53,6 +55,7 @@ export default function GuestPage() {
   const [guest, setGuest] = useState<Guest | null>(null);
   const [invalid, setInvalid] = useState(false);
   const [eventConfig, setEventConfig] = useState<EventConfig | null>(null);
+  const [posts, setPosts] = useState<Post[]>([]);
 
   const [editing, setEditing] = useState(false);
   const [fader, setFader] = useState<FaderValue>('neutral');
@@ -101,6 +104,26 @@ export default function GuestPage() {
       })
       .catch(() => {
         if (active) setEventConfig(null);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    // Announcements are a plus, not a critical part of the screen (see
+    // AnnouncementTicker): a failed fetch just leaves posts empty and the
+    // ticker renders nothing, without surfacing an error or blocking the
+    // rest of the page.
+    listPublishedPosts()
+      .then((found) => {
+        if (active) setPosts(found);
+      })
+      .catch(() => {
+        if (active) setPosts([]);
       });
 
     return () => {
@@ -244,6 +267,8 @@ export default function GuestPage() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        <AnnouncementTicker posts={posts} />
       </div>
 
       <SignalToast message={toast} kind={toastKind} onDismiss={() => setToast(null)} />

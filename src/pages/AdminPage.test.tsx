@@ -16,10 +16,19 @@ vi.mock('../lib/eventApi', () => ({
   getEventConfig: vi.fn(),
   updateEventConfig: vi.fn(),
 }));
+vi.mock('../lib/postsApi', () => ({
+  listAllPosts: vi.fn(),
+  createPost: vi.fn(),
+  updatePost: vi.fn(),
+  deletePost: vi.fn(),
+  publishPost: vi.fn(),
+  unpublishPost: vi.fn(),
+}));
 
 import { listGuests, createGuest, updateGuest, deleteGuest } from '../lib/adminApi';
 import { signOut } from '../lib/auth';
 import { getEventConfig } from '../lib/eventApi';
+import { listAllPosts } from '../lib/postsApi';
 import AdminPage from './AdminPage';
 
 const guest: Guest = {
@@ -44,6 +53,8 @@ beforeEach(() => {
   vi.mocked(signOut).mockReset();
   vi.mocked(getEventConfig).mockReset();
   vi.mocked(getEventConfig).mockResolvedValue(null);
+  vi.mocked(listAllPosts).mockReset();
+  vi.mocked(listAllPosts).mockResolvedValue([]);
 });
 
 describe('AdminPage', () => {
@@ -137,5 +148,27 @@ describe('AdminPage', () => {
 
     expect(await screen.findByLabelText(/nombre del evento/i)).toBeInTheDocument();
     expect(getEventConfig).toHaveBeenCalled();
+  });
+
+  it('opens the posts panel and loads the announcements', async () => {
+    vi.mocked(listGuests).mockResolvedValueOnce([guest]);
+    vi.mocked(listAllPosts).mockResolvedValueOnce([
+      {
+        id: 'p1',
+        title: 'Ya salió la lista',
+        body: 'Revisen el link',
+        publishedAt: null,
+        createdAt: '2026-04-28T00:00:00Z',
+      },
+    ]);
+    const user = userEvent.setup();
+
+    render(<AdminPage />);
+    await screen.findByText(/maria fernanda contreras/i);
+
+    await user.click(screen.getByRole('button', { name: /avisos/i }));
+
+    expect(await screen.findByText('Ya salió la lista')).toBeInTheDocument();
+    expect(listAllPosts).toHaveBeenCalled();
   });
 });
