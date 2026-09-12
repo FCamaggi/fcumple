@@ -9,6 +9,8 @@ import GuestEditModal from '../components/GuestEditModal';
 import CreateGuestModal from '../components/CreateGuestModal';
 import SignalToast from '../components/SignalToast';
 import EventSettingsForm from '../components/EventSettingsForm';
+import ExportGuestsButton from '../components/ExportGuestsButton';
+import ImportGuestsModal from '../components/ImportGuestsModal';
 
 /**
  * /admin — la consola de la puerta.
@@ -20,6 +22,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [editingGuest, setEditingGuest] = useState<Guest | null>(null);
   const [creating, setCreating] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [toastKind, setToastKind] = useState<'success' | 'error'>('success');
   const [showEventSettings, setShowEventSettings] = useState(false);
@@ -93,6 +96,12 @@ export default function AdminPage() {
     await signOut();
   }
 
+  function handleImported(created: Guest[]) {
+    setGuests((prev) => [...prev, ...created]);
+    setToastKind('success');
+    setToast(`${created.length} invitado${created.length === 1 ? '' : 's'} importado${created.length === 1 ? '' : 's'}`);
+  }
+
   return (
     <div className="min-h-screen bg-ink-950 text-paper-100">
       <header className="flex items-center justify-between bg-ink-900 px-6 py-4 shadow-lg">
@@ -139,6 +148,17 @@ export default function AdminPage() {
           </div>
         </section>
 
+        <div className="flex items-center justify-end gap-2">
+          <ExportGuestsButton guests={guests} />
+          <button
+            type="button"
+            onClick={() => setImporting(true)}
+            className="border border-smoke-700/50 px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-paper-100 transition-colors hover:bg-smoke-700/30"
+          >
+            Importar CSV
+          </button>
+        </div>
+
         <DoorList
           guests={guests}
           loading={loading}
@@ -150,6 +170,8 @@ export default function AdminPage() {
       <GuestEditModal guest={editingGuest} onClose={() => setEditingGuest(null)} onSave={handleSave} onDelete={handleDelete} />
 
       <CreateGuestModal open={creating} onClose={() => setCreating(false)} onCreate={handleCreate} />
+
+      <ImportGuestsModal open={importing} onClose={() => setImporting(false)} onImported={handleImported} />
 
       <SignalToast message={toast} kind={toastKind} onDismiss={() => setToast(null)} />
     </div>

@@ -17,7 +17,7 @@ export default defineConfig({
     css: true,
     // supabase/tests runs against a real Postgres via `npm run test:db`
     // (supabase/vitest.config.ts), not under this jsdom config.
-    exclude: ['node_modules/**', 'supabase/**'],
+    exclude: ['node_modules/**', 'supabase/**', '.claude/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],
