@@ -1,7 +1,13 @@
-import { useMemo, useState } from 'react';
-import { motion } from 'framer-motion';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { motion, useAnimationControls, useReducedMotion } from 'framer-motion';
 import type { Guest, RsvpStatus } from '../types';
 import NoteChip from './NoteChip';
+import { STATUS_FLASH_COLOR, shouldFlashOnStatusChange } from '../lib/statusFlash';
+
+// Colores base de zebra-striping de la tabla (bg-ink-950 / bg-ink-900 al 60%),
+// usados para devolver la fila a su estado de reposo tras el flash sin pisar
+// el hover de Tailwind con un estilo inline permanente.
+const ROW_BASE_COLOR = ['#0d0b12', 'rgba(22, 18, 29, 0.6)'];
 
 type FilterTab = 'all' | RsvpStatus;
 
@@ -121,60 +127,110 @@ export default function DoorList({ guests, loading = false, onEditGuest, onCreat
             </thead>
             <tbody>
               {filtered.map((guest, i) => (
-                <motion.tr
-                  key={guest.id}
-                  initial={false}
-                  className={`transition-colors ${i % 2 === 0 ? 'bg-ink-950' : 'bg-ink-900/60'} hover:bg-smoke-700/20`}
-                >
-                  <td className="px-4 py-3 align-top">
-                    <div className="flex flex-col">
-                      <span className="font-mono text-xs text-laser-500">{guest.token ?? guest.id}</span>
-                      <span className="font-mono text-[11px] text-paper-100/70">{formatTime(guest.createdAt)}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 align-top">
-                    <span
-                      className={`font-sans text-sm font-bold uppercase text-paper-100 ${
-                        guest.status === 'declined' ? 'line-through opacity-60' : ''
-                      }`}
-                    >
-                      {guest.fullName}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 align-top">
-                    <span
-                      className={`inline-block px-2 py-1 font-mono text-[11px] font-bold uppercase tracking-wider ${
-                        STATUS_CHIP[guest.status]
-                      }`}
-                    >
-                      {STATUS_LABEL[guest.status]}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-center align-top">
-                    <span className="font-display text-lg leading-none text-acid-400">
-                      +{guest.plusOnesConfirmed}
-                      <span className="ml-1 font-mono text-[10px] text-paper-100/70">/ {guest.plusOnesAllowed}</span>
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 align-top">
-                    <NoteChip text={guest.guestNote ?? ''} />
-                  </td>
-                  <td className="px-4 py-3 text-right align-top">
-                    <button
-                      type="button"
-                      onClick={() => onEditGuest(guest)}
-                      className="bg-smoke-700/30 px-2 py-1 font-mono text-[11px] font-bold uppercase text-paper-100 transition-colors hover:bg-smoke-700/50"
-                    >
-                      Editar
-                    </button>
-                  </td>
-                </motion.tr>
+                <DoorListRow key={guest.id} guest={guest} index={i} onEditGuest={onEditGuest} />
               ))}
             </tbody>
           </table>
         </div>
       )}
     </section>
+  );
+}
+
+interface DoorListRowProps {
+  guest: Guest;
+  index: number;
+  onEditGuest: (guest: Guest) => void;
+}
+
+/**
+ * Una fila de DoorList. Detecta cambios de `status` respecto del render
+ * anterior y destella brevemente en el color del nuevo estado — "luz de
+ * aviso en una consola" (DESIGN.md 6.2). Con prefers-reduced-motion, el
+ * destello se reemplaza por un corte duro de color, sin tween (DESIGN.md 11).
+ */
+function DoorListRow({ guest, index, onEditGuest }: DoorListRowProps) {
+  const reduceMotion = useReducedMotion();
+  const controls = useAnimationControls();
+  const rowRef = useRef<HTMLTableRowElement>(null);
+  const prevStatusRef = useRef<RsvpStatus>(guest.status);
+
+  useEffect(() => {
+    const prevStatus = prevStatusRef.current;
+    prevStatusRef.current = guest.status;
+
+    if (!shouldFlashOnStatusChange(prevStatus, guest.status)) return;
+
+    const restColor = ROW_BASE_COLOR[index % 2];
+    const clearInlineColor = () => {
+      if (rowRef.current) rowRef.current.style.backgroundColor = '';
+    };
+
+    if (reduceMotion) {
+      controls.set({ backgroundColor: STATUS_FLASH_COLOR[guest.status] });
+      const timeout = setTimeout(clearInlineColor, 150);
+      return () => clearTimeout(timeout);
+    }
+
+    controls
+      .start({
+        backgroundColor: [STATUS_FLASH_COLOR[guest.status], restColor],
+        transition: { duration: 0.9, ease: 'easeOut' },
+      })
+      .then(clearInlineColor);
+    return undefined;
+  }, [guest.status, index, reduceMotion, controls]);
+
+  return (
+    <motion.tr
+      ref={rowRef}
+      initial={false}
+      animate={controls}
+      className={`transition-colors ${index % 2 === 0 ? 'bg-ink-950' : 'bg-ink-900/60'} hover:bg-smoke-700/20`}
+    >
+      <td className="px-4 py-3 align-top">
+        <div className="flex flex-col">
+          <span className="font-mono text-xs text-laser-500">{guest.token ?? guest.id}</span>
+          <span className="font-mono text-[11px] text-paper-100/70">{formatTime(guest.createdAt)}</span>
+        </div>
+      </td>
+      <td className="px-4 py-3 align-top">
+        <span
+          className={`font-sans text-sm font-bold uppercase text-paper-100 ${
+            guest.status === 'declined' ? 'line-through opacity-60' : ''
+          }`}
+        >
+          {guest.fullName}
+        </span>
+      </td>
+      <td className="px-4 py-3 align-top">
+        <span
+          className={`inline-block px-2 py-1 font-mono text-[11px] font-bold uppercase tracking-wider ${
+            STATUS_CHIP[guest.status]
+          }`}
+        >
+          {STATUS_LABEL[guest.status]}
+        </span>
+      </td>
+      <td className="px-4 py-3 text-center align-top">
+        <span className="font-display text-lg leading-none text-acid-400">
+          +{guest.plusOnesConfirmed}
+          <span className="ml-1 font-mono text-[10px] text-paper-100/70">/ {guest.plusOnesAllowed}</span>
+        </span>
+      </td>
+      <td className="px-4 py-3 align-top">
+        <NoteChip text={guest.guestNote ?? ''} />
+      </td>
+      <td className="px-4 py-3 text-right align-top">
+        <button
+          type="button"
+          onClick={() => onEditGuest(guest)}
+          className="bg-smoke-700/30 px-2 py-1 font-mono text-[11px] font-bold uppercase text-paper-100 transition-colors hover:bg-smoke-700/50"
+        >
+          Editar
+        </button>
+      </td>
+    </motion.tr>
   );
 }
 
