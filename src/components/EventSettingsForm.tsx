@@ -50,7 +50,11 @@ function toFormState(config: EventConfig | null): FormState {
  * event_config. Estética consistente con el resto del admin (fondo
  * ink-950/ink-900, tipografía mono/uppercase de labels).
  */
-export default function EventSettingsForm() {
+interface EventSettingsFormProps {
+  onSaved?: (config: EventConfig) => void;
+}
+
+export default function EventSettingsForm({ onSaved }: EventSettingsFormProps) {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -85,7 +89,7 @@ export default function EventSettingsForm() {
     setError(null);
     setSaved(false);
     try {
-      await updateEventConfig({
+      const updated = await updateEventConfig({
         eventName: form.eventName || null,
         eventDate: localInputToIso(form.eventDate),
         location: form.location || null,
@@ -93,6 +97,7 @@ export default function EventSettingsForm() {
         rsvpDeadline: localInputToIso(form.rsvpDeadline),
       });
       setSaved(true);
+      onSaved?.(updated);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No pudimos guardar la configuración del evento.');
     } finally {

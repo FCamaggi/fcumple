@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { listGuests, createGuest, updateGuest, deleteGuest } from '../lib/adminApi';
 import { signOut } from '../lib/auth';
-import { event } from '../mocks/event';
-import type { Guest } from '../types';
+import { getEventConfig } from '../lib/eventApi';
+import type { EventConfig, Guest } from '../types';
 import HeadcountMeter from '../components/HeadcountMeter';
 import DoorList from '../components/DoorList';
 import GuestEditModal from '../components/GuestEditModal';
@@ -26,6 +26,20 @@ export default function AdminPage() {
   const [toast, setToast] = useState<string | null>(null);
   const [toastKind, setToastKind] = useState<'success' | 'error'>('success');
   const [showEventSettings, setShowEventSettings] = useState(false);
+  const [eventConfig, setEventConfig] = useState<EventConfig | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    getEventConfig()
+      .then((config) => active && setEventConfig(config))
+      .catch(() => {
+        /* the header degrades to "sin definir" below; the toast is reserved
+           for the guest list load, which is the primary data of this page */
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -113,7 +127,7 @@ export default function AdminPage() {
           </span>
         </div>
         <div className="flex items-center gap-3 font-mono text-[11px] uppercase text-paper-100/70">
-          <span>Corte lista: {formatTime(event.rsvpDeadline)}</span>
+          <span>Corte lista: {formatTime(eventConfig?.rsvpDeadline ?? null)}</span>
           <button
             type="button"
             onClick={() => setShowEventSettings((v) => !v)}
@@ -132,11 +146,11 @@ export default function AdminPage() {
       </header>
 
       <main className="mx-auto flex max-w-7xl flex-col gap-6 px-6 py-6">
-        {showEventSettings && <EventSettingsForm />}
+        {showEventSettings && <EventSettingsForm onSaved={setEventConfig} />}
 
         <section className="grid grid-cols-1 gap-4 bg-ink-900 p-4 shadow-2xl lg:grid-cols-3">
           <div className="lg:col-span-2">
-            <HeadcountMeter confirmed={confirmed} total={event.capacityTotal} pending={pending} declined={declined} />
+            <HeadcountMeter confirmed={confirmed} total={guests.length} pending={pending} declined={declined} />
           </div>
           <div className="flex flex-col justify-between gap-2 bg-ink-950 p-4">
             <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-hotpink-500">
@@ -200,10 +214,12 @@ function TallyRow({
   );
 }
 
-function formatTime(iso: string) {
+function formatTime(iso: string | null) {
+  if (!iso) return 'sin definir';
   try {
-    return new Date(iso).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+    const time = new Date(iso).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+    return time === 'Invalid Date' ? 'sin definir' : time;
   } catch {
-    return iso;
+    return 'sin definir';
   }
 }
