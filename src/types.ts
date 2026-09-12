@@ -34,6 +34,20 @@ export interface EventInfo {
  * `guests` table (listGuests/createGuest/updateGuest) — the guest-facing
  * RPCs never return them.
  */
+/**
+ * Mirrors `public.posts` (see
+ * supabase/migrations/20260912090000_create_posts.sql). `publishedAt` is
+ * `null` for a draft; a non-null value in the past or present means the
+ * post is live for guests, and a future value schedules it.
+ */
+export interface Post {
+  id: string;
+  title: string;
+  body: string;
+  publishedAt: string | null;
+  createdAt: string;
+}
+
 export interface Guest {
   id: string;
   token?: string;

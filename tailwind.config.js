@@ -55,10 +55,15 @@ export default {
           '0%, 100%': { transform: 'translate(0, 0)' },
           '50%': { transform: 'translate(-2%, 2%)' },
         },
+        ticker: {
+          '0%': { transform: 'translateX(0)' },
+          '100%': { transform: 'translateX(-50%)' },
+        },
       },
       animation: {
         flicker: 'flicker 0.6s ease-out 1',
         grain: 'grain 8s steps(4) infinite',
+        ticker: 'ticker 18s linear infinite',
       },
     },
   },

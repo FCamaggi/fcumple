@@ -14,8 +14,13 @@ vi.mock('../lib/eventApi', () => ({
   getEventConfig: vi.fn(),
 }));
 
+vi.mock('../lib/postsApi', () => ({
+  listPublishedPosts: vi.fn(),
+}));
+
 import { getGuestByToken, submitRsvp } from '../lib/guestApi';
 import { getEventConfig } from '../lib/eventApi';
+import { listPublishedPosts } from '../lib/postsApi';
 
 const pendingGuest: Guest = {
   id: 'g1',
@@ -65,6 +70,8 @@ beforeEach(() => {
     theme: 'All black',
     rsvpDeadline: '2026-05-21T23:59:00Z',
   });
+  vi.mocked(listPublishedPosts).mockReset();
+  vi.mocked(listPublishedPosts).mockResolvedValue([]);
 });
 
 describe('GuestPage', () => {
@@ -206,5 +213,32 @@ describe('GuestPage', () => {
     expect(await screen.findByText(/enlace de invitación ya no es válido/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'No voy', pressed: true })).toBeInTheDocument();
     expect(screen.queryByText(/cupo liberado/i)).not.toBeInTheDocument();
+  });
+
+  it('shows the announcement ticker when there are published posts', async () => {
+    vi.mocked(getGuestByToken).mockResolvedValueOnce(pendingGuest);
+    vi.mocked(listPublishedPosts).mockResolvedValueOnce([
+      {
+        id: 'p1',
+        title: 'Ya salió la lista',
+        body: 'Revisen el link, quedan pocos cupos.',
+        publishedAt: '2026-05-01T00:00:00Z',
+        createdAt: '2026-04-28T00:00:00Z',
+      },
+    ]);
+
+    renderAt('mafe-8842');
+    await screen.findByText(/maria fernanda contreras/i);
+
+    expect((await screen.findAllByText(/ya salió la lista/i)).length).toBeGreaterThan(0);
+  });
+
+  it('does not break the page when the announcements fetch fails', async () => {
+    vi.mocked(getGuestByToken).mockResolvedValueOnce(pendingGuest);
+    vi.mocked(listPublishedPosts).mockRejectedValueOnce(new Error('network down'));
+
+    renderAt('mafe-8842');
+
+    expect(await screen.findByText(/maria fernanda contreras/i)).toBeInTheDocument();
   });
 });
