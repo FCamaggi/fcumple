@@ -43,6 +43,16 @@ describe('QrScanner', () => {
 
     expect(await screen.findByText(/no permite acceder a la cámara/i)).toBeInTheDocument();
   });
+
+  it('calls onClose when the close control is tapped, for the full-screen mobile scanner view', async () => {
+    const onClose = vi.fn();
+    const user = userEvent.setup();
+    render(<QrScanner guests={[]} onClose={onClose} />);
+
+    await user.click(screen.getByRole('button', { name: /cerrar/i }));
+
+    expect(onClose).toHaveBeenCalled();
+  });
 });
 
 describe('CheckInOverlay', () => {

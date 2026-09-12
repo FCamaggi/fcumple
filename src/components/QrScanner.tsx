@@ -7,6 +7,7 @@ import type { Guest, RsvpStatus } from '../types';
 interface QrScannerProps {
   guests: Guest[];
   onCheckedIn?: (guest: Guest) => void;
+  onClose?: () => void;
 }
 
 const STATUS_ACCENT: Record<RsvpStatus, { text: string; glow: string; label: string }> = {
@@ -26,7 +27,7 @@ const STATUS_ACCENT: Record<RsvpStatus, { text: string; glow: string; label: str
  * loop de cámara/canvas (no testable en jsdom, ver src/hooks/useQrCheckIn.ts
  * y el test de este archivo para el detalle de qué sí/no está cubierto).
  */
-export default function QrScanner({ guests, onCheckedIn }: QrScannerProps) {
+export default function QrScanner({ guests, onCheckedIn, onClose }: QrScannerProps) {
   const reduceMotion = useReducedMotion() ?? false;
   const { state, handleDetected, reset } = useQrCheckIn(guests);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -108,31 +109,54 @@ export default function QrScanner({ guests, onCheckedIn }: QrScannerProps) {
   }, []);
 
   return (
-    <section className="flex flex-col gap-4 bg-ink-900 p-4 shadow-2xl" aria-label="Escáner QR de puerta">
-      <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-hotpink-500">
-        Escáner // check-in de puerta
-      </span>
+    <div
+      className="fixed inset-0 z-50 flex flex-col bg-ink-950"
+      aria-label="Escáner QR de puerta"
+    >
+      <header className="flex items-center justify-between bg-ink-900 px-4 py-3 shadow-lg">
+        <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-hotpink-500">
+          Escáner // check-in de puerta
+        </span>
+        <button
+          type="button"
+          onClick={onClose}
+          className="tap-target flex items-center justify-center bg-smoke-700/30 px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-paper-100 transition-colors hover:bg-smoke-700/50"
+        >
+          Cerrar
+        </button>
+      </header>
 
-      {cameraError ? (
-        <div className="flex flex-col items-center gap-2 bg-ink-950 p-6 text-center">
-          <span className="font-mono text-[11px] uppercase tracking-widest text-flame-500">Cámara no disponible</span>
-          <p className="font-sans text-sm text-paper-100/80">{cameraError}</p>
-        </div>
-      ) : (
-        <div className="relative overflow-hidden bg-ink-950">
-          {/* eslint-disable-next-line jsx-a11y/media-has-caption -- live camera preview, no captionable content */}
-          <video ref={videoRef} className="aspect-video w-full object-cover" muted playsInline aria-hidden />
-          <canvas ref={canvasRef} className="hidden" aria-hidden />
-        </div>
-      )}
-
-      <AnimatePresence mode="wait">
-        {state.phase === 'success' && (
-          <CheckInOverlay key={state.guest.id} state={state} reduceMotion={reduceMotion} onReset={reset} />
+      <div className="relative flex flex-1 flex-col overflow-hidden">
+        {cameraError ? (
+          <div className="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center">
+            <span className="font-mono text-[11px] uppercase tracking-widest text-flame-500">Cámara no disponible</span>
+            <p className="font-sans text-sm text-paper-100/80">{cameraError}</p>
+          </div>
+        ) : (
+          <div className="relative flex-1 overflow-hidden bg-ink-950">
+            {/* eslint-disable-next-line jsx-a11y/media-has-caption -- live camera preview, no captionable content */}
+            <video ref={videoRef} className="h-full w-full object-cover" muted playsInline aria-hidden />
+            <canvas ref={canvasRef} className="hidden" aria-hidden />
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+              <div className="aspect-square w-2/3 max-w-xs border-2 border-acid-400/70 shadow-glow-acid" aria-hidden />
+            </div>
+          </div>
         )}
-        {state.phase === 'error' && <ErrorOverlay key="error" message={state.message} onReset={reset} />}
-      </AnimatePresence>
-    </section>
+
+        <AnimatePresence mode="wait">
+          {state.phase === 'success' && (
+            <div className="absolute inset-0 flex items-center justify-center bg-ink-950/95 p-4">
+              <CheckInOverlay key={state.guest.id} state={state} reduceMotion={reduceMotion} onReset={reset} />
+            </div>
+          )}
+          {state.phase === 'error' && (
+            <div className="absolute inset-0 flex items-center justify-center bg-ink-950/95 p-4">
+              <ErrorOverlay key="error" message={state.message} onReset={reset} />
+            </div>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
   );
 }
 

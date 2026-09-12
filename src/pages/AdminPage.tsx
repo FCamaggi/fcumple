@@ -204,7 +204,9 @@ export default function AdminPage() {
       <main className="mx-auto flex max-w-7xl flex-col gap-6 px-6 py-6">
         {showEventSettings && <EventSettingsForm onSaved={setEventConfig} />}
         {showPosts && <PostsPanel />}
-        {showScanner && <QrScanner guests={guests} onCheckedIn={handleCheckedIn} />}
+        {showScanner && (
+          <QrScanner guests={guests} onCheckedIn={handleCheckedIn} onClose={() => setShowScanner(false)} />
+        )}
         {showPhotos && <PhotoModerationPanel />}
 
         <section className="grid grid-cols-1 gap-4 bg-ink-900 p-4 shadow-2xl lg:grid-cols-3">
