@@ -1,47 +1,39 @@
 # Backlog
 
-Backlog vivo e incremental — se actualiza a medida que se decide y se construye, no se reescribe borrando el historial de decisiones. Fuente de la ampliación de alcance: `DESEO-DISENO-USUARIO.md` sección 9 (avisos, galería con revelado, QR de puerta).
+Backlog vivo e incremental — se actualiza a medida que se decide y se construye, no se reescribe borrando el historial de decisiones (salvo esta reescritura puntual del 2026-09-12, pedida explícitamente por el usuario tras un walkthrough real de la app: "creo que esta para repensar todo... quiero que limpies los documentos para que quede más actualizado a lo actual"). El contenido de las Etapas 1-3 de abajo describe lo que ya está construido y en producción — se conserva como registro de decisiones, no se borra.
 
-## Etapa 1 — Avisos / anuncios (`posts`) — EN CURSO
+## Estado real de la app (verificado por lectura de código, 2026-09-12)
 
-Superficie nueva: el admin publica avisos cortos ("cambió la hora", "el dresscode es tal"), los invitados los ven sin necesitar su token (contenido general del evento, no personalizado — igual que `event_config`).
+Rutas existentes (`src/App.tsx`): **`/i/:token`** (invitación personal del invitado) y **`/admin`** (consola, protegida por `RequireAuth`). No existe ninguna ruta de "hub" público compartido.
 
-- Tabla `posts`: `id`, `title`, `body`, `published_at` (null = borrador, solo visible para el admin), `created_at`.
-- RLS: lectura pública solo de posts con `published_at` no nulo y `<= now()`; CRUD completo (incluidos borradores) solo `authenticated`.
-- Admin (`/admin`): panel para crear/editar/publicar/despublicar/eliminar avisos.
-- Invitado: componente `AnnouncementTicker` (ya nombrado en `DESIGN.md` §7.8) visible en `GuestPage` — marquesina de neón con los avisos más recientes, se expande al tocar.
-- Sin Storage, sin RPC compleja — es el más simple de los tres, por eso va primero.
+Lo que ya funciona en producción:
+- RF1–RF14 de `01-vision-y-requisitos.md` completos (CRUD de invitados, RSVP con +1, edición de respuesta ya enviada, headcount real, export/import CSV, `event_config` real).
+- **Avisos** (`posts`): admin publica, se ven en un `AnnouncementTicker` dentro de `/i/:token` (no en un lugar separado).
+- **Galería de fotos** (`photos` + Storage): cupo por invitado, moderación obligatoria, revelado post-evento manual. La sección de cámara en `/i/:token` solo se muestra si `guest.checkedInAt` no es null (gateada por check-in real, no por RSVP).
+- **Check-in QR**: `/admin` tiene un modo "Escáner" de pantalla completa (mobile-first) que decodifica el QR del invitado y marca `checked_in_at`.
 
-## Etapa 2 — Galería / rollo de fotos (`photos` + Storage) — DECIDIDO, no construido aún
+## Etapa 4 — Repensar arquitectura de información y flujos (NUEVA, sin construir)
 
-Decisiones de producto ya tomadas (no re-abrir sin que el usuario lo pida — ver `DESEO-DISENO-USUARIO.md` §9):
+El usuario probó el flujo real de punta a punta y encontró que las piezas de las Etapas 1-3 quedaron técnicamente correctas pero **desconectadas entre sí** — cada una resuelve su propio recorte sin que el conjunto se sienta como un flujo único y claro. Pidió explícitamente no seguir parchando de a una, sino repensar la arquitectura de información completa antes de seguir construyendo. Cuatro problemas concretos que dispararon esto:
 
-- Cupo por invitado: campo `photo_quota` en `guests` (default 5, ajustable por el admin por invitado, igual que `plus_ones_allowed`).
-- **Revelado post-evento**: nadie ve ninguna foto (ni siquiera quien la subió) hasta que el admin dispara "revelar el rollo" — flag global, probablemente en `event_config` (`photos_revealed_at timestamptz`) o una fila de configuración aparte.
-- **Moderación obligatoria**: cada foto sube en estado `pending`; el admin aprueba o descarta antes del revelado. Solo fotos `approved` entran al rollo revelado.
-- Modelo de datos propuesto (a validar por quien lo implemente):
-  - Tabla `photos`: `id`, `guest_id` (FK a `guests`), `storage_path`, `status` (`pending`/`approved`/`rejected`), `created_at`.
-  - Bucket de Supabase Storage (privado, no público) para los archivos — el acceso a los objetos también respeta el estado de revelado/aprobación, no alcanza con RLS de la tabla `photos` sola.
-  - Subida: el invitado nunca tiene sesión, así que la subida se valida por token vía una RPC (mismo patrón que `submit_rsvp`) que chequea cupo restante antes de aceptar, análoga a como `submit_rsvp` valida `plus_ones_allowed`.
-  - Compresión/resize en el cliente antes de subir (pregunta abierta original de `02-arquitectura-tecnica.md` §8.3) para no comerse la cuota de Storage del free tier con fotos de alta resolución.
-- Frontend invitado: modo cámara in-app (`getUserMedia`), contador `FilmRollCounter` (`DESIGN.md` §7.9) mostrando cupo restante.
-- Frontend admin: cola de moderación (aprobar/rechazar), botón "Revelar el rollo".
-- Es la etapa más compleja de las tres (Storage + RLS de objetos + compresión de imagen client-side) — se aborda después de Avisos y QR, no en paralelo con ellas, para no arriesgar la seguridad de acceso a archivos por apuro.
+### 4.1 Admin sin modo mobile real
+Hoy `AdminPage` es un layout desktop-first con algunos breakpoints de Tailwind (`lg:grid-cols-3`), no una detección real de dispositivo. El escáner QR (única pieza ya rediseñada mobile-first, pantalla completa) demuestra que el resto del admin (Evento/Avisos/Fotos/DoorList/HeadcountMeter) necesita el mismo tratamiento cuando se abre desde un celular — el admin real de este proyecto va a estar parado en la puerta con el teléfono en la mano, no en un notebook, buena parte de la noche.
 
-## Etapa 3 — Check-in QR en la puerta — DECIDIDO, no construido aún
+**Para la sesión nueva**: decidir si esto es "un layout admin responsive de verdad" (mismo código, mismo estado, breakpoints reales que reorganizan/priorizan secciones) o "dos experiencias admin" (una consola de escritorio completa + un modo puerta simplificado en mobile con solo Escáner/DoorList/HeadcountMeter). Es una decisión de arquitectura de UI, no un fix cosmético.
 
-No existía en ningún documento antes de esta ronda. Decisiones tomadas:
+### 4.2 El invitado no sabe qué esperar después de confirmar
+`ConfirmedScreen` (en `GuestPage.tsx`) dice "¡Estás adentro!" y no menciona nada sobre que la cámara se va a desbloquear recién cuando lo escaneen en la puerta. El invitado confirma, no tiene ninguna otra acción visible, y no hay ninguna pista de que algo más va a pasar. La función de cámara existe en el código pero es invisible/no descubrible para quien nunca la vio mencionada.
 
-- Escaneo **real pero simple**: cámara del celular del admin (`getUserMedia` + una librería de decodificación QR liviana, ej. `jsqr`), no un simulacro.
-- El QR codifica el token del invitado (mismo token que ya existe en su `WristbandCard`/link) — no hace falta un formato nuevo, es el link `/i/{token}` o el token solo.
-- Al reconocer un token válido: dispara una animación de bienvenida personalizada (nombre del invitado, color según su estado de RSVP — reusa la paleta ya establecida) y marca `checked_in_at` real en `guests` (columna nueva, se había sacado del tipo `Guest` en la ronda anterior por no estar implementada — vuelve ahora con propósito real).
-- **Explícitamente no limitante**: no hay hora de corte que bloquee el check-in, no reemplaza el flujo de RSVP, es una capa festiva adicional en la puerta ("llegan tarde" es la única consecuencia posible, nunca un rechazo de acceso).
-- Frontend admin: pantalla/modo "Escáner" en `/admin` con el feed de cámara y el overlay de bienvenida al reconocer un QR.
-- Requiere `checked_in_at timestamptz nullable` en `guests` (migración pequeña) + mostrarlo en `DoorList` (chip "en la puerta" además del chip de estado de RSVP, sin depender solo del color, mismo criterio de accesibilidad ya usado en el resto del proyecto).
+**Para la sesión nueva**: definir qué le mostramos al invitado ya confirmado antes del evento (¿un mensaje tipo "vas a poder sacar fotos cuando llegues y te marquemos en la puerta"? ¿algo más, como countdown al evento, o el hub de avisos?) — esto conecta directo con el punto 4.3.
 
-## Resuelto (rondas anteriores — se deja como registro, no como pendiente)
+### 4.3 No hay una vista general/hub para los invitados
+Los avisos, la info del evento, y eventualmente el rollo de fotos revelado, todo vive embebido dentro de la página *personal* de cada invitado (`/i/{token}`), sin una superficie compartida donde "todos los invitados ven lo mismo" más allá de su propia tarjeta. La visión original del proyecto (`01-vision-y-requisitos.md` sección 8, `DESEO-DISENO-USUARIO.md` sección 8) hablaba de la app como un **hub**, pero nunca se construyó una ruta que sea ese hub — cada superficie nueva (avisos, fotos) se agregó *dentro* de la vista personal en vez de en un lugar común.
 
-- RF1–RF14 de `01-vision-y-requisitos.md` completos, incluyendo RF7 (headcount real) y RF12 (editar RSVP ya enviado).
-- Flash de color en fila de `DoorList` al cambiar de estado, code-splitting de `/admin`.
-- Exportar/importar invitados por CSV con plantilla.
-- `event_config` conectado a Supabase real (antes era mock).
+**Para la sesión nueva**: decidir si hace falta una ruta nueva (ej. algo enlazado desde `/i/:token` o un `/evento` público) que sea el punto de encuentro común — avisos, cuenta regresiva, lista de quién va (¿se muestra? ¿anónima o con nombres?), y el rollo revelado — separado de la tarjeta personal de cada invitado, o si la decisión correcta es mantener todo dentro de `/i/:token` pero reorganizado con mejor jerarquía. Ninguna de las dos es obviamente correcta sin pensarlo — es exactamente el tipo de decisión que esta etapa tiene que resolver antes de tocar código.
+
+### 4.4 Los toasts (`SignalToast`) no se cierran solos
+Confirmado en el código: `SignalToast` no tiene ningún timer de auto-dismiss, solo se cierra si el usuario lo toca o si el componente padre limpia el estado `message` manualmente. Es un bug de UX real y acotado (no una decisión de arquitectura) — se puede resolver rápido una vez que se retome el trabajo de código, no necesita repensarse a nivel de flujo.
+
+## Cómo encarar la Etapa 4
+
+Es explícitamente una etapa de **diseño/arquitectura de información primero, código después** — a diferencia de las Etapas 1-3, que ya llegaban con la decisión de producto resuelta y solo faltaba construir. Acá lo que falta es decidir la forma antes de construir nada, para no repetir el patrón de "piezas correctas por separado, flujo incoherente en conjunto" que motivó esta reescritura del backlog.

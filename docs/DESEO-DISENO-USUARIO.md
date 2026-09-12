@@ -71,3 +71,16 @@ Decisiones tomadas para poder construir esto sin ambigüedad (respuestas del usu
 - El check-in por QR es explícitamente **no limitante**: no hay una hora de corte que bloquee el ingreso, no reemplaza ni compite con el flujo de RSVP — es una capa festiva adicional en la puerta, no un control de acceso estricto.
 
 Esto no reemplaza el addendum de la sección 8: la galería sigue siendo "cámara in-app con cupo por invitado" tal como se describió ahí (el detalle de "5 fotos" es la primera cifra concreta, no cerrada — el admin puede ajustarla). El detalle técnico de estas tres superficies (modelo de datos, RLS, Storage) vive en `02-arquitectura-tecnica.md` y `03-plan-desarrollo.md`, no en este documento.
+
+## 10. Addendum 3 — pausa para repensar la arquitectura de información y los flujos
+
+Después de que las tres superficies del addendum 2 (avisos, galería, QR) quedaron construidas y en producción, el usuario hizo un walkthrough real de la app y encontró que, aunque cada pieza funciona, el conjunto **no se siente como un flujo único** — quedaron "cosas tiradas por separado". Pidió explícitamente frenar antes de seguir agregando funcionalidad nueva, repensar la arquitectura de información completa, y arrancar ese trabajo en una sesión nueva con los documentos actualizados.
+
+Cuatro problemas concretos que motivaron esto (detalle técnico en `docs/BACKLOG.md`, Etapa 4):
+
+1. El panel de admin no tiene un modo mobile real, pese a que el admin va a operarlo desde el celular la noche del evento.
+2. El invitado que ya confirmó no tiene ninguna pista de que la cámara se va a desbloquear después, cuando lo escaneen en la puerta — queda con la sensación de "confirmé y ahora no hay nada más que hacer".
+3. Nunca se construyó una vista de "hub" compartida entre invitados (avisos, info del evento, eventualmente el rollo revelado) — todo quedó embebido dentro de la página personal de cada invitado (`/i/{token}`), sin un punto de encuentro común, a pesar de que la visión original (sección 8 de este documento) hablaba explícitamente de un hub.
+4. Los toasts de confirmación/error no se cierran solos.
+
+Este addendum no invalida las decisiones de las secciones 8-9 (avisos/galería/QR siguen siendo la dirección de producto correcta) — lo que cambia es que antes de seguir sumando superficies nuevas, hace falta un pase de diseño que conecte las que ya existen en un flujo coherente.
