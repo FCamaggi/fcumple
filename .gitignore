@@ -30,3 +30,6 @@ pnpm-debug.log*
 # coverage
 coverage/
 .env*
+
+# claude code session-local files
+.claude/
