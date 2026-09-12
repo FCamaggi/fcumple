@@ -28,6 +28,22 @@ const pendingGuest: Guest = {
   respondedAt: null,
 };
 
+const confirmedGuest: Guest = {
+  ...pendingGuest,
+  status: 'confirmed',
+  plusOnesConfirmed: 1,
+  guestNote: 'llego un poco tarde',
+  respondedAt: '2026-05-01T00:00:00Z',
+};
+
+const declinedGuest: Guest = {
+  ...pendingGuest,
+  status: 'declined',
+  plusOnesConfirmed: 0,
+  guestNote: 'no puedo ir',
+  respondedAt: '2026-05-01T00:00:00Z',
+};
+
 function renderAt(token: string) {
   return render(
     <MemoryRouter initialEntries={[`/i/${token}`]}>
@@ -125,5 +141,70 @@ describe('GuestPage', () => {
 
     expect(await screen.findByText(/enlace de invitación ya no es válido/i)).toBeInTheDocument();
     await waitFor(() => expect(screen.getByLabelText(/mensaje a puerta/i)).toHaveValue('hola puerta'));
+  });
+
+  it('lets a confirmed guest edit their rsvp, prefilled with their current answer', async () => {
+    vi.mocked(getGuestByToken).mockResolvedValueOnce(confirmedGuest);
+    const user = userEvent.setup();
+
+    renderAt('mafe-8842');
+
+    expect(await screen.findByText(/access granted/i)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /editar mi respuesta/i }));
+
+    expect(await screen.findByRole('button', { name: 'Voy', pressed: true })).toBeInTheDocument();
+    expect(screen.getByText('+1')).toBeInTheDocument();
+    expect(screen.getByLabelText(/mensaje a puerta/i)).toHaveValue('llego un poco tarde');
+  });
+
+  it('submits a changed answer from edit mode and lands on the fresh terminal screen', async () => {
+    vi.mocked(getGuestByToken).mockResolvedValueOnce(confirmedGuest);
+    vi.mocked(submitRsvp).mockResolvedValueOnce({ ...confirmedGuest, status: 'declined', plusOnesConfirmed: 0 });
+    const user = userEvent.setup();
+
+    renderAt('mafe-8842');
+    await screen.findByText(/access granted/i);
+    await user.click(screen.getByRole('button', { name: /editar mi respuesta/i }));
+
+    await user.click(await screen.findByRole('button', { name: 'No voy' }));
+    await user.click(screen.getByRole('button', { name: /liberar cupo/i }));
+
+    expect(await screen.findByText(/cupo liberado/i)).toBeInTheDocument();
+    expect(submitRsvp).toHaveBeenCalledWith('mafe-8842', 'declined', 1, 'llego un poco tarde');
+    expect(screen.queryByRole('button', { name: /confirmar asistencia/i })).not.toBeInTheDocument();
+  });
+
+  it('lets a declined guest edit their rsvp and switch to confirmed', async () => {
+    vi.mocked(getGuestByToken).mockResolvedValueOnce(declinedGuest);
+    vi.mocked(submitRsvp).mockResolvedValueOnce({ ...declinedGuest, status: 'confirmed', plusOnesConfirmed: 0 });
+    const user = userEvent.setup();
+
+    renderAt('mafe-8842');
+    await screen.findByText(/cupo liberado/i);
+    await user.click(screen.getByRole('button', { name: /editar mi respuesta/i }));
+
+    expect(await screen.findByRole('button', { name: 'No voy', pressed: true })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Voy' }));
+    await user.click(screen.getByRole('button', { name: /confirmar asistencia/i }));
+
+    expect(await screen.findByText(/access granted/i)).toBeInTheDocument();
+    expect(submitRsvp).toHaveBeenCalledWith('mafe-8842', 'confirmed', 0, 'no puedo ir');
+  });
+
+  it('stays in edit mode with the error toast when a resubmit from edit mode fails', async () => {
+    vi.mocked(getGuestByToken).mockResolvedValueOnce(confirmedGuest);
+    vi.mocked(submitRsvp).mockRejectedValueOnce(new Error('Este enlace de invitación ya no es válido.'));
+    const user = userEvent.setup();
+
+    renderAt('mafe-8842');
+    await screen.findByText(/access granted/i);
+    await user.click(screen.getByRole('button', { name: /editar mi respuesta/i }));
+
+    await user.click(await screen.findByRole('button', { name: 'No voy' }));
+    await user.click(screen.getByRole('button', { name: /liberar cupo/i }));
+
+    expect(await screen.findByText(/enlace de invitación ya no es válido/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'No voy', pressed: true })).toBeInTheDocument();
+    expect(screen.queryByText(/cupo liberado/i)).not.toBeInTheDocument();
   });
 });

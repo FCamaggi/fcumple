@@ -54,6 +54,7 @@ export default function GuestPage() {
   const [invalid, setInvalid] = useState(false);
   const [eventConfig, setEventConfig] = useState<EventConfig | null>(null);
 
+  const [editing, setEditing] = useState(false);
   const [fader, setFader] = useState<FaderValue>('neutral');
   const [plusOne, setPlusOne] = useState(0);
   const [note, setNote] = useState('');
@@ -120,6 +121,7 @@ export default function GuestPage() {
     try {
       const updated = await submitRsvp(guest.token ?? token ?? '', next, plusOne, note);
       setGuest(updated);
+      setEditing(false);
       setToastKind('success');
       setToast(next === 'confirmed' ? 'Quedaste dentro. Nos vemos ahí.' : 'Que penal, te vamos a extrañar. Gracias por avisar.');
     } catch (err) {
@@ -142,10 +144,16 @@ export default function GuestPage() {
         <AnimatePresence mode="wait">
           {loading || !guest ? (
             <LoadingLights key="loading" reduceMotion={reduceMotion} />
-          ) : guest.status === 'confirmed' ? (
-            <ConfirmedScreen key="confirmed" guestName={guest.fullName} plusOne={guest.plusOnesConfirmed} token={guest.token ?? token ?? ''} />
-          ) : guest.status === 'declined' ? (
-            <DeclinedScreen key="declined" guestName={guest.fullName} />
+          ) : guest.status === 'confirmed' && !editing ? (
+            <ConfirmedScreen
+              key="confirmed"
+              guestName={guest.fullName}
+              plusOne={guest.plusOnesConfirmed}
+              token={guest.token ?? token ?? ''}
+              onEdit={() => setEditing(true)}
+            />
+          ) : guest.status === 'declined' && !editing ? (
+            <DeclinedScreen key="declined" guestName={guest.fullName} onEdit={() => setEditing(true)} />
           ) : (
             <motion.div
               key="rsvp"
@@ -264,7 +272,17 @@ function LoadingLights({ reduceMotion }: { reduceMotion: boolean }) {
   );
 }
 
-function ConfirmedScreen({ guestName, plusOne, token }: { guestName: string; plusOne: number; token: string }) {
+function ConfirmedScreen({
+  guestName,
+  plusOne,
+  token,
+  onEdit,
+}: {
+  guestName: string;
+  plusOne: number;
+  token: string;
+  onEdit: () => void;
+}) {
   return (
     <motion.section
       initial={{ opacity: 0, scale: 0.96 }}
@@ -298,11 +316,19 @@ function ConfirmedScreen({ guestName, plusOne, token }: { guestName: string; plu
           </p>
         )}
       </div>
+
+      <button
+        type="button"
+        onClick={onEdit}
+        className="tap-target font-mono text-[11px] uppercase tracking-wider text-paper-100/70 underline underline-offset-4"
+      >
+        Editar mi respuesta
+      </button>
     </motion.section>
   );
 }
 
-function DeclinedScreen({ guestName }: { guestName: string }) {
+function DeclinedScreen({ guestName, onEdit }: { guestName: string; onEdit: () => void }) {
   return (
     <motion.section
       initial={{ opacity: 0 }}
@@ -315,6 +341,14 @@ function DeclinedScreen({ guestName }: { guestName: string }) {
         Que penal, {guestName.split(' ')[0]}.
       </h1>
       <p className="max-w-xs font-sans text-sm text-paper-100/70">Te vamos a extrañar. Gracias por avisar.</p>
+
+      <button
+        type="button"
+        onClick={onEdit}
+        className="tap-target font-mono text-[11px] uppercase tracking-wider text-paper-100/70 underline underline-offset-4"
+      >
+        Editar mi respuesta
+      </button>
     </motion.section>
   );
 }
