@@ -5,7 +5,7 @@ vi.mock('./supabaseClient', () => ({
 }));
 
 import { supabase } from './supabaseClient';
-import { getEventConfig, updateEventConfig } from './eventApi';
+import { getEventConfig, updateEventConfig, revealPhotos } from './eventApi';
 
 const from = supabase.from as unknown as ReturnType<typeof vi.fn>;
 
@@ -16,6 +16,7 @@ const row = {
   location: 'The Warehouse Club',
   theme: 'All black',
   rsvp_deadline: '2026-05-21T23:59:00Z',
+  photos_revealed_at: null,
 };
 
 beforeEach(() => {
@@ -37,6 +38,7 @@ describe('getEventConfig', () => {
       location: 'The Warehouse Club',
       theme: 'All black',
       rsvpDeadline: '2026-05-21T23:59:00Z',
+      photosRevealedAt: null,
     });
   });
 
@@ -85,5 +87,23 @@ describe('updateEventConfig', () => {
     from.mockReturnValue({ upsert });
 
     await expect(updateEventConfig({ eventName: 'X' })).rejects.toThrow(/permission denied/);
+  });
+});
+
+describe('revealPhotos', () => {
+  it('upserts photos_revealed_at with the current time', async () => {
+    const revealedRow = { ...row, photos_revealed_at: '2026-06-01T00:00:00Z' };
+    const single = vi.fn().mockResolvedValue({ data: revealedRow, error: null });
+    const select = vi.fn().mockReturnValue({ single });
+    const upsert = vi.fn().mockReturnValue({ select });
+    from.mockReturnValue({ upsert });
+
+    const config = await revealPhotos();
+
+    expect(from).toHaveBeenCalledWith('event_config');
+    const [payload] = upsert.mock.calls[0] as [Record<string, unknown>];
+    expect(payload.id).toBe(true);
+    expect(typeof payload.photos_revealed_at).toBe('string');
+    expect(config.photosRevealedAt).toBe('2026-06-01T00:00:00Z');
   });
 });

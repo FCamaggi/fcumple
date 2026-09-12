@@ -16,6 +16,7 @@ const existingConfig = {
   location: 'The Warehouse Club',
   theme: 'All black',
   rsvpDeadline: '2026-05-21T23:59:00.000Z',
+  photosRevealedAt: null,
 };
 
 beforeEach(() => {

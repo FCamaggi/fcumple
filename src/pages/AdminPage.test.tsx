@@ -15,6 +15,12 @@ vi.mock('../lib/auth', () => ({
 vi.mock('../lib/eventApi', () => ({
   getEventConfig: vi.fn(),
   updateEventConfig: vi.fn(),
+  revealPhotos: vi.fn(),
+}));
+vi.mock('../lib/photosApi', () => ({
+  listAllPhotosForModeration: vi.fn(),
+  moderatePhoto: vi.fn(),
+  getSignedPhotoUrl: vi.fn(),
 }));
 vi.mock('../lib/postsApi', () => ({
   listAllPosts: vi.fn(),
@@ -29,6 +35,7 @@ import { listGuests, createGuest, updateGuest, deleteGuest } from '../lib/adminA
 import { signOut } from '../lib/auth';
 import { getEventConfig } from '../lib/eventApi';
 import { listAllPosts } from '../lib/postsApi';
+import { listAllPhotosForModeration } from '../lib/photosApi';
 import AdminPage from './AdminPage';
 
 const guest: Guest = {
@@ -55,6 +62,8 @@ beforeEach(() => {
   vi.mocked(getEventConfig).mockResolvedValue(null);
   vi.mocked(listAllPosts).mockReset();
   vi.mocked(listAllPosts).mockResolvedValue([]);
+  vi.mocked(listAllPhotosForModeration).mockReset();
+  vi.mocked(listAllPhotosForModeration).mockResolvedValue([]);
 });
 
 describe('AdminPage', () => {
@@ -170,5 +179,28 @@ describe('AdminPage', () => {
 
     expect(await screen.findByText('Ya salió la lista')).toBeInTheDocument();
     expect(listAllPosts).toHaveBeenCalled();
+  });
+
+  it('opens the photo moderation panel and loads the pending queue', async () => {
+    vi.mocked(listGuests).mockResolvedValueOnce([guest]);
+    vi.mocked(listAllPhotosForModeration).mockResolvedValueOnce([
+      {
+        id: 'ph1',
+        guestId: 'g1',
+        storagePath: 'mafe-8842/a.jpg',
+        status: 'pending',
+        createdAt: '2026-06-01T00:00:00Z',
+        guestFullName: 'Maria Fernanda Contreras',
+      },
+    ]);
+    const user = userEvent.setup();
+
+    render(<AdminPage />);
+    await screen.findByText(/maria fernanda contreras/i);
+
+    await user.click(screen.getByRole('button', { name: /^fotos$/i }));
+
+    expect(await screen.findByText(/cola de moderación/i)).toBeInTheDocument();
+    expect(listAllPhotosForModeration).toHaveBeenCalled();
   });
 });

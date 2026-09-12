@@ -4,13 +4,15 @@ import { motion, useReducedMotion, AnimatePresence } from 'framer-motion';
 import { getGuestByToken, submitRsvp } from '../lib/guestApi';
 import { getEventConfig } from '../lib/eventApi';
 import { listPublishedPosts } from '../lib/postsApi';
+import { getPhotoQuota, getSignedPhotoUrl, listRevealedPhotos } from '../lib/photosApi';
 import type { FaderValue } from '../components/FaderToggle';
 import WristbandCard from '../components/WristbandCard';
 import FaderToggle from '../components/FaderToggle';
 import RsvpDeadlineStrip from '../components/RsvpDeadlineStrip';
 import SignalToast from '../components/SignalToast';
 import AnnouncementTicker from '../components/AnnouncementTicker';
-import type { EventConfig, EventInfo, Guest, Post, RsvpStatus } from '../types';
+import CameraCapture from '../components/CameraCapture';
+import type { EventConfig, EventInfo, Guest, Photo, PhotoQuota, Post, RsvpStatus } from '../types';
 
 const NOT_SET = 'Por confirmar';
 
@@ -56,6 +58,8 @@ export default function GuestPage() {
   const [invalid, setInvalid] = useState(false);
   const [eventConfig, setEventConfig] = useState<EventConfig | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
+  const [photoQuota, setPhotoQuota] = useState<PhotoQuota | null>(null);
+  const [revealedPhotoUrls, setRevealedPhotoUrls] = useState<string[]>([]);
 
   const [editing, setEditing] = useState(false);
   const [fader, setFader] = useState<FaderValue>('neutral');
@@ -130,6 +134,58 @@ export default function GuestPage() {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    // Same degrade-gracefully criterion as eventConfig/posts above: the
+    // camera section is a bonus surface, not the guest's core task (RSVP).
+    // A failed fetch just leaves photoQuota null and the section hides
+    // itself instead of surfacing an error.
+    getPhotoQuota(token ?? '')
+      .then((quota) => {
+        if (active) setPhotoQuota(quota);
+      })
+      .catch(() => {
+        if (active) setPhotoQuota(null);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [token]);
+
+  useEffect(() => {
+    let active = true;
+
+    // Nobody sees the roll -- not even their own photos -- before the
+    // admin reveals it (see supabase/README.md § Revelado del rollo). This
+    // also currently depends on a read-only RPC that doesn't exist yet in
+    // supabase/migrations/ (see the note in src/lib/photosApi.ts on
+    // listRevealedPhotos) -- until it lands, this fetch fails and the
+    // section below just shows nothing instead of breaking the page.
+    if (!eventConfig?.photosRevealedAt) {
+      setRevealedPhotoUrls([]);
+      return;
+    }
+
+    listRevealedPhotos()
+      .then(async (photos: Photo[]) => {
+        const urls = await Promise.all(
+          photos.map((p) =>
+            getSignedPhotoUrl(p.storagePath).catch(() => null),
+          ),
+        );
+        if (active) setRevealedPhotoUrls(urls.filter((u): u is string => u !== null));
+      })
+      .catch(() => {
+        if (active) setRevealedPhotoUrls([]);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [eventConfig?.photosRevealedAt]);
 
   const event = toEventInfo(eventConfig);
 
@@ -269,10 +325,33 @@ export default function GuestPage() {
         </AnimatePresence>
 
         <AnnouncementTicker posts={posts} />
+
+        {!loading && guest && photoQuota && (
+          <CameraCapture token={guest.token ?? token ?? ''} quota={photoQuota} onQuotaChange={setPhotoQuota} />
+        )}
+
+        {eventConfig?.photosRevealedAt && revealedPhotoUrls.length > 0 && (
+          <RevealedRoll photoUrls={revealedPhotoUrls} />
+        )}
       </div>
 
       <SignalToast message={toast} kind={toastKind} onDismiss={() => setToast(null)} />
     </div>
+  );
+}
+
+function RevealedRoll({ photoUrls }: { photoUrls: string[] }) {
+  return (
+    <section className="flex flex-col gap-3 bg-ink-900 p-4 shadow-2xl" aria-label="Rollo revelado">
+      <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-acid-400">
+        Rollo revelado // esta fue la noche
+      </span>
+      <div className="grid grid-cols-3 gap-1">
+        {photoUrls.map((url) => (
+          <img key={url} src={url} alt="" className="aspect-square w-full object-cover" />
+        ))}
+      </div>
+    </section>
   );
 }
 

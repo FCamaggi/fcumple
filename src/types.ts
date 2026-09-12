@@ -12,6 +12,7 @@ export interface EventConfig {
   location: string | null;
   theme: string | null;
   rsvpDeadline: string | null; // ISO datetime
+  photosRevealedAt: string | null; // ISO datetime; null = rollo sin revelar
 }
 
 export interface EventInfo {
@@ -45,6 +46,29 @@ export interface Post {
   title: string;
   body: string;
   publishedAt: string | null;
+  createdAt: string;
+}
+
+/**
+ * Mirrors `get_photo_quota` (see supabase/README.md): `quota` is
+ * `guests.photo_quota` for the token's guest, `used` counts every photo of
+ * that guest regardless of status (pending + approved + rejected).
+ */
+export interface PhotoQuota {
+  quota: number;
+  used: number;
+}
+
+/**
+ * Mirrors `public.photos` (see
+ * supabase/migrations/20260912100002_create_photos.sql). The actual file
+ * bytes live in the `party-photos` Storage bucket at `storagePath`.
+ */
+export interface Photo {
+  id: string;
+  guestId: string;
+  storagePath: string;
+  status: 'pending' | 'approved' | 'rejected';
   createdAt: string;
 }
 

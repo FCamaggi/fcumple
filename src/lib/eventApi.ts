@@ -8,6 +8,7 @@ interface EventConfigRow {
   location: string | null;
   theme: string | null;
   rsvp_deadline: string | null;
+  photos_revealed_at: string | null;
 }
 
 function mapRow(row: EventConfigRow): EventConfig {
@@ -17,6 +18,7 @@ function mapRow(row: EventConfigRow): EventConfig {
     location: row.location,
     theme: row.theme,
     rsvpDeadline: row.rsvp_deadline,
+    photosRevealedAt: row.photos_revealed_at,
   };
 }
 
@@ -34,6 +36,7 @@ function toRow(patch: Partial<EventConfig>): Record<string, unknown> {
   if (patch.location !== undefined) row.location = patch.location;
   if (patch.theme !== undefined) row.theme = patch.theme;
   if (patch.rsvpDeadline !== undefined) row.rsvp_deadline = patch.rsvpDeadline;
+  if (patch.photosRevealedAt !== undefined) row.photos_revealed_at = patch.photosRevealedAt;
   return row;
 }
 
@@ -49,4 +52,12 @@ export async function updateEventConfig(patch: Partial<EventConfig>): Promise<Ev
 
   if (error) fail('guardar la configuración del evento', error);
   return mapRow(data as unknown as EventConfigRow);
+}
+
+// "Revelar el rollo": acción de un solo sentido para el evento (no hay
+// forma de volver a null desde el frontend a propósito, ver
+// supabase/README.md § Revelado del rollo). Reusa updateEventConfig, que ya
+// sabe hacer upsert de la fila singleton.
+export function revealPhotos(): Promise<EventConfig> {
+  return updateEventConfig({ photosRevealedAt: new Date().toISOString() });
 }
