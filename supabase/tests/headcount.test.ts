@@ -55,9 +55,9 @@ describe('get_public_headcount', () => {
   });
 
   it('excludes pending and declined guests from the count', async () => {
-    await insertGuest({ status: 'confirmed', plus_ones_confirmed: 1 });
-    await insertGuest({ status: 'pending', plus_ones_confirmed: 5 });
-    await insertGuest({ status: 'declined', plus_ones_confirmed: 5 });
+    await insertGuest({ status: 'confirmed', plus_ones_allowed: 1, plus_ones_confirmed: 1 });
+    await insertGuest({ status: 'pending', plus_ones_allowed: 5, plus_ones_confirmed: 5 });
+    await insertGuest({ status: 'declined', plus_ones_allowed: 5, plus_ones_confirmed: 5 });
 
     const result = await asRole(admin, 'anon', () =>
       admin.query('select public.get_public_headcount()'),
