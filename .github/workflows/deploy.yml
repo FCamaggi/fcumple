@@ -61,6 +61,15 @@ jobs:
         with:
           version: latest
 
+      # supabase/config.toml commits project_id = "" on purpose (no real
+      # project ref in the repo). The CLI validates this field as required
+      # even after `supabase link`, so fill it in on the runner only. The
+      # project ref isn't secret-sensitive by itself (it's visible in the
+      # project's public URL); the password/access token stay as secrets.
+      - name: Fill in project_id for this run
+        run: |
+          sed -i 's/project_id = ""/project_id = "${{ secrets.SUPABASE_PROJECT_ID }}"/' supabase/config.toml
+
       - name: Link project
         run: supabase link --project-ref "${{ secrets.SUPABASE_PROJECT_ID }}"
         env:
