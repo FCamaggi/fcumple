@@ -57,3 +57,17 @@ Puntos confirmados en esta ampliación:
 - Alcance v1 no cambia: sigue siendo invitación + RSVP + admin básico. Lo que cambia es que la arquitectura y el diseño de v1 se construyen ya pensando en este crecimiento, para no tener que reescribir nada cuando se aborde v2.
 
 Este addendum no reemplaza las secciones 1-7 de este documento — el tono "discoteca, no cumpleaños tradicional" y la lista negra de estética de IA siguen aplicando igual a todas las superficies nuevas (blog, galería, admin extendido), no solo a la invitación.
+
+## 9. Addendum 2 — avisos, galería y QR pasan a construirse ahora, con reglas concretas
+
+El addendum de la sección 8 dejaba blog/noticias y galería como "dirección de producto para v2, no se construye ahora". El usuario pidió avanzar esas dos superficies ya, dentro de la app real (no solo como visión documentada), y sumó una tercera que no estaba en ningún documento anterior: un **escáner QR en la puerta**, explícitamente no bloqueante ("las horas no son limitantes, solo 'llegan tarde'", "no es un evento oficial") y con pedido explícito de creatividad ("libérate, agrégale un plus entretenido").
+
+Decisiones tomadas para poder construir esto sin ambigüedad (respuestas del usuario, no inferencias):
+
+- **Avisos**: se construyen ahora como una superficie real (no solo el `AnnouncementTicker` documentado en `DESIGN.md` §7.8 como referencia visual futura — pasa a ser la pantalla/componente real).
+- **Fotos — revelado**: el rollo se revela recién **después del evento**, por acción explícita del admin ("revelar el rollo"). Nadie ve fotos de nadie antes de eso, ni siquiera quien las subió — es fiel al concepto de cámara descartable real, no un mural en vivo.
+- **Fotos — moderación**: **sí hace falta aprobación del admin** antes de que una foto entre al rollo compartido. Cada foto sube en estado pendiente; el admin la aprueba o la descarta desde `/admin` antes del revelado.
+- **QR en la puerta — nivel de realismo**: escaneo **real pero simple**, no teatral. El admin abre la cámara de su celular desde `/admin`, escanea el QR (que codifica el token del invitado — el mismo que ya existe en su `WristbandCard`), y al reconocerlo dispara una animación de bienvenida personalizada (nombre, color según su estado de RSVP) y marca el check-in real en la base. No es teatral con una lista falsa — decodifica un QR de verdad.
+- El check-in por QR es explícitamente **no limitante**: no hay una hora de corte que bloquee el ingreso, no reemplaza ni compite con el flujo de RSVP — es una capa festiva adicional en la puerta, no un control de acceso estricto.
+
+Esto no reemplaza el addendum de la sección 8: la galería sigue siendo "cámara in-app con cupo por invitado" tal como se describió ahí (el detalle de "5 fotos" es la primera cifra concreta, no cerrada — el admin puede ajustarla). El detalle técnico de estas tres superficies (modelo de datos, RLS, Storage) vive en `02-arquitectura-tecnica.md` y `03-plan-desarrollo.md`, no en este documento.

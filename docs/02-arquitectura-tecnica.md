@@ -123,6 +123,9 @@ No hace falta ningún "ping de despertar" en este flujo porque no hay servidor q
 
 ## 8. Extensibilidad para el hub (v2): blog, galería, admin extendido
 
+> **Actualización**: avisos, galería (con revelado post-evento y moderación) y un check-in QR nuevo pasaron de "dirección de producto para v2" a construirse ya — ver `docs/BACKLOG.md` para el plan por etapas y `DESEO-DISENO-USUARIO.md` sección 9 para las decisiones de producto que lo definen. Las notas de modelado de esta sección siguen siendo válidas como punto de partida.
+
+
 La decisión de arquitectura de v1 (Opción A: Supabase + Vercel) ya soporta este crecimiento sin cambio de stack — agregar secciones es agregar tablas y rutas nuevas, no reescribir lo que existe. Esto se documenta ahora para que las decisiones de modelado de v1 no cierren esa puerta (RNF7 en `01-vision-y-requisitos.md`).
 
 ### 8.1 Principio de estructura
