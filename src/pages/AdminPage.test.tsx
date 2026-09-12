@@ -12,9 +12,14 @@ vi.mock('../lib/adminApi', () => ({
 vi.mock('../lib/auth', () => ({
   signOut: vi.fn(),
 }));
+vi.mock('../lib/eventApi', () => ({
+  getEventConfig: vi.fn(),
+  updateEventConfig: vi.fn(),
+}));
 
 import { listGuests, createGuest, updateGuest, deleteGuest } from '../lib/adminApi';
 import { signOut } from '../lib/auth';
+import { getEventConfig } from '../lib/eventApi';
 import AdminPage from './AdminPage';
 
 const guest: Guest = {
@@ -37,6 +42,8 @@ beforeEach(() => {
   vi.mocked(updateGuest).mockReset();
   vi.mocked(deleteGuest).mockReset();
   vi.mocked(signOut).mockReset();
+  vi.mocked(getEventConfig).mockReset();
+  vi.mocked(getEventConfig).mockResolvedValue(null);
 });
 
 describe('AdminPage', () => {
@@ -117,5 +124,18 @@ describe('AdminPage', () => {
     await user.click(within(screen.getByRole('banner')).getByRole('button', { name: /cerrar sesión/i }));
 
     expect(signOut).toHaveBeenCalled();
+  });
+
+  it('opens the event settings panel and loads the form', async () => {
+    vi.mocked(listGuests).mockResolvedValueOnce([guest]);
+    const user = userEvent.setup();
+
+    render(<AdminPage />);
+    await screen.findByText(/maria fernanda contreras/i);
+
+    await user.click(screen.getByRole('button', { name: /evento/i }));
+
+    expect(await screen.findByLabelText(/nombre del evento/i)).toBeInTheDocument();
+    expect(getEventConfig).toHaveBeenCalled();
   });
 });

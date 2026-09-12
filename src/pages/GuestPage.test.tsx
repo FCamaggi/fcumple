@@ -10,7 +10,12 @@ vi.mock('../lib/guestApi', () => ({
   submitRsvp: vi.fn(),
 }));
 
+vi.mock('../lib/eventApi', () => ({
+  getEventConfig: vi.fn(),
+}));
+
 import { getGuestByToken, submitRsvp } from '../lib/guestApi';
+import { getEventConfig } from '../lib/eventApi';
 
 const pendingGuest: Guest = {
   id: 'g1',
@@ -36,6 +41,14 @@ function renderAt(token: string) {
 beforeEach(() => {
   vi.mocked(getGuestByToken).mockReset();
   vi.mocked(submitRsvp).mockReset();
+  vi.mocked(getEventConfig).mockReset();
+  vi.mocked(getEventConfig).mockResolvedValue({
+    eventName: 'NOCTURNA',
+    eventDate: '2026-05-24T02:00:00Z',
+    location: 'The Warehouse Club',
+    theme: 'All black',
+    rsvpDeadline: '2026-05-21T23:59:00Z',
+  });
 });
 
 describe('GuestPage', () => {
@@ -84,6 +97,18 @@ describe('GuestPage', () => {
 
     expect(await screen.findByText(/access granted/i)).toBeInTheDocument();
     expect(submitRsvp).toHaveBeenCalledWith('mafe-8842', 'confirmed', 0, '');
+  });
+
+  it('degrades gracefully when the event is not configured yet', async () => {
+    vi.mocked(getEventConfig).mockResolvedValueOnce(null);
+    vi.mocked(getGuestByToken).mockResolvedValueOnce(pendingGuest);
+
+    renderAt('mafe-8842');
+
+    expect(await screen.findByText(/maria fernanda contreras/i)).toBeInTheDocument();
+    expect(screen.queryByText(/última llamada/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/rsvp cerrado/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/undefined/i)).not.toBeInTheDocument();
   });
 
   it('shows an error toast and keeps the note when submit fails', async () => {

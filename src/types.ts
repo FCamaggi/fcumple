@@ -1,5 +1,19 @@
 export type RsvpStatus = 'pending' | 'confirmed' | 'declined';
 
+/**
+ * Mirrors the single-row `event_config` table (see
+ * supabase/migrations/20260911120005_create_event_config.sql). Every
+ * column besides `id` is nullable: the row may not exist yet, or the
+ * admin may have only filled in some fields.
+ */
+export interface EventConfig {
+  eventName: string | null;
+  eventDate: string | null; // ISO datetime
+  location: string | null;
+  theme: string | null;
+  rsvpDeadline: string | null; // ISO datetime
+}
+
 export interface EventInfo {
   name: string;
   tagline: string;
