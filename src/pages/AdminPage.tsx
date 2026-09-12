@@ -59,6 +59,15 @@ export default function AdminPage() {
   const confirmed = useMemo(() => guests.filter((g) => g.status === 'confirmed').length, [guests]);
   const pending = useMemo(() => guests.filter((g) => g.status === 'pending').length, [guests]);
   const declined = useMemo(() => guests.filter((g) => g.status === 'declined').length, [guests]);
+  // RF7: headcount real para logística — confirmados + la suma de sus +1
+  // confirmados, no solo la cantidad de invitados que dijeron que sí.
+  const realHeadcount = useMemo(
+    () =>
+      guests
+        .filter((g) => g.status === 'confirmed')
+        .reduce((sum, g) => sum + 1 + g.plusOnesConfirmed, 0),
+    [guests],
+  );
 
   function notifyError(action: string, err: unknown) {
     setToastKind('error');
@@ -159,6 +168,7 @@ export default function AdminPage() {
             <TallyRow color="bg-acid-400" label="Confirmados" value={confirmed} valueClass="text-acid-400" />
             <TallyRow color="bg-laser-500" label="Pendientes" value={pending} valueClass="text-laser-500" />
             <TallyRow color="bg-flame-500" label="Rechazados" value={declined} valueClass="text-flame-500" />
+            <TallyRow color="bg-hotpink-500" label="Headcount real (+1 incl.)" value={realHeadcount} valueClass="text-hotpink-500" />
           </div>
         </section>
 
