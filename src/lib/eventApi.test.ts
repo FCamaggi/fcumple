@@ -1,13 +1,14 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 
 vi.mock('./supabaseClient', () => ({
-  supabase: { from: vi.fn() },
+  supabase: { from: vi.fn(), rpc: vi.fn() },
 }));
 
 import { supabase } from './supabaseClient';
-import { getEventConfig, updateEventConfig, revealPhotos } from './eventApi';
+import { getEventConfig, updateEventConfig, revealPhotos, getPublicHeadcount } from './eventApi';
 
 const from = supabase.from as unknown as ReturnType<typeof vi.fn>;
+const rpc = supabase.rpc as unknown as ReturnType<typeof vi.fn>;
 
 const row = {
   id: true,
@@ -21,6 +22,7 @@ const row = {
 
 beforeEach(() => {
   from.mockReset();
+  rpc.mockReset();
 });
 
 describe('getEventConfig', () => {
@@ -105,5 +107,22 @@ describe('revealPhotos', () => {
     expect(payload.id).toBe(true);
     expect(typeof payload.photos_revealed_at).toBe('string');
     expect(config.photosRevealedAt).toBe('2026-06-01T00:00:00Z');
+  });
+});
+
+describe('getPublicHeadcount', () => {
+  it('returns the integer headcount from the public rpc', async () => {
+    rpc.mockResolvedValueOnce({ data: 38, error: null });
+
+    const count = await getPublicHeadcount();
+
+    expect(rpc).toHaveBeenCalledWith('get_public_headcount');
+    expect(count).toBe(38);
+  });
+
+  it('throws a readable error when supabase reports a failure', async () => {
+    rpc.mockResolvedValueOnce({ data: null, error: { message: 'network down' } });
+
+    await expect(getPublicHeadcount()).rejects.toThrow(/network down/);
   });
 });

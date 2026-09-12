@@ -37,3 +37,43 @@ Confirmado en el código: `SignalToast` no tiene ningún timer de auto-dismiss, 
 ## Cómo encarar la Etapa 4
 
 Es explícitamente una etapa de **diseño/arquitectura de información primero, código después** — a diferencia de las Etapas 1-3, que ya llegaban con la decisión de producto resuelta y solo faltaba construir. Acá lo que falta es decidir la forma antes de construir nada, para no repetir el patrón de "piezas correctas por separado, flujo incoherente en conjunto" que motivó esta reescritura del backlog.
+
+## Etapa 4 — Resolución (decisiones tomadas 2026-09-12)
+
+Antes de decidir se plantearon dos ejes con 1-2 arquitecturas concretas cada uno (ver historial de la sesión). Estas son las decisiones finales, tomadas por el usuario, no inferencias:
+
+### Decisión 4.3 — Hub público nuevo en `/evento`
+Se crea una ruta pública nueva, sin token, `/evento`: countdown al evento, avisos (`AnnouncementTicker`), y el rollo revelado cuando exista. Es el "punto de encuentro común" que la visión original (`DESEO-DISENO-USUARIO.md` sección 8) pedía y que nunca se construyó como superficie separada.
+
+`/i/:token` deja de cargar avisos/rollo revelado embebidos y queda enfocado en lo personal: wristband, RSVP, estado, y un link visible hacia `/evento`.
+
+Sub-decisiones de producto resueltas (no son inferencia técnica, son respuestas explícitas del usuario):
+- **"Quién va" en `/evento`**: se muestra **solo el número** total de confirmados (ej. "38 en la lista"), nunca nombres. Cero exposición de datos personales de otros invitados.
+- **Nivel de acceso de `/evento`**: **100% abierto**, sin token ni login — coherente con el tono ya establecido para el QR de puerta ("no es un evento oficial, no hay control de acceso estricto").
+
+### Decisión 4.1 — Admin: "modo puerta" simplificado en mobile
+`/admin` deja de ser un único layout comprimido por breakpoints. En mobile se muestra un **modo puerta** reducido con únicamente Escáner + `DoorList` + `HeadcountMeter` — las tres piezas que de verdad se usan la noche del evento, parado con el celular en la mano — con un link explícito para entrar a la consola completa si hace falta (editar evento, avisos, moderar fotos, exportar/importar). En desktop no cambia nada: sigue siendo la consola completa de siempre.
+
+### Decisión 4.2 — Qué ve el invitado después de confirmar
+`ConfirmedScreen` (`GuestPage.tsx`) suma un bloque explícito (no una línea suelta de texto) que anticipa que la cámara se desbloquea al llegar y ser escaneado en la puerta, con el mismo lenguaje de "entrada/acceso" del resto del proyecto. El CTA de esa pantalla pasa a incluir "ir al hub" (`/evento`), en vez de dejar al invitado sin ninguna acción visible tras confirmar.
+
+### Decisión 4.4 — `SignalToast` auto-dismiss
+`SignalToast` suma un timer de auto-dismiss (~4-5s), pausable si el usuario toca/hace hover sobre el toast, sin animación adicional si `prefers-reduced-motion` está activo. Es un fix acotado, sin decisión de arquitectura de por medio — se implementa junto con lo anterior.
+
+### Qué queda para la implementación (no para esta sesión de arquitectura)
+- Definir el nombre exacto y contenido final de `/evento` (componentes a reusar: `AnnouncementTicker`, `RevealedRoll` ya existen; hay que extraerlos de `GuestPage.tsx` y moverlos a la ruta nueva).
+- Definir el criterio exacto de breakpoint para activar "modo puerta" en `AdminPage.tsx` y el copy/ubicación del link "ver consola completa".
+- Definir el copy final del bloque nuevo en `ConfirmedScreen`.
+- Todo esto se implementa con TDD real, separando escritor de revisor, en la siguiente fase de trabajo — no en esta sesión de arquitectura.
+
+## Etapa 4 — Implementada y revisada (2026-09-12)
+
+Las cuatro decisiones de la sección anterior ya están construidas, con TDD real (test antes del código en cada pieza) y revisión independiente en dos ciclos (escritor ≠ revisor). Evidencia: `npm run typecheck` limpio, `npm test` → 181/181 en 30 archivos, ambos corridos de forma independiente por el revisor, no solo reportados por quien implementó.
+
+- **4.3 / `/evento`**: `src/pages/EventHubPage.tsx`, pública de verdad (sin `RequireAuth`, sin token), registrada en `src/App.tsx`. Muestra el headcount total de confirmados como un solo número (`PublicTally`, vía `getPublicHeadcount()` en `src/lib/eventApi.ts` → RPC `get_public_headcount()`), countdown al evento (`DoorCountdown`), `AnnouncementTicker`, y el rollo revelado extraído a `src/components/RevealedRoll.tsx`. Nueva RPC en `supabase/migrations/20260912100009_rpc_get_public_headcount.sql` (mismo patrón `security definer`/`search_path`/grant que `get_guest_by_token`), con test en `supabase/tests/headcount.test.ts`.
+- **4.1 / modo puerta**: `src/pages/AdminPage.tsx` detecta mobile con `src/hooks/useIsMobile.ts` (`matchMedia`, breakpoint `< 768px`). En mobile se reduce a Escáner + `DoorList` + `HeadcountMeter`, con botón "Ver consola completa" y su simétrico "Volver al modo puerta" (ida y vuelta real, verificada). Desktop sin cambios.
+- **4.2 / post-confirmación**: `ConfirmedScreen` en `src/pages/GuestPage.tsx` suma el bloque "Cámara // acceso: Bloqueada" explicando el desbloqueo en la puerta, más CTA a `/evento`. Avisos y rollo revelado ya no se cargan embebidos en `/i/:token`.
+- **4.4 / `SignalToast`**: auto-dismiss a los ~4500ms, pausable con mouse (`onMouseEnter`/`onMouseLeave`) y con touch real (`onTouchStart`/`onTouchEnd`, agregado en la ronda de revisión — la primera entrega solo cubría mouse).
+
+### Deuda de entorno encontrada (no de esta etapa, no bloquea lo anterior)
+`npm run test:db` está roto en este entorno **desde antes de esta sesión**, para toda la suite (no solo `headcount.test.ts`): `supabase/tests/globalSetup.ts` levanta un Postgres genérico (`postgres:16-alpine`) que no tiene el schema `storage`, y la migración `20260912100003_storage_party_photos.sql` (de la etapa de fotos) falla al insertar en `storage.buckets`. Confirmado con `git stash` que el fallo es previo e independiente de los cambios de esta sesión. La migración/RPC de `get_public_headcount()` se validó por lectura contra el patrón ya en producción, no con una corrida verde real. Pendiente: cambiar la imagen del contenedor en `globalSetup.ts` a una que incluya el schema `storage` (o levantar ese schema a mano en el setup) para poder volver a correr `test:db` de punta a punta.

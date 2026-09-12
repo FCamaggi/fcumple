@@ -61,3 +61,13 @@ export async function updateEventConfig(patch: Partial<EventConfig>): Promise<Ev
 export function revealPhotos(): Promise<EventConfig> {
   return updateEventConfig({ photosRevealedAt: new Date().toISOString() });
 }
+
+// El hub público (/evento) solo puede mostrar un número, nunca nombres --
+// get_public_headcount() es un RPC de solo lectura sin RLS de por medio que
+// devuelve exactamente eso (ver supabase/migrations).
+export async function getPublicHeadcount(): Promise<number> {
+  const { data, error } = await supabase.rpc('get_public_headcount');
+
+  if (error) fail('cargar el número de confirmados', error);
+  return data as number;
+}

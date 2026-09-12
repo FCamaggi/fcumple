@@ -26,6 +26,7 @@ formato que espera `supabase db push`):
 | `20260912100003_storage_party_photos.sql` | Bucket `party-photos` + políticas RLS de `storage.objects`. |
 | `20260912100004_rpc_submit_photo.sql` | Función pública de registro de metadata de foto por token, valida cupo. |
 | `20260912100005_rpc_get_photo_quota.sql` | Función pública de lectura de cupo/usado por token. |
+| `20260912100009_rpc_get_public_headcount.sql` | Función pública de conteo total de confirmados, sin token, para la página `/evento`. |
 
 Aplicarlas a un proyecto hosted real es un paso posterior (`supabase db
 push`), fuera del alcance de este trabajo — acá solo se versionan y se
@@ -70,6 +71,23 @@ Ambas funciones son `security definer` con `search_path` fijado a `public`
 explícitamente (para que un `search_path` manipulado no pueda secuestrar un
 identificador sin calificar dentro del cuerpo de la función), y tienen
 `grant execute` para `anon` y `authenticated`.
+
+### `get_public_headcount()`
+
+Devuelve un único entero, sin parámetros y sin token — pensada para la
+página pública `/evento` (sin login), que muestra algo como "38 en la
+lista" pero nunca un nombre ni ningún otro dato personal:
+
+```ts
+number // total de invitados confirmados, sumando sus +1 confirmados
+```
+
+Cuenta cada invitado con `status = 'confirmed'` como 1 (él mismo) más su
+`plus_ones_confirmed` (mismo cálculo que `realHeadcount` en
+`src/pages/AdminPage.tsx`). Invitados `pending` o `declined` no suman nada.
+No expone ninguna columna de `guests` — ni id, ni nombre, ni token —, solo
+el número total. También es `security definer` con `search_path` fijado a
+`public` y `grant execute` para `anon` y `authenticated`.
 
 ## Galería de fotos (`photos` + Storage)
 

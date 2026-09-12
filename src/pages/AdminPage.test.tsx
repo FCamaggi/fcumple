@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { Guest } from '../types';
@@ -38,6 +38,22 @@ import { listAllPosts } from '../lib/postsApi';
 import { listAllPhotosForModeration } from '../lib/photosApi';
 import AdminPage from './AdminPage';
 
+function mockViewport(isMobile: boolean) {
+  vi.stubGlobal(
+    'matchMedia',
+    vi.fn().mockReturnValue({
+      matches: isMobile,
+      media: '',
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      // Framer Motion's useReducedMotion still calls the legacy
+      // addListener/removeListener pair internally.
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+    }),
+  );
+}
+
 const guest: Guest = {
   id: 'g1',
   token: 'mafe-8842',
@@ -54,6 +70,7 @@ const guest: Guest = {
 };
 
 beforeEach(() => {
+  mockViewport(false);
   vi.mocked(listGuests).mockReset();
   vi.mocked(createGuest).mockReset();
   vi.mocked(updateGuest).mockReset();
@@ -65,6 +82,10 @@ beforeEach(() => {
   vi.mocked(listAllPosts).mockResolvedValue([]);
   vi.mocked(listAllPhotosForModeration).mockReset();
   vi.mocked(listAllPhotosForModeration).mockResolvedValue([]);
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
 });
 
 describe('AdminPage', () => {
@@ -203,5 +224,64 @@ describe('AdminPage', () => {
 
     expect(await screen.findByText(/cola de moderación/i)).toBeInTheDocument();
     expect(listAllPhotosForModeration).toHaveBeenCalled();
+  });
+
+  describe('modo puerta (mobile)', () => {
+    it('shows only the scanner toggle, the door list and the headcount meter', async () => {
+      mockViewport(true);
+      vi.mocked(listGuests).mockResolvedValueOnce([guest]);
+
+      render(<AdminPage />);
+
+      expect(await screen.findByText(/maria fernanda contreras/i)).toBeInTheDocument();
+      expect(screen.getByText(/aforo vu/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /escáner/i })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /^evento$/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /^avisos$/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /^fotos$/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /importar csv/i })).not.toBeInTheDocument();
+    });
+
+    it('links to the full console from door mode', async () => {
+      mockViewport(true);
+      vi.mocked(listGuests).mockResolvedValueOnce([guest]);
+      const user = userEvent.setup();
+
+      render(<AdminPage />);
+      await screen.findByText(/maria fernanda contreras/i);
+
+      await user.click(screen.getByRole('button', { name: /ver consola completa/i }));
+
+      expect(screen.getByRole('button', { name: /^evento$/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /^avisos$/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /^fotos$/i })).toBeInTheDocument();
+    });
+
+    it('lets the admin go back to door mode from the full console, still on mobile', async () => {
+      mockViewport(true);
+      vi.mocked(listGuests).mockResolvedValueOnce([guest]);
+      const user = userEvent.setup();
+
+      render(<AdminPage />);
+      await screen.findByText(/maria fernanda contreras/i);
+
+      await user.click(screen.getByRole('button', { name: /ver consola completa/i }));
+      expect(screen.getByRole('button', { name: /^evento$/i })).toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: /volver al modo puerta/i }));
+
+      expect(screen.queryByRole('button', { name: /^evento$/i })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /ver consola completa/i })).toBeInTheDocument();
+    });
+
+    it('does not show the door-mode link on desktop', async () => {
+      vi.mocked(listGuests).mockResolvedValueOnce([guest]);
+
+      render(<AdminPage />);
+      await screen.findByText(/maria fernanda contreras/i);
+
+      expect(screen.queryByRole('button', { name: /ver consola completa/i })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /^evento$/i })).toBeInTheDocument();
+    });
   });
 });

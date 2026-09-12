@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { listGuests, createGuest, updateGuest, deleteGuest } from '../lib/adminApi';
 import { signOut } from '../lib/auth';
 import { getEventConfig } from '../lib/eventApi';
+import { useIsMobile } from '../hooks/useIsMobile';
 import type { EventConfig, Guest } from '../types';
 import HeadcountMeter from '../components/HeadcountMeter';
 import DoorList from '../components/DoorList';
@@ -33,6 +34,14 @@ export default function AdminPage() {
   const [showScanner, setShowScanner] = useState(false);
   const [showPhotos, setShowPhotos] = useState(false);
   const [eventConfig, setEventConfig] = useState<EventConfig | null>(null);
+  // Modo puerta (docs/BACKLOG.md, Decisión 4.1): en mobile la consola se
+  // reduce a Escáner + DoorList + HeadcountMeter -- lo que de verdad se usa
+  // parado en la puerta con el teléfono en la mano. `fullConsoleOnMobile`
+  // es el escape manual hacia la consola completa sin salir de la página;
+  // en desktop no aplica nunca (ver `doorMode` abajo).
+  const isMobile = useIsMobile();
+  const [fullConsoleOnMobile, setFullConsoleOnMobile] = useState(false);
+  const doorMode = isMobile && !fullConsoleOnMobile;
 
   useEffect(() => {
     let active = true;
@@ -162,21 +171,25 @@ export default function AdminPage() {
           </span>
         </div>
         <div className="flex items-center gap-3 font-mono text-[11px] uppercase text-paper-100/70">
-          <span>Corte lista: {formatTime(eventConfig?.rsvpDeadline ?? null)}</span>
-          <button
-            type="button"
-            onClick={() => setShowEventSettings((v) => !v)}
-            className="border border-smoke-700/50 px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-acid-400 transition-colors hover:bg-acid-400/10"
-          >
-            Evento
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowPosts((v) => !v)}
-            className="border border-smoke-700/50 px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-acid-400 transition-colors hover:bg-acid-400/10"
-          >
-            Avisos
-          </button>
+          {!doorMode && <span>Corte lista: {formatTime(eventConfig?.rsvpDeadline ?? null)}</span>}
+          {!doorMode && (
+            <>
+              <button
+                type="button"
+                onClick={() => setShowEventSettings((v) => !v)}
+                className="border border-smoke-700/50 px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-acid-400 transition-colors hover:bg-acid-400/10"
+              >
+                Evento
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowPosts((v) => !v)}
+                className="border border-smoke-700/50 px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-acid-400 transition-colors hover:bg-acid-400/10"
+              >
+                Avisos
+              </button>
+            </>
+          )}
           <button
             type="button"
             onClick={() => setShowScanner((v) => !v)}
@@ -184,13 +197,33 @@ export default function AdminPage() {
           >
             Escáner
           </button>
-          <button
-            type="button"
-            onClick={() => setShowPhotos((v) => !v)}
-            className="border border-smoke-700/50 px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-acid-400 transition-colors hover:bg-acid-400/10"
-          >
-            Fotos
-          </button>
+          {!doorMode && (
+            <button
+              type="button"
+              onClick={() => setShowPhotos((v) => !v)}
+              className="border border-smoke-700/50 px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-acid-400 transition-colors hover:bg-acid-400/10"
+            >
+              Fotos
+            </button>
+          )}
+          {doorMode && (
+            <button
+              type="button"
+              onClick={() => setFullConsoleOnMobile(true)}
+              className="border border-smoke-700/50 px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-laser-500 transition-colors hover:bg-laser-500/10"
+            >
+              Ver consola completa
+            </button>
+          )}
+          {isMobile && fullConsoleOnMobile && (
+            <button
+              type="button"
+              onClick={() => setFullConsoleOnMobile(false)}
+              className="border border-smoke-700/50 px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-laser-500 transition-colors hover:bg-laser-500/10"
+            >
+              Volver al modo puerta
+            </button>
+          )}
           <button
             type="button"
             onClick={handleLogout}
@@ -202,38 +235,46 @@ export default function AdminPage() {
       </header>
 
       <main className="mx-auto flex max-w-7xl flex-col gap-6 px-6 py-6">
-        {showEventSettings && <EventSettingsForm onSaved={setEventConfig} />}
-        {showPosts && <PostsPanel />}
+        {!doorMode && showEventSettings && <EventSettingsForm onSaved={setEventConfig} />}
+        {!doorMode && showPosts && <PostsPanel />}
         {showScanner && (
           <QrScanner guests={guests} onCheckedIn={handleCheckedIn} onClose={() => setShowScanner(false)} />
         )}
-        {showPhotos && <PhotoModerationPanel />}
+        {!doorMode && showPhotos && <PhotoModerationPanel />}
 
-        <section className="grid grid-cols-1 gap-4 bg-ink-900 p-4 shadow-2xl lg:grid-cols-3">
-          <div className="lg:col-span-2">
+        {doorMode ? (
+          <div className="bg-ink-900 p-4 shadow-2xl">
             <HeadcountMeter confirmed={confirmed} total={guests.length} pending={pending} declined={declined} />
           </div>
-          <div className="flex flex-col justify-between gap-2 bg-ink-950 p-4">
-            <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-hotpink-500">
-              Live tally
-            </span>
-            <TallyRow color="bg-acid-400" label="Confirmados" value={confirmed} valueClass="text-acid-400" />
-            <TallyRow color="bg-laser-500" label="Pendientes" value={pending} valueClass="text-laser-500" />
-            <TallyRow color="bg-flame-500" label="Rechazados" value={declined} valueClass="text-flame-500" />
-            <TallyRow color="bg-hotpink-500" label="Headcount real (+1 incl.)" value={realHeadcount} valueClass="text-hotpink-500" />
-          </div>
-        </section>
+        ) : (
+          <section className="grid grid-cols-1 gap-4 bg-ink-900 p-4 shadow-2xl lg:grid-cols-3">
+            <div className="lg:col-span-2">
+              <HeadcountMeter confirmed={confirmed} total={guests.length} pending={pending} declined={declined} />
+            </div>
+            <div className="flex flex-col justify-between gap-2 bg-ink-950 p-4">
+              <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-hotpink-500">
+                Live tally
+              </span>
+              <TallyRow color="bg-acid-400" label="Confirmados" value={confirmed} valueClass="text-acid-400" />
+              <TallyRow color="bg-laser-500" label="Pendientes" value={pending} valueClass="text-laser-500" />
+              <TallyRow color="bg-flame-500" label="Rechazados" value={declined} valueClass="text-flame-500" />
+              <TallyRow color="bg-hotpink-500" label="Headcount real (+1 incl.)" value={realHeadcount} valueClass="text-hotpink-500" />
+            </div>
+          </section>
+        )}
 
-        <div className="flex items-center justify-end gap-2">
-          <ExportGuestsButton guests={guests} />
-          <button
-            type="button"
-            onClick={() => setImporting(true)}
-            className="border border-smoke-700/50 px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-paper-100 transition-colors hover:bg-smoke-700/30"
-          >
-            Importar CSV
-          </button>
-        </div>
+        {!doorMode && (
+          <div className="flex items-center justify-end gap-2">
+            <ExportGuestsButton guests={guests} />
+            <button
+              type="button"
+              onClick={() => setImporting(true)}
+              className="border border-smoke-700/50 px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-paper-100 transition-colors hover:bg-smoke-700/30"
+            >
+              Importar CSV
+            </button>
+          </div>
+        )}
 
         <DoorList
           guests={guests}
