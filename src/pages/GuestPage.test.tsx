@@ -14,20 +14,13 @@ vi.mock('../lib/eventApi', () => ({
   getEventConfig: vi.fn(),
 }));
 
-vi.mock('../lib/postsApi', () => ({
-  listPublishedPosts: vi.fn(),
-}));
-
 vi.mock('../lib/photosApi', () => ({
   getPhotoQuota: vi.fn(),
-  listRevealedPhotos: vi.fn(),
-  getSignedPhotoUrl: vi.fn(),
 }));
 
 import { getGuestByToken, submitRsvp } from '../lib/guestApi';
 import { getEventConfig } from '../lib/eventApi';
-import { listPublishedPosts } from '../lib/postsApi';
-import { getPhotoQuota, listRevealedPhotos, getSignedPhotoUrl } from '../lib/photosApi';
+import { getPhotoQuota } from '../lib/photosApi';
 
 const pendingGuest: Guest = {
   id: 'g1',
@@ -84,14 +77,8 @@ beforeEach(() => {
     rsvpDeadline: '2026-05-21T23:59:00Z',
     photosRevealedAt: null,
   });
-  vi.mocked(listPublishedPosts).mockReset();
-  vi.mocked(listPublishedPosts).mockResolvedValue([]);
   vi.mocked(getPhotoQuota).mockReset();
   vi.mocked(getPhotoQuota).mockResolvedValue({ quota: 5, used: 2 });
-  vi.mocked(listRevealedPhotos).mockReset();
-  vi.mocked(listRevealedPhotos).mockResolvedValue([]);
-  vi.mocked(getSignedPhotoUrl).mockReset();
-  vi.mocked(getSignedPhotoUrl).mockResolvedValue('https://signed.example/a.jpg');
 });
 
 describe('GuestPage', () => {
@@ -235,31 +222,14 @@ describe('GuestPage', () => {
     expect(screen.queryByText(/cupo liberado/i)).not.toBeInTheDocument();
   });
 
-  it('shows the announcement ticker when there are published posts', async () => {
+  it('shows a visible link to the shared event hub once the guest is loaded', async () => {
     vi.mocked(getGuestByToken).mockResolvedValueOnce(pendingGuest);
-    vi.mocked(listPublishedPosts).mockResolvedValueOnce([
-      {
-        id: 'p1',
-        title: 'Ya salió la lista',
-        body: 'Revisen el link, quedan pocos cupos.',
-        publishedAt: '2026-05-01T00:00:00Z',
-        createdAt: '2026-04-28T00:00:00Z',
-      },
-    ]);
 
     renderAt('mafe-8842');
     await screen.findByText(/maria fernanda contreras/i);
 
-    expect((await screen.findAllByText(/ya salió la lista/i)).length).toBeGreaterThan(0);
-  });
-
-  it('does not break the page when the announcements fetch fails', async () => {
-    vi.mocked(getGuestByToken).mockResolvedValueOnce(pendingGuest);
-    vi.mocked(listPublishedPosts).mockRejectedValueOnce(new Error('network down'));
-
-    renderAt('mafe-8842');
-
-    expect(await screen.findByText(/maria fernanda contreras/i)).toBeInTheDocument();
+    const hubLink = screen.getByRole('link', { name: /cartelera/i });
+    expect(hubLink).toHaveAttribute('href', '/evento');
   });
 
   it('shows the camera section with the remaining shots once checked in at the door', async () => {
@@ -293,55 +263,23 @@ describe('GuestPage', () => {
     expect(screen.queryByLabelText('Cámara')).not.toBeInTheDocument();
   });
 
-  it('does not show the revealed roll before the admin reveals it', async () => {
-    vi.mocked(getGuestByToken).mockResolvedValueOnce(pendingGuest);
+  it('tells a confirmed guest the camera unlocks once checked in at the door', async () => {
+    vi.mocked(getGuestByToken).mockResolvedValueOnce(confirmedGuest);
 
     renderAt('mafe-8842');
-    await screen.findByText(/maria fernanda contreras/i);
 
-    expect(listRevealedPhotos).not.toHaveBeenCalled();
-    expect(screen.queryByLabelText('Rollo revelado')).not.toBeInTheDocument();
+    expect(await screen.findByText(/access granted/i)).toBeInTheDocument();
+    expect(screen.getByText(/cámara se desbloquea/i)).toBeInTheDocument();
+    expect(screen.getByText(/te escaneen en la puerta/i)).toBeInTheDocument();
   });
 
-  it('shows the revealed roll once photosRevealedAt is set and photos come back', async () => {
-    vi.mocked(getGuestByToken).mockResolvedValueOnce(pendingGuest);
-    vi.mocked(getEventConfig).mockReset();
-    vi.mocked(getEventConfig).mockResolvedValue({
-      eventName: 'NOCTURNA',
-      eventDate: '2026-05-24T02:00:00Z',
-      location: 'The Warehouse Club',
-      theme: 'All black',
-      rsvpDeadline: '2026-05-21T23:59:00Z',
-      photosRevealedAt: '2026-06-01T00:00:00Z',
-    });
-    vi.mocked(listRevealedPhotos).mockResolvedValueOnce([
-      { id: 'tok1/a.jpg', guestId: '', storagePath: 'tok1/a.jpg', status: 'approved', createdAt: '' },
-    ]);
+  it('includes a call to action to the event hub on the confirmed screen', async () => {
+    vi.mocked(getGuestByToken).mockResolvedValueOnce(confirmedGuest);
 
     renderAt('mafe-8842');
+    await screen.findByText(/access granted/i);
 
-    expect(await screen.findByLabelText('Rollo revelado')).toBeInTheDocument();
-    expect(getSignedPhotoUrl).toHaveBeenCalledWith('tok1/a.jpg');
-  });
-
-  it('does not break the page when the revealed-roll fetch fails (e.g. the RPC is not deployed yet)', async () => {
-    vi.mocked(getGuestByToken).mockResolvedValueOnce(pendingGuest);
-    vi.mocked(getEventConfig).mockReset();
-    vi.mocked(getEventConfig).mockResolvedValue({
-      eventName: 'NOCTURNA',
-      eventDate: '2026-05-24T02:00:00Z',
-      location: 'The Warehouse Club',
-      theme: 'All black',
-      rsvpDeadline: '2026-05-21T23:59:00Z',
-      photosRevealedAt: '2026-06-01T00:00:00Z',
-    });
-    vi.mocked(listRevealedPhotos).mockRejectedValueOnce(
-      new Error('No pudimos cargar el rollo revelado: function list_revealed_photos() does not exist'),
-    );
-
-    renderAt('mafe-8842');
-
-    expect(await screen.findByText(/maria fernanda contreras/i)).toBeInTheDocument();
-    expect(screen.queryByLabelText('Rollo revelado')).not.toBeInTheDocument();
+    const hubLink = screen.getByRole('link', { name: /cartelera/i });
+    expect(hubLink).toHaveAttribute('href', '/evento');
   });
 });

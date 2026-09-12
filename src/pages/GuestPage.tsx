@@ -1,18 +1,16 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { motion, useReducedMotion, AnimatePresence } from 'framer-motion';
 import { getGuestByToken, submitRsvp } from '../lib/guestApi';
 import { getEventConfig } from '../lib/eventApi';
-import { listPublishedPosts } from '../lib/postsApi';
-import { getPhotoQuota, getSignedPhotoUrl, listRevealedPhotos } from '../lib/photosApi';
+import { getPhotoQuota } from '../lib/photosApi';
 import type { FaderValue } from '../components/FaderToggle';
 import WristbandCard from '../components/WristbandCard';
 import FaderToggle from '../components/FaderToggle';
 import RsvpDeadlineStrip from '../components/RsvpDeadlineStrip';
 import SignalToast from '../components/SignalToast';
-import AnnouncementTicker from '../components/AnnouncementTicker';
 import CameraCapture from '../components/CameraCapture';
-import type { EventConfig, EventInfo, Guest, Photo, PhotoQuota, Post, RsvpStatus } from '../types';
+import type { EventConfig, EventInfo, Guest, PhotoQuota, RsvpStatus } from '../types';
 
 const NOT_SET = 'Por confirmar';
 
@@ -57,9 +55,7 @@ export default function GuestPage() {
   const [guest, setGuest] = useState<Guest | null>(null);
   const [invalid, setInvalid] = useState(false);
   const [eventConfig, setEventConfig] = useState<EventConfig | null>(null);
-  const [posts, setPosts] = useState<Post[]>([]);
   const [photoQuota, setPhotoQuota] = useState<PhotoQuota | null>(null);
-  const [revealedPhotoUrls, setRevealedPhotoUrls] = useState<string[]>([]);
 
   const [editing, setEditing] = useState(false);
   const [fader, setFader] = useState<FaderValue>('neutral');
@@ -118,26 +114,6 @@ export default function GuestPage() {
   useEffect(() => {
     let active = true;
 
-    // Announcements are a plus, not a critical part of the screen (see
-    // AnnouncementTicker): a failed fetch just leaves posts empty and the
-    // ticker renders nothing, without surfacing an error or blocking the
-    // rest of the page.
-    listPublishedPosts()
-      .then((found) => {
-        if (active) setPosts(found);
-      })
-      .catch(() => {
-        if (active) setPosts([]);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    let active = true;
-
     // Same degrade-gracefully criterion as eventConfig/posts above: the
     // camera section is a bonus surface, not the guest's core task (RSVP).
     // A failed fetch just leaves photoQuota null and the section hides
@@ -154,38 +130,6 @@ export default function GuestPage() {
       active = false;
     };
   }, [token]);
-
-  useEffect(() => {
-    let active = true;
-
-    // Nobody sees the roll -- not even their own photos -- before the
-    // admin reveals it (see supabase/README.md § Revelado del rollo). This
-    // also currently depends on a read-only RPC that doesn't exist yet in
-    // supabase/migrations/ (see the note in src/lib/photosApi.ts on
-    // listRevealedPhotos) -- until it lands, this fetch fails and the
-    // section below just shows nothing instead of breaking the page.
-    if (!eventConfig?.photosRevealedAt) {
-      setRevealedPhotoUrls([]);
-      return;
-    }
-
-    listRevealedPhotos()
-      .then(async (photos: Photo[]) => {
-        const urls = await Promise.all(
-          photos.map((p) =>
-            getSignedPhotoUrl(p.storagePath).catch(() => null),
-          ),
-        );
-        if (active) setRevealedPhotoUrls(urls.filter((u): u is string => u !== null));
-      })
-      .catch(() => {
-        if (active) setRevealedPhotoUrls([]);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [eventConfig?.photosRevealedAt]);
 
   const event = toEventInfo(eventConfig);
 
@@ -324,15 +268,13 @@ export default function GuestPage() {
           )}
         </AnimatePresence>
 
-        <AnnouncementTicker posts={posts} />
-
         {!loading && guest && guest.checkedInAt && photoQuota && (
           <CameraCapture token={guest.token ?? token ?? ''} quota={photoQuota} onQuotaChange={setPhotoQuota} />
         )}
 
-        {eventConfig?.photosRevealedAt && revealedPhotoUrls.length > 0 && (
-          <RevealedRoll photoUrls={revealedPhotoUrls} />
-        )}
+        {/* ConfirmedScreen carries its own link to the hub as part of its CTA
+            block; showing the generic chip too would just duplicate it. */}
+        {!loading && guest && !(guest.status === 'confirmed' && !editing) && <EventHubChip />}
       </div>
 
       <SignalToast message={toast} kind={toastKind} onDismiss={() => setToast(null)} />
@@ -340,18 +282,17 @@ export default function GuestPage() {
   );
 }
 
-function RevealedRoll({ photoUrls }: { photoUrls: string[] }) {
+// El link visible hacia el hub compartido (docs/BACKLOG.md, Decisión 4.3):
+// avisos, cuenta atrás y rollo revelado ya no viven embebidos acá, este
+// chip es cómo se llega a esa vista común.
+function EventHubChip() {
   return (
-    <section className="flex flex-col gap-3 bg-ink-900 p-4 shadow-2xl" aria-label="Rollo revelado">
-      <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-acid-400">
-        Rollo revelado // esta fue la noche
-      </span>
-      <div className="grid grid-cols-3 gap-1">
-        {photoUrls.map((url) => (
-          <img key={url} src={url} alt="" className="aspect-square w-full object-cover" />
-        ))}
-      </div>
-    </section>
+    <Link
+      to="/evento"
+      className="tap-target flex items-center justify-center gap-2 bg-ink-900 px-4 py-3 font-mono text-[11px] font-bold uppercase tracking-wider text-laser-500 shadow-xl transition-colors hover:bg-laser-500/10"
+    >
+      Ver la cartelera del evento
+    </Link>
   );
 }
 
@@ -421,13 +362,33 @@ function ConfirmedScreen({
         )}
       </div>
 
-      <button
-        type="button"
-        onClick={onEdit}
-        className="tap-target font-mono text-[11px] uppercase tracking-wider text-paper-100/70 underline underline-offset-4"
-      >
-        Editar mi respuesta
-      </button>
+      <div className="w-full bg-ink-900 p-4 text-left shadow-2xl">
+        <div className="flex items-center justify-between">
+          <span className="font-mono text-[10px] uppercase tracking-widest text-paper-100/70">Cámara // acceso</span>
+          <span className="bg-ink-950 px-2 py-0.5 font-mono text-[10px] font-bold uppercase text-laser-500">
+            Bloqueada
+          </span>
+        </div>
+        <p className="mt-2 font-sans text-sm text-paper-100/80">
+          La cámara se desbloquea cuando te escaneen en la puerta. Hasta entonces tu pase es solo la entrada.
+        </p>
+      </div>
+
+      <div className="flex w-full flex-col gap-2">
+        <Link
+          to="/evento"
+          className="tap-target flex items-center justify-center bg-laser-500/10 px-4 py-3 font-mono text-[11px] font-bold uppercase tracking-wider text-laser-500"
+        >
+          Ver la cartelera del evento
+        </Link>
+        <button
+          type="button"
+          onClick={onEdit}
+          className="tap-target font-mono text-[11px] uppercase tracking-wider text-paper-100/70 underline underline-offset-4"
+        >
+          Editar mi respuesta
+        </button>
+      </div>
     </motion.section>
   );
 }
