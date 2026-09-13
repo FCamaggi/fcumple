@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import DoorList from './DoorList';
 import type { Guest } from '../types';
 
@@ -47,5 +48,30 @@ describe('DoorList — badge de invitado dev (Etapa 5, Parte B)', () => {
   it('does not show the badge for a regular guest', () => {
     render(<DoorList guests={[baseGuest]} onEditGuest={() => {}} />);
     expect(screen.queryByText('DEV')).not.toBeInTheDocument();
+  });
+});
+
+describe('DoorList — modo compacto (hotfix modo puerta mobile)', () => {
+  it('renders the wide table by default (desktop)', () => {
+    render(<DoorList guests={[baseGuest]} onEditGuest={() => {}} />);
+    expect(screen.getByRole('table')).toBeInTheDocument();
+  });
+
+  it('renders a stacked card list instead of the wide table when compact', () => {
+    render(<DoorList guests={[baseGuest]} onEditGuest={() => {}} compact />);
+
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+    expect(screen.getByText(/maria fernanda contreras/i)).toBeInTheDocument();
+    expect(screen.getByText('Confirmado')).toBeInTheDocument();
+  });
+
+  it('still lets the admin edit a guest from a compact card', async () => {
+    const onEditGuest = vi.fn();
+    const user = userEvent.setup();
+    render(<DoorList guests={[baseGuest]} onEditGuest={onEditGuest} compact />);
+
+    await user.click(screen.getByRole('button', { name: /editar/i }));
+
+    expect(onEditGuest).toHaveBeenCalledWith(baseGuest);
   });
 });

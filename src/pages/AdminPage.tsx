@@ -288,6 +288,7 @@ export default function AdminPage() {
           loading={loading}
           onEditGuest={setEditingGuest}
           onCreateGuest={() => setCreating(true)}
+          compact={doorMode}
         />
       </main>
 

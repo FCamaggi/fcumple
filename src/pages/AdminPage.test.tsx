@@ -310,6 +310,16 @@ describe('AdminPage', () => {
       expect(screen.getByRole('button', { name: /^evento$/i })).toBeInTheDocument();
     });
 
+    it('shows the guest list as compact stacked cards instead of the wide table', async () => {
+      mockViewport(true);
+      vi.mocked(listGuests).mockResolvedValueOnce([guest]);
+
+      render(<AdminPage />);
+      await screen.findByText(/maria fernanda contreras/i);
+
+      expect(screen.queryByRole('table')).not.toBeInTheDocument();
+    });
+
     it('lets the header stack and wrap instead of overflowing on a narrow screen', async () => {
       mockViewport(true);
       vi.mocked(listGuests).mockResolvedValueOnce([guest]);
