@@ -71,17 +71,21 @@ export default function AdminPage() {
     };
   }, []);
 
-  const confirmed = useMemo(() => guests.filter((g) => g.status === 'confirmed').length, [guests]);
-  const pending = useMemo(() => guests.filter((g) => g.status === 'pending').length, [guests]);
-  const declined = useMemo(() => guests.filter((g) => g.status === 'declined').length, [guests]);
+  // El invitado semilla de dev (isDev, Etapa 5 Parte B) es una herramienta
+  // de prueba, no un asistente real -- nunca debe inflar los números de
+  // logística que ve el admin.
+  const realGuests = useMemo(() => guests.filter((g) => !g.isDev), [guests]);
+  const confirmed = useMemo(() => realGuests.filter((g) => g.status === 'confirmed').length, [realGuests]);
+  const pending = useMemo(() => realGuests.filter((g) => g.status === 'pending').length, [realGuests]);
+  const declined = useMemo(() => realGuests.filter((g) => g.status === 'declined').length, [realGuests]);
   // RF7: headcount real para logística — confirmados + la suma de sus +1
   // confirmados, no solo la cantidad de invitados que dijeron que sí.
   const realHeadcount = useMemo(
     () =>
-      guests
+      realGuests
         .filter((g) => g.status === 'confirmed')
         .reduce((sum, g) => sum + 1 + g.plusOnesConfirmed, 0),
-    [guests],
+    [realGuests],
   );
 
   function notifyError(action: string, err: unknown) {
@@ -244,12 +248,12 @@ export default function AdminPage() {
 
         {doorMode ? (
           <div className="bg-ink-900 p-4 shadow-2xl">
-            <HeadcountMeter confirmed={confirmed} total={guests.length} pending={pending} declined={declined} />
+            <HeadcountMeter confirmed={confirmed} total={realGuests.length} pending={pending} declined={declined} />
           </div>
         ) : (
           <section className="grid grid-cols-1 gap-4 bg-ink-900 p-4 shadow-2xl lg:grid-cols-3">
             <div className="lg:col-span-2">
-              <HeadcountMeter confirmed={confirmed} total={guests.length} pending={pending} declined={declined} />
+              <HeadcountMeter confirmed={confirmed} total={realGuests.length} pending={pending} declined={declined} />
             </div>
             <div className="flex flex-col justify-between gap-2 bg-ink-950 p-4">
               <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-hotpink-500">

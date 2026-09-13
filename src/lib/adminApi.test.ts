@@ -21,6 +21,7 @@ const row = {
   created_at: '2026-05-20T00:00:00Z',
   updated_at: '2026-05-20T00:00:00Z',
   checked_in_at: null,
+  is_dev: false,
 };
 
 function chain(result: { data: unknown; error: unknown }) {
@@ -51,6 +52,7 @@ describe('listGuests', () => {
     const [selected] = (builder.select as ReturnType<typeof vi.fn>).mock.calls[0];
     expect(selected).not.toMatch(/\*/);
     expect(selected).toMatch(/admin_note/);
+    expect(selected).toMatch(/is_dev/);
     expect(guests).toEqual([
       {
         id: 'g1',
@@ -65,8 +67,21 @@ describe('listGuests', () => {
         createdAt: '2026-05-20T00:00:00Z',
         updatedAt: '2026-05-20T00:00:00Z',
         checkedInAt: null,
+        isDev: false,
       },
     ]);
+  });
+
+  // docs/BACKLOG.md Etapa 5, Parte B: el invitado semilla de dev
+  // (guests.is_dev = true) tiene que poder distinguirse desde el admin
+  // para excluirlo de los conteos reales de logística.
+  it('maps is_dev to isDev', async () => {
+    const devRow = { ...row, is_dev: true };
+    from.mockReturnValue(chain({ data: [devRow], error: null }));
+
+    const [guest] = await listGuests();
+
+    expect(guest.isDev).toBe(true);
   });
 
   it('throws a readable error on failure', async () => {

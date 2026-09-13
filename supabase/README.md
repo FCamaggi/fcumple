@@ -27,6 +27,7 @@ formato que espera `supabase db push`):
 | `20260912100004_rpc_submit_photo.sql` | Función pública de registro de metadata de foto por token, valida cupo. |
 | `20260912100005_rpc_get_photo_quota.sql` | Función pública de lectura de cupo/usado por token. |
 | `20260912100009_rpc_get_public_headcount.sql` | Función pública de conteo total de confirmados, sin token, para la página `/evento`. |
+| `20260913090000_dev_guest_support.sql` | Columna `is_dev` en `guests`, invitado DEV fijo (`token = 'dev-preview'`), exclusión de `is_dev` en `get_public_headcount()`, RPC `dev_reset_guest()`. |
 
 Aplicarlas a un proyecto hosted real es un paso posterior (`supabase db
 push`), fuera del alcance de este trabajo — acá solo se versionan y se
@@ -88,6 +89,57 @@ Cuenta cada invitado con `status = 'confirmed'` como 1 (él mismo) más su
 No expone ninguna columna de `guests` — ni id, ni nombre, ni token —, solo
 el número total. También es `security definer` con `search_path` fijado a
 `public` y `grant execute` para `anon` y `authenticated`.
+
+### Invitado DEV (`is_dev`, token fijo `dev-preview`)
+
+Para poder navegar `/i/dev-preview` y probar todo el flujo de invitado
+(RSVP, cupo de fotos, check-in, pantallas de error) sin los límites
+normales, y sin contaminar los números reales del evento, la migración
+`20260913090000_dev_guest_support.sql` agrega:
+
+- Columna `guests.is_dev boolean not null default false`.
+- Un invitado fijo con `token = 'dev-preview'`, `full_name = 'DEV Preview'`,
+  `plus_ones_allowed = 10`, `photo_quota = 999`, `is_dev = true`, insertado
+  de forma idempotente (`on conflict (token) do update set is_dev = true`,
+  para no pisar otros campos si el usuario los editó a mano después del
+  seed inicial).
+- `get_public_headcount()` ahora excluye explícitamente `is_dev = true` de
+  la suma — el invitado DEV puede quedar `confirmed` con `plus_ones`
+  durante una sesión de pruebas sin que eso mueva el número público de
+  `/evento` ni los tallies del admin.
+
+### `dev_reset_guest(p_token text)`
+
+Devuelve 0 o 1 fila, misma forma que `check_in_guest`:
+
+```ts
+{
+  id: string;
+  full_name: string;
+  status: 'pending' | 'confirmed' | 'declined';
+  plus_ones_allowed: number;
+  plus_ones_confirmed: number;
+  guest_note: string | null;
+  responded_at: string | null;
+  checked_in_at: string | null;
+}
+```
+
+- Solo actúa (borra las fotos del invitado y resetea
+  `status = 'pending'`, `plus_ones_confirmed = 0`, `guest_note = null`,
+  `responded_at = null`, `checked_in_at = null`) si `p_token` matchea un
+  invitado con `is_dev = true`. Sobre cualquier otro token —inexistente o
+  de un invitado real— no hace ningún cambio, aunque sí devuelve la fila
+  (mismo criterio de "no distinguir token inválido" que `get_guest_by_token`).
+- Es seguro exponerla a `anon`: el `where is_dev = true` interno es la
+  única puerta de escritura. Un invitado real nunca tiene `is_dev = true`
+  (nada más en el sistema lo setea), así que aunque alguien adivine el
+  nombre de la función y el token de un invitado real, el `update`/`delete`
+  internos afectan 0 filas. Solo puede tocar al invitado DEV semilla de
+  esta misma migración.
+- `security definer` con `search_path` fijado a `public`, `grant execute`
+  para `anon` y `authenticated`, mismo patrón que el resto de las RPC
+  públicas.
 
 ## Galería de fotos (`photos` + Storage)
 

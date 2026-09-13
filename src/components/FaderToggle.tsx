@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useLayoutEffect, useRef } from 'react';
 import { motion, useMotionValue, useReducedMotion, animate } from 'framer-motion';
 
 export type FaderValue = 'no' | 'neutral' | 'yes';
@@ -40,9 +40,22 @@ export default function FaderToggle({ value, onChange }: FaderToggleProps) {
     return Math.max(width - KNOB_WIDTH - TRACK_PADDING * 2, 0);
   }
 
-  // Keep the knob synced whenever the committed value changes from the outside
-  // (snap buttons, or a parent resetting the value).
-  useEffect(() => {
+  // First mount: jump straight to the right position (no animation, no
+  // race). docs/BACKLOG.md §5.3 -- `x` used to start at 0 (left edge) and
+  // only reach the center via an async `animate()` inside a plain
+  // `useEffect`; a drag/tap before that animation settled read a stale `x`
+  // still near 0 and rounded it down to "no". `useLayoutEffect` + a
+  // synchronous `x.set()` guarantees the correct position is in place
+  // before the user can interact at all, i.e. before paint.
+  const isFirstMount = useRef(true);
+  useLayoutEffect(() => {
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
+      x.set(positionFor(value, travel()));
+      return;
+    }
+    // Later changes (snap buttons, or a parent resetting the value) still
+    // get the springy feel.
     animate(x, positionFor(value, travel()), reduceMotion ? { duration: 0 } : { type: 'spring', bounce: 0.35, duration: 0.4 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
@@ -57,7 +70,7 @@ export default function FaderToggle({ value, onChange }: FaderToggleProps) {
   return (
     <div className={`w-full rounded p-3 shadow-inner transition-colors duration-300 ${styles.track}`}>
       <div className="flex items-center justify-between px-1 pb-1 font-mono text-[10px] uppercase tracking-widest">
-        <span className={value === 'no' ? 'font-bold text-flame-500' : 'text-paper-100/70'}>Out / Me abro</span>
+        <span className={value === 'no' ? 'font-bold text-flame-500' : 'text-paper-100/70'}>Out / No voy</span>
         <span className={value === 'neutral' ? 'font-bold text-paper-100' : 'text-paper-100/70'}>0dB</span>
         <span className={value === 'yes' ? 'font-bold text-acid-400' : 'text-paper-100/70'}>In / Adentro</span>
       </div>

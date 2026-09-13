@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { motion, useReducedMotion, AnimatePresence } from 'framer-motion';
 import { getGuestByToken, submitRsvp } from '../lib/guestApi';
 import { getEventConfig } from '../lib/eventApi';
 import { getPhotoQuota } from '../lib/photosApi';
+import { DEV_GUEST_TOKEN } from '../lib/devGuest';
 import type { FaderValue } from '../components/FaderToggle';
 import WristbandCard from '../components/WristbandCard';
 import FaderToggle from '../components/FaderToggle';
@@ -11,6 +12,12 @@ import RsvpDeadlineStrip from '../components/RsvpDeadlineStrip';
 import SignalToast from '../components/SignalToast';
 import CameraCapture from '../components/CameraCapture';
 import type { EventConfig, EventInfo, Guest, PhotoQuota, RsvpStatus } from '../types';
+
+// DevPanel (y la librería de generación de QR que usa) solo le sirven al
+// invitado de prueba fijo (DEV_GUEST_TOKEN) -- se carga lazy para que el
+// 99.9% de invitados reales nunca la descarguen, mismo criterio que
+// App.tsx usa para separar /admin en su propio chunk.
+const DevPanel = lazy(() => import('../components/DevPanel'));
 
 const NOT_SET = 'Por confirmar';
 
@@ -23,7 +30,7 @@ function toEventInfo(config: EventConfig | null): EventInfo {
     name: config?.eventName ?? NOT_SET,
     tagline: '',
     date: config?.eventDate ? formatEventDate(config.eventDate) : NOT_SET,
-    doorsTime: NOT_SET,
+    doorsTime: config?.eventDate ? formatDoorsTime(config.eventDate) : NOT_SET,
     rsvpDeadline: config?.rsvpDeadline ?? '',
     venueName: config?.location ?? NOT_SET,
     venueAddress: '',
@@ -36,6 +43,18 @@ function toEventInfo(config: EventConfig | null): EventInfo {
 function formatEventDate(iso: string) {
   try {
     return new Date(iso).toLocaleDateString('es-CL', { weekday: 'short', day: '2-digit', month: 'short' });
+  } catch {
+    return iso;
+  }
+}
+
+// El admin solo ingresa una fecha+hora completa (event_config.event_date,
+// ver EventSettingsForm.tsx) -- no hay un campo separado de "horario de
+// puertas". La hora real vive ahí; formatEventDate() ya la separa de la
+// fecha (sin hour/minute) así que esta función es la única que la muestra.
+function formatDoorsTime(iso: string) {
+  try {
+    return new Date(iso).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
   } catch {
     return iso;
   }
@@ -135,6 +154,19 @@ export default function GuestPage() {
 
   if (invalid || (!loading && !guest)) {
     return <InvalidTokenScreen token={token} />;
+  }
+
+  // DevPanel opera directo sobre el invitado de prueba por afuera del flujo
+  // normal de RSVP -- hay que resincronizar el mismo estado local que el
+  // efecto de carga inicial deriva de `guest`, si no el fader/+1/nota
+  // quedarían mostrando la respuesta vieja después de que el panel cambie
+  // el estado en la base.
+  function handleDevGuestChange(updated: Guest) {
+    setGuest(updated);
+    setFader(STATUS_TO_FADER[updated.status]);
+    setPlusOne(updated.plusOnesConfirmed);
+    setNote(updated.guestNote ?? '');
+    setEditing(false);
   }
 
   async function handleSubmit() {
@@ -275,6 +307,14 @@ export default function GuestPage() {
         {/* ConfirmedScreen carries its own link to the hub as part of its CTA
             block; showing the generic chip too would just duplicate it. */}
         {!loading && guest && !(guest.status === 'confirmed' && !editing) && <EventHubChip />}
+
+        {/* Solo para DEV_GUEST_TOKEN, y ADEMÁS de la experiencia real de
+            invitado, no en su lugar -- ver docs/BACKLOG.md Etapa 5, Parte B. */}
+        {!loading && guest && guest.token === DEV_GUEST_TOKEN && (
+          <Suspense fallback={null}>
+            <DevPanel guest={guest} token={guest.token} onGuestChange={handleDevGuestChange} />
+          </Suspense>
+        )}
       </div>
 
       <SignalToast message={toast} kind={toastKind} onDismiss={() => setToast(null)} />
@@ -341,7 +381,7 @@ function ConfirmedScreen({
         ¡Estás <span className="text-acid-400">adentro</span>!
       </h1>
       <p className="font-sans text-sm uppercase tracking-wide text-hotpink-500">
-        Se prendieron las luces. Nos vemos en la pista.
+        Ya quedaste en la lista. Nos vemos ahí.
       </p>
 
       <div className="mt-4 w-full bg-ink-900 p-4 shadow-2xl">

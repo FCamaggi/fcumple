@@ -18,6 +18,17 @@ vi.mock('../lib/photosApi', () => ({
   getPhotoQuota: vi.fn(),
 }));
 
+// DevPanel se carga lazy solo para DEV_GUEST_TOKEN -- estos mocks cubren
+// sus dependencias (qrcode dibuja sobre un <canvas> real que jsdom no
+// implementa, igual criterio que QrScanner.test.tsx con jsQR).
+vi.mock('../lib/devApi', () => ({
+  devCheckIn: vi.fn(),
+  devResetGuest: vi.fn(),
+}));
+vi.mock('qrcode', () => ({
+  default: { toDataURL: vi.fn().mockResolvedValue('data:image/png;base64,fake') },
+}));
+
 import { getGuestByToken, submitRsvp } from '../lib/guestApi';
 import { getEventConfig } from '../lib/eventApi';
 import { getPhotoQuota } from '../lib/photosApi';
@@ -222,6 +233,41 @@ describe('GuestPage', () => {
     expect(screen.queryByText(/cupo liberado/i)).not.toBeInTheDocument();
   });
 
+  it('shows the real doors time from the event config, not a permanent placeholder', async () => {
+    vi.mocked(getGuestByToken).mockResolvedValueOnce(pendingGuest);
+
+    renderAt('mafe-8842');
+    await screen.findByText(/maria fernanda contreras/i);
+
+    // getEventConfig (beforeEach) mocks eventDate as 2026-05-24T02:00:00Z.
+    // Format the expected time the same way the component does, instead of
+    // hardcoding a timezone-dependent string.
+    const expectedTime = new Date('2026-05-24T02:00:00Z').toLocaleTimeString('es-CL', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+    expect(screen.getByText(`Puertas ${expectedTime}`, { exact: false })).toBeInTheDocument();
+    expect(screen.queryByText(/puertas por confirmar/i)).not.toBeInTheDocument();
+  });
+
+  it('falls back to the placeholder doors time when the event date is not set', async () => {
+    vi.mocked(getEventConfig).mockReset();
+    vi.mocked(getEventConfig).mockResolvedValueOnce({
+      eventName: 'NOCTURNA',
+      eventDate: null,
+      location: 'The Warehouse Club',
+      theme: 'All black',
+      rsvpDeadline: null,
+      photosRevealedAt: null,
+    });
+    vi.mocked(getGuestByToken).mockResolvedValueOnce(pendingGuest);
+
+    renderAt('mafe-8842');
+    await screen.findByText(/maria fernanda contreras/i);
+
+    expect(screen.getByText(/puertas por confirmar/i)).toBeInTheDocument();
+  });
+
   it('shows a visible link to the shared event hub once the guest is loaded', async () => {
     vi.mocked(getGuestByToken).mockResolvedValueOnce(pendingGuest);
 
@@ -271,6 +317,26 @@ describe('GuestPage', () => {
     expect(await screen.findByText(/access granted/i)).toBeInTheDocument();
     expect(screen.getByText(/cámara se desbloquea/i)).toBeInTheDocument();
     expect(screen.getByText(/te escaneen en la puerta/i)).toBeInTheDocument();
+  });
+
+  it('renders the dev panel in addition to the normal guest UI for the dev token', async () => {
+    vi.mocked(getGuestByToken).mockResolvedValueOnce({ ...pendingGuest, token: 'dev-preview' });
+
+    renderAt('dev-preview');
+    await screen.findByText(/maria fernanda contreras/i);
+
+    // Both the real RSVP UI and the dev panel should be visible at once.
+    expect(screen.getByRole('button', { name: /confirmar asistencia|definí tu postura/i })).toBeInTheDocument();
+    expect(await screen.findByText(/panel dev/i)).toBeInTheDocument();
+  });
+
+  it('does not render the dev panel for a regular guest token', async () => {
+    vi.mocked(getGuestByToken).mockResolvedValueOnce(pendingGuest);
+
+    renderAt('mafe-8842');
+    await screen.findByText(/maria fernanda contreras/i);
+
+    expect(screen.queryByText(/panel dev/i)).not.toBeInTheDocument();
   });
 
   it('includes a call to action to the event hub on the confirmed screen', async () => {

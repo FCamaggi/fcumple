@@ -88,18 +88,8 @@ export default function WristbandCard({ guest, event, compact = false }: Wristba
                   +18 only
                 </span>
               </div>
-              <div className="flex items-center gap-3 rounded bg-ink-900 p-3">
-                <div className="flex h-10 flex-1 items-stretch gap-[2px] overflow-hidden opacity-80" aria-hidden>
-                  {barcodePattern.map((w, i) => (
-                    <span key={i} className="bg-paper-100" style={{ width: `${w}px` }} />
-                  ))}
-                </div>
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded bg-paper-100 text-ink-950">
-                  <span className="font-mono text-[10px] font-bold">QR</span>
-                </div>
-              </div>
               <p className="font-mono text-[11px] uppercase tracking-wider text-paper-100/70">
-                Presentar DNI físico + código directo en puerta
+                Te van a reconocer con tu link personal en la puerta.
               </p>
             </div>
           </>
@@ -138,6 +128,3 @@ function formatDeadlineTime(iso: string) {
     return iso;
   }
 }
-
-// Fixed pseudo-random-looking bar widths for the decorative barcode strip.
-const barcodePattern = [4, 2, 6, 2, 8, 4, 2, 7, 3, 5, 2, 6, 4, 2, 9, 3, 5, 2, 8, 4, 3, 6, 2, 7, 5, 2, 8, 3, 5, 3];
