@@ -16,6 +16,13 @@ interface DoorListProps {
   loading?: boolean;
   onEditGuest: (guest: Guest) => void;
   onCreateGuest?: () => void;
+  /** Modo puerta (docs/BACKLOG.md, hotfix post-Etapa 5): la tabla de 7
+   * columnas necesita scroll horizontal en un celular y queda ilegible --
+   * en compact se reemplaza por una lista de tarjetas apiladas con solo lo
+   * esencial (nombre, estado, +N, check-in), sin perder la posibilidad de
+   * editar. Los filtros/búsqueda de arriba no cambian, son responsive hace
+   * rato. */
+  compact?: boolean;
 }
 
 const STATUS_CHIP: Record<RsvpStatus, string> = {
@@ -35,7 +42,7 @@ const STATUS_LABEL: Record<RsvpStatus, string> = {
  * Formato de lista de guardia de puerta: chips de color sólido para estado,
  * "+N" para acompañantes, filtros como pestañas de clipboard.
  */
-export default function DoorList({ guests, loading = false, onEditGuest, onCreateGuest }: DoorListProps) {
+export default function DoorList({ guests, loading = false, onEditGuest, onCreateGuest, compact = false }: DoorListProps) {
   const [tab, setTab] = useState<FilterTab>('all');
   const [search, setSearch] = useState('');
 
@@ -112,6 +119,12 @@ export default function DoorList({ guests, loading = false, onEditGuest, onCreat
         <EmptyState onCreateGuest={onCreateGuest} />
       ) : filtered.length === 0 ? (
         <EmptyState noResults />
+      ) : compact ? (
+        <ul className="flex flex-col gap-2 bg-ink-950 p-2 shadow-inner">
+          {filtered.map((guest) => (
+            <DoorListCard key={guest.id} guest={guest} onEditGuest={onEditGuest} />
+          ))}
+        </ul>
       ) : (
         <div className="w-full overflow-x-auto bg-ink-950 shadow-inner">
           <table className="w-full min-w-[720px] border-collapse text-left">
@@ -240,6 +253,60 @@ function DoorListRow({ guest, index, onEditGuest }: DoorListRowProps) {
         </button>
       </td>
     </motion.tr>
+  );
+}
+
+/**
+ * DoorListCard — la fila de DoorList en modo puerta compacto (hotfix
+ * post-Etapa 5): mismo estado y misma acción de editar que DoorListRow,
+ * pero en formato de tarjeta apilada en vez de columnas de tabla, para no
+ * necesitar scroll horizontal en un celular.
+ */
+function DoorListCard({ guest, onEditGuest }: { guest: Guest; onEditGuest: (guest: Guest) => void }) {
+  return (
+    <li className="flex flex-col gap-2 bg-ink-900 p-3">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex flex-col">
+          <span
+            className={`font-sans text-sm font-bold uppercase text-paper-100 ${
+              guest.status === 'declined' ? 'line-through opacity-60' : ''
+            }`}
+          >
+            {guest.fullName}
+            {guest.isDev && (
+              <span className="ml-2 bg-flame-500/20 px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase text-flame-500">
+                DEV
+              </span>
+            )}
+          </span>
+          <span className="font-mono text-[11px] text-laser-500">{guest.token ?? guest.id}</span>
+        </div>
+        <button
+          type="button"
+          onClick={() => onEditGuest(guest)}
+          className="tap-target shrink-0 bg-smoke-700/30 px-2 py-1 font-mono text-[11px] font-bold uppercase text-paper-100 transition-colors hover:bg-smoke-700/50"
+        >
+          Editar
+        </button>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <span
+          className={`inline-block px-2 py-1 font-mono text-[11px] font-bold uppercase tracking-wider ${
+            STATUS_CHIP[guest.status]
+          }`}
+        >
+          {STATUS_LABEL[guest.status]}
+        </span>
+        <span className="font-display text-base leading-none text-acid-400">
+          +{guest.plusOnesConfirmed}
+          <span className="ml-1 font-mono text-[10px] text-paper-100/70">/ {guest.plusOnesAllowed}</span>
+        </span>
+        <CheckInChip checkedInAt={guest.checkedInAt} />
+      </div>
+
+      {guest.guestNote && <NoteChip text={guest.guestNote} />}
+    </li>
   );
 }
 

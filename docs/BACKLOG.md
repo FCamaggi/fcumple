@@ -120,6 +120,13 @@ El usuario propuso simular el flujo "invitado muestra QR → admin escanea → s
 
 **Evidencia**: TDD real en ambos (test antes del código), revisión independiente sin hallazgos. `npm run typecheck` limpio, `npm test` → 213/213 en 35 archivos, `npm run build` confirma `DoorQrOverlay` como chunk separado (1.29 kB) fuera del bundle principal.
 
+### 5.7 — `DoorList` desbordada en modo puerta (segundo hotfix mobile)
+Con el header ya arreglado (5.5), el usuario mandó una captura real del modo puerta en su celular: la tabla de `DoorList` (7 columnas, `min-w-[720px]`) quedaba cortada/ilegible, mostrando apenas 2 columnas y un borde de color sin contexto — el punto entero del modo puerta es ser usable parado con el teléfono, y una tabla ancha con scroll horizontal no lo es.
+
+**Implementado**: `DoorList.tsx` suma un prop `compact` — en `compact`, la tabla se reemplaza por una lista de tarjetas apiladas (`DoorListCard`) con solo lo esencial: nombre + badge DEV si aplica, token, chip de estado, +N, check-in, nota si existe, y un botón "Editar" que dispara el mismo `onEditGuest` de siempre. `AdminPage.tsx` pasa `compact={doorMode}` — en desktop no cambia nada (sigue la tabla completa). Filtros y buscador de `DoorList` no se tocaron, ya eran responsive.
+
+**Evidencia**: TDD real (3 tests nuevos en `DoorList.test.tsx` + 1 de integración en `AdminPage.test.tsx`), `npm run typecheck` limpio, `npm test` → 217/217 en 35 archivos.
+
 ## Etapa 5 — Implementada y revisada (2026-09-13)
 
 Los cuatro puntos están construidos con TDD real y revisión independiente (un solo ciclo, sin hallazgos bloqueantes). Evidencia: `npm run typecheck` limpio, `npm test` → 208/208 en 34 archivos, `npm run test:db` → 54/54 en 6 archivos (Docker real), `npm run build` sin errores — todo corrido de forma independiente por el revisor.
