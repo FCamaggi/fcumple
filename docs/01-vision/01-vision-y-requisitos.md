@@ -1,5 +1,9 @@
 # Invitación de Cumpleaños Web — Visión y Requisitos
 
+> **Documento fundacional (v1).** Describe la visión y los requisitos originales, de cuando el proyecto arrancó. La app ya está construida y en producción bien más allá de lo que este documento cubre — para saber qué existe hoy, ve primero [`../04-producto/estado-actual.md`](../04-producto/estado-actual.md). Se conserva como registro de las decisiones fundacionales, con una corrección puntual donde una decisión posterior lo contradice explícitamente (ver nota siguiente).
+
+> **Corrección (2026-09-13):** el evento no tiene temática ni dresscode — es un carrete de cumpleaños sin código de vestimenta. Las menciones a "tema" en las secciones 3, 5 y 6 de este documento quedan sin efecto.
+
 ## 1. Resumen ejecutivo
 
 App web personal que empieza en la invitación pero está pensada para ser el **hub central desde el que organizás todo el cumpleaños**, no solo una tarjeta digital. Cumple, desde v1, dos funciones a la vez:
@@ -25,7 +29,7 @@ Como plus (no como requisito duro): que la app en sí sea una demostración de q
 | Rol | Quién es | Qué puede hacer |
 |---|---|---|
 | **Invitado** | Cualquier persona con un link válido | Ver su invitación personalizada, responder asistencia, indicar +1, dejar nota, editar su respuesta después si cambia de opinión |
-| **Admin (vos)** | Solo vos | Todo lo del invitado, más: crear/editar/eliminar invitados, generar links, ver estadísticas agregadas, ver notas privadas, exportar datos, configurar los datos del evento (fecha, lugar, tema) |
+| **Admin (vos)** | Solo vos | Todo lo del invitado, más: crear/editar/eliminar invitados, generar links, ver estadísticas agregadas, ver notas privadas, exportar datos, configurar los datos del evento (fecha, lugar) |
 
 No hay rol de "invitado con cuenta". La identidad del invitado la da el token del link, no un login. Esto es intencional: pediste que el invitado no tenga que hacer nada.
 
@@ -55,13 +59,13 @@ No hay rol de "invitado con cuenta". La identidad del invitado la da el token de
 - RF9: Exportar la lista a CSV.
 
 **Invitación pública (invitado)**
-- RF10: Al abrir `/i/{token}`, mostrar una página personalizada con el nombre del invitado y los datos del evento (fecha, hora, lugar, tema).
+- RF10: Al abrir `/i/{token}`, mostrar una página personalizada con el nombre del invitado y los datos del evento (fecha, hora, lugar).
 - RF11: Formulario de respuesta: asiste / no asiste, cantidad de +1 (respetando el máximo asignado por el admin), nota o comentario libre.
 - RF12: Si el invitado ya respondió antes, mostrar su respuesta actual y permitirle editarla.
 - RF13: Confirmación visual clara después de responder.
 
 **Configuración del evento (admin)**
-- RF14: Un lugar único donde editar nombre del evento, fecha, hora, ubicación, tema, y fecha límite de respuesta (RSVP deadline).
+- RF14: Un lugar único donde editar nombre del evento, fecha, hora, ubicación, y fecha límite de respuesta (RSVP deadline).
 
 ## 6. Requisitos no funcionales
 
@@ -83,7 +87,7 @@ Dos grupos distintos, para no confundir "todavía no" con "nunca":
 - Galería/momentos con cámara in-app y cupo de fotos por invitado.
 
 **Fuera de alcance, sin plan de agregar:**
-- Envío automático de invitaciones por email o WhatsApp (v1 es copiar y pegar el link manualmente).
+- Envío automático/masivo de invitaciones (sin intervención humana) por email o WhatsApp. **Actualización (2026-09-13):** sí se agrega un asistente de envío semi-manual por WhatsApp (botón que arma el mensaje y abre `wa.me` con el texto precargado, listo para elegir el contacto y apretar enviar) — ver [`../05-comunicacion/sistema-de-mensajes.md`](../05-comunicacion/sistema-de-mensajes.md). Esto no es envío automático: cada mensaje lo despacha el admin a mano, uno por uno.
 - Notificaciones push o recordatorios automáticos a quien no ha respondido.
 - Subida de foto de perfil o mensaje personalizado en video por invitado.
 - Multi-evento (la app sigue siendo para *un* cumpleaños, no una plataforma genérica de eventos, incluso creciendo como hub).

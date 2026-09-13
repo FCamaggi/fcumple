@@ -75,3 +75,15 @@ describe('DoorList — modo compacto (hotfix modo puerta mobile)', () => {
     expect(onEditGuest).toHaveBeenCalledWith(baseGuest);
   });
 });
+
+describe('DoorList — botón "Enviar invitación" (WhatsApp)', () => {
+  it('shows the send-invite button per row in the full table view', () => {
+    render(<DoorList guests={[baseGuest]} onEditGuest={() => {}} />);
+    expect(screen.getByRole('button', { name: /enviar invitación/i })).toBeInTheDocument();
+  });
+
+  it('does not show the send-invite button in compact/door mode', () => {
+    render(<DoorList guests={[baseGuest]} onEditGuest={() => {}} compact />);
+    expect(screen.queryByRole('button', { name: /enviar invitación/i })).not.toBeInTheDocument();
+  });
+});

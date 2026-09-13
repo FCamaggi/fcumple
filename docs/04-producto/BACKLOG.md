@@ -1,5 +1,7 @@
 # Backlog
 
+> Reubicado a `docs/04-producto/BACKLOG.md` el 2026-09-13 como parte de la reestructura de documentación por intención (ver `../README.md`). Las referencias a rutas de otros documentos dentro de las Etapas 1-6 de abajo (escritas antes de la reestructura) pueden usar los nombres viejos sin carpeta — el contenido no se tocó, solo se movió el archivo.
+
 Backlog vivo e incremental — se actualiza a medida que se decide y se construye, no se reescribe borrando el historial de decisiones (salvo esta reescritura puntual del 2026-09-12, pedida explícitamente por el usuario tras un walkthrough real de la app: "creo que esta para repensar todo... quiero que limpies los documentos para que quede más actualizado a lo actual"). El contenido de las Etapas 1-3 de abajo describe lo que ya está construido y en producción — se conserva como registro de decisiones, no se borra.
 
 ## Estado real de la app (verificado por lectura de código, 2026-09-12)
@@ -11,6 +13,21 @@ Lo que ya funciona en producción:
 - **Avisos** (`posts`): admin publica, se ven en un `AnnouncementTicker` dentro de `/i/:token` (no en un lugar separado).
 - **Galería de fotos** (`photos` + Storage): cupo por invitado, moderación obligatoria, revelado post-evento manual. La sección de cámara en `/i/:token` solo se muestra si `guest.checkedInAt` no es null (gateada por check-in real, no por RSVP).
 - **Check-in QR**: `/admin` tiene un modo "Escáner" de pantalla completa (mobile-first) que decodifica el QR del invitado y marca `checked_in_at`.
+
+## Etapa 7 — Reestructura de documentación, sin dresscode, y envío por WhatsApp (2026-09-13)
+
+El usuario confirmó que el evento **no tiene temática ni dresscode** — es un carrete de cumpleaños simple — y pidió tres cosas: (1) reestructurar toda la documentación por intención/etapa en vez de un único directorio plano, (2) alinear la app quitando cualquier rastro de "tema/dresscode", y (3) un sistema para mandar los links personalizados a los invitados, más avisos reales (con fecha/hora/lugar) para la cartelera.
+
+Decisiones tomadas con el usuario (respuestas explícitas, no inferencias):
+- **Dresscode**: se saca de todas las pantallas (`EventSettingsForm`, `WristbandCard`, `GuestPage`), pero la columna `event_config.theme` se deja en la base sin borrar (legado, ver `../02-arquitectura/02-arquitectura-tecnica.md`).
+- **Envío de invitaciones**: asistente semi-manual con links `wa.me` (mensaje precargado, el admin elige el contacto y envía a mano) — se descartó explícitamente WhatsApp Business API por costo/setup desproporcionado. Detalle en `../05-comunicacion/sistema-de-mensajes.md`.
+
+Trabajo de esta etapa:
+- **Documentación**: reestructurada en `docs/01-vision/` … `docs/06-operaciones/` (ver `../README.md`). `docs/NEXT-SESSION-PROMPT.md` (de la Etapa 4, ya resuelta) se eliminó por obsoleto. `docs/v01/` (staging temporal de una sesión anterior, nunca comiteado) se fusionó dentro de la nueva estructura.
+- **`docs/05-comunicacion/PROMPTS-IMAGENES-AVISOS.md`**: reescrito con los datos reales del evento (Cumpleaños Fabrizio, viernes 9 de octubre 2026 22:00 hrs, Pasaje Argentina 2299 Independencia, corte de RSVP 1 de octubre) y una advertencia explícita sobre la fiabilidad de texto en imágenes generadas por IA.
+- **Código**: sacado "Tema / dresscode" de `EventSettingsForm.tsx`, `WristbandCard.tsx`, `GuestPage.tsx`, `types.ts` (`EventInfo.dresscode`) y `mocks/event.ts` — `EventConfig.theme` queda intacto en `eventApi.ts` como campo legado sin uso en UI. Agregado `SendInviteButton.tsx` (nuevo, con test), integrado en `DoorList.tsx` solo en vista completa (no modo puerta) y cableado desde `AdminPage.tsx`.
+
+**Evidencia**: TDD real (test antes del código), implementación con `agency-frontend-developer`, revisión independiente con `agency-code-reviewer` (escritor ≠ revisor). Un hallazgo 🟡 de la revisión (`DoorList.tsx` usaba `guest.token ?? guest.id` como fallback para el link de invitación — código muerto hoy, pero un link roto silencioso si algún día se disparaba) corregido: ahora `SendInviteButton` no se renderiza si `guest.token` es falsy, en vez de sustituir por `guest.id`. `npm run typecheck` limpio, `npm test` → 253/253 en 38 archivos (más 12/12 re-verificados tras el fix puntual), `npm run build` sin errores.
 
 ## Etapa 4 — Repensar arquitectura de información y flujos (NUEVA, sin construir)
 

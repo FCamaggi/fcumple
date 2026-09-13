@@ -1,5 +1,7 @@
 # Invitación de Cumpleaños Web — Plan de Desarrollo
 
+> **Documento fundacional (v1), histórico.** Las Fases 0-6 de abajo ya se completaron íntegramente y quedaron superadas por el trabajo real de las Etapas 1-7 documentado en [`BACKLOG.md`](./BACKLOG.md). Se conserva como referencia del plan original.
+
 ## 1. Fases
 
 ### Fase 0 — Setup (medio día)

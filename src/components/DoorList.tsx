@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, useAnimationControls, useReducedMotion } from 'framer-motion';
-import type { Guest, RsvpStatus } from '../types';
+import type { EventConfig, Guest, RsvpStatus } from '../types';
 import NoteChip from './NoteChip';
+import SendInviteButton from './SendInviteButton';
 import { STATUS_FLASH_COLOR, shouldFlashOnStatusChange } from '../lib/statusFlash';
 
 // Colores base de zebra-striping de la tabla (bg-ink-950 / bg-ink-900 al 60%),
@@ -23,6 +24,12 @@ interface DoorListProps {
    * editar. Los filtros/búsqueda de arriba no cambian, son responsive hace
    * rato. */
   compact?: boolean;
+  /**
+   * Config del evento para armar el mensaje de "Enviar invitación"
+   * (docs/05-comunicacion/sistema-de-mensajes.md). Solo se usa en la vista
+   * completa (compact=false) -- el modo puerta no lo necesita.
+   */
+  eventConfig?: EventConfig | null;
 }
 
 const STATUS_CHIP: Record<RsvpStatus, string> = {
@@ -42,7 +49,14 @@ const STATUS_LABEL: Record<RsvpStatus, string> = {
  * Formato de lista de guardia de puerta: chips de color sólido para estado,
  * "+N" para acompañantes, filtros como pestañas de clipboard.
  */
-export default function DoorList({ guests, loading = false, onEditGuest, onCreateGuest, compact = false }: DoorListProps) {
+export default function DoorList({
+  guests,
+  loading = false,
+  onEditGuest,
+  onCreateGuest,
+  compact = false,
+  eventConfig = null,
+}: DoorListProps) {
   const [tab, setTab] = useState<FilterTab>('all');
   const [search, setSearch] = useState('');
 
@@ -141,7 +155,7 @@ export default function DoorList({ guests, loading = false, onEditGuest, onCreat
             </thead>
             <tbody>
               {filtered.map((guest, i) => (
-                <DoorListRow key={guest.id} guest={guest} index={i} onEditGuest={onEditGuest} />
+                <DoorListRow key={guest.id} guest={guest} index={i} onEditGuest={onEditGuest} eventConfig={eventConfig} />
               ))}
             </tbody>
           </table>
@@ -155,6 +169,7 @@ interface DoorListRowProps {
   guest: Guest;
   index: number;
   onEditGuest: (guest: Guest) => void;
+  eventConfig: EventConfig | null;
 }
 
 /**
@@ -163,7 +178,7 @@ interface DoorListRowProps {
  * aviso en una consola" (DESIGN.md 6.2). Con prefers-reduced-motion, el
  * destello se reemplaza por un corte duro de color, sin tween (DESIGN.md 11).
  */
-function DoorListRow({ guest, index, onEditGuest }: DoorListRowProps) {
+function DoorListRow({ guest, index, onEditGuest, eventConfig }: DoorListRowProps) {
   const reduceMotion = useReducedMotion();
   const controls = useAnimationControls();
   const rowRef = useRef<HTMLTableRowElement>(null);
@@ -244,13 +259,18 @@ function DoorListRow({ guest, index, onEditGuest }: DoorListRowProps) {
         <NoteChip text={guest.guestNote ?? ''} />
       </td>
       <td className="px-4 py-3 text-right align-top">
-        <button
-          type="button"
-          onClick={() => onEditGuest(guest)}
-          className="bg-smoke-700/30 px-2 py-1 font-mono text-[11px] font-bold uppercase text-paper-100 transition-colors hover:bg-smoke-700/50"
-        >
-          Editar
-        </button>
+        <div className="flex items-center justify-end gap-2">
+          {guest.token && (
+            <SendInviteButton guestName={guest.fullName} token={guest.token} eventConfig={eventConfig} />
+          )}
+          <button
+            type="button"
+            onClick={() => onEditGuest(guest)}
+            className="bg-smoke-700/30 px-2 py-1 font-mono text-[11px] font-bold uppercase text-paper-100 transition-colors hover:bg-smoke-700/50"
+          >
+            Editar
+          </button>
+        </div>
       </td>
     </motion.tr>
   );

@@ -38,7 +38,6 @@ function toEventInfo(config: EventConfig | null): EventInfo {
     rsvpDeadline: config?.rsvpDeadline ?? '',
     venueName: config?.location ?? NOT_SET,
     venueAddress: '',
-    dresscode: config?.theme ?? NOT_SET,
     lineup: '',
     capacityTotal: 0,
   };

@@ -6,7 +6,6 @@ type FormState = {
   eventName: string;
   eventDate: string;
   location: string;
-  theme: string;
   rsvpDeadline: string;
 };
 
@@ -14,7 +13,6 @@ const EMPTY_FORM: FormState = {
   eventName: '',
   eventDate: '',
   location: '',
-  theme: '',
   rsvpDeadline: '',
 };
 
@@ -40,7 +38,6 @@ function toFormState(config: EventConfig | null): FormState {
     eventName: config?.eventName ?? '',
     eventDate: isoToLocalInput(config?.eventDate ?? null),
     location: config?.location ?? '',
-    theme: config?.theme ?? '',
     rsvpDeadline: isoToLocalInput(config?.rsvpDeadline ?? null),
   };
 }
@@ -93,7 +90,6 @@ export default function EventSettingsForm({ onSaved }: EventSettingsFormProps) {
         eventName: form.eventName || null,
         eventDate: localInputToIso(form.eventDate),
         location: form.location || null,
-        theme: form.theme || null,
         rsvpDeadline: localInputToIso(form.rsvpDeadline),
       });
       setSaved(true);
@@ -142,16 +138,6 @@ export default function EventSettingsForm({ onSaved }: EventSettingsFormProps) {
               type="text"
               value={form.location}
               onChange={(e) => updateField('location', e.target.value)}
-              className="bg-ink-950 px-3 py-2 font-sans text-sm text-paper-100 outline-none"
-            />
-          </Field>
-
-          <Field label="Tema / dresscode" htmlFor="event-theme">
-            <input
-              id="event-theme"
-              type="text"
-              value={form.theme}
-              onChange={(e) => updateField('theme', e.target.value)}
               className="bg-ink-950 px-3 py-2 font-sans text-sm text-paper-100 outline-none"
             />
           </Field>

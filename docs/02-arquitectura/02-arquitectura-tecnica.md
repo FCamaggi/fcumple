@@ -1,5 +1,7 @@
 # Invitación de Cumpleaños Web — Arquitectura Técnica
 
+> **Documento fundacional (v1).** Para el estado real de rutas, tablas y features en producción, ve [`../04-producto/estado-actual.md`](../04-producto/estado-actual.md). Se conserva por su valor de contexto técnico (por qué Supabase, por qué RLS, cómo se pensó la extensibilidad).
+
 ## 1. Principios de arquitectura
 
 - Free tier real, sin sorpresas de facturación.
@@ -94,7 +96,7 @@ Prácticamente cero mantenimiento y sin riesgo de pausas ni cold starts, pero se
 | `event_name` | text | |
 | `event_date` | timestamp | |
 | `location` | text | |
-| `theme` | text | |
+| `theme` | text, nullable | **Legado, sin uso.** El evento no tiene temática ni dresscode (carrete de cumpleaños simple) — la columna existe en la base pero ningún formulario ni pantalla la lee ni la escribe desde 2026-09-13. Se deja sin borrar por si se reutiliza para otra cosa más adelante; no forma parte del modelo activo. |
 | `rsvp_deadline` | timestamp, nullable | |
 
 ## 5. Seguridad y control de acceso

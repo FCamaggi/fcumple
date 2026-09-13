@@ -8,7 +8,6 @@ export const event: EventInfo = {
   rsvpDeadline: '2026-05-21T23:59:00-04:00',
   venueName: 'The Warehouse Club',
   venueAddress: 'Humboldt & Niceto Vega, Pabellón 3',
-  dresscode: 'All black',
   lineup: 'Vortex (Live) // DJ Valk // Resident Sound',
   capacityTotal: 180,
 };

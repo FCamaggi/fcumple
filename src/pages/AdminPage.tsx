@@ -290,6 +290,7 @@ export default function AdminPage() {
           onEditGuest={setEditingGuest}
           onCreateGuest={() => setCreating(true)}
           compact={doorMode}
+          eventConfig={eventConfig}
         />
       </main>
 

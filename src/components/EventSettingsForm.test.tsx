@@ -32,7 +32,15 @@ describe('EventSettingsForm', () => {
 
     expect(await screen.findByDisplayValue('NOCTURNA')).toBeInTheDocument();
     expect(screen.getByDisplayValue('The Warehouse Club')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('All black')).toBeInTheDocument();
+  });
+
+  it('does not show a tema/dresscode field — the event has none', async () => {
+    vi.mocked(getEventConfig).mockResolvedValueOnce(existingConfig);
+
+    render(<EventSettingsForm />);
+
+    await screen.findByDisplayValue('NOCTURNA');
+    expect(screen.queryByLabelText(/tema|dresscode/i)).not.toBeInTheDocument();
   });
 
   it('saves the edited fields via updateEventConfig', async () => {
@@ -49,7 +57,7 @@ describe('EventSettingsForm', () => {
 
     await waitFor(() =>
       expect(updateEventConfig).toHaveBeenCalledWith(
-        expect.objectContaining({ eventName: 'RENOMBRADO', location: 'The Warehouse Club', theme: 'All black' }),
+        expect.objectContaining({ eventName: 'RENOMBRADO', location: 'The Warehouse Club' }),
       ),
     );
     expect(await screen.findByText(/guardado/i)).toBeInTheDocument();

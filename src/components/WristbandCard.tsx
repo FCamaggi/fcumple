@@ -72,7 +72,6 @@ export default function WristbandCard({ guest, event, compact = false }: Wristba
             <Spec label="Evento" value={event.name} sub={event.tagline} />
             <Spec label="Fecha" value={event.date} sub="Edición aniversario" accent="text-acid-400" />
             <Spec label="Horario" value={`Puertas ${event.doorsTime}`} sub={`Corte: ${formatDeadlineTime(event.rsvpDeadline)}`} accentSub="text-flame-500" />
-            <Spec label="Dresscode" value={event.dresscode} sub="Accent neon rig" accentSub="text-hotpink-500" />
           </div>
         </div>
 

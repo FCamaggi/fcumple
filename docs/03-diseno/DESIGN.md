@@ -1,6 +1,6 @@
 # Invitación de Cumpleaños Web — Diseño Visual
 
-> Este documento define la identidad visual del proyecto. Complementa a `01-vision-y-requisitos.md` (qué hace la app) y `02-arquitectura-tecnica.md` (cómo está construida) con el "cómo se ve y cómo se siente". La intención original que motiva este documento está en [`DESEO-DISENO-USUARIO.md`](./DESEO-DISENO-USUARIO.md) — si hay duda sobre una decisión de estilo, ese documento es la fuente de verdad sobre qué se pidió.
+> Este documento define la identidad visual del proyecto. Complementa a `01-vision-y-requisitos.md` (qué hace la app) y `02-arquitectura-tecnica.md` (cómo está construida) con el "cómo se ve y cómo se siente". La intención original que motiva este documento está en [`DESEO-DISENO-USUARIO.md`](../01-vision/DESEO-DISENO-USUARIO.md) — si hay duda sobre una decisión de estilo, ese documento es la fuente de verdad sobre qué se pidió.
 
 ## 1. Concepto
 
@@ -31,7 +31,7 @@ Metáfora rectora por superficie:
 
 ## 3. Lista negra — qué se prohíbe explícitamente
 
-Directo del brief del usuario ([`DESEO-DISENO-USUARIO.md`](./DESEO-DISENO-USUARIO.md), sección 4):
+Directo del brief del usuario ([`DESEO-DISENO-USUARIO.md`](../01-vision/DESEO-DISENO-USUARIO.md), sección 4):
 
 - ❌ Degradado violeta → azul → índigo (el "gradiente de IA" default).
 - ❌ Modo oscuro genérico con acento azul eléctrico "SaaS".
@@ -175,7 +175,7 @@ Resumen de lo que cubre: modo **Web** en Stitch (es un sitio, no una app nativa 
 
 ## 10. Voz y tono (copy)
 
-El tono es el corazón del pedido original ([`DESEO-DISENO-USUARIO.md`](./DESEO-DISENO-USUARIO.md)): directo, cálido, con actitud de carrete — nunca corporativo ni de formulario. Ejemplos concretos para no dejarlo solo como adjetivo abstracto:
+El tono es el corazón del pedido original ([`DESEO-DISENO-USUARIO.md`](../01-vision/DESEO-DISENO-USUARIO.md)): directo, cálido, con actitud de carrete — nunca corporativo ni de formulario. Ejemplos concretos para no dejarlo solo como adjetivo abstracto:
 
 | Momento | Copy de referencia |
 |---|---|

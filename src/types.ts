@@ -23,7 +23,6 @@ export interface EventInfo {
   rsvpDeadline: string; // ISO datetime
   venueName: string;
   venueAddress: string;
-  dresscode: string;
   lineup: string;
   capacityTotal: number;
 }

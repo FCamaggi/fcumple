@@ -23,7 +23,6 @@ const event: EventInfo = {
   rsvpDeadline: '2026-05-21T23:59:00Z',
   venueName: 'The Warehouse Club',
   venueAddress: '',
-  dresscode: 'All black',
   lineup: '',
   capacityTotal: 0,
 };
