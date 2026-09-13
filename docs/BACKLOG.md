@@ -136,6 +136,34 @@ El usuario probó el flujo de punta a punta (invitado muestra QR de `DoorQrOverl
 
 **Evidencia**: TDD real, `npm run typecheck` limpio, `npm test` → 218/218 en 35 archivos.
 
+### 5.9 — Bug real de persistencia: la cámara nunca se desbloqueaba para el invitado (raíz del "no pasó nada" al cerrar el QR)
+El fix de 5.8 arregló el escaneo en sí (el admin veía el nombre correcto), pero el usuario reportó que después de cerrar el QR el invitado seguía sin ver ninguna función nueva desbloqueada. Causa real, preexistente a esta sesión: `get_guest_by_token`/`submit_rsvp` (las RPC que usa la página del invitado) **nunca devolvían `checked_in_at`** — `src/lib/guestApi.ts` lo hardcodeaba a `null` siempre, sin importar lo que hubiera en la base. Consecuencia: un invitado real NUNCA podía ver su cámara desbloqueada después de que lo escanearan — ni cerrando el QR, ni recargando la página, ni en ningún momento. Solo `check_in_guest` (llamada por el escáner del admin) conocía el valor real, y ese valor jamás volvía al invitado.
+
+**Implementado**:
+- Migración `supabase/migrations/20260913110000_expose_checked_in_at_to_guest.sql`: ambas RPCs recreadas devolviendo `checked_in_at`.
+- `supabase/migrations/20260911120006_rpc_get_guest_by_token.sql` y `20260911120007_rpc_submit_rsvp.sql` (archivos históricos): se agregó `drop function if exists` antes de su `create or replace` — mismo comportamiento en una aplicación normal, pero necesario para que el arnés de test (que reaplica todas las migraciones desde cero en cada archivo, sobre el mismo Postgres compartido) no choque contra el cambio de tipo de retorno de la migración nueva.
+- `src/lib/guestApi.ts`: `mapRow` lee `row.checked_in_at` real en vez de hardcodearlo.
+- Verificado explícitamente que el fetch inicial de `GuestPage.tsx`, `handleQrClosed`, `handleSubmit` y `handleDevGuestChange` reflejan siempre el guest recién recibido de la API, sin pisar `checkedInAt` con un valor viejo.
+
+**Evidencia**: TDD real (2 tests nuevos en `supabase/tests/rsvp.test.ts` que reproducen el bug exacto: check-in vía scanner → `get_guest_by_token` refleja `checked_in_at`; y que sobrevive a una edición posterior del RSVP). `npm run test:db` → 70/70. Revisión independiente confirmó el fix de punta a punta (montaje inicial y recarga de página también quedan correctos, no solo el cierre del QR).
+
+## Etapa 6 — Cartelera rediseñada, posts con imagen/galería, cupo de fotos por fórmula (2026-09-13)
+
+Rediseño completo de `/evento` pedido por el usuario tras ver la versión anterior (aforo como número gigante protagonista, avisos como ticker chico casi invisible).
+
+- **Posts con autoría rica**: `public.posts` suma `subtitle`/`cover_image_path`; tabla nueva `public.post_images` (galería, RLS: público solo si el post está publicado); bucket `post-images` (privado, solo `authenticated` sube/borra, lectura vía función puente `post_image_path_is_public`). Migraciones `20260913100000_posts_images.sql` y `20260913100001_storage_post_images.sql`, 14 tests nuevos.
+- **`PostsPanel.tsx`**: subtítulo, subida de portada, subida de galería (múltiples archivos), miniaturas — con `PostImageThumb`, que resuelve la URL firmada antes de renderizar (ver corrección de seguridad abajo).
+- **`AnnouncementFeed.tsx`** (nuevo) reemplaza a `AnnouncementTicker.tsx` (borrado, sin usos): tarjetas con imagen, título, subtítulo, cuerpo completo y tiempo relativo ("hace Xh/Xd"), galería si corresponde.
+- **`EventHubPage.tsx`**: el feed de avisos pasa a ser el contenido principal; `PublicTally`+`DoorCountdown` se fusionaron en `EventStatusStrip`, un chip de contexto en vez del elemento central. El aforo sigue siendo solo un número, nunca nombres.
+- **Cupo de fotos = `3 + plusOnesAllowed`, editable**: `CreateGuestModal.tsx` precarga la fórmula y deja de recalcular en cuanto el admin toca el campo a mano (`quotaTouched`); `GuestEditModal.tsx` lo deja editable sin recálculo automático (invitado existente). `guests.photo_quota` ya existía, sin cambio de esquema — es lógica de frontend.
+- **Post-guía sembrado como borrador**: "Guía rápida: qué podés hacer acá", redactado según lo pedido, para que el usuario lo revise antes de publicar (sin imagen de portada todavía — ver `docs/PROMPTS-IMAGENES-AVISOS.md` para el prompt de generación).
+- **Prompts de imagen**: no genero imágenes en este entorno — quedaron en `docs/PROMPTS-IMAGENES-AVISOS.md` (post-guía y, opcional, post-invitación), con la paleta exacta del proyecto.
+
+### Corrección de seguridad encontrada en revisión: imágenes de posts nunca cargaban
+`getPostImageUrl` usaba `getPublicUrl()` sobre un bucket (`post-images`) creado como **privado** — ese endpoint de Storage ignora RLS por completo y solo sirve el archivo si el bucket tiene `public=true`, así que toda la infraestructura de RLS recién construida quedaba inútil: las imágenes no cargaban para nadie, publicado o no. Corregido a `createSignedUrl` (mismo patrón que `getSignedPhotoUrl` en `photosApi.ts`), con un componente `PostImageThumb` en `PostsPanel.tsx` y resolución asíncrona en `AnnouncementFeed.tsx` para que ningún `<img>` intente usar la URL antes de que se resuelva.
+
+**Evidencia**: TDD real en cada pieza, revisión independiente en dos ciclos (el segundo solo para confirmar el fix del bug de imágenes). `npm run typecheck` limpio, `npm test` → 247/247 (37 archivos), `npm run test:db` → 70/70 (7 archivos), `npm run build` sin errores.
+
 **Evidencia**: TDD real (3 tests nuevos en `DoorList.test.tsx` + 1 de integración en `AdminPage.test.tsx`), `npm run typecheck` limpio, `npm test` → 217/217 en 35 archivos.
 
 ## Etapa 5 — Implementada y revisada (2026-09-13)

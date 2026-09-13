@@ -93,7 +93,7 @@ export default function AdminPage() {
     setToast(err instanceof Error ? err.message : `No pudimos ${action}.`);
   }
 
-  async function handleCreate(input: { fullName: string; plusOnesAllowed: number }) {
+  async function handleCreate(input: { fullName: string; plusOnesAllowed: number; photoQuota: number }) {
     try {
       const created = await createGuest(input);
       setGuests((prev) => [...prev, created]);
@@ -112,6 +112,7 @@ export default function AdminPage() {
         status: draft.status,
         plusOnesAllowed: draft.plusOnesAllowed,
         adminNote: draft.adminNote,
+        photoQuota: draft.photoQuota,
       });
       setGuests((prev) => prev.map((g) => (g.id === updated.id ? updated : g)));
       setEditingGuest(null);

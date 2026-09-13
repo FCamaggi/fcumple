@@ -17,6 +17,7 @@ const row = {
   plus_ones_confirmed: 0,
   guest_note: null,
   responded_at: null,
+  checked_in_at: null,
 };
 
 beforeEach(() => {
@@ -41,6 +42,14 @@ describe('getGuestByToken', () => {
       guestNote: null,
       respondedAt: null,
     });
+  });
+
+  it('reflects the real checked_in_at when the RPC reports the guest already checked in', async () => {
+    rpc.mockResolvedValueOnce({ data: [{ ...row, checked_in_at: '2026-05-20T23:15:00Z' }], error: null });
+
+    const guest = await getGuestByToken('mafe-8842');
+
+    expect(guest?.checkedInAt).toBe('2026-05-20T23:15:00Z');
   });
 
   it('returns null when no row matches the token', async () => {
@@ -73,6 +82,15 @@ describe('submitRsvp', () => {
     });
     expect(guest.status).toBe('confirmed');
     expect(guest.plusOnesConfirmed).toBe(2);
+  });
+
+  it('keeps reporting checked_in_at when editing an rsvp after already being checked in', async () => {
+    const updatedRow = { ...row, status: 'confirmed', checked_in_at: '2026-05-20T23:15:00Z' };
+    rpc.mockResolvedValueOnce({ data: [updatedRow], error: null });
+
+    const guest = await submitRsvp('mafe-8842', 'confirmed', 1, '');
+
+    expect(guest.checkedInAt).toBe('2026-05-20T23:15:00Z');
   });
 
   it('translates an invalid-parameter Postgres error into a domain message', async () => {

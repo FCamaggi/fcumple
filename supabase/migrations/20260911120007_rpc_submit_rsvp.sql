@@ -4,6 +4,13 @@
 -- is the last line of defense -- it refuses to ever persist status =
 -- 'pending' (or anything other than 'confirmed'/'declined') through this
 -- public entry point, regardless of what a client sends.
+-- drop-if-exists antes de create-or-replace: mismo motivo que en
+-- get_guest_by_token (ver 20260911120006_rpc_get_guest_by_token.sql) --
+-- necesario para que el arnés de test pueda reaplicar todas las
+-- migraciones desde cero sin chocar contra el cambio de tipo de retorno de
+-- 20260913110000_expose_checked_in_at_to_guest.sql.
+drop function if exists public.submit_rsvp(text, text, int, text);
+
 create or replace function public.submit_rsvp(
   p_token text,
   p_status text,

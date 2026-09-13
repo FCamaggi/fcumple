@@ -9,6 +9,13 @@ interface GuestRow {
   plus_ones_confirmed: number;
   guest_note: string | null;
   responded_at: string | null;
+  // Bug real corregido (docs/BACKLOG.md, Etapa 5, "persistencia del
+  // check-in"): get_guest_by_token/submit_rsvp ahora sí devuelven esta
+  // columna (ver supabase/migrations/20260913110000_expose_checked_in_at_to_guest.sql).
+  // Antes se hardcodeaba a null acá abajo, así que un invitado real nunca
+  // podía ver su cámara desbloqueada -- ni cerrando el QR de puerta, ni
+  // recargando la página, nunca.
+  checked_in_at: string | null;
 }
 
 function mapRow(row: GuestRow, token: string): Guest {
@@ -21,10 +28,7 @@ function mapRow(row: GuestRow, token: string): Guest {
     plusOnesConfirmed: row.plus_ones_confirmed,
     guestNote: row.guest_note,
     respondedAt: row.responded_at,
-    // get_guest_by_token/submit_rsvp don't expose checked_in_at (that's
-    // check_in_guest's job, called only from the admin's scanner) --
-    // guest-facing screens simply don't know this yet.
-    checkedInAt: null,
+    checkedInAt: row.checked_in_at,
   };
 }
 

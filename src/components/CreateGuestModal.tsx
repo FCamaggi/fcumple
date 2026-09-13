@@ -1,26 +1,46 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 
 interface CreateGuestModalProps {
   open: boolean;
   onClose: () => void;
-  onCreate: (input: { fullName: string; plusOnesAllowed: number }) => void;
+  onCreate: (input: { fullName: string; plusOnesAllowed: number; photoQuota: number }) => void;
+}
+
+// Cupo de fotos por default (Etapa 5, Parte E): 3 disparos propios + uno por
+// cada acompañante confirmado. El admin puede pisarlo a mano por invitado
+// puntual -- ver `quotaTouched` abajo.
+function defaultPhotoQuota(plusOnesAllowed: number): number {
+  return 3 + plusOnesAllowed;
 }
 
 /**
- * Alta de invitado — formulario mínimo (nombre + cupo), consistente con la
- * paleta/tipografía del resto del admin.
+ * Alta de invitado — formulario mínimo (nombre + cupo + cupo de fotos),
+ * consistente con la paleta/tipografía del resto del admin.
  */
 export default function CreateGuestModal({ open, onClose, onCreate }: CreateGuestModalProps) {
   const [fullName, setFullName] = useState('');
   const [plusOnesAllowed, setPlusOnesAllowed] = useState(0);
+  const [photoQuota, setPhotoQuota] = useState(defaultPhotoQuota(0));
+  // Smart default con override manual: mientras el admin no haya tocado el
+  // cupo de fotos a mano, se recalcula solo al cambiar plusOnesAllowed. En
+  // cuanto lo edita, dejamos de tocarlo automáticamente.
+  const [quotaTouched, setQuotaTouched] = useState(false);
+
+  useEffect(() => {
+    if (!quotaTouched) {
+      setPhotoQuota(defaultPhotoQuota(plusOnesAllowed));
+    }
+  }, [plusOnesAllowed, quotaTouched]);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!fullName.trim()) return;
-    onCreate({ fullName: fullName.trim(), plusOnesAllowed });
+    onCreate({ fullName: fullName.trim(), plusOnesAllowed, photoQuota });
     setFullName('');
     setPlusOnesAllowed(0);
+    setPhotoQuota(defaultPhotoQuota(0));
+    setQuotaTouched(false);
   }
 
   return (
@@ -67,6 +87,23 @@ export default function CreateGuestModal({ open, onClose, onCreate }: CreateGues
                 min={0}
                 value={plusOnesAllowed}
                 onChange={(e) => setPlusOnesAllowed(Math.max(0, Number(e.target.value)))}
+                className="bg-ink-950 px-3 py-2 font-sans text-sm text-paper-100 outline-none"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label htmlFor="new-guest-photoquota" className="font-mono text-[11px] uppercase tracking-wider text-paper-100/70">
+                Cupo de fotos
+              </label>
+              <input
+                id="new-guest-photoquota"
+                type="number"
+                min={0}
+                value={photoQuota}
+                onChange={(e) => {
+                  setQuotaTouched(true);
+                  setPhotoQuota(Math.max(0, Number(e.target.value)));
+                }}
                 className="bg-ink-950 px-3 py-2 font-sans text-sm text-paper-100 outline-none"
               />
             </div>

@@ -2,7 +2,7 @@ import { supabase } from './supabaseClient';
 import type { Guest, RsvpStatus } from '../types';
 
 const GUEST_COLUMNS =
-  'id, token, full_name, status, plus_ones_allowed, plus_ones_confirmed, guest_note, admin_note, responded_at, created_at, updated_at, checked_in_at, is_dev';
+  'id, token, full_name, status, plus_ones_allowed, plus_ones_confirmed, guest_note, admin_note, responded_at, created_at, updated_at, checked_in_at, is_dev, photo_quota';
 
 interface GuestRow {
   id: string;
@@ -18,6 +18,7 @@ interface GuestRow {
   updated_at: string;
   checked_in_at: string | null;
   is_dev: boolean;
+  photo_quota: number;
 }
 
 function mapRow(row: GuestRow): Guest {
@@ -35,6 +36,7 @@ function mapRow(row: GuestRow): Guest {
     updatedAt: row.updated_at,
     checkedInAt: row.checked_in_at,
     isDev: row.is_dev,
+    photoQuota: row.photo_quota,
   };
 }
 
@@ -55,14 +57,14 @@ export async function listGuests(): Promise<Guest[]> {
 export interface CreateGuestInput {
   fullName: string;
   plusOnesAllowed: number;
+  photoQuota?: number;
 }
 
 export async function createGuest(input: CreateGuestInput): Promise<Guest> {
-  const { data, error } = await supabase
-    .from('guests')
-    .insert({ full_name: input.fullName, plus_ones_allowed: input.plusOnesAllowed })
-    .select(GUEST_COLUMNS)
-    .single();
+  const row: Record<string, unknown> = { full_name: input.fullName, plus_ones_allowed: input.plusOnesAllowed };
+  if (input.photoQuota !== undefined) row.photo_quota = input.photoQuota;
+
+  const { data, error } = await supabase.from('guests').insert(row).select(GUEST_COLUMNS).single();
 
   if (error) fail('crear el invitado', error);
   return mapRow(data as unknown as GuestRow);
@@ -75,6 +77,7 @@ export interface UpdateGuestPatch {
   plusOnesConfirmed?: number;
   guestNote?: string | null;
   adminNote?: string | null;
+  photoQuota?: number;
 }
 
 // Explicit allowlist: `id` and `token` (and anything else not listed here)
@@ -88,6 +91,7 @@ function toRow(patch: UpdateGuestPatch): Record<string, unknown> {
   if (patch.plusOnesConfirmed !== undefined) row.plus_ones_confirmed = patch.plusOnesConfirmed;
   if (patch.guestNote !== undefined) row.guest_note = patch.guestNote;
   if (patch.adminNote !== undefined) row.admin_note = patch.adminNote;
+  if (patch.photoQuota !== undefined) row.photo_quota = patch.photoQuota;
   return row;
 }
 

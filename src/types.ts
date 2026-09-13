@@ -37,16 +37,31 @@ export interface EventInfo {
  */
 /**
  * Mirrors `public.posts` (see
- * supabase/migrations/20260912090000_create_posts.sql). `publishedAt` is
+ * supabase/migrations/20260912090000_create_posts.sql, extended in Etapa 5
+ * with `subtitle` and `cover_image_path`, both nullable). `publishedAt` is
  * `null` for a draft; a non-null value in the past or present means the
  * post is live for guests, and a future value schedules it.
  */
 export interface Post {
   id: string;
   title: string;
+  subtitle: string | null;
   body: string;
+  coverImagePath: string | null;
   publishedAt: string | null;
   createdAt: string;
+}
+
+/**
+ * Mirrors `public.post_images` (Etapa 5): the gallery images attached to a
+ * post, ordered by `position`. Actual file bytes live in the
+ * `post-images` Storage bucket at `storagePath`.
+ */
+export interface PostImage {
+  id: string;
+  postId: string;
+  storagePath: string;
+  position: number;
 }
 
 /**
@@ -92,4 +107,12 @@ export interface Guest {
    * RPCs don't need to know it. Never present on guest-facing screens.
    */
   isDev?: boolean;
+  /**
+   * `guests.photo_quota` (column already exists in the database, default
+   * 5) -- how many photos this guest may upload to the camera roll.
+   * Admin-facing only; not to be confused with `PhotoQuota`, the
+   * `{quota, used}` shape returned by `get_photo_quota` for the guest-facing
+   * camera flow.
+   */
+  photoQuota?: number;
 }

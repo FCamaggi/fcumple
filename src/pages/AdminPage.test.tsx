@@ -29,6 +29,10 @@ vi.mock('../lib/postsApi', () => ({
   deletePost: vi.fn(),
   publishPost: vi.fn(),
   unpublishPost: vi.fn(),
+  uploadPostImage: vi.fn(),
+  listPostImages: vi.fn().mockResolvedValue([]),
+  addPostImage: vi.fn(),
+  getPostImageUrl: vi.fn((path: string) => `https://cdn.example/${path}`),
 }));
 
 import { listGuests, createGuest, updateGuest, deleteGuest } from '../lib/adminApi';
@@ -143,7 +147,7 @@ describe('AdminPage', () => {
     await user.type(screen.getByLabelText(/nombre completo/i), 'Nuevo Invitado');
     await user.click(screen.getByRole('button', { name: /^crear$/i }));
 
-    expect(createGuest).toHaveBeenCalledWith({ fullName: 'Nuevo Invitado', plusOnesAllowed: 0 });
+    expect(createGuest).toHaveBeenCalledWith({ fullName: 'Nuevo Invitado', plusOnesAllowed: 0, photoQuota: 3 });
     expect(await screen.findByText('Nuevo Invitado')).toBeInTheDocument();
   });
 
@@ -213,7 +217,9 @@ describe('AdminPage', () => {
       {
         id: 'p1',
         title: 'Ya salió la lista',
+        subtitle: null,
         body: 'Revisen el link',
+        coverImagePath: null,
         publishedAt: null,
         createdAt: '2026-04-28T00:00:00Z',
       },

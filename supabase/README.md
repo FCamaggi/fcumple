@@ -28,6 +28,8 @@ formato que espera `supabase db push`):
 | `20260912100005_rpc_get_photo_quota.sql` | Función pública de lectura de cupo/usado por token. |
 | `20260912100009_rpc_get_public_headcount.sql` | Función pública de conteo total de confirmados, sin token, para la página `/evento`. |
 | `20260913090000_dev_guest_support.sql` | Columna `is_dev` en `guests`, invitado DEV fijo (`token = 'dev-preview'`), exclusión de `is_dev` en `get_public_headcount()`, RPC `dev_reset_guest()`. |
+| `20260913100000_posts_images.sql` | Columnas `subtitle` y `cover_image_path` en `posts`, tabla `post_images` (galería) + RLS. |
+| `20260913100001_storage_post_images.sql` | Bucket `post-images` + políticas RLS de `storage.objects`. |
 
 Aplicarlas a un proyecto hosted real es un paso posterior (`supabase db
 push`), fuera del alcance de este trabajo — acá solo se versionan y se
@@ -257,6 +259,69 @@ un stand-in mínimo pero fiel de `storage.buckets`/`storage.objects`/
 `storage.foldername()` (mismo espíritu que `createSupabaseRoles()` para
 `anon`/`authenticated`/`service_role`) — scaffolding solo de test, nunca
 parte de las migraciones versionadas.
+
+## Posts con imagen/galería (`posts.subtitle`/`cover_image_path` + `post_images` + Storage)
+
+Extiende `posts` (avisos) para que el admin pueda darles subtítulo, una
+imagen destacada y una galería opcional. Mismo modelo de acceso que el
+resto de `posts` — lectura directa para `anon`/`authenticated` de avisos
+publicados, sin RPC de por medio.
+
+### Columnas nuevas en `posts`
+
+- `subtitle text` (nullable): subtítulo opcional del aviso.
+- `cover_image_path text` (nullable): path en el bucket `post-images` de
+  la imagen destacada, o `null` si el aviso no tiene una. Un aviso puede no
+  tener ni subtítulo ni imagen — ambas columnas son opcionales a propósito.
+
+Se leen con el mismo `select * from public.posts` que ya usa el frontend
+(están cubiertas por la policy `public_read_published` existente, no hizo
+falta una policy nueva en `posts`).
+
+### `post_images`
+
+Galería de fotos adicionales por aviso, ordenadas por `position`:
+
+```ts
+{
+  id: string;          // uuid
+  post_id: string;     // uuid, references posts(id) on delete cascade
+  storage_path: string;
+  position: number;
+  created_at: string;  // timestamptz ISO
+}
+```
+
+- `anon`/`authenticated` (lector no-admin) solo ven filas cuyo `post_id`
+  apunta a un aviso publicado (`published_at is not null and published_at
+  <= now()`) — un borrador nunca expone sus imágenes, mismo criterio que
+  `posts.public_read_published` pero alcanzado vía `exists(...)` porque el
+  flag vive en la fila padre, no en `post_images` misma.
+- `authenticated` (admin) tiene CRUD completo sin restricción, para armar
+  y reordenar la galería de un borrador antes de publicarlo.
+- Borrar el `post` borra en cascada sus `post_images` (`on delete cascade`).
+
+### Bucket `post-images` y sus políticas de `storage.objects`
+
+- Bucket `post-images`, privado (`public = false`), creado por
+  `20260913100001_storage_post_images.sql`.
+- A diferencia de `party-photos` (el invitado sube, el admin modera con
+  cupo), acá solo el admin escribe: **`anon` no tiene ninguna policy de
+  INSERT/UPDATE/DELETE** en este bucket — todo el flujo de subida vive en
+  `PostsPanel`, autenticado.
+- `anon` **SELECT**: solo si el `name` (path del objeto) corresponde a una
+  fila de `post_images` o al `cover_image_path` de algún post ya
+  publicado. Se resuelve con una única función puente `security definer`,
+  `public.post_image_path_is_public(p_path text)` — mismo motivo que
+  `storage_path_is_revealed` en la migración de `party-photos`: una policy
+  de `storage.objects` corre con los privilegios del rol que consulta
+  (`anon`), no como dueño de la tabla, y `posts`/`post_images` no le dan a
+  `anon` más que `SELECT` — así que un `exists(...)` inline directo sobre
+  esas tablas fallaría o, peor, requeriría abrir grants adicionales. La
+  función evalúa ambos casos (galería o portada) con un solo `OR`.
+- `authenticated`: acceso completo sobre objetos de `post-images`, para
+  subir, reemplazar y borrar tanto la portada como la galería,
+  independientemente de si el post está publicado o sigue en borrador.
 
 ## Autenticación del admin
 

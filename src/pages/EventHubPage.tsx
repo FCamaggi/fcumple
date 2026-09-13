@@ -3,7 +3,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { getEventConfig, getPublicHeadcount } from '../lib/eventApi';
 import { listPublishedPosts } from '../lib/postsApi';
 import { getSignedPhotoUrl, listRevealedPhotos } from '../lib/photosApi';
-import AnnouncementTicker from '../components/AnnouncementTicker';
+import AnnouncementFeed from '../components/AnnouncementFeed';
 import RevealedRoll from '../components/RevealedRoll';
 import type { EventConfig, Photo, Post } from '../types';
 
@@ -13,6 +13,11 @@ import type { EventConfig, Photo, Post } from '../types';
  * revelado, todo sin token ni login -- 100% abierto, coherente con el tono
  * ya establecido para el QR de puerta. El único dato de "quién va" que se
  * expone es un número (`getPublicHeadcount`), nunca nombres.
+ *
+ * Rediseño (Etapa 5, Parte D): el feed de avisos es el contenido principal
+ * -- antes era al revés, con el aforo gigante y protagonista y los avisos
+ * reducidos a un ticker chico. El aforo pasa a ser una línea de contexto
+ * dentro de la franja de "estado del evento", junto a la cuenta atrás.
  */
 export default function EventHubPage() {
   const reduceMotion = useReducedMotion() ?? false;
@@ -43,7 +48,7 @@ export default function EventHubPage() {
   useEffect(() => {
     let active = true;
     // Un fallo acá no bloquea la cartelera -- el número simplemente no se
-    // muestra (ver PublicTally más abajo), igual que posts/rollo.
+    // muestra (ver EventStatusStrip más abajo), igual que posts/rollo.
     getPublicHeadcount()
       .then((count) => {
         if (active) setHeadcount(count);
@@ -101,7 +106,7 @@ export default function EventHubPage() {
       />
       <div className="film-grain pointer-events-none absolute inset-0 opacity-[0.03]" aria-hidden />
 
-      <div className="relative mx-auto flex max-w-md flex-col gap-4">
+      <div className="relative mx-auto flex max-w-md flex-col gap-5">
         <header className="flex flex-col gap-1 text-center">
           <span className="font-mono text-[11px] uppercase tracking-widest text-laser-500">La cartelera // abierto para todos</span>
           <h1 className="font-display text-4xl uppercase leading-none tracking-wide text-paper-100">
@@ -109,11 +114,9 @@ export default function EventHubPage() {
           </h1>
         </header>
 
-        <DoorCountdown eventDate={eventConfig?.eventDate ?? null} />
+        <EventStatusStrip eventDate={eventConfig?.eventDate ?? null} headcount={headcount} />
 
-        <PublicTally headcount={headcount} />
-
-        <AnnouncementTicker posts={posts} />
+        <AnnouncementFeed posts={posts} />
 
         <RevealedRoll photoUrls={revealedPhotoUrls} />
       </div>
@@ -137,11 +140,13 @@ function HubLoading({ reduceMotion }: { reduceMotion: boolean }) {
 }
 
 /**
- * DoorCountdown — cuenta atrás a `eventConfig.eventDate`. Distinto de
- * `RsvpDeadlineStrip` (que cuenta hasta el `rsvp_deadline`): esto es "cuánto
- * falta para la fiesta", visible para cualquiera con el link al hub.
+ * EventStatusStrip — franja de contexto (Etapa 5, Parte D): fusiona lo que
+ * antes eran `DoorCountdown` y `PublicTally` en dos líneas de una misma
+ * franja. Es información de contexto, no el centro de la página -- por eso
+ * el aforo ya no tiene número gigante en Display, solo un chip a la derecha
+ * de la cuenta atrás. Sigue mostrando un único número, nunca nombres.
  */
-function DoorCountdown({ eventDate }: { eventDate: string | null }) {
+function EventStatusStrip({ eventDate, headcount }: { eventDate: string | null; headcount: number | null }) {
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -149,52 +154,43 @@ function DoorCountdown({ eventDate }: { eventDate: string | null }) {
     return () => clearInterval(id);
   }, []);
 
-  if (!eventDate) {
-    return (
-      <div className="flex items-center justify-between border border-smoke-700/50 px-3 py-2 font-mono text-[11px] uppercase tracking-widest text-paper-100/70">
-        <span>Fecha</span>
-        <span>Por confirmar</span>
-      </div>
-    );
-  }
-
-  const eventMs = new Date(eventDate).getTime();
-  const remainingMs = eventMs - now;
-  const started = remainingMs <= 0;
-  const daysRemaining = Math.floor(remainingMs / 86_400_000);
-  const hoursRemaining = Math.floor((remainingMs % 86_400_000) / 3_600_000);
+  const countdown = (() => {
+    if (!eventDate) {
+      return { started: false, label: 'Por confirmar' };
+    }
+    const eventMs = new Date(eventDate).getTime();
+    const remainingMs = eventMs - now;
+    const started = remainingMs <= 0;
+    const daysRemaining = Math.floor(remainingMs / 86_400_000);
+    const hoursRemaining = Math.floor((remainingMs % 86_400_000) / 3_600_000);
+    return {
+      started,
+      label: started ? 'Ya se prendieron las luces' : `Faltan ${daysRemaining}d ${hoursRemaining}h para el show`,
+    };
+  })();
 
   return (
-    <div
-      className={`flex items-center justify-between border px-3 py-2 font-mono text-[11px] uppercase tracking-widest ${
-        started ? 'border-acid-400/50 text-acid-400' : 'border-smoke-700/50 text-laser-500'
-      }`}
+    <section
+      className="flex flex-col gap-2 border border-smoke-700/50 bg-ink-900 px-3 py-2"
+      aria-label="Estado del evento"
     >
-      <span>{started ? 'En vivo' : 'Última llamada'}</span>
-      <span className="font-bold">
-        {started ? 'Ya se prendieron las luces' : `Faltan ${daysRemaining}d ${hoursRemaining}h para el show`}
-      </span>
-    </div>
-  );
-}
-
-/**
- * PublicTally — la versión pública del `HeadcountMeter`: mismo lenguaje
- * visual (número gigante en Display), pero sin barras ni desagregado por
- * estado -- acá solo importa "cuántos van", nunca quiénes.
- */
-function PublicTally({ headcount }: { headcount: number | null }) {
-  if (headcount === null) return null;
-
-  return (
-    <section className="flex flex-col items-center gap-1 bg-ink-900 p-6 shadow-2xl" aria-label="Aforo público">
-      <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-hotpink-500">
-        Aforo // en la lista
-      </span>
-      <span className="font-display text-6xl leading-none text-acid-400">{headcount}</span>
-      <span className="font-mono text-[10px] uppercase tracking-wider text-paper-100/70">
-        confirmados hasta ahora
-      </span>
+      <div
+        className={`flex items-center justify-between font-mono text-[11px] uppercase tracking-widest ${
+          countdown.started ? 'text-acid-400' : 'text-laser-500'
+        }`}
+      >
+        <span>{countdown.started ? 'En vivo' : 'Última llamada'}</span>
+        <span className="font-bold">{countdown.label}</span>
+      </div>
+      {headcount !== null && (
+        <div className="flex items-center justify-between border-t border-smoke-700/40 pt-2 font-mono text-[11px] uppercase tracking-widest text-hotpink-500">
+          <span>Aforo // en la lista</span>
+          <span className="flex items-baseline gap-1">
+            <span className="font-display text-base font-bold leading-none text-acid-400">{headcount}</span>
+            <span className="text-paper-100/70">confirmados</span>
+          </span>
+        </div>
+      )}
     </section>
   );
 }

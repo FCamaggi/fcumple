@@ -9,6 +9,8 @@ vi.mock('../lib/eventApi', () => ({
 
 vi.mock('../lib/postsApi', () => ({
   listPublishedPosts: vi.fn(),
+  listPostImages: vi.fn(),
+  getPostImageUrl: vi.fn((path: string) => `https://cdn.example/${path}`),
 }));
 
 vi.mock('../lib/photosApi', () => ({
@@ -17,7 +19,7 @@ vi.mock('../lib/photosApi', () => ({
 }));
 
 import { getEventConfig, getPublicHeadcount } from '../lib/eventApi';
-import { listPublishedPosts } from '../lib/postsApi';
+import { listPublishedPosts, listPostImages } from '../lib/postsApi';
 import { listRevealedPhotos, getSignedPhotoUrl } from '../lib/photosApi';
 
 const baseConfig = {
@@ -36,6 +38,8 @@ beforeEach(() => {
   vi.mocked(getPublicHeadcount).mockResolvedValue(38);
   vi.mocked(listPublishedPosts).mockReset();
   vi.mocked(listPublishedPosts).mockResolvedValue([]);
+  vi.mocked(listPostImages).mockReset();
+  vi.mocked(listPostImages).mockResolvedValue([]);
   vi.mocked(listRevealedPhotos).mockReset();
   vi.mocked(listRevealedPhotos).mockResolvedValue([]);
   vi.mocked(getSignedPhotoUrl).mockReset();
@@ -83,12 +87,14 @@ describe('EventHubPage', () => {
     expect(screen.queryByText(/undefined/i)).not.toBeInTheDocument();
   });
 
-  it('shows the announcement ticker when there are published posts', async () => {
+  it('shows the announcement feed when there are published posts', async () => {
     vi.mocked(listPublishedPosts).mockResolvedValueOnce([
       {
         id: 'p1',
         title: 'Ya salió la lista',
+        subtitle: null,
         body: 'Revisen el link, quedan pocos cupos.',
+        coverImagePath: null,
         publishedAt: '2026-05-01T00:00:00Z',
         createdAt: '2026-04-28T00:00:00Z',
       },
@@ -97,6 +103,35 @@ describe('EventHubPage', () => {
     render(<EventHubPage />);
 
     expect((await screen.findAllByText(/ya salió la lista/i)).length).toBeGreaterThan(0);
+  });
+
+  it('puts the announcement feed as the main content, ahead of the event status strip', async () => {
+    vi.mocked(listPublishedPosts).mockResolvedValueOnce([
+      {
+        id: 'p1',
+        title: 'Ya salió la lista',
+        subtitle: null,
+        body: 'Revisen el link, quedan pocos cupos.',
+        coverImagePath: null,
+        publishedAt: '2026-05-01T00:00:00Z',
+        createdAt: '2026-04-28T00:00:00Z',
+      },
+    ]);
+
+    render(<EventHubPage />);
+    await screen.findByText(/ya salió la lista/i);
+
+    const feedHeading = screen.getByText(/on air \/\/ avisos/i);
+    const statusStrip = screen.getByLabelText('Estado del evento');
+    expect(statusStrip.compareDocumentPosition(feedHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('shows the event status strip with the countdown and a small headcount chip, not a giant tally', async () => {
+    render(<EventHubPage />);
+
+    const statusStrip = await screen.findByLabelText('Estado del evento');
+    expect(statusStrip).toHaveTextContent('38');
+    expect(screen.queryByLabelText('Aforo público')).not.toBeInTheDocument();
   });
 
   it('does not show the revealed roll before the admin reveals it', async () => {
