@@ -2,7 +2,7 @@ import { supabase } from './supabaseClient';
 import type { Guest, RsvpStatus } from '../types';
 
 const GUEST_COLUMNS =
-  'id, token, full_name, status, plus_ones_allowed, plus_ones_confirmed, guest_note, admin_note, responded_at, created_at, updated_at, checked_in_at';
+  'id, token, full_name, status, plus_ones_allowed, plus_ones_confirmed, guest_note, admin_note, responded_at, created_at, updated_at, checked_in_at, is_dev';
 
 interface GuestRow {
   id: string;
@@ -17,6 +17,7 @@ interface GuestRow {
   created_at: string;
   updated_at: string;
   checked_in_at: string | null;
+  is_dev: boolean;
 }
 
 function mapRow(row: GuestRow): Guest {
@@ -33,6 +34,7 @@ function mapRow(row: GuestRow): Guest {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     checkedInAt: row.checked_in_at,
+    isDev: row.is_dev,
   };
 }
 

@@ -37,3 +37,15 @@ describe('DoorList — check-in chip (Etapa 3)', () => {
     expect(screen.getByText(/en la puerta/i)).toBeInTheDocument();
   });
 });
+
+describe('DoorList — badge de invitado dev (Etapa 5, Parte B)', () => {
+  it('marks the dev seed guest row with a "DEV" badge', () => {
+    render(<DoorList guests={[{ ...baseGuest, isDev: true }]} onEditGuest={() => {}} />);
+    expect(screen.getByText('DEV')).toBeInTheDocument();
+  });
+
+  it('does not show the badge for a regular guest', () => {
+    render(<DoorList guests={[baseGuest]} onEditGuest={() => {}} />);
+    expect(screen.queryByText('DEV')).not.toBeInTheDocument();
+  });
+});

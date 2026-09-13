@@ -97,6 +97,32 @@ describe('AdminPage', () => {
     expect(await screen.findByText(/maria fernanda contreras/i)).toBeInTheDocument();
   });
 
+  // docs/BACKLOG.md Etapa 5, Parte B: el invitado semilla de dev
+  // (isDev: true) nunca debe inflar los números reales de logística.
+  it('excludes the dev guest from the confirmed and real-headcount tallies', async () => {
+    const devGuest: Guest = {
+      ...guest,
+      id: 'dev1',
+      token: 'dev-preview',
+      fullName: 'Invitado DEV',
+      status: 'confirmed',
+      plusOnesConfirmed: 5,
+      isDev: true,
+    };
+    const realGuest: Guest = { ...guest, id: 'g2', status: 'confirmed', plusOnesConfirmed: 1 };
+    vi.mocked(listGuests).mockResolvedValueOnce([devGuest, realGuest]);
+
+    render(<AdminPage />);
+    await screen.findByText(/maria fernanda contreras/i);
+
+    const tally = screen.getByText('Live tally').parentElement!;
+    const confirmedRow = within(tally).getByText('Confirmados').parentElement!.parentElement!;
+    expect(within(confirmedRow).getByText('1')).toBeInTheDocument();
+
+    const realHeadcountRow = within(tally).getByText(/headcount real/i).parentElement!.parentElement!;
+    expect(within(realHeadcountRow).getByText('2')).toBeInTheDocument();
+  });
+
   it('shows an error toast when the list fails to load', async () => {
     vi.mocked(listGuests).mockRejectedValueOnce(new Error('sin conexión'));
 

@@ -86,4 +86,10 @@ export interface Guest {
   updatedAt?: string;
   /** Null until the guest is scanned in at the door (Etapa 3: check-in QR). */
   checkedInAt: string | null;
+  /**
+   * True only for the fixed dev-preview seed guest (Etapa 5, Parte B) --
+   * only `listGuests`/adminApi expose this (`guests.is_dev`); guest-facing
+   * RPCs don't need to know it. Never present on guest-facing screens.
+   */
+  isDev?: boolean;
 }

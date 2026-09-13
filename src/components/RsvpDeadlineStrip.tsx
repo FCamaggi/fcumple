@@ -20,7 +20,9 @@ export default function RsvpDeadlineStrip({ deadline }: RsvpDeadlineStripProps) 
   const deadlineMs = new Date(deadline).getTime();
   const remainingMs = deadlineMs - now;
   const expired = remainingMs <= 0;
-  const hoursRemaining = Math.max(0, Math.floor(remainingMs / 3_600_000));
+  const totalHoursRemaining = Math.max(0, Math.floor(remainingMs / 3_600_000));
+  const daysRemaining = Math.floor(totalHoursRemaining / 24);
+  const hoursRemaining = totalHoursRemaining % 24;
   const isUrgent = !expired && remainingMs < 48 * 3_600_000;
 
   return (
@@ -35,7 +37,11 @@ export default function RsvpDeadlineStrip({ deadline }: RsvpDeadlineStripProps) 
     >
       <span>{expired ? 'RSVP cerrado' : 'Última llamada'}</span>
       <span className="font-bold">
-        {expired ? formatDate(deadline) : `Quedan ${hoursRemaining}h para confirmar`}
+        {expired
+          ? formatDate(deadline)
+          : daysRemaining > 0
+            ? `Quedan ${daysRemaining}d ${hoursRemaining}h para confirmar`
+            : `Quedan ${hoursRemaining}h para confirmar`}
       </span>
     </div>
   );

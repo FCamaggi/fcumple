@@ -203,6 +203,11 @@ function DoorListRow({ guest, index, onEditGuest }: DoorListRowProps) {
         >
           {guest.fullName}
         </span>
+        {guest.isDev && (
+          <span className="ml-2 bg-flame-500/20 px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase text-flame-500">
+            DEV
+          </span>
+        )}
       </td>
       <td className="px-4 py-3 align-top">
         <span
