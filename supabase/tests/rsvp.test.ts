@@ -67,6 +67,23 @@ describe('get_guest_by_token', () => {
     );
     expect(result.rows).toHaveLength(0);
   });
+
+  it('reflects the real checked_in_at once the door scanner has checked the guest in', async () => {
+    const guest = await insertGuest();
+
+    // Before any scan: the guest-facing RPC must report no check-in yet.
+    const before = await asRole(admin, 'anon', () =>
+      admin.query('select * from get_guest_by_token($1)', [guest.token]),
+    );
+    expect(before.rows[0].checked_in_at).toBeNull();
+
+    await asRole(admin, 'anon', () => admin.query('select * from check_in_guest($1)', [guest.token]));
+
+    const after = await asRole(admin, 'anon', () =>
+      admin.query('select * from get_guest_by_token($1)', [guest.token]),
+    );
+    expect(after.rows[0].checked_in_at).not.toBeNull();
+  });
 });
 
 describe('submit_rsvp', () => {
@@ -113,6 +130,17 @@ describe('submit_rsvp', () => {
         admin.query('select * from submit_rsvp($1, $2, $3, $4)', [guest.token, 'confirmed', 2, null]),
       ),
     ).rejects.toThrow();
+  });
+
+  it('keeps reporting checked_in_at after the guest edits their RSVP post-check-in', async () => {
+    const guest = await insertGuest({ plus_ones_allowed: 2 });
+    await asRole(admin, 'anon', () => admin.query('select * from check_in_guest($1)', [guest.token]));
+
+    const result = await asRole(admin, 'anon', () =>
+      admin.query('select * from submit_rsvp($1, $2, $3, $4)', [guest.token, 'confirmed', 1, null]),
+    );
+
+    expect(result.rows[0].checked_in_at).not.toBeNull();
   });
 
   it('only updates the guest matching the token, never another guest (isolation)', async () => {

@@ -120,7 +120,23 @@ export default function GuestEditModal({ guest, onClose, onSave, onDelete }: Gue
                   </div>
                 </div>
 
-                <div className="flex flex-col justify-between gap-2 border border-smoke-700/40 bg-ink-900 p-4 md:col-span-5">
+                <div className="flex flex-col justify-between gap-3 border border-smoke-700/40 bg-ink-900 p-4 md:col-span-5">
+                  <div className="flex flex-col gap-1">
+                    <label
+                      htmlFor="guest-photo-quota"
+                      className="font-mono text-[11px] font-bold uppercase tracking-wider text-paper-100"
+                    >
+                      Cupo de fotos
+                    </label>
+                    <input
+                      id="guest-photo-quota"
+                      type="number"
+                      min={0}
+                      value={draft.photoQuota ?? 0}
+                      onChange={(e) => setDraft({ ...draft, photoQuota: Math.max(0, Number(e.target.value)) })}
+                      className="bg-ink-950 px-3 py-2 font-sans text-sm text-paper-100 outline-none"
+                    />
+                  </div>
                   <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-paper-100">
                     Estado del RSVP
                   </span>

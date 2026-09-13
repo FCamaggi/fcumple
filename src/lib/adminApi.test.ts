@@ -22,6 +22,7 @@ const row = {
   updated_at: '2026-05-20T00:00:00Z',
   checked_in_at: null,
   is_dev: false,
+  photo_quota: 5,
 };
 
 function chain(result: { data: unknown; error: unknown }) {
@@ -68,6 +69,7 @@ describe('listGuests', () => {
         updatedAt: '2026-05-20T00:00:00Z',
         checkedInAt: null,
         isDev: false,
+        photoQuota: 5,
       },
     ]);
   });
@@ -100,6 +102,19 @@ describe('createGuest', () => {
     expect(builder.insert).toHaveBeenCalledWith({ full_name: 'Nuevo Invitado', plus_ones_allowed: 2 });
     expect(guest.fullName).toBe('Maria Fernanda Contreras');
   });
+
+  it('includes photoQuota when given', async () => {
+    const builder = chain({ data: row, error: null });
+    from.mockReturnValue(builder);
+
+    await createGuest({ fullName: 'Nuevo Invitado', plusOnesAllowed: 2, photoQuota: 5 });
+
+    expect(builder.insert).toHaveBeenCalledWith({
+      full_name: 'Nuevo Invitado',
+      plus_ones_allowed: 2,
+      photo_quota: 5,
+    });
+  });
 });
 
 describe('updateGuest', () => {
@@ -121,6 +136,15 @@ describe('updateGuest', () => {
       status: 'declined',
     });
     expect(builder.eq).toHaveBeenCalledWith('id', 'g1');
+  });
+
+  it('maps photoQuota to photo_quota', async () => {
+    const builder = chain({ data: row, error: null });
+    from.mockReturnValue(builder);
+
+    await updateGuest('g1', { photoQuota: 8 });
+
+    expect(builder.update).toHaveBeenCalledWith({ photo_quota: 8 });
   });
 });
 
