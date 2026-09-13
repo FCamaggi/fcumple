@@ -53,6 +53,20 @@ describe('QrScanner', () => {
 
     expect(onClose).toHaveBeenCalled();
   });
+
+  it('lets the admin type the token by hand and check in without a working camera scan', async () => {
+    const { checkInGuest } = await import('../lib/adminApi');
+    vi.mocked(checkInGuest).mockResolvedValueOnce({ ...guest, checkedInAt: '2026-05-20T23:20:00Z' });
+    const user = userEvent.setup();
+
+    render(<QrScanner guests={[guest]} />);
+
+    await user.type(screen.getByLabelText(/token o link del invitado/i), 'https://fcumple.vercel.app/i/mafe-8842');
+    await user.click(screen.getByRole('button', { name: /verificar/i }));
+
+    expect(checkInGuest).toHaveBeenCalledWith('mafe-8842');
+    expect(await screen.findByText('Maria Fernanda Contreras')).toBeInTheDocument();
+  });
 });
 
 describe('CheckInOverlay', () => {
