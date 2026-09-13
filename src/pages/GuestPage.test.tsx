@@ -140,6 +140,29 @@ describe('GuestPage', () => {
     expect(submitRsvp).toHaveBeenCalledWith('mafe-8842', 'confirmed', 0, '');
   });
 
+  it('shows the door QR and refreshes the guest when it is closed, unlocking the camera if they got scanned meanwhile', async () => {
+    vi.mocked(getGuestByToken).mockResolvedValueOnce(confirmedGuest);
+    vi.mocked(getGuestByToken).mockResolvedValueOnce(checkedInGuest);
+    vi.mocked(getPhotoQuota).mockResolvedValue({ quota: 5, used: 4 });
+    const user = userEvent.setup();
+
+    renderAt('mafe-8842');
+    await screen.findByText(/access granted/i);
+    expect(screen.queryByLabelText('Cámara')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /mostrar mi qr/i }));
+    await screen.findByRole('dialog', { name: /tu qr de puerta/i });
+
+    await user.click(screen.getByRole('button', { name: /^cerrar$/i }));
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(getGuestByToken).toHaveBeenCalledTimes(2);
+    // La cámara solo aparece cuando checkedInAt no es null (CameraCapture,
+    // gateada por check-in real) -- si esto aparece es porque el refresh
+    // trajo el guest actualizado (checkedInGuest), no el que ya teníamos.
+    expect(await screen.findByLabelText('Cámara')).toBeInTheDocument();
+  });
+
   it('degrades gracefully when the event is not configured yet', async () => {
     vi.mocked(getEventConfig).mockResolvedValueOnce(null);
     vi.mocked(getGuestByToken).mockResolvedValueOnce(pendingGuest);

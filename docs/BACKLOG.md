@@ -108,6 +108,18 @@ El usuario no quiere el slang tipo "Me aBRO" (`src/components/FaderToggle.tsx:60
 ### Cómo encarar la Etapa 5
 A diferencia de la Etapa 4, estos cuatro puntos no requieren repensar arquitectura de información — son bugs/pulido concretos y acotados (5.1, 5.2, 5.3 tienen causa raíz ya identificada en el código; 5.4 es una pasada de copy). Se pueden implementar con TDD real igual que la Etapa 4, probablemente sin necesitar el mismo nivel de decisión de producto previa — salvo 5.4, donde conviene mostrarle al usuario la lista completa de strings encontradas antes de reescribirlas, para no imponer un tono que tampoco le guste.
 
+### 5.5 — Header de `/admin` desbordado en mobile (hotfix post-Etapa 5)
+El usuario probó el modo puerta (Decisión 4.1) en su celular real después del deploy y confirmó que sí se activaba, pero el `<header>` de `AdminPage.tsx` se veía "muy mal": era un solo `flex` sin wrap pensado para desktop, y con el logo + 3 botones (Escáner / Ver consola completa / Cerrar sesión) se desbordaba en pantallas angostas.
+
+**Implementado**: el header pasa a `flex-col` en mobile y `sm:flex-row` desde el breakpoint de Tailwind; el contenedor de botones (`data-testid="admin-header-actions"`) suma `flex-wrap`. Cambio puramente de clases responsive, sin tocar la lógica de `doorMode`. Test nuevo en `AdminPage.test.tsx` verifica ambas clases con el viewport mockeado a mobile.
+
+### 5.6 — QR de puerta con refresh-on-close (pedido nuevo del usuario)
+El usuario propuso simular el flujo "invitado muestra QR → admin escanea → se liberan acciones" de forma más fluida: un botón que muestra el QR real de pantalla completa, y que cerrarlo (únicamente con un botón "Cerrar", nunca por backdrop) dispare un refresh silencioso del guest — así si lo escanearon mientras el QR estaba abierto, cerrar revela el check-in/cámara desbloqueada sin que el invitado tenga que pensar en recargar la página.
+
+**Implementado**: `src/components/DoorQrOverlay.tsx` (nuevo, lazy-loaded desde `GuestPage.tsx`, reusa la librería `qrcode` ya agregada en Etapa 5 para `DevPanel`) genera un QR real de `${origin}/i/{token}`. El botón "Mostrar mi QR en la puerta" aparece en `ConfirmedScreen` mientras `checkedIn` sea falso; al confirmarse el check-in el mismo bloque cambia a "Desbloqueada" y el botón desaparece. Cerrar el overlay llama `handleQrClosed()` en `GuestPage.tsx`, que vuelve a pedir `getGuestByToken`/`getPhotoQuota` (con catch silencioso, a diferencia del fetch inicial) y resincroniza fader/+1/nota — mismo patrón que ya usa `handleDevGuestChange` para el invitado DEV.
+
+**Evidencia**: TDD real en ambos (test antes del código), revisión independiente sin hallazgos. `npm run typecheck` limpio, `npm test` → 213/213 en 35 archivos, `npm run build` confirma `DoorQrOverlay` como chunk separado (1.29 kB) fuera del bundle principal.
+
 ## Etapa 5 — Implementada y revisada (2026-09-13)
 
 Los cuatro puntos están construidos con TDD real y revisión independiente (un solo ciclo, sin hallazgos bloqueantes). Evidencia: `npm run typecheck` limpio, `npm test` → 208/208 en 34 archivos, `npm run test:db` → 54/54 en 6 archivos (Docker real), `npm run build` sin errores — todo corrido de forma independiente por el revisor.

@@ -19,6 +19,10 @@ import type { EventConfig, EventInfo, Guest, PhotoQuota, RsvpStatus } from '../t
 // App.tsx usa para separar /admin en su propio chunk.
 const DevPanel = lazy(() => import('../components/DevPanel'));
 
+// DoorQrOverlay (y la librería de QR) solo se descargan cuando el invitado
+// realmente toca "Mostrar mi QR" -- no en la carga inicial de /i/:token.
+const DoorQrOverlay = lazy(() => import('../components/DoorQrOverlay'));
+
 const NOT_SET = 'Por confirmar';
 
 // WristbandCard/HeadcountMeter still expect the richer EventInfo shape.
@@ -83,6 +87,7 @@ export default function GuestPage() {
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [toastKind, setToastKind] = useState<'success' | 'error'>('success');
+  const [showQr, setShowQr] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -169,6 +174,38 @@ export default function GuestPage() {
     setEditing(false);
   }
 
+  // Cerrar el QR de puerta es la única señal que tenemos de "puede haber
+  // pasado algo en el mundo real mientras estaba abierto" (te escanearon).
+  // Por eso vuelve a pedir el guest y el cupo de fotos en vez de confiar en
+  // lo que ya había en memoria -- si te marcaron checked-in mientras lo
+  // mostrabas, esto es lo que hace que la cámara aparezca sin recargar la
+  // página a mano. Los fallos son silenciosos a propósito: es un refresh
+  // de fondo, no la carga inicial -- una falla transitoria no debe tirar
+  // abajo una vista que ya se había cargado bien.
+  function handleQrClosed() {
+    setShowQr(false);
+    const t = guest?.token ?? token ?? '';
+    if (!t) return;
+
+    getGuestByToken(t)
+      .then((found) => {
+        if (!found) return;
+        setGuest(found);
+        setFader(STATUS_TO_FADER[found.status]);
+        setPlusOne(found.plusOnesConfirmed);
+        setNote(found.guestNote ?? '');
+      })
+      .catch(() => {
+        /* refresh de fondo, no la carga inicial -- se ignora */
+      });
+
+    getPhotoQuota(t)
+      .then(setPhotoQuota)
+      .catch(() => {
+        /* mismo criterio que el fetch inicial de cupo */
+      });
+  }
+
   async function handleSubmit() {
     if (!guest || fader === 'neutral' || submitting) return;
     const next: RsvpStatus = fader === 'yes' ? 'confirmed' : 'declined';
@@ -205,7 +242,9 @@ export default function GuestPage() {
               guestName={guest.fullName}
               plusOne={guest.plusOnesConfirmed}
               token={guest.token ?? token ?? ''}
+              checkedIn={Boolean(guest.checkedInAt)}
               onEdit={() => setEditing(true)}
+              onShowQr={() => setShowQr(true)}
             />
           ) : guest.status === 'declined' && !editing ? (
             <DeclinedScreen key="declined" guestName={guest.fullName} onEdit={() => setEditing(true)} />
@@ -317,6 +356,12 @@ export default function GuestPage() {
         )}
       </div>
 
+      {showQr && (
+        <Suspense fallback={null}>
+          <DoorQrOverlay token={guest?.token ?? token ?? ''} onClose={handleQrClosed} />
+        </Suspense>
+      )}
+
       <SignalToast message={toast} kind={toastKind} onDismiss={() => setToast(null)} />
     </div>
   );
@@ -361,12 +406,16 @@ function ConfirmedScreen({
   guestName,
   plusOne,
   token,
+  checkedIn,
   onEdit,
+  onShowQr,
 }: {
   guestName: string;
   plusOne: number;
   token: string;
+  checkedIn: boolean;
   onEdit: () => void;
+  onShowQr: () => void;
 }) {
   return (
     <motion.section
@@ -405,13 +454,28 @@ function ConfirmedScreen({
       <div className="w-full bg-ink-900 p-4 text-left shadow-2xl">
         <div className="flex items-center justify-between">
           <span className="font-mono text-[10px] uppercase tracking-widest text-paper-100/70">Cámara // acceso</span>
-          <span className="bg-ink-950 px-2 py-0.5 font-mono text-[10px] font-bold uppercase text-laser-500">
-            Bloqueada
+          <span
+            className={`bg-ink-950 px-2 py-0.5 font-mono text-[10px] font-bold uppercase ${
+              checkedIn ? 'text-acid-400' : 'text-laser-500'
+            }`}
+          >
+            {checkedIn ? 'Desbloqueada' : 'Bloqueada'}
           </span>
         </div>
         <p className="mt-2 font-sans text-sm text-paper-100/80">
-          La cámara se desbloquea cuando te escaneen en la puerta. Hasta entonces tu pase es solo la entrada.
+          {checkedIn
+            ? 'Ya te reconocieron en la puerta. La cámara está lista para usar.'
+            : 'La cámara se desbloquea cuando te escaneen en la puerta. Hasta entonces tu pase es solo la entrada.'}
         </p>
+        {!checkedIn && (
+          <button
+            type="button"
+            onClick={onShowQr}
+            className="tap-target mt-3 flex w-full items-center justify-center bg-laser-500/10 px-4 py-3 font-mono text-[11px] font-bold uppercase tracking-wider text-laser-500"
+          >
+            Mostrar mi QR en la puerta
+          </button>
+        )}
       </div>
 
       <div className="flex w-full flex-col gap-2">

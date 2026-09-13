@@ -166,15 +166,18 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-ink-950 text-paper-100">
-      <header className="flex items-center justify-between bg-ink-900 px-6 py-4 shadow-lg">
-        <div className="flex items-center gap-3">
-          <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-acid-400" aria-hidden />
+      <header className="flex flex-col gap-3 bg-ink-900 px-4 py-3 shadow-lg sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <span className="h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-acid-400" aria-hidden />
           <span className="font-display text-lg uppercase tracking-wider text-paper-100">Nocturne</span>
-          <span className="ml-2 bg-ink-950 px-2 py-1 font-mono text-[10px] uppercase text-acid-400">
+          <span className="ml-1 bg-ink-950 px-2 py-1 font-mono text-[10px] uppercase text-acid-400 sm:ml-2">
             Deck-01 // live ctrl
           </span>
         </div>
-        <div className="flex items-center gap-3 font-mono text-[11px] uppercase text-paper-100/70">
+        <div
+          data-testid="admin-header-actions"
+          className="flex flex-wrap items-center gap-2 font-mono text-[11px] uppercase text-paper-100/70 sm:gap-3"
+        >
           {!doorMode && <span>Corte lista: {formatTime(eventConfig?.rsvpDeadline ?? null)}</span>}
           {!doorMode && (
             <>
