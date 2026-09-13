@@ -309,5 +309,18 @@ describe('AdminPage', () => {
       expect(screen.queryByRole('button', { name: /ver consola completa/i })).not.toBeInTheDocument();
       expect(screen.getByRole('button', { name: /^evento$/i })).toBeInTheDocument();
     });
+
+    it('lets the header stack and wrap instead of overflowing on a narrow screen', async () => {
+      mockViewport(true);
+      vi.mocked(listGuests).mockResolvedValueOnce([guest]);
+
+      render(<AdminPage />);
+      await screen.findByText(/maria fernanda contreras/i);
+
+      const header = screen.getByRole('banner');
+      expect(header.className).toContain('flex-col');
+      const actions = screen.getByTestId('admin-header-actions');
+      expect(actions.className).toContain('flex-wrap');
+    });
   });
 });
