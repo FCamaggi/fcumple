@@ -125,6 +125,17 @@ Con el header ya arreglado (5.5), el usuario mandó una captura real del modo pu
 
 **Implementado**: `DoorList.tsx` suma un prop `compact` — en `compact`, la tabla se reemplaza por una lista de tarjetas apiladas (`DoorListCard`) con solo lo esencial: nombre + badge DEV si aplica, token, chip de estado, +N, check-in, nota si existe, y un botón "Editar" que dispara el mismo `onEditGuest` de siempre. `AdminPage.tsx` pasa `compact={doorMode}` — en desktop no cambia nada (sigue la tabla completa). Filtros y buscador de `DoorList` no se tocaron, ya eran responsive.
 
+### 5.8 — Escaneo real del QR de puerta no funcionaba
+El usuario probó el flujo de punta a punta (invitado muestra QR de `DoorQrOverlay` → admin abre `/admin` → Escáner → apunta la cámara) y "no pasó nada". Confirmó que usó el escáner real de `/admin`, no la cámara nativa del celular — descartando el error de uso más común.
+
+**Causa encontrada por lectura de código**: `DoorQrOverlay.tsx` generaba el QR con `QRCode.toDataURL(link, { margin: 1, width: 320 })` — un margen de 1 módulo, muy por debajo del mínimo de 4 que recomienda el estándar QR. Una zona de silencio angosta es una causa real y conocida de que un escaneo pantalla-contra-pantalla falle en la práctica (glare, autofoco de la cámara), aunque el mismo QR decodifique bien en una captura estática. `DevPanel.tsx` (el QR del invitado DEV) nunca tuvo este problema porque usa el default de la librería (`margin: 4`).
+
+**Implementado**:
+- `DoorQrOverlay.tsx`: `margin` corregido a `4`.
+- `QrScanner.tsx`: además del fix de raíz, se agregó un fallback manual (input de texto + botón "Verificar") que reusa exactamente el mismo `handleDetected` de `useQrCheckIn` — si la cámara falla por cualquier motivo (luz, ángulo, un celular viejo), el admin puede escribir el token o pegar el link a mano sin quedar bloqueado.
+
+**Evidencia**: TDD real, `npm run typecheck` limpio, `npm test` → 218/218 en 35 archivos.
+
 **Evidencia**: TDD real (3 tests nuevos en `DoorList.test.tsx` + 1 de integración en `AdminPage.test.tsx`), `npm run typecheck` limpio, `npm test` → 217/217 en 35 archivos.
 
 ## Etapa 5 — Implementada y revisada (2026-09-13)

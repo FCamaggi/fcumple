@@ -33,6 +33,7 @@ export default function QrScanner({ guests, onCheckedIn, onClose }: QrScannerPro
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  const [manualInput, setManualInput] = useState('');
 
   // Kept as a ref so the rAF loop (set up once) always calls the latest
   // handleDetected, even though its identity changes whenever `guests`
@@ -141,6 +142,43 @@ export default function QrScanner({ guests, onCheckedIn, onClose }: QrScannerPro
               <div className="aspect-square w-2/3 max-w-xs border-2 border-acid-400/70 shadow-glow-acid" aria-hidden />
             </div>
           </div>
+        )}
+
+        {(state.phase === 'idle' || state.phase === 'checking') && (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (manualInput.trim()) {
+                handleDetected(manualInput.trim());
+                setManualInput('');
+              }
+            }}
+            className="flex flex-col gap-2 bg-ink-900 p-3"
+          >
+            <label
+              htmlFor="qr-manual-token"
+              className="font-mono text-[10px] uppercase tracking-widest text-paper-100/70"
+            >
+              ¿No lo puede escanear? Token o link del invitado
+            </label>
+            <div className="flex gap-2">
+              <input
+                id="qr-manual-token"
+                type="text"
+                value={manualInput}
+                onChange={(e) => setManualInput(e.target.value)}
+                placeholder="mafe-8842 o el link completo"
+                className="flex-1 bg-ink-950 px-3 py-2 font-mono text-xs text-paper-100 outline-none placeholder-smoke-700"
+              />
+              <button
+                type="submit"
+                disabled={!manualInput.trim() || state.phase === 'checking'}
+                className="tap-target shrink-0 bg-acid-400 px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-ink-950 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Verificar
+              </button>
+            </div>
+          </form>
         )}
 
         <AnimatePresence mode="wait">

@@ -21,7 +21,14 @@ export default function DoorQrOverlay({ token, onClose }: DoorQrOverlayProps) {
   useEffect(() => {
     let active = true;
     const link = `${window.location.origin}/i/${token}`;
-    QRCode.toDataURL(link, { margin: 1, width: 320 })
+    // margin: la zona de silencio alrededor del QR. El estándar recomienda
+    // un mínimo de 4 módulos -- un margen más angosto (se probó con 1) es
+    // una causa real y conocida de que un escaneo pantalla-contra-pantalla
+    // falle en la práctica (glare, autofoco), aunque decodifique bien en
+    // una captura de pantalla estática. DevPanel.tsx usa el default de la
+    // librería (igual a 4) y no tuvo este problema -- este componente debe
+    // quedar igual de conservador.
+    QRCode.toDataURL(link, { margin: 4, width: 320 })
       .then((url) => {
         if (active) setQrDataUrl(url);
       })
