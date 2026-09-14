@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { motion, useMotionValue, useReducedMotion, animate } from 'framer-motion';
 
 export type FaderValue = 'no' | 'neutral' | 'yes';
@@ -35,8 +35,24 @@ export default function FaderToggle({ value, onChange }: FaderToggleProps) {
   const reduceMotion = useReducedMotion();
   const styles = STATE_STYLES[value];
 
-  function travel() {
-    const width = trackRef.current?.offsetWidth ?? 0;
+  // Ancho medido del track, en estado -- no una lectura de ref hecha directo
+  // en el cuerpo del render. Bug real encontrado en QA (celular real): el
+  // JSX de abajo pasa `dragConstraints={{ left: 0, right: travel() }}` a
+  // `motion.div`, y ese objeto se arma durante el render. En el PRIMER
+  // render, `trackRef.current` todavía es `null` (los refs se adjuntan
+  // recién en el commit, después del render) -- así que ese límite de
+  // arrastre quedaba fijo en `{ left: 0, right: 0 }` para siempre, porque
+  // nada volvía a renderizar el componente entre el montaje y la primera
+  // interacción del usuario. El knob podía *verse* centrado (la posición
+  // inicial de `x` sí lee el ref ya montado, ver el efecto de abajo), pero
+  // cualquier drag lo clampeaba a x=0 (izquierda) porque ese era el único
+  // valor que el límite permitía. Guardar el ancho en estado, seteado desde
+  // `useLayoutEffect`, fuerza un segundo render con el valor real ANTES del
+  // primer paint (misma garantía de `useLayoutEffect` que ya se usaba para
+  // la posición inicial) -- el usuario nunca llega a ver ni a interactuar
+  // con el límite viejo.
+  const [trackWidth, setTrackWidth] = useState(0);
+  function travel(width = trackWidth) {
     return Math.max(width - KNOB_WIDTH - TRACK_PADDING * 2, 0);
   }
 
@@ -49,14 +65,16 @@ export default function FaderToggle({ value, onChange }: FaderToggleProps) {
   // before the user can interact at all, i.e. before paint.
   const isFirstMount = useRef(true);
   useLayoutEffect(() => {
+    const width = trackRef.current?.offsetWidth ?? 0;
+    setTrackWidth(width);
     if (isFirstMount.current) {
       isFirstMount.current = false;
-      x.set(positionFor(value, travel()));
+      x.set(positionFor(value, travel(width)));
       return;
     }
     // Later changes (snap buttons, or a parent resetting the value) still
     // get the springy feel.
-    animate(x, positionFor(value, travel()), reduceMotion ? { duration: 0 } : { type: 'spring', bounce: 0.35, duration: 0.4 });
+    animate(x, positionFor(value, travel(width)), reduceMotion ? { duration: 0 } : { type: 'spring', bounce: 0.35, duration: 0.4 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
 
