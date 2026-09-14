@@ -2,18 +2,14 @@ import type { EventConfig } from '../types';
 
 const FALLBACK = 'por confirmar';
 
-// Los emoji de la plantilla (ver buildInviteMessage) se escriben como
-// escapes explícitos `\u{...}` en vez de pegar el glifo literal en el
-// código fuente. Un glifo pegado directo puede corromperse en mojibake
-// ("�") si el archivo se guarda/edita con un encoding distinto de UTF-8 en
-// algún punto de la cadena de herramientas (el usuario accede al repo desde
-// Windows vía red) -- el escape de code point es inmune a eso porque el
-// motor de JS lo resuelve en tiempo de parseo, no depende de cómo el
-// archivo .tsx haya sido guardado en disco.
-const PARTY_POPPER = '\u{1F389}'; // 🎉
-const CALENDAR = '\u{1F4C5}'; // 📅
-const CLOCK_TEN = '\u{1F559}'; // 🕙
-const ROUND_PUSHPIN = '\u{1F4CD}'; // 📍
+// Sin emoji: el intento anterior los escribía como escapes `\u{...}`
+// pensando que el mojibake ("�") era un problema de encoding del archivo
+// fuente -- probado en producción real (WhatsApp Desktop), el problema
+// persistió igual con el escape, lo que descarta esa causa. En vez de
+// seguir adivinando dónde exactamente se rompen (¿wa.me? ¿el cliente de
+// WhatsApp Desktop en Windows? ¿una fuente sin esos glifos?), se sacan del
+// mensaje directamente: etiquetas de texto simples no dependen de ningún
+// encoding ni de que el emoji esté en la fuente del sistema.
 
 const DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
 const MESES = [
@@ -72,11 +68,11 @@ export function buildInviteMessage(guestName: string, token: string, eventConfig
   const link = `${window.location.origin}/i/${token}`;
   const nombre = firstName(guestName);
 
-  return `¡Hola ${nombre}! ${PARTY_POPPER} Estás invitado/a a mi cumpleaños.
+  return `¡Hola ${nombre}! Estás invitado/a a mi cumpleaños.
 
-${CALENDAR} ${fecha}
-${CLOCK_TEN} ${hora}
-${ROUND_PUSHPIN} ${lugar}
+Fecha: ${fecha}
+Hora: ${hora}
+Lugar: ${lugar}
 
 Confirma tu asistencia acá (y avísame si vienes con alguien más):
 ${link}

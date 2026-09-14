@@ -13,48 +13,36 @@ const eventConfig: EventConfig = {
   photosRevealedAt: null,
 };
 
-// Los emoji del mensaje se escapan como \u{...} en el código fuente (ver
-// buildInviteMessage) en vez de pegarse como glifo literal, precisamente
-// para blindarse contra el mojibake que reportó el usuario al abrir el
-// archivo desde Windows por red. Este test compara code points exactos, no
-// solo "contiene la palabra esperada", para detectar una regresión de
-// encoding aunque el string siga "pareciendo" el mismo a simple vista.
-const PARTY_POPPER = '\u{1F389}';
-const CALENDAR = '\u{1F4C5}';
-const CLOCK_TEN = '\u{1F559}';
-const ROUND_PUSHPIN = '\u{1F4CD}';
-
 describe('buildInviteMessage', () => {
   it('builds the exact template with the guest first name, formatted date/time, location and personal link', () => {
     const message = buildInviteMessage('Maria Fernanda', 'mafe-8842', eventConfig);
 
-    expect(message).toContain(`¡Hola Maria! ${PARTY_POPPER} Estás invitado/a a mi cumpleaños.`);
-    expect(message).toContain(`${CALENDAR} viernes 9 de octubre de 2026`);
-    expect(message).toContain(`${CLOCK_TEN} 22:00 hrs`);
-    expect(message).toContain(`${ROUND_PUSHPIN} Pasaje Argentina 2299, Independencia`);
+    expect(message).toContain('¡Hola Maria! Estás invitado/a a mi cumpleaños.');
+    expect(message).toContain('Fecha: viernes 9 de octubre de 2026');
+    expect(message).toContain('Hora: 22:00 hrs');
+    expect(message).toContain('Lugar: Pasaje Argentina 2299, Independencia');
     expect(message).toContain('Confirma tu asistencia acá (y avísame si vienes con alguien más):');
     expect(message).toContain(`${window.location.origin}/i/mafe-8842`);
     expect(message).toContain('¡Espero verte ahí!');
   });
 
-  it('emits the exact emoji code points, guarding against mojibake regressions', () => {
+  // Regresión real: un intento anterior usaba emoji (con escape \u{...} en
+  // el código fuente) y llegaban como "�" en WhatsApp Desktop real, sin
+  // importar cómo se escribiera el código. Sin emoji en el mensaje, no hay
+  // ningún carácter que dependa de una fuente/encoding del lado receptor.
+  it('never contains emoji or the Unicode replacement character', () => {
     const message = buildInviteMessage('Maria', 'mafe-8842', eventConfig);
 
-    expect([...message].filter((ch) => ch === PARTY_POPPER)).toHaveLength(1);
-    expect([...message].filter((ch) => ch === CALENDAR)).toHaveLength(1);
-    expect([...message].filter((ch) => ch === CLOCK_TEN)).toHaveLength(1);
-    expect([...message].filter((ch) => ch === ROUND_PUSHPIN)).toHaveLength(1);
-    // Nunca debe colarse el carácter de reemplazo Unicode que delata un
-    // mojibake real (U+FFFD).
     expect(message).not.toContain('�');
+    expect(/\p{Extended_Pictographic}/u.test(message)).toBe(false);
   });
 
   it('falls back to "por confirmar" when the event has no date/location configured yet', () => {
     const message = buildInviteMessage('Maria Fernanda', 'mafe-8842', null);
 
-    expect(message).toContain(`${CALENDAR} por confirmar`);
-    expect(message).toContain(`${CLOCK_TEN} por confirmar`);
-    expect(message).toContain(`${ROUND_PUSHPIN} por confirmar`);
+    expect(message).toContain('Fecha: por confirmar');
+    expect(message).toContain('Hora: por confirmar');
+    expect(message).toContain('Lugar: por confirmar');
   });
 
   describe('first-name extraction', () => {

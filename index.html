@@ -14,11 +14,18 @@
     <!--
       Preview de link (WhatsApp, etc.): estas tags aplican a CUALQUIER ruta
       de este SPA (no hay SSR, index.html es el mismo para "/", "/i/{token}"
-      y "/evento") -- exactamente lo que queremos: que el flyer real
-      aparezca como preview sin importar qué link personal se comparta.
-      og-flyer.png vive en public/ (se sirve tal cual, sin build step) y es
-      copia de assets/avisos-fuente/flyer-invitacion-standalone.png -- si se
-      regenera el flyer, actualizar ambos archivos.
+      y "/evento") -- exactamente lo que queremos: que la imagen aparezca
+      como preview sin importar qué link personal se comparta.
+
+      og-image.jpg vive en public/ (se sirve tal cual, sin build step).
+      Es 1200x630 (el tamaño estándar recomendado de Open Graph, ratio
+      1.91:1) y pesa ~110KB -- el primer intento usaba el flyer 4:5 de
+      ~2.8MB con las dimensiones equivocadas y WhatsApp nunca llegó a
+      mostrarlo (probado en producción, sin preview). Se regeneró desde
+      assets/avisos-fuente/invitacion-cover.png (ya 16:9, sin texto
+      incrustado) recortado/comprimido a 1200x630 JPEG calidad 85. Si se
+      regenera la imagen fuente, hay que repetir el recorte/compresión acá,
+      no copiar el PNG pesado tal cual.
     -->
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Estás en la lista — Cumpleaños Fabrizio" />
@@ -26,11 +33,11 @@
       property="og:description"
       content="Viernes 9 de octubre, 22:00 hrs. Pasaje Argentina 2299, Independencia. Confirma tu asistencia."
     />
-    <meta property="og:image" content="https://fcumple-ten.vercel.app/og-flyer.png" />
-    <meta property="og:image:width" content="1122" />
-    <meta property="og:image:height" content="1402" />
+    <meta property="og:image" content="https://fcumple-ten.vercel.app/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:image" content="https://fcumple-ten.vercel.app/og-flyer.png" />
+    <meta name="twitter:image" content="https://fcumple-ten.vercel.app/og-image.jpg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

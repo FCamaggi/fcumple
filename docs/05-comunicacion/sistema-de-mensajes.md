@@ -22,11 +22,11 @@
 ## Plantilla del mensaje
 
 ```
-¡Hola {primer nombre}! 🎉 Estás invitado/a a mi cumpleaños.
+¡Hola {primer nombre}! Estás invitado/a a mi cumpleaños.
 
-📅 {fecha en formato "viernes 9 de octubre de 2026"}
-🕙 {hora, ej. "22:00 hrs"}
-📍 {lugar, ej. "Pasaje Argentina 2299, Independencia"}
+Fecha: {fecha en formato "viernes 9 de octubre de 2026"}
+Hora: {hora, ej. "22:00 hrs"}
+Lugar: {lugar, ej. "Pasaje Argentina 2299, Independencia"}
 
 Confirma tu asistencia acá (y avísame si vienes con alguien más):
 {link personal}
@@ -34,17 +34,18 @@ Confirma tu asistencia acá (y avísame si vienes con alguien más):
 ¡Espero verte ahí!
 ```
 
-El texto exacto vive en el código (no en este documento) para que siempre use los datos reales de `event_config` en vez de un valor pegado a mano que se puede desactualizar. En el código fuente (`SendInviteButton.tsx`) los emoji se escriben como escapes `\u{1F389}` etc., no como el glifo pegado, para no depender del encoding con el que se guarde el archivo.
+El texto exacto vive en el código (no en este documento) para que siempre use los datos reales de `event_config` en vez de un valor pegado a mano que se puede desactualizar.
+
+**Sin emoji, a propósito.** Un primer intento usaba 🎉📅🕙📍, con y sin escapes `\u{...}` en el código fuente — probado en WhatsApp Desktop real, llegaban como "�" (mojibake) en ambos casos, así que el problema no era el encoding del archivo fuente como se sospechó al principio. En vez de seguir adivinando dónde exactamente se rompen (¿`wa.me`? ¿el cliente de escritorio en Windows? ¿una fuente sin esos glifos instalada?), se sacaron del mensaje: etiquetas de texto simples ("Fecha:", "Hora:", "Lugar:") no dependen de ningún encoding ni de qué fuente tenga instalada quien lo reciba.
 
 El nombre se recorta al primer nombre: se separa por el primer espacio tras recortar espacios sobrantes; si el invitado no tiene apellido cargado (sin espacio), se usa el nombre completo tal cual.
 
-## El preview del link (el flyer, sin adjuntar nada a mano)
+## El preview del link (la imagen, sin adjuntar nada a mano)
 
-WhatsApp (y la mayoría de apps) arman el preview de un link leyendo las meta tags `og:image`/`og:title`/`og:description` de la página, sin ejecutar JavaScript. Como esta app es un SPA sin SSR, `index.html` es el mismo archivo para cualquier ruta (`/`, `/i/{token}`, `/evento`) — así que **el flyer aparece como preview en cualquier link que se comparta**, sin tener que adjuntarlo a mano en cada envío.
+WhatsApp (y la mayoría de apps) arman el preview de un link leyendo las meta tags `og:image`/`og:title`/`og:description` de la página, sin ejecutar JavaScript. Como esta app es un SPA sin SSR, `index.html` es el mismo archivo para cualquier ruta (`/`, `/i/{token}`, `/evento`) — así que **la imagen aparece como preview en cualquier link que se comparta**, sin tener que adjuntarla a mano en cada envío.
 
-- `index.html` tiene `og:image` apuntando a `https://fcumple-ten.vercel.app/og-flyer.png`.
-- `og-flyer.png` vive en `public/` (se sirve tal cual, sin paso de build) y es una copia de `assets/avisos-fuente/flyer-invitacion-standalone.png`. **Si se regenera el flyer, hay que actualizar ambos archivos** — no hay un paso automático que los mantenga sincronizados.
-- **Advertencia real, no probada todavía**: el archivo pesa ~2.8MB. WhatsApp normalmente genera bien el preview igual, pero algunas apps tienen límites no documentados de tamaño para el `og:image` y pueden fallar en silencio (sin preview, en vez de error). Probar mandándose el link a uno mismo después de deployar, antes de asumir que funciona con todos los invitados.
+- `index.html` tiene `og:image` apuntando a `https://fcumple-ten.vercel.app/og-image.jpg` (1200×630, el tamaño estándar de Open Graph, ~110KB).
+- **Corrección real (2026-09-14):** el primer intento usaba el flyer con todo el texto incrustado, en su formato original 4:5 (~1122×1402, ~2.8MB). Probado en producción: WhatsApp nunca mostró el preview, solo título+descripción. Causa más probable: el tamaño/proporción — 2.8MB y una imagen más alta que ancha están lejos de lo que Open Graph recomienda (1200×630, idealmente bajo unos cientos de KB), y varios clientes fallan en silencio en vez de avisar el motivo. Se corrigió generando `og-image.jpg` desde `assets/avisos-fuente/invitacion-cover.png` (ya 16:9, sin texto incrustado), recortado/comprimido a 1200×630 JPEG. Si se regenera la imagen fuente, hay que repetir ese recorte/compresión — no copiar el PNG pesado tal cual a `public/`.
 - El preview de WhatsApp se cachea agresivamente por link — si cambia la imagen después de que alguien ya vio el preview viejo, esa persona puede seguir viendo la versión anterior.
 
 ## Qué NO hace este sistema (alcance explícito)
