@@ -16,6 +16,7 @@ vi.mock('../lib/postsApi', () => ({
 vi.mock('../lib/photosApi', () => ({
   listRevealedPhotos: vi.fn(),
   getSignedPhotoUrl: vi.fn(),
+  getSignedPhotoDownloadUrl: vi.fn(),
 }));
 
 import { getEventConfig, getPublicHeadcount } from '../lib/eventApi';
@@ -143,7 +144,7 @@ describe('EventHubPage', () => {
     expect(screen.queryByLabelText('Rollo revelado')).not.toBeInTheDocument();
   });
 
-  it('shows the revealed roll once photosRevealedAt is set and photos come back', async () => {
+  it('shows the revealed roll once photosRevealedAt is set and photos come back, passing raw (unresolved) photo data', async () => {
     vi.mocked(getEventConfig).mockReset();
     vi.mocked(getEventConfig).mockResolvedValue({ ...baseConfig, photosRevealedAt: '2026-06-01T00:00:00Z' });
     vi.mocked(listRevealedPhotos).mockResolvedValueOnce([
@@ -153,6 +154,10 @@ describe('EventHubPage', () => {
     render(<EventHubPage />);
 
     expect(await screen.findByLabelText('Rollo revelado')).toBeInTheDocument();
+    // EventHubPage ya no resuelve URLs firmadas por su cuenta (Etapa 10) --
+    // eso pasó a ser responsabilidad de RevealedRoll, banda por banda.
+    // Igual se resuelve la URL de preview porque RevealedRoll la pide al
+    // montar, así que se verifica que llegue el storage_path correcto.
     expect(getSignedPhotoUrl).toHaveBeenCalledWith('tok1/a.jpg');
   });
 });

@@ -17,6 +17,7 @@ import {
   listAllPhotosForModeration,
   moderatePhoto,
   getSignedPhotoUrl,
+  getSignedPhotoDownloadUrl,
   listRevealedPhotos,
 } from './photosApi';
 
@@ -166,6 +167,28 @@ describe('getSignedPhotoUrl', () => {
     storageFrom.mockReturnValue({ createSignedUrl });
 
     await expect(getSignedPhotoUrl('tok1/a.jpg')).rejects.toThrow(/not found/);
+  });
+});
+
+describe('getSignedPhotoDownloadUrl', () => {
+  it('creates a signed url with the download option set', async () => {
+    const createSignedUrl = vi
+      .fn()
+      .mockResolvedValue({ data: { signedUrl: 'https://signed.example/a.jpg?download' }, error: null });
+    storageFrom.mockReturnValue({ createSignedUrl });
+
+    const url = await getSignedPhotoDownloadUrl('tok1/a.jpg');
+
+    expect(storageFrom).toHaveBeenCalledWith('party-photos');
+    expect(createSignedUrl).toHaveBeenCalledWith('tok1/a.jpg', expect.any(Number), { download: true });
+    expect(url).toBe('https://signed.example/a.jpg?download');
+  });
+
+  it('throws a readable error when supabase reports a failure', async () => {
+    const createSignedUrl = vi.fn().mockResolvedValue({ data: null, error: { message: 'not found' } });
+    storageFrom.mockReturnValue({ createSignedUrl });
+
+    await expect(getSignedPhotoDownloadUrl('tok1/a.jpg')).rejects.toThrow(/not found/);
   });
 });
 

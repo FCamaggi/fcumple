@@ -9,6 +9,12 @@
  * (America/Santiago), no relativas a la hora de la primera foto -- "22:00 —
  * 23:00", "23:00 — 00:00", etc. Solo se devuelven bandas con al menos una
  * foto.
+ *
+ * Etapa 10: `groupPhotosByHourBand` pasó a ser genérica sobre cualquier tipo
+ * con `createdAt` -- RevealedRoll ahora la usa tanto sobre datos crudos
+ * (`storagePath`+`createdAt`, antes de resolver ninguna URL) como, en los
+ * tests preexistentes de este archivo, sobre `TimelinePhoto` (`url`). La
+ * agrupación en sí no necesita saber si la URL ya está resuelta.
  */
 
 const TIME_ZONE = 'America/Santiago';
@@ -18,9 +24,9 @@ export interface TimelinePhoto {
   createdAt: string;
 }
 
-export interface PhotoTimelineBand {
+export interface PhotoTimelineBand<T extends { createdAt: string } = TimelinePhoto> {
   label: string;
-  photos: TimelinePhoto[];
+  photos: T[];
 }
 
 const hourFormatter = new Intl.DateTimeFormat('en-US', {
@@ -55,8 +61,8 @@ function bandLabel(hour: number): string {
   return `${pad(hour)}:00 — ${pad(nextHour)}:00`;
 }
 
-export function groupPhotosByHourBand(photos: TimelinePhoto[]): PhotoTimelineBand[] {
-  const buckets = new Map<string, { hour: number; photos: TimelinePhoto[] }>();
+export function groupPhotosByHourBand<T extends { createdAt: string }>(photos: T[]): PhotoTimelineBand<T>[] {
+  const buckets = new Map<string, { hour: number; photos: T[] }>();
 
   for (const photo of photos) {
     const { date, hour } = chileDateAndHour(photo.createdAt);

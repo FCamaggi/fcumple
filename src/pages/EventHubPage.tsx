@@ -2,10 +2,9 @@ import { useEffect, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { getEventConfig, getPublicHeadcount } from '../lib/eventApi';
 import { listPublishedPosts } from '../lib/postsApi';
-import { getSignedPhotoUrl, listRevealedPhotos } from '../lib/photosApi';
+import { listRevealedPhotos } from '../lib/photosApi';
 import AnnouncementFeed from '../components/AnnouncementFeed';
-import RevealedRoll from '../components/RevealedRoll';
-import type { TimelinePhoto } from '../lib/photoTimeline';
+import RevealedRoll, { type RawRevealedPhoto } from '../components/RevealedRoll';
 import type { EventConfig, Photo, Post } from '../types';
 
 /**
@@ -27,7 +26,7 @@ export default function EventHubPage() {
   const [eventConfig, setEventConfig] = useState<EventConfig | null>(null);
   const [headcount, setHeadcount] = useState<number | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
-  const [revealedPhotos, setRevealedPhotos] = useState<TimelinePhoto[]>([]);
+  const [revealedPhotos, setRevealedPhotos] = useState<RawRevealedPhoto[]>([]);
 
   useEffect(() => {
     let active = true;
@@ -82,15 +81,15 @@ export default function EventHubPage() {
       setRevealedPhotos([]);
       return;
     }
+    // Etapa 10: acá solo se piden los datos crudos (storage_path +
+    // created_at, sin bytes de imagen). RevealedRoll es quien resuelve URLs
+    // firmadas, de a poco, banda por banda -- nunca las N fotos completas de
+    // una sola vez apenas carga la página.
     listRevealedPhotos()
-      .then(async (photos: Photo[]) => {
-        const withUrls = await Promise.all(
-          photos.map(async (p) => {
-            const url = await getSignedPhotoUrl(p.storagePath).catch(() => null);
-            return url ? { url, createdAt: p.createdAt } : null;
-          }),
-        );
-        if (active) setRevealedPhotos(withUrls.filter((p): p is TimelinePhoto => p !== null));
+      .then((photos: Photo[]) => {
+        if (active) {
+          setRevealedPhotos(photos.map((p) => ({ storagePath: p.storagePath, createdAt: p.createdAt })));
+        }
       })
       .catch(() => {
         if (active) setRevealedPhotos([]);

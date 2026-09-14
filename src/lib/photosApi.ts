@@ -119,6 +119,19 @@ export async function getSignedPhotoUrl(storagePath: string): Promise<string> {
   return (data as { signedUrl: string }).signedUrl;
 }
 
+// Etapa 10: URL firmada separada para descarga (banda expandida del rollo
+// revelado, RevealedRoll.tsx) -- usa la opción `download` de Storage para
+// que el navegador baje el archivo en vez de solo mostrarlo, y se pide
+// recién al tocar "Descargar", nunca precalculada junto a la de preview.
+export async function getSignedPhotoDownloadUrl(storagePath: string): Promise<string> {
+  const { data, error } = await supabase.storage
+    .from(BUCKET)
+    .createSignedUrl(storagePath, SIGNED_URL_TTL_SECONDS, { download: true });
+
+  if (error) fail('generar el link de descarga', error);
+  return (data as { signedUrl: string }).signedUrl;
+}
+
 // `anon` no tiene ningún grant sobre `public.photos` (revoke all, sin
 // ninguna policy para ese rol -- ver supabase/README.md), así que la única
 // vía de lectura es la RPC `list_revealed_photos()` (SECURITY DEFINER,
