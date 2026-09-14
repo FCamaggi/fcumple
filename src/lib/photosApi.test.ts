@@ -169,26 +169,28 @@ describe('getSignedPhotoUrl', () => {
   });
 });
 
-// listRevealedPhotos assumes a `list_revealed_photos` RPC that does not
-// exist yet in supabase/migrations/ (see the note above its implementation
-// in photosApi.ts) -- these tests only pin down the shape this function
-// exposes to the frontend, not that the RPC is live in production today.
 describe('listRevealedPhotos', () => {
-  it('maps the storage paths returned by the RPC into approved Photo stubs', async () => {
-    rpc.mockResolvedValue({ data: [{ storage_path: 'tok1/a.jpg' }, { storage_path: 'tok2/b.jpg' }], error: null });
+  it('maps the storage paths and created_at returned by the RPC into approved Photo stubs', async () => {
+    rpc.mockResolvedValue({
+      data: [
+        { storage_path: 'tok1/a.jpg', created_at: '2026-10-09T22:15:00Z' },
+        { storage_path: 'tok2/b.jpg', created_at: '2026-10-09T23:05:00Z' },
+      ],
+      error: null,
+    });
 
     const photos = await listRevealedPhotos();
 
     expect(rpc).toHaveBeenCalledWith('list_revealed_photos');
     expect(photos).toEqual([
-      { id: 'tok1/a.jpg', guestId: '', storagePath: 'tok1/a.jpg', status: 'approved', createdAt: '' },
-      { id: 'tok2/b.jpg', guestId: '', storagePath: 'tok2/b.jpg', status: 'approved', createdAt: '' },
+      { id: 'tok1/a.jpg', guestId: '', storagePath: 'tok1/a.jpg', status: 'approved', createdAt: '2026-10-09T22:15:00Z' },
+      { id: 'tok2/b.jpg', guestId: '', storagePath: 'tok2/b.jpg', status: 'approved', createdAt: '2026-10-09T23:05:00Z' },
     ]);
   });
 
-  it('throws a readable error when the RPC does not exist yet (undefined function)', async () => {
-    rpc.mockResolvedValue({ data: null, error: { message: 'function list_revealed_photos() does not exist', code: '42883' } });
+  it('throws a readable error when supabase reports a failure', async () => {
+    rpc.mockResolvedValue({ data: null, error: { message: 'network down' } });
 
-    await expect(listRevealedPhotos()).rejects.toThrow(/does not exist/);
+    await expect(listRevealedPhotos()).rejects.toThrow(/network down/);
   });
 });

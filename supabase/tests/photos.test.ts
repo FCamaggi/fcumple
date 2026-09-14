@@ -327,13 +327,24 @@ describe('list_revealed_photos', () => {
     expect(result.rows.map((r) => r.storage_path)).toEqual([`${guest.token}/a.jpg`]);
   });
 
-  it('never exposes guest_id or status, only storage_path', async () => {
+  it('never exposes guest_id or status, only storage_path and created_at', async () => {
     const guest = await insertGuest();
     await insertPhoto(guest.id, `${guest.token}/a.jpg`, 'approved');
     await admin.query('update public.event_config set photos_revealed_at = now() where id = true');
 
     const result = await asRole(admin, 'anon', () => admin.query('select * from list_revealed_photos()'));
 
-    expect(Object.keys(result.rows[0])).toEqual(['storage_path']);
+    expect(Object.keys(result.rows[0])).toEqual(['storage_path', 'created_at']);
+  });
+
+  it('returns the real created_at of each approved photo', async () => {
+    const guest = await insertGuest();
+    await insertPhoto(guest.id, `${guest.token}/a.jpg`, 'approved');
+    await admin.query('update public.event_config set photos_revealed_at = now() where id = true');
+
+    const result = await asRole(admin, 'anon', () => admin.query('select * from list_revealed_photos()'));
+
+    expect(result.rows[0].created_at).not.toBeNull();
+    expect(new Date(result.rows[0].created_at).getTime()).not.toBeNaN();
   });
 });

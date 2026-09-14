@@ -5,6 +5,7 @@ import { listPublishedPosts } from '../lib/postsApi';
 import { getSignedPhotoUrl, listRevealedPhotos } from '../lib/photosApi';
 import AnnouncementFeed from '../components/AnnouncementFeed';
 import RevealedRoll from '../components/RevealedRoll';
+import type { TimelinePhoto } from '../lib/photoTimeline';
 import type { EventConfig, Photo, Post } from '../types';
 
 /**
@@ -26,7 +27,7 @@ export default function EventHubPage() {
   const [eventConfig, setEventConfig] = useState<EventConfig | null>(null);
   const [headcount, setHeadcount] = useState<number | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
-  const [revealedPhotoUrls, setRevealedPhotoUrls] = useState<string[]>([]);
+  const [revealedPhotos, setRevealedPhotos] = useState<TimelinePhoto[]>([]);
 
   useEffect(() => {
     let active = true;
@@ -78,16 +79,21 @@ export default function EventHubPage() {
   useEffect(() => {
     let active = true;
     if (!eventConfig?.photosRevealedAt) {
-      setRevealedPhotoUrls([]);
+      setRevealedPhotos([]);
       return;
     }
     listRevealedPhotos()
       .then(async (photos: Photo[]) => {
-        const urls = await Promise.all(photos.map((p) => getSignedPhotoUrl(p.storagePath).catch(() => null)));
-        if (active) setRevealedPhotoUrls(urls.filter((u): u is string => u !== null));
+        const withUrls = await Promise.all(
+          photos.map(async (p) => {
+            const url = await getSignedPhotoUrl(p.storagePath).catch(() => null);
+            return url ? { url, createdAt: p.createdAt } : null;
+          }),
+        );
+        if (active) setRevealedPhotos(withUrls.filter((p): p is TimelinePhoto => p !== null));
       })
       .catch(() => {
-        if (active) setRevealedPhotoUrls([]);
+        if (active) setRevealedPhotos([]);
       });
     return () => {
       active = false;
@@ -118,7 +124,7 @@ export default function EventHubPage() {
 
         <AnnouncementFeed posts={posts} />
 
-        <RevealedRoll photoUrls={revealedPhotoUrls} />
+        <RevealedRoll photos={revealedPhotos} />
       </div>
     </div>
   );

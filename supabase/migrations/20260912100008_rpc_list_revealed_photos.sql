@@ -5,6 +5,13 @@
 -- security-definer pattern as get_guest_by_token / get_photo_quota /
 -- submit_photo. Never exposes guest_id or status, only what's safe to
 -- hand to the client for building a signed URL.
+-- drop-if-exists antes de create-or-replace: mismo motivo que en
+-- get_guest_by_token (ver 20260911120006_rpc_get_guest_by_token.sql) --
+-- necesario para que el arnés de test pueda reaplicar todas las
+-- migraciones desde cero sin chocar contra el cambio de tipo de retorno de
+-- 20260914100000_rpc_list_revealed_photos_created_at.sql.
+drop function if exists public.list_revealed_photos();
+
 create or replace function public.list_revealed_photos()
 returns table (
   storage_path text

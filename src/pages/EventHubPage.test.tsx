@@ -147,7 +147,7 @@ describe('EventHubPage', () => {
     vi.mocked(getEventConfig).mockReset();
     vi.mocked(getEventConfig).mockResolvedValue({ ...baseConfig, photosRevealedAt: '2026-06-01T00:00:00Z' });
     vi.mocked(listRevealedPhotos).mockResolvedValueOnce([
-      { id: 'tok1/a.jpg', guestId: '', storagePath: 'tok1/a.jpg', status: 'approved', createdAt: '' },
+      { id: 'tok1/a.jpg', guestId: '', storagePath: 'tok1/a.jpg', status: 'approved', createdAt: '2026-10-10T01:10:00Z' },
     ]);
 
     render(<EventHubPage />);

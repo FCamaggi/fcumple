@@ -119,47 +119,23 @@ export async function getSignedPhotoUrl(storagePath: string): Promise<string> {
   return (data as { signedUrl: string }).signedUrl;
 }
 
-// ---------------------------------------------------------------------
-// NOTA IMPORTANTE PARA QUIEN INTEGRE ESTO (ver entrega del agente):
-//
 // `anon` no tiene ningún grant sobre `public.photos` (revoke all, sin
-// ninguna policy para ese rol -- ver supabase/README.md). Eso significa
-// que un `select` directo desde el frontend, aunque solo pida
-// `status = 'approved'`, falla con "permission denied for table photos"
-// antes incluso de que RLS entre a jugar -- no es una cuestión de
-// filtrar bien la query, es que el rol no tiene el privilegio.
-//
-// Esta función asume una RPC nueva, de solo lectura, que todavía NO
-// existe en supabase/migrations/ (no se creó a propósito, per el
-// encargo). Sigue el mismo patrón ya usado tres veces en este proyecto
-// (get_guest_by_token / get_photo_quota / submit_photo): SECURITY DEFINER,
-// search_path fijo, grant execute a anon/authenticated, sin exponer la
-// tabla completa:
-//
-//   create or replace function public.list_revealed_photos()
-//   returns table (storage_path text)
-//   language sql security definer set search_path = public as $$
-//     select p.storage_path
-//     from public.photos p, public.event_config ec
-//     where p.status = 'approved' and ec.photos_revealed_at is not null;
-//   $$;
-//   grant execute on function public.list_revealed_photos() to anon, authenticated;
-//
-// Hasta que esa migración exista, esta llamada falla con un error de
-// Postgres "function ... does not exist" (42883) y el llamador (ver
-// GuestPage) lo trata igual que cualquier fetch opcional fallido: degrada
-// sin romper el resto de la página.
-// ---------------------------------------------------------------------
+// ninguna policy para ese rol -- ver supabase/README.md), así que la única
+// vía de lectura es la RPC `list_revealed_photos()` (SECURITY DEFINER,
+// supabase/migrations/20260912100008_rpc_list_revealed_photos.sql, con
+// `created_at` sumado en 20260914100000_rpc_list_revealed_photos_created_at.sql).
+// No expone `guest_id` ni `status` -- solo lo necesario para armar la URL
+// firmada y agrupar por franja horaria (RevealedRoll / photoTimeline.ts).
 export async function listRevealedPhotos(): Promise<Photo[]> {
   const { data, error } = await supabase.rpc('list_revealed_photos');
 
   if (error) fail('cargar el rollo revelado', error);
 
-  return ((data ?? []) as Array<{ storage_path: string }>).map((row) => ({
+  return ((data ?? []) as Array<{ storage_path: string; created_at: string }>).map((row) => ({
     id: row.storage_path,
     guestId: '',
     storagePath: row.storage_path,
     status: 'approved' as const,
-    createdAt: '',
+    createdAt: row.created_at,
   }));
 }
