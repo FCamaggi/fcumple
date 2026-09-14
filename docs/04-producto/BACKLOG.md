@@ -62,15 +62,39 @@ Decisiones tomadas con el usuario (respuestas explícitas, no inferencias):
 
 **Evidencia de que esto está bien scopeado, no es un placeholder**: cada decisión de producto fue una respuesta explícita del usuario a una pregunta concreta (espejo sí/no en la foto final, dirección visual de los marcos, cantidad aproximada, mecanismo de rotación); las decisiones técnicas restantes (íconos, fórmula de zoom, arquitectura de dos capas de los marcos, persistencia de selección) se cerraron en una pasada de revisión propia antes de declarar este frente listo, sin dejar nada a interpretación libre de quien lo implemente.
 
-### Frente 2 — Admin: moderación de fotos (sin diseñar todavía)
+### Frente 2 — Admin: moderación de fotos, LISTO PARA IMPLEMENTAR
 
-Confirmado por lectura de código: `PhotoModerationPanel.tsx` es un panel colapsable más dentro de `/admin` (mismo nivel que Avisos/Evento), con miniaturas de 64×64px sin forma de ampliarlas (no hay lightbox/preview grande), y aprobar/rechazar solo de a una foto por vez, sin ninguna acción en lote. El usuario pide que sea una sección independiente dedicada solo a esto, con preview real y aprobación en lote — el diseño concreto (¿ruta propia como el Escáner, o modal a pantalla completa dentro de `/admin`? ¿selección múltiple con checkboxes, o "aprobar todas las visibles"?) queda pendiente de la próxima sesión de diseño.
+Confirmado por lectura de código: `PhotoModerationPanel.tsx` es un panel colapsable más dentro de `/admin` (mismo nivel que Avisos/Evento), con miniaturas de 64×64px sin forma de ampliarlas (no hay lightbox/preview grande), y aprobar/rechazar solo de a una foto por vez, sin ninguna acción en lote.
 
-### Frente 3 — Cartelera: rollo revelado (parcialmente resuelto)
+**Enfoque elegido por el usuario, entre tres propuestas**: triage de a una, tipo carrete (no grilla con selección múltiple ni grilla simple) — mismo lenguaje de swipe que ya se usa para los marcos de cámara del Frente 1.
+
+Decisiones de diseño:
+1. **Overlay a pantalla completa** (`fixed inset-0 z-50`), mismo patrón que `QrScanner.tsx`/`CameraCapture.tsx` — reemplaza el panel colapsable `PhotoModerationPanel` actual, no una ruta nueva. Se abre desde el mismo botón "Fotos" que ya existe en `/admin` (`showPhotos`).
+2. **Cola ordenada de más antigua a más nueva** (`created_at` ascendente) — drenar la cola en el orden en que llegaron las fotos, no el orden descendente que usa hoy `listAllPhotosForModeration` (ese orden queda igual para otros usos, esto es específico del triage).
+3. **Una foto grande a la vez**, centrada, usando `getSignedPhotoUrl` real (ya existe en `photosApi.ts`) — no la miniatura de 64px de hoy. Header con contador "Fotos // N de M" (N = posición actual, M = total pendientes) y nombre del invitado.
+4. **Acciones**: dos botones siempre visibles "Rechazar"/"Aprobar" (accesibles con mouse/teclado/tap en cualquier dispositivo, nunca solo gesto — mismo criterio que el fallback manual de `QrScanner` para el escaneo), más swipe horizontal como atajo adicional en touch (izquierda = rechazar, derecha = aprobar). Al decidir, avanza automáticamente a la siguiente foto de la cola sin acción extra del admin.
+5. **Estado vacío**: cuando la cola llega a 0, mensaje "No hay fotos pendientes de moderación" — el botón "Revelar el rollo" (movido desde `PhotoModerationPanel`, mismo `window.confirm` de hoy) sigue visible siempre, cola vacía o no.
+6. **Aviso antes de revelar con cola sin vaciar** (decisión tomada ahora, nice-to-have de seguridad, no pedido explícito pero coherente con el proyecto): si quedan N fotos sin decidir al tocar "Revelar el rollo", el `confirm()` existente suma una línea extra ("Quedan N fotos sin moderar, no van a aparecer en el rollo hasta que las decidas") — no bloquea la acción (`revealPhotos()` solo marca `photos_revealed_at`, las pendientes nunca aparecen en `list_revealed_photos()` aunque el rollo ya esté revelado, así que no hay riesgo real de fuga), solo evita que el admin se olvide fotos sin querer.
+7. **Sin selección múltiple ni checkboxes** — descartado explícitamente al elegir este enfoque sobre los otros dos propuestos.
+
+### Frente 3 — Cartelera: rollo revelado, LISTO PARA IMPLEMENTAR
 
 El usuario quiere repensar cómo se ven las fotos reveladas si hay aprobación en lote — mostrar varias fotos, o agruparlas con sentido.
 
-**Decisión de privacidad ya tomada**: se mantiene el criterio 100% anónimo respecto a *quién* sacó cada foto (mismo espíritu que "quién va" en Etapa 4, Decisión 4.3) — no se expone `guest_id` en ningún momento. Lo que sí se puede agregar es orden cronológico real: hoy `list_revealed_photos()` (`supabase/migrations/`) devuelve *solo* `storage_path` (`src/lib/photosApi.ts:153-165` hardcodea `createdAt: ''`) — para poder mostrar "la noche contada en orden" sin identidad, la RPC necesitaría sumar `created_at` (no `guest_id`). El diseño visual concreto (grilla agrupada por franjas horarias, timeline, o algo distinto) queda pendiente de la próxima sesión de diseño — todavía no se decidió la forma, solo el límite de privacidad.
+**Decisión de privacidad ya tomada**: se mantiene el criterio 100% anónimo respecto a *quién* sacó cada foto (mismo espíritu que "quién va" en Etapa 4, Decisión 4.3) — no se expone `guest_id` en ningún momento.
+
+**Forma visual elegida por el usuario, entre tres propuestas**: agrupado por franjas horarias (no grid simple solo con orden, ni masonry sin agrupar).
+
+Decisiones de diseño:
+1. **Bandas de 1 hora, alineadas al reloj** en horario de Chile (America/Santiago) — ej. "22:00 — 23:00", "23:00 — 00:00" — no relativas a la hora de la primera foto. Coincide con el horario real del evento (viernes 9 de octubre, 22:00 hrs).
+2. **Bandas sin fotos no se muestran** — nunca un header de franja vacío.
+3. **Orden**: bandas de más temprano a más tarde, y dentro de cada banda las fotos también de más vieja a más nueva — "la noche contada en orden", de punta a punta.
+4. **Grid sin cambios dentro de cada banda**: se mantiene el mismo grid de 3 columnas ya existente en `RevealedRoll.tsx`, solo se agrega el agrupamiento con un label liviano (`font-mono uppercase`, mismo lenguaje visual del resto del proyecto) entre bandas.
+
+**Cambios técnicos necesarios** (confirmados por lectura de código):
+- La RPC `list_revealed_photos()` (`supabase/migrations/`) hoy devuelve *solo* `storage_path` — hay que sumar `created_at` a su `select`/`returns table` (no `guest_id`, ese límite de privacidad no se toca).
+- `src/lib/photosApi.ts:153-165` (`listRevealedPhotos`) hoy hardcodea `createdAt: ''` — hay que mapear el valor real que devuelva la RPC.
+- `RevealedRoll.tsx` necesita una función pura de agrupamiento (`photoUrls` + `createdAt` → bandas de 1 hora en America/Santiago), separable y testable sin URLs de Storage reales, mismo criterio que `getCameraControlsAvailability` del Frente 1.
 
 ## Etapa 8 — Cámara dedicada a pantalla completa (Implementada, 2026-09-14)
 
