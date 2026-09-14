@@ -20,7 +20,7 @@ vi.mock('../lib/eventApi', () => ({
 vi.mock('../lib/photosApi', () => ({
   listAllPhotosForModeration: vi.fn(),
   moderatePhoto: vi.fn(),
-  getSignedPhotoUrl: vi.fn(),
+  getSignedPhotoUrl: vi.fn().mockResolvedValue('https://signed.example/a.jpg'),
 }));
 vi.mock('../lib/postsApi', () => ({
   listAllPosts: vi.fn(),
@@ -254,7 +254,9 @@ describe('AdminPage', () => {
 
     await user.click(screen.getByRole('button', { name: /^fotos$/i }));
 
-    expect(await screen.findByText(/cola de moderación/i)).toBeInTheDocument();
+    expect(await screen.findByText(/fotos.*1 de 1/i)).toBeInTheDocument();
+    // The guest's name is now shown twice (DoorList row + moderation header).
+    expect(screen.getAllByText(/maria fernanda contreras/i)).toHaveLength(2);
     expect(listAllPhotosForModeration).toHaveBeenCalled();
   });
 

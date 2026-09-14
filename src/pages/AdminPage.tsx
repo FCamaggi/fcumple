@@ -249,7 +249,7 @@ export default function AdminPage() {
         {showScanner && (
           <QrScanner guests={guests} onCheckedIn={handleCheckedIn} onClose={() => setShowScanner(false)} />
         )}
-        {!doorMode && showPhotos && <PhotoModerationPanel />}
+        {!doorMode && showPhotos && <PhotoModerationPanel onClose={() => setShowPhotos(false)} />}
 
         {doorMode ? (
           <div className="bg-ink-900 p-4 shadow-2xl">
