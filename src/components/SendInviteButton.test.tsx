@@ -17,7 +17,7 @@ describe('buildInviteMessage', () => {
   it('builds the exact template with the guest first name, formatted date/time, location and personal link', () => {
     const message = buildInviteMessage('Maria Fernanda', 'mafe-8842', eventConfig);
 
-    expect(message).toContain('¡Hola Maria! Estás invitado/a a mi cumpleaños.');
+    expect(message).toContain('¡Hola Maria! Estás invitad@ a mi cumpleaños.');
     expect(message).toContain('Fecha: viernes 9 de octubre de 2026');
     expect(message).toContain('Hora: 22:00 hrs');
     expect(message).toContain('Lugar: Pasaje Argentina 2299, Independencia');

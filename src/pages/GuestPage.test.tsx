@@ -90,6 +90,7 @@ beforeEach(() => {
   });
   vi.mocked(getPhotoQuota).mockReset();
   vi.mocked(getPhotoQuota).mockResolvedValue({ quota: 5, used: 2 });
+  localStorage.clear();
 });
 
 describe('GuestPage', () => {
@@ -107,6 +108,14 @@ describe('GuestPage', () => {
     renderAt('mafe-8842');
 
     expect(await screen.findByText(/maria fernanda contreras/i)).toBeInTheDocument();
+  });
+
+  it('shows the submit button in español de tú, not voseo, while undecided', async () => {
+    vi.mocked(getGuestByToken).mockResolvedValueOnce(pendingGuest);
+
+    renderAt('mafe-8842');
+
+    expect(await screen.findByRole('button', { name: /define tu postura en el fader/i })).toBeInTheDocument();
   });
 
   it('shows the invalid-token screen when no guest matches', async () => {
@@ -332,6 +341,26 @@ describe('GuestPage', () => {
     expect(screen.queryByLabelText('Cámara')).not.toBeInTheDocument();
   });
 
+  it('still shows the camera for a pending guest who was scanned at the door before confirming (check-in is decoupled from RSVP, Etapa 3)', async () => {
+    // No es un estado inconsistente: es un caso real y documentado
+    // (docs/04-producto/BACKLOG.md, "gateada por check-in real, no por
+    // RSVP") -- alguien puede llegar y ser escaneado en la puerta antes de
+    // confirmar su RSVP desde el link. La cámara se gatea por checkedInAt,
+    // nunca por status. El bug real de "invitación + cámara mostrándose
+    // juntas por un status revertido" se resuelve en la base de datos: el
+    // trigger de supabase/migrations/20260914090000_reset_checked_in_at_on_status_change.sql
+    // limpia checked_in_at atómicamente en cuanto status deja de ser
+    // 'confirmed', así que ese estado inconsistente ya no puede llegar al
+    // cliente -- no hace falta (ni corresponde) bloquearlo también en la UI.
+    vi.mocked(getGuestByToken).mockResolvedValueOnce({ ...pendingGuest, checkedInAt: '2026-05-20T23:00:00Z' });
+    vi.mocked(getPhotoQuota).mockResolvedValueOnce({ quota: 5, used: 0 });
+
+    renderAt('mafe-8842');
+
+    expect(await screen.findByText(/maria fernanda contreras/i)).toBeInTheDocument();
+    expect(screen.getByLabelText('Cámara')).toBeInTheDocument();
+  });
+
   it('tells a confirmed guest the camera unlocks once checked in at the door', async () => {
     vi.mocked(getGuestByToken).mockResolvedValueOnce(confirmedGuest);
 
@@ -349,7 +378,7 @@ describe('GuestPage', () => {
     await screen.findByText(/maria fernanda contreras/i);
 
     // Both the real RSVP UI and the dev panel should be visible at once.
-    expect(screen.getByRole('button', { name: /confirmar asistencia|definí tu postura/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /confirmar asistencia|define tu postura/i })).toBeInTheDocument();
     expect(await screen.findByText(/panel dev/i)).toBeInTheDocument();
   });
 
@@ -370,5 +399,60 @@ describe('GuestPage', () => {
 
     const hubLink = screen.getByRole('link', { name: /cartelera/i });
     expect(hubLink).toHaveAttribute('href', '/evento');
+  });
+
+  describe('draft persistence', () => {
+    it('restores progress left in the fader/+1/nota if the page was left without submitting', async () => {
+      vi.mocked(getGuestByToken).mockResolvedValue(pendingGuest);
+      const user = userEvent.setup();
+
+      const first = renderAt('mafe-8842');
+      await screen.findByText(/maria fernanda contreras/i);
+
+      await user.click(screen.getByRole('button', { name: 'Voy' }));
+      await user.click(screen.getByRole('button', { name: '+' }));
+      await user.type(screen.getByLabelText(/mensaje a puerta/i), 'llego en auto');
+
+      first.unmount();
+
+      renderAt('mafe-8842');
+      await screen.findByText(/maria fernanda contreras/i);
+
+      expect(await screen.findByRole('button', { name: 'Voy', pressed: true })).toBeInTheDocument();
+      expect(screen.getByText('+1')).toBeInTheDocument();
+      expect(screen.getByLabelText(/mensaje a puerta/i)).toHaveValue('llego en auto');
+    });
+
+    it('does not restore a draft saved under a different token', async () => {
+      vi.mocked(getGuestByToken).mockImplementation((t) =>
+        Promise.resolve({ ...pendingGuest, token: t }),
+      );
+      const user = userEvent.setup();
+
+      const first = renderAt('mafe-8842');
+      await screen.findByText(/maria fernanda contreras/i);
+      await user.click(screen.getByRole('button', { name: 'Voy' }));
+      first.unmount();
+
+      renderAt('otro-token');
+      await screen.findByText(/maria fernanda contreras/i);
+
+      expect(await screen.findByRole('button', { name: 'Voy', pressed: false })).toBeInTheDocument();
+    });
+
+    it('clears the saved draft once the rsvp is submitted successfully', async () => {
+      vi.mocked(getGuestByToken).mockResolvedValueOnce(pendingGuest);
+      vi.mocked(submitRsvp).mockResolvedValueOnce({ ...pendingGuest, status: 'confirmed', plusOnesConfirmed: 0 });
+      const user = userEvent.setup();
+
+      const first = renderAt('mafe-8842');
+      await screen.findByText(/maria fernanda contreras/i);
+      await user.click(screen.getByRole('button', { name: 'Voy' }));
+      await user.click(screen.getByRole('button', { name: /confirmar asistencia/i }));
+      await screen.findByText(/access granted/i);
+      first.unmount();
+
+      expect(localStorage.getItem('fcumple:draft:mafe-8842')).toBeNull();
+    });
   });
 });

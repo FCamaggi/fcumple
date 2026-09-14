@@ -68,7 +68,7 @@ export function buildInviteMessage(guestName: string, token: string, eventConfig
   const link = `${window.location.origin}/i/${token}`;
   const nombre = firstName(guestName);
 
-  return `¡Hola ${nombre}! Estás invitado/a a mi cumpleaños.
+  return `¡Hola ${nombre}! Estás invitad@ a mi cumpleaños.
 
 Fecha: ${fecha}
 Hora: ${hora}

@@ -22,7 +22,7 @@
 ## Plantilla del mensaje
 
 ```
-¡Hola {primer nombre}! Estás invitado/a a mi cumpleaños.
+¡Hola {primer nombre}! Estás invitad@ a mi cumpleaños.
 
 Fecha: {fecha en formato "viernes 9 de octubre de 2026"}
 Hora: {hora, ej. "22:00 hrs"}

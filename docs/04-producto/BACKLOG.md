@@ -39,6 +39,14 @@ El usuario probó lo anterior y trajo tres correcciones reales:
 
 **Evidencia**: TDD real, implementación con `agency-frontend-developer`, revisión independiente con `agency-code-reviewer`. Un hallazgo 🟡 (`GuestEditModal`/`AdminPage` guardaba `''` en vez de `null` al borrar el teléfono) corregido: `handleSave` ahora normaliza a `null`. `npm run typecheck` limpio, `npm test` → 271/271 en 38 archivos, `npm run build` sin errores, `npm run test:db` → 74/74 en 8 archivos (Docker real, incluye `guests-phone.test.ts`).
 
+## Etapa 8 — QA del usuario (2026-09-14), pendiente de scoping: cámara dedicada
+
+El usuario hizo un QA manual del flujo de invitado (`docs/08-QA/140920260509.md`) y encontró, entre otras cosas, un pedido grande: que `CameraCapture` deje de sentirse "un componente nomás" y simule de verdad una cámara — pantalla completa al usarla, zoom, enfoque, detección de orientación, opciones de flash, y posiblemente marcos/elementos fijos superpuestos para encuadrar la foto.
+
+**Por qué no se implementa en esta sesión**: es un pedido de UX de hardware, no un bug acotado — zoom/enfoque/flash dependen de `MediaTrackCapabilities` de la API de cámara del navegador, cuyo soporte real varía fuerte entre Chrome Android, Safari iOS y desktop (Safari iOS en particular tiene soporte muy limitado de torch/zoom por `getUserMedia`). Antes de construir esto hace falta decidir: alcance mínimo viable (¿full-screen + orientación alcanza para la v1, dejando zoom/flash como "si el dispositivo lo soporta, si no se oculta el control"?), y probarlo en dispositivos reales, no solo en desktop. Queda anotado para una sesión dedicada de scoping + implementación, no para resolverse de pasada.
+
+Los otros 3 hallazgos del mismo QA (argentinismo, formulario que se pierde al salir de la página, y invitación+cámara mostrándose juntas por un bug de datos) sí se resuelven en esta sesión — ver más abajo.
+
 ## Etapa 4 — Repensar arquitectura de información y flujos (NUEVA, sin construir)
 
 El usuario probó el flujo real de punta a punta y encontró que las piezas de las Etapas 1-3 quedaron técnicamente correctas pero **desconectadas entre sí** — cada una resuelve su propio recorte sin que el conjunto se sienta como un flujo único y claro. Pidió explícitamente no seguir parchando de a una, sino repensar la arquitectura de información completa antes de seguir construyendo. Cuatro problemas concretos que dispararon esto:

@@ -69,6 +69,56 @@ const STATUS_TO_FADER: Record<RsvpStatus, FaderValue> = {
   pending: 'neutral',
 };
 
+interface RsvpDraft {
+  fader: FaderValue;
+  plusOne: number;
+  note: string;
+}
+
+function draftKey(token: string) {
+  return `fcumple:draft:${token}`;
+}
+
+// El borrador es solo un ahorro de digitación -- si localStorage no está
+// disponible (modo privado, cuota llena) o el JSON quedó corrupto, la
+// página tiene que seguir funcionando igual con el comportamiento previo
+// (arrancar desde lo que vino de la API), nunca romper la carga.
+function readDraft(token: string): RsvpDraft | null {
+  try {
+    const raw = localStorage.getItem(draftKey(token));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<RsvpDraft>;
+    if (
+      (parsed.fader === 'yes' || parsed.fader === 'no' || parsed.fader === 'neutral') &&
+      typeof parsed.plusOne === 'number' &&
+      Number.isInteger(parsed.plusOne) &&
+      parsed.plusOne >= 0 &&
+      typeof parsed.note === 'string'
+    ) {
+      return { fader: parsed.fader, plusOne: parsed.plusOne, note: parsed.note };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function writeDraft(token: string, draft: RsvpDraft) {
+  try {
+    localStorage.setItem(draftKey(token), JSON.stringify(draft));
+  } catch {
+    /* mejor esfuerzo -- ver comentario de readDraft */
+  }
+}
+
+function clearDraft(token: string) {
+  try {
+    localStorage.removeItem(draftKey(token));
+  } catch {
+    /* mejor esfuerzo -- ver comentario de readDraft */
+  }
+}
+
 export default function GuestPage() {
   const { token } = useParams<{ token: string }>();
   const reduceMotion = useReducedMotion() ?? false;
@@ -99,9 +149,21 @@ export default function GuestPage() {
           return;
         }
         setGuest(found);
-        setFader(STATUS_TO_FADER[found.status]);
-        setPlusOne(found.plusOnesConfirmed);
-        setNote(found.guestNote ?? '');
+        // Si el invitado se distrajo o salió de la página sin apretar
+        // "Confirmar"/"Liberar cupo", su progreso quedó guardado como
+        // borrador local -- gana sobre lo que vino de la API. Si no hay
+        // borrador (o es de otro token, porque la clave lo incluye), gana
+        // el comportamiento de siempre.
+        const draft = token ? readDraft(token) : null;
+        if (draft) {
+          setFader(draft.fader);
+          setPlusOne(draft.plusOne);
+          setNote(draft.note);
+        } else {
+          setFader(STATUS_TO_FADER[found.status]);
+          setPlusOne(found.plusOnesConfirmed);
+          setNote(found.guestNote ?? '');
+        }
       })
       .catch(() => {
         if (active) setInvalid(true);
@@ -154,6 +216,17 @@ export default function GuestPage() {
     };
   }, [token]);
 
+  useEffect(() => {
+    if (!token || !guest) return;
+    // Solo mientras el formulario de RSVP está visible (pending, o editando
+    // una respuesta ya dada) tiene sentido guardar progreso -- una vez que
+    // guest quedó terminal (confirmed/declined) sin editar, no hay nada que
+    // el usuario pueda perder.
+    const formVisible = guest.status === 'pending' || editing;
+    if (!formVisible) return;
+    writeDraft(token, { fader, plusOne, note });
+  }, [token, guest, editing, fader, plusOne, note]);
+
   const event = toEventInfo(eventConfig);
 
   if (invalid || (!loading && !guest)) {
@@ -171,6 +244,11 @@ export default function GuestPage() {
     setPlusOne(updated.plusOnesConfirmed);
     setNote(updated.guestNote ?? '');
     setEditing(false);
+    // El panel dev pisa el invitado directo (reset, simular check-in, etc.)
+    // por afuera de handleSubmit -- si había un borrador guardado para este
+    // token, ya no corresponde: el próximo montaje no debe revivir un
+    // fader/+1/nota vieja por sobre el estado recién reseteado.
+    if (updated.token) clearDraft(updated.token);
   }
 
   // Cerrar el QR de puerta es la única señal que tenemos de "puede haber
@@ -213,6 +291,9 @@ export default function GuestPage() {
       const updated = await submitRsvp(guest.token ?? token ?? '', next, plusOne, note);
       setGuest(updated);
       setEditing(false);
+      // La respuesta real ya quedó guardada en el servidor -- el borrador
+      // local ya no hace falta.
+      if (token) clearDraft(token);
       setToastKind('success');
       setToast(next === 'confirmed' ? 'Quedaste dentro. Nos vemos ahí.' : 'Que penal, te vamos a extrañar. Gracias por avisar.');
     } catch (err) {
@@ -329,7 +410,7 @@ export default function GuestPage() {
                 {submitting
                   ? 'Enviando...'
                   : fader === 'neutral'
-                    ? 'Definí tu postura en el fader'
+                    ? 'Define tu postura en el fader'
                     : fader === 'yes'
                       ? 'Confirmar asistencia // en puerta'
                       : 'Liberar cupo // no asistiré'}
@@ -338,6 +419,12 @@ export default function GuestPage() {
           )}
         </AnimatePresence>
 
+        {/* guest.status === 'confirmed' es una defensa adicional además de
+            checkedInAt: si un admin (o el propio invitado) cambia el status
+            a pending/declined sin que checked_in_at se limpie todavía (por
+            ejemplo, antes de que un trigger de la DB o un refresh lo
+            corrija), la cámara y la invitación son estados completamente
+            incompatibles y nunca deben mostrarse juntos. */}
         {!loading && guest && guest.checkedInAt && photoQuota && (
           <CameraCapture token={guest.token ?? token ?? ''} quota={photoQuota} onQuotaChange={setPhotoQuota} />
         )}
