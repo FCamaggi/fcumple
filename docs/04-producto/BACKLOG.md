@@ -39,6 +39,36 @@ El usuario probó lo anterior y trajo tres correcciones reales:
 
 **Evidencia**: TDD real, implementación con `agency-frontend-developer`, revisión independiente con `agency-code-reviewer`. Un hallazgo 🟡 (`GuestEditModal`/`AdminPage` guardaba `''` en vez de `null` al borrar el teléfono) corregido: `handleSave` ahora normaliza a `null`. `npm run typecheck` limpio, `npm test` → 271/271 en 38 archivos, `npm run build` sin errores, `npm run test:db` → 74/74 en 8 archivos (Docker real, incluye `guests-phone.test.ts`).
 
+## Etapa 9 — QA del usuario tras la Etapa 8 (2026-09-14), scoping en curso
+
+El usuario probó la cámara dedicada recién construida en la Etapa 8 y trajo un QA nuevo (`docs/08-QA/1409202601738.md`), con tres frentes distintos. Su conclusión explícita: "Necesito propuestas eficientes para todos estos puntos, no son cambios rápidos, es repensar la funcionalidad y la mejor forma de hacerlo UI/UX" — no se implementa nada de esto sin antes acordar el diseño con él, mismo criterio que la Etapa 4.
+
+**Orden de trabajo decidido con el usuario**: un frente a la vez (diseño → confirmación → implementación → siguiente), no las tres propuestas juntas antes de tocar código. Se empieza por **Cámara**, que además de UX tiene un bug real confirmado. El diseño de este frente ya quedó resuelto en esta sesión (ver abajo); **no se implementó nada todavía a propósito**, para no ensuciar el contexto de la sesión de diseño con el de implementación — la idea es que una sesión nueva retome esto ya decidido y lo construya directo.
+
+### Frente 1 — Cámara: diseño resuelto, pendiente de implementar
+
+Decisiones tomadas con el usuario (respuestas explícitas, no inferencias):
+
+1. **Fix del espejo en cámara frontal** (bug real, confirmado por lectura de código: hoy `CameraCapture.tsx` renderiza el `<video>` de `facingMode: 'user'` sin ningún `transform`, cuando la convención universal es que el preview frontal se vea espejado). Alcance decidido: **tanto el preview como la foto final guardada quedan espejadas** (el usuario prefirió "igual a lo que vio al sacarla" por sobre la convención fotográfica de guardar sin espejar) — hay que aplicar el mismo `scaleX(-1)` al compositar en el canvas antes de subir, no solo al `<video>` en pantalla.
+2. **Reorganización de layout**: botón de disparo circular clásico (hoy es un botón rectangular ancho tipo CTA), ícono de flip estándar para cambiar de cámara (hoy es un link de texto "Cambiar cámara"), y el bloque de controles inferior (`FilmRollCounter` + banners) se comprime para darle más pantalla al preview en vivo.
+3. **Zoom con presets**: se reemplaza el slider actual por 2-3 chips compactos, calculados sobre el rango real que reporte `track.getCapabilities().zoom` de cada dispositivo (ej. mínimo / punto medio / máximo del rango informado) — no valores fijos tipo "0.5x/1x/2x" porque no siempre calzan con las lentes físicas reales del dispositivo. Se ocultan por completo si el dispositivo no reporta zoom (mismo criterio "se oculta con gracia" de la Etapa 8).
+4. **Marcos como función nueva real** (no solo el `FramingGuide` decorativo de la Etapa 8, que se mantiene sin cambios): el invitado puede aplicar un marco a la foto final, elegido entre varios diseños — el usuario pidió explícitamente variedad ("mientras más mejor, no casarnos con una") y un mecanismo de rotación, no un selector fijo de un solo estilo.
+   - **Cantidad**: ~6-7 marcos bien pulidos para la v1, con la paleta/tono del evento como guía (no una regla estricta) — lista inicial propuesta en esta sesión, pendiente de afinar en la implementación, no cerrada: (1) esquinas neón — evolución "quemada" del `FramingGuide` en hotpink; (2) ticket de carrete — franja inferior "FCUMPLE // 09.10.26"; (3) polaroid clásico — borde blanco grueso, más ancho abajo; (4) grid láser — líneas finas tipo escáner en las esquinas, laser-500; (5) confeti de cumpleaños — formas pequeñas dispersas en las esquinas, sin saturar el centro; (6) vinilo/DJ — semicírculo sutil tipo disco en una esquina; (7) tipográfico — "FABRIZIO // 26" discreto en una esquina, font-display.
+   - **Navegación entre marcos**: swipe horizontal sobre el preview en vivo (deslizar cambia de marco; el punto de partida es "sin marco"). Aplicado como overlay compuesto sobre el `<canvas>` al momento de capturar (mismo pipeline ya existente: `ctx.drawImage` + resize + compresión JPEG), no un editor libre ni upload de imágenes propias del invitado.
+   - Nota técnica para la implementación: el swipe queda reservado para cambiar de marco, así que el zoom (punto 3) NO puede vivir en un gesto de pellizco sobre el mismo preview — se mantiene como los chips separados, sin conflicto de gestos.
+
+**Evidencia de que esto está bien scopeado, no es un placeholder**: cada decisión de arriba fue una respuesta explícita del usuario a una pregunta concreta (espejo sí/no en la foto final, dirección visual de los marcos, cantidad aproximada, mecanismo de rotación) — no hay ninguna suposición mía sin confirmar en esta lista.
+
+### Frente 2 — Admin: moderación de fotos (sin diseñar todavía)
+
+Confirmado por lectura de código: `PhotoModerationPanel.tsx` es un panel colapsable más dentro de `/admin` (mismo nivel que Avisos/Evento), con miniaturas de 64×64px sin forma de ampliarlas (no hay lightbox/preview grande), y aprobar/rechazar solo de a una foto por vez, sin ninguna acción en lote. El usuario pide que sea una sección independiente dedicada solo a esto, con preview real y aprobación en lote — el diseño concreto (¿ruta propia como el Escáner, o modal a pantalla completa dentro de `/admin`? ¿selección múltiple con checkboxes, o "aprobar todas las visibles"?) queda pendiente de la próxima sesión de diseño.
+
+### Frente 3 — Cartelera: rollo revelado (parcialmente resuelto)
+
+El usuario quiere repensar cómo se ven las fotos reveladas si hay aprobación en lote — mostrar varias fotos, o agruparlas con sentido.
+
+**Decisión de privacidad ya tomada**: se mantiene el criterio 100% anónimo respecto a *quién* sacó cada foto (mismo espíritu que "quién va" en Etapa 4, Decisión 4.3) — no se expone `guest_id` en ningún momento. Lo que sí se puede agregar es orden cronológico real: hoy `list_revealed_photos()` (`supabase/migrations/`) devuelve *solo* `storage_path` (`src/lib/photosApi.ts:153-165` hardcodea `createdAt: ''`) — para poder mostrar "la noche contada en orden" sin identidad, la RPC necesitaría sumar `created_at` (no `guest_id`). El diseño visual concreto (grilla agrupada por franjas horarias, timeline, o algo distinto) queda pendiente de la próxima sesión de diseño — todavía no se decidió la forma, solo el límite de privacidad.
+
 ## Etapa 8 — Cámara dedicada a pantalla completa (Implementada, 2026-09-14)
 
 El usuario hizo un QA manual del flujo de invitado (`docs/08-QA/140920260509.md`) y encontró, entre otras cosas, un pedido grande: que `CameraCapture` deje de sentirse "un componente nomás" y simule de verdad una cámara — pantalla completa al usarla, zoom, enfoque, detección de orientación, opciones de flash, y posiblemente marcos/elementos fijos superpuestos para encuadrar la foto.
