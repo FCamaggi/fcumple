@@ -1,6 +1,6 @@
 # Estado actual de la app (fuente de verdad rápida)
 
-> Última verificación por lectura de código: 2026-09-13. Si este documento y el código difieren, el código manda — actualizá esto en la siguiente sesión que toque algo relevante.
+> Última verificación por lectura de código: 2026-09-14. Si este documento y el código difieren, el código manda — actualizá esto en la siguiente sesión que toque algo relevante.
 
 ## Resumen del evento
 
@@ -17,7 +17,7 @@ Datos reales del evento (ver `../05-comunicacion/PROMPTS-IMAGENES-AVISOS.md` y `
 
 ## Rutas
 
-- **`/i/:token`** — invitación personal del invitado: wristband, fader de asistencia (+1), nota, y tras confirmar, el bloque de cámara/QR de puerta y link al hub.
+- **`/i/:token`** — invitación personal del invitado: wristband, fader de asistencia (+1), nota, y tras confirmar, QR de puerta y link al hub. Una vez que el invitado fue escaneado en la puerta (`checkedInAt`), aparece un card con el cupo de fotos y un botón "Abrir cámara" que lanza la cámara dedicada a pantalla completa (`CameraCapture`, con zoom/flash si el dispositivo los soporta) — ya no se muestra embebida en el scroll.
 - **`/evento`** — hub público, sin token: countdown, feed de avisos (`AnnouncementFeed`), aforo total (solo número, nunca nombres), rollo revelado cuando exista.
 - **`/admin`** — consola protegida (`RequireAuth`). En mobile se reduce a "modo puerta" (Escáner + `DoorList` + `HeadcountMeter`); en desktop es la consola completa (Evento, Avisos, Fotos, `DoorList`, `HeadcountMeter`).
 - **`/i/dev-preview`** — invitado de desarrollo fijo, con `DevPanel` para probar el flujo sin tocar datos reales.

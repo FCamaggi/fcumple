@@ -166,10 +166,15 @@ describe('GuestPage', () => {
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(getGuestByToken).toHaveBeenCalledTimes(2);
-    // La cámara solo aparece cuando checkedInAt no es null (CameraCapture,
-    // gateada por check-in real) -- si esto aparece es porque el refresh
-    // trajo el guest actualizado (checkedInGuest), no el que ya teníamos.
+    // El card de la cámara (CameraSection, con el botón "Abrir cámara") solo
+    // aparece cuando checkedInAt no es null -- gateado por check-in real, no
+    // por status. Si esto aparece es porque el refresh trajo el guest
+    // actualizado (checkedInGuest), no el que ya teníamos. La cámara a
+    // pantalla completa en sí (CameraCapture) sólo se monta si además se
+    // toca ese botón -- no corresponde a este flujo, que sólo prueba que se
+    // desbloqueó.
     expect(await screen.findByLabelText('Cámara')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /abrir cámara/i })).toBeInTheDocument();
   });
 
   it('degrades gracefully when the event is not configured yet', async () => {
@@ -319,6 +324,27 @@ describe('GuestPage', () => {
 
     expect(await screen.findByLabelText('Cámara')).toBeInTheDocument();
     expect(screen.getByText('1')).toBeInTheDocument();
+  });
+
+  it('opens the full-screen camera only when the guest taps "Abrir cámara", and closes it back to the trigger card', async () => {
+    vi.mocked(getGuestByToken).mockResolvedValueOnce(checkedInGuest);
+    vi.mocked(getPhotoQuota).mockResolvedValueOnce({ quota: 5, used: 4 });
+    const user = userEvent.setup();
+
+    renderAt('mafe-8842');
+    await screen.findByRole('button', { name: /abrir cámara/i });
+    // La cámara a pantalla completa (CameraCapture, aria-label distinto del
+    // card) no se monta de arranque -- sólo el trigger card lo hace.
+    expect(screen.queryByLabelText('Cámara de fotos')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /abrir cámara/i }));
+
+    expect(await screen.findByLabelText('Cámara de fotos')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /^cerrar$/i }));
+
+    expect(screen.queryByLabelText('Cámara de fotos')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /abrir cámara/i })).toBeInTheDocument();
   });
 
   it('does not break the page when the photo quota fetch fails', async () => {
