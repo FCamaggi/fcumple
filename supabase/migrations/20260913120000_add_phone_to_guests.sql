@@ -1,0 +1,16 @@
+-- Feature: envío directo de invitación por WhatsApp
+-- (docs/05-comunicacion/sistema-de-mensajes.md). El admin puede cargar a
+-- mano el número de WhatsApp de un invitado para que SendInviteButton arme
+-- un link `wa.me/<numero>` directo (abre la conversación de ese contacto en
+-- vez del selector genérico). Nullable y sin constraint de formato: el
+-- admin lo tipea a mano y puede llegar con espacios, guiones, paréntesis o
+-- el "+" inicial -- eso se normaliza en el frontend antes de armar el link,
+-- no acá.
+--
+-- No hace falta ningún grant/policy adicional: la columna cae dentro de la
+-- misma tabla `public.guests`, ya cubierta por la policy
+-- "authenticated_full_access" (ver 20260911120004_create_guests.sql). El
+-- admin es el único que puede leer/escribir este dato -- las RPCs
+-- guest-facing (get_guest_by_token, submit_rsvp) no lo seleccionan, así que
+-- nunca se expone al propio invitado.
+alter table public.guests add column if not exists phone text;

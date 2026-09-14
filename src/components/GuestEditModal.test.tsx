@@ -49,4 +49,24 @@ describe('GuestEditModal', () => {
 
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ photoQuota: 9 }));
   });
+
+  it('muestra el teléfono actual del invitado', () => {
+    render(
+      <GuestEditModal guest={{ ...guest, phone: '987654321' }} onClose={vi.fn()} onSave={vi.fn()} onDelete={vi.fn()} />,
+    );
+
+    const phoneInput = screen.getByLabelText(/teléfono/i) as HTMLInputElement;
+    expect(phoneInput.value).toBe('987654321');
+  });
+
+  it('permite editar el teléfono y lo envía al guardar', async () => {
+    const onSave = vi.fn();
+    const user = userEvent.setup();
+    render(<GuestEditModal guest={guest} onClose={vi.fn()} onSave={onSave} onDelete={vi.fn()} />);
+
+    await user.type(screen.getByLabelText(/teléfono/i), '987654321');
+    await user.click(screen.getByRole('button', { name: /guardar cambios/i }));
+
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ phone: '987654321' }));
+  });
 });

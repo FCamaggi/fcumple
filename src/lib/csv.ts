@@ -1,7 +1,9 @@
 import type { Guest } from '../types';
 
-const EXPORT_HEADER = ['full_name', 'status', 'plus_ones_allowed', 'plus_ones_confirmed', 'guest_note'];
-const IMPORT_HEADER = ['full_name', 'plus_ones_allowed'];
+const EXPORT_HEADER = ['full_name', 'status', 'plus_ones_allowed', 'plus_ones_confirmed', 'guest_note', 'phone'];
+// `phone` es opcional al importar (docs/05-comunicacion/sistema-de-mensajes.md):
+// un CSV sin esa columna sigue funcionando exactamente igual que antes.
+const IMPORT_HEADER = ['full_name', 'plus_ones_allowed', 'phone'];
 
 function escapeCsvField(value: string): string {
   if (/[",\r\n]/.test(value)) {
@@ -18,14 +20,14 @@ export function guestsToCsv(guests: Guest[]): string {
   const lines = [toCsvLine(EXPORT_HEADER)];
   for (const g of guests) {
     lines.push(
-      toCsvLine([g.fullName, g.status, g.plusOnesAllowed, g.plusOnesConfirmed, g.guestNote ?? ''])
+      toCsvLine([g.fullName, g.status, g.plusOnesAllowed, g.plusOnesConfirmed, g.guestNote ?? '', g.phone ?? ''])
     );
   }
   return lines.join('\r\n');
 }
 
 export function csvTemplate(): string {
-  const lines = [toCsvLine(IMPORT_HEADER), toCsvLine(['Ana Torres', 1])];
+  const lines = [toCsvLine(IMPORT_HEADER), toCsvLine(['Ana Torres', 1, '+56 9 1234 5678'])];
   return lines.join('\r\n');
 }
 
@@ -101,6 +103,8 @@ function parseCsvRows(text: string): string[][] {
 export interface ParsedGuestRow {
   fullName: string;
   plusOnesAllowed: number;
+  /** Solo presente si el CSV traía una columna `phone` con valor no vacío. */
+  phone?: string;
 }
 
 export interface ParseGuestsCsvError {
@@ -123,6 +127,9 @@ export function parseGuestsCsv(text: string): ParseGuestsCsvResult {
   const header = rows[0].map((h) => h.trim().toLowerCase());
   const nameIdx = header.indexOf('full_name');
   const plusOnesIdx = header.indexOf('plus_ones_allowed');
+  // Columna opcional: si el CSV no la trae, phoneIdx queda en -1 y cada fila
+  // simplemente no incluye `phone`, sin afectar el resto del parseo.
+  const phoneIdx = header.indexOf('phone');
 
   if (nameIdx === -1 || plusOnesIdx === -1) {
     errors.push({ row: 1, message: 'El header debe incluir full_name y plus_ones_allowed' });
@@ -151,7 +158,8 @@ export function parseGuestsCsv(text: string): ParseGuestsCsvResult {
       continue;
     }
 
-    valid.push({ fullName, plusOnesAllowed });
+    const phone = phoneIdx === -1 ? '' : (cols[phoneIdx] ?? '').trim();
+    valid.push(phone ? { fullName, plusOnesAllowed, phone } : { fullName, plusOnesAllowed });
   }
 
   return { valid, errors };

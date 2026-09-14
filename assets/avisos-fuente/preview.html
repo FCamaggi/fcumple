@@ -1,0 +1,215 @@
+<title>Cartelera — preview</title>
+<style>
+  :root {
+    --ink-950: #0d0b12;
+    --ink-900: #16121d;
+    --smoke-700: #3a3244;
+    --hotpink-500: #ff2f92;
+    --acid-400: #c8ff3d;
+    --laser-500: #00e6d8;
+    --flame-500: #ff5a1f;
+    --paper-100: #f3ecf7;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ink-950);
+    color: var(--paper-100);
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    padding: 2.5rem 1.25rem 5rem;
+    display: flex;
+    justify-content: center;
+  }
+
+  main { width: 100%; max-width: 640px; display: flex; flex-direction: column; gap: 2.5rem; }
+
+  .intro { display: flex; flex-direction: column; gap: 0.6rem; }
+  .eyebrow {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--laser-500);
+  }
+  h1 {
+    font-family: 'Bebas Neue', 'Anton', sans-serif;
+    font-size: clamp(2rem, 7vw, 2.8rem);
+    letter-spacing: 0.02em;
+    line-height: 1;
+    margin: 0;
+    text-wrap: balance;
+  }
+  .intro p {
+    margin: 0;
+    max-width: 60ch;
+    color: color-mix(in srgb, var(--paper-100) 78%, transparent);
+    font-size: 0.95rem;
+    line-height: 1.55;
+  }
+
+  section.block { display: flex; flex-direction: column; gap: 0.75rem; }
+  .block-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--paper-100) 55%, transparent);
+  }
+
+  /* Réplica fiel de AnnouncementCard (src/components/AnnouncementFeed.tsx) */
+  article.card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    border: 1px solid color-mix(in srgb, var(--smoke-700) 50%, transparent);
+    background: var(--ink-900);
+    padding: 1rem;
+    box-shadow: 0 20px 40px -20px rgba(0, 0, 0, 0.6);
+  }
+  article.card img { display: block; width: 100%; aspect-ratio: 16/9; object-fit: cover; }
+  .card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.5rem; }
+  .card-head h3 {
+    margin: 0;
+    font-family: 'Bebas Neue', 'Anton', sans-serif;
+    font-size: 1.4rem;
+    text-transform: uppercase;
+    line-height: 1.05;
+  }
+  .card-time {
+    flex-shrink: 0;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: color-mix(in srgb, var(--paper-100) 50%, transparent);
+    padding-top: 0.2rem;
+  }
+  .card-subtitle {
+    margin: 0;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--laser-500);
+  }
+  .card-body {
+    margin: 0;
+    white-space: pre-wrap;
+    font-size: 0.92rem;
+    line-height: 1.6;
+    color: color-mix(in srgb, var(--paper-100) 90%, transparent);
+  }
+
+  .crop-note {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--acid-400);
+  }
+  .crop-note::before { content: '✓'; }
+
+  .standalone {
+    border: 1px dashed color-mix(in srgb, var(--flame-500) 55%, transparent);
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .standalone img { width: 100%; max-width: 320px; margin: 0 auto; display: block; }
+  .warn {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--flame-500);
+    line-height: 1.6;
+    margin: 0;
+  }
+  .warn strong { color: var(--paper-100); }
+
+  footer {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: color-mix(in srgb, var(--paper-100) 45%, transparent);
+    line-height: 1.7;
+    border-top: 1px solid color-mix(in srgb, var(--smoke-700) 50%, transparent);
+    padding-top: 1.25rem;
+  }
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500&family=Space+Mono:wght@400;700&display=swap"
+  rel="stylesheet"
+/>
+
+<main>
+  <div class="intro">
+    <span class="eyebrow">Preview // no publicado</span>
+    <h1>Así se van a ver los avisos</h1>
+    <p>
+      Simulación exacta de <code>AnnouncementCard</code> (el componente real de
+      <code>/evento</code>) con las 3 imágenes nuevas y la copy propuesta. Nada de esto
+      está subido a Supabase todavía — es solo para que lo veas antes de cargarlo desde
+      <code>/admin</code>.
+    </p>
+  </div>
+
+  <section class="block">
+    <span class="block-label">On air // avisos</span>
+
+    <article class="card">
+      <img src="invitacion-cover.png" alt="Portada del post Invitación" />
+      <div class="card-head">
+        <h3>Cumpleaños Fabrizio</h3>
+        <span class="card-time">hace 2m</span>
+      </div>
+      <p class="card-subtitle">Carrete en casa — viernes 9 de octubre</p>
+      <p class="card-body">Están todos invitados a mi cumpleaños. Va a ser un carrete tranquilo en casa, sin temática ni dresscode — vengan como quieran.
+
+📅 Viernes 9 de octubre, 22:00 hrs
+📍 Pasaje Argentina 2299, Independencia
+
+Confirmen su asistencia desde el link que les llegó antes del 1 de octubre. Cualquier novedad la van a encontrar acá, en la cartelera.</p>
+    </article>
+    <span class="crop-note">Fondo sin texto — el recorte a 16:9 no pierde información.</span>
+
+    <article class="card">
+      <img src="guia-rapida-cover.png" alt="Portada del post Guía rápida" />
+      <div class="card-head">
+        <h3>Guía rápida: qué podés hacer acá</h3>
+        <span class="card-time">hace 5m</span>
+      </div>
+      <p class="card-subtitle">Todo lo que necesitás saber antes de venir</p>
+      <p class="card-body">Confirmá tu asistencia desde tu link personal (y avisá si vienes con alguien más).
+
+El día del carrete, mostrá tu QR en la puerta — te van a reconocer y ahí se desbloquea la cámara.
+
+Sacá fotos con tu rollo digital: tenés un cupo limitado, como una cámara descartable real. Se revelan todas juntas después del evento.
+
+Cualquier aviso nuevo va a aparecer acá arriba, en la cartelera.</p>
+    </article>
+    <span class="crop-note">Fondo sin texto — el recorte a 16:9 no pierde información.</span>
+  </section>
+
+  <section class="block">
+    <span class="block-label">Aparte — no es portada de post</span>
+    <div class="standalone">
+      <img src="flyer-invitacion-standalone.png" alt="Flyer completo para compartir directo" />
+      <p class="warn">
+        <strong>flyer-invitacion-standalone.png</strong> trae todo el texto ya incrustado
+        (título, fecha, dirección, corte de RSVP) en formato 4:5 — si se usa como portada
+        de post, el recorte a 16:9 de arriba le corta el título o la dirección. Sirve mejor
+        como imagen suelta para mandar directo por WhatsApp junto al mensaje de
+        <code>SendInviteButton</code>, no para <code>PostsPanel</code>.
+      </p>
+    </div>
+  </section>
+
+  <footer>
+    Paleta y tipografía tomadas tal cual de docs/03-diseno/DESIGN.md — esta página es solo
+    una maqueta de revisión, no reemplaza al componente real.
+  </footer>
+</main>

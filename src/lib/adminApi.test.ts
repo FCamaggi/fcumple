@@ -23,6 +23,7 @@ const row = {
   checked_in_at: null,
   is_dev: false,
   photo_quota: 5,
+  phone: '987654321',
 };
 
 function chain(result: { data: unknown; error: unknown }) {
@@ -54,6 +55,7 @@ describe('listGuests', () => {
     expect(selected).not.toMatch(/\*/);
     expect(selected).toMatch(/admin_note/);
     expect(selected).toMatch(/is_dev/);
+    expect(selected).toMatch(/phone/);
     expect(guests).toEqual([
       {
         id: 'g1',
@@ -70,8 +72,17 @@ describe('listGuests', () => {
         checkedInAt: null,
         isDev: false,
         photoQuota: 5,
+        phone: '987654321',
       },
     ]);
+  });
+
+  it('maps a null phone to null', async () => {
+    from.mockReturnValue(chain({ data: [{ ...row, phone: null }], error: null }));
+
+    const [guest] = await listGuests();
+
+    expect(guest.phone).toBeNull();
   });
 
   // docs/BACKLOG.md Etapa 5, Parte B: el invitado semilla de dev
@@ -115,6 +126,19 @@ describe('createGuest', () => {
       photo_quota: 5,
     });
   });
+
+  it('includes phone when given', async () => {
+    const builder = chain({ data: row, error: null });
+    from.mockReturnValue(builder);
+
+    await createGuest({ fullName: 'Nuevo Invitado', plusOnesAllowed: 2, phone: '987654321' });
+
+    expect(builder.insert).toHaveBeenCalledWith({
+      full_name: 'Nuevo Invitado',
+      plus_ones_allowed: 2,
+      phone: '987654321',
+    });
+  });
 });
 
 describe('updateGuest', () => {
@@ -145,6 +169,15 @@ describe('updateGuest', () => {
     await updateGuest('g1', { photoQuota: 8 });
 
     expect(builder.update).toHaveBeenCalledWith({ photo_quota: 8 });
+  });
+
+  it('sends phone, including explicitly clearing it back to null', async () => {
+    const builder = chain({ data: row, error: null });
+    from.mockReturnValue(builder);
+
+    await updateGuest('g1', { phone: null });
+
+    expect(builder.update).toHaveBeenCalledWith({ phone: null });
   });
 });
 

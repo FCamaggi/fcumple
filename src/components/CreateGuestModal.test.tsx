@@ -56,4 +56,30 @@ describe('CreateGuestModal', () => {
       photoQuota: 5,
     });
   });
+
+  it('incluye el teléfono cuando el admin lo carga, y lo omite si lo deja vacío', async () => {
+    const onCreate = vi.fn();
+    const user = userEvent.setup();
+    render(<CreateGuestModal open onClose={vi.fn()} onCreate={onCreate} />);
+
+    await user.type(screen.getByLabelText(/nombre completo/i), 'Nuevo Invitado');
+    await user.type(screen.getByLabelText(/teléfono/i), '+56 9 1234 5678');
+    await user.click(screen.getByRole('button', { name: /crear/i }));
+
+    expect(onCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ fullName: 'Nuevo Invitado', phone: '+56 9 1234 5678' }),
+    );
+  });
+
+  it('no incluye phone cuando el campo queda vacío', async () => {
+    const onCreate = vi.fn();
+    const user = userEvent.setup();
+    render(<CreateGuestModal open onClose={vi.fn()} onCreate={onCreate} />);
+
+    await user.type(screen.getByLabelText(/nombre completo/i), 'Nuevo Invitado');
+    await user.click(screen.getByRole('button', { name: /crear/i }));
+
+    const call = onCreate.mock.calls[0][0];
+    expect(call.phone).toBeUndefined();
+  });
 });

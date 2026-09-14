@@ -158,6 +158,23 @@ export default function GuestEditModal({ guest, onClose, onSave, onDelete }: Gue
                 </div>
               </div>
 
+              <div className="flex flex-col gap-1 border border-smoke-700/40 bg-ink-900 p-4">
+                <label
+                  htmlFor="guest-phone"
+                  className="font-mono text-[11px] font-bold uppercase tracking-wider text-paper-100"
+                >
+                  Teléfono (WhatsApp, opcional)
+                </label>
+                <input
+                  id="guest-phone"
+                  type="tel"
+                  value={draft.phone ?? ''}
+                  onChange={(e) => setDraft({ ...draft, phone: e.target.value })}
+                  placeholder="+56 9 1234 5678"
+                  className="bg-ink-950 px-3 py-2 font-sans text-sm text-paper-100 outline-none"
+                />
+              </div>
+
               <div className="relative border-2 border-dashed border-hotpink-500/50 bg-ink-900 p-4">
                 <label
                   htmlFor="guest-admin-note"

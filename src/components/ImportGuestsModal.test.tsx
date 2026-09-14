@@ -62,6 +62,35 @@ describe('ImportGuestsModal', () => {
     await waitFor(() => expect(onImported).toHaveBeenCalled());
   });
 
+  it('passes the optional phone column through to createGuest when present', async () => {
+    createGuest.mockResolvedValue({
+      id: 'new',
+      fullName: 'Ana Torres',
+      status: 'pending',
+      plusOnesAllowed: 2,
+      plusOnesConfirmed: 0,
+      guestNote: null,
+      respondedAt: null,
+    });
+
+    render(<ImportGuestsModal open onClose={() => {}} onImported={() => {}} />);
+
+    fireEvent.change(textarea(), {
+      target: { value: ['full_name,plus_ones_allowed,phone', 'Ana Torres,2,+56 9 1234 5678'].join('\n') },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /previsualizar/i }));
+    await waitFor(() => screen.getByRole('button', { name: /confirmar/i }));
+    fireEvent.click(screen.getByRole('button', { name: /confirmar/i }));
+
+    await waitFor(() => {
+      expect(createGuest).toHaveBeenCalledWith({
+        fullName: 'Ana Torres',
+        plusOnesAllowed: 2,
+        phone: '+56 9 1234 5678',
+      });
+    });
+  });
+
   it('does not let a createGuest failure cancel the remaining rows', async () => {
     createGuest
       .mockRejectedValueOnce(new Error('boom'))

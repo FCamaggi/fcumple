@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 interface CreateGuestModalProps {
   open: boolean;
   onClose: () => void;
-  onCreate: (input: { fullName: string; plusOnesAllowed: number; photoQuota: number }) => void;
+  onCreate: (input: { fullName: string; plusOnesAllowed: number; photoQuota: number; phone?: string }) => void;
 }
 
 // Cupo de fotos por default (Etapa 5, Parte E): 3 disparos propios + uno por
@@ -22,6 +22,7 @@ export default function CreateGuestModal({ open, onClose, onCreate }: CreateGues
   const [fullName, setFullName] = useState('');
   const [plusOnesAllowed, setPlusOnesAllowed] = useState(0);
   const [photoQuota, setPhotoQuota] = useState(defaultPhotoQuota(0));
+  const [phone, setPhone] = useState('');
   // Smart default con override manual: mientras el admin no haya tocado el
   // cupo de fotos a mano, se recalcula solo al cambiar plusOnesAllowed. En
   // cuanto lo edita, dejamos de tocarlo automáticamente.
@@ -36,11 +37,18 @@ export default function CreateGuestModal({ open, onClose, onCreate }: CreateGues
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!fullName.trim()) return;
-    onCreate({ fullName: fullName.trim(), plusOnesAllowed, photoQuota });
+    const trimmedPhone = phone.trim();
+    onCreate({
+      fullName: fullName.trim(),
+      plusOnesAllowed,
+      photoQuota,
+      ...(trimmedPhone ? { phone: trimmedPhone } : {}),
+    });
     setFullName('');
     setPlusOnesAllowed(0);
     setPhotoQuota(defaultPhotoQuota(0));
     setQuotaTouched(false);
+    setPhone('');
   }
 
   return (
@@ -104,6 +112,20 @@ export default function CreateGuestModal({ open, onClose, onCreate }: CreateGues
                   setQuotaTouched(true);
                   setPhotoQuota(Math.max(0, Number(e.target.value)));
                 }}
+                className="bg-ink-950 px-3 py-2 font-sans text-sm text-paper-100 outline-none"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label htmlFor="new-guest-phone" className="font-mono text-[11px] uppercase tracking-wider text-paper-100/70">
+                Teléfono (WhatsApp, opcional)
+              </label>
+              <input
+                id="new-guest-phone"
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="+56 9 1234 5678"
                 className="bg-ink-950 px-3 py-2 font-sans text-sm text-paper-100 outline-none"
               />
             </div>

@@ -11,6 +11,26 @@
       rel="icon"
       href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎫</text></svg>"
     />
+    <!--
+      Preview de link (WhatsApp, etc.): estas tags aplican a CUALQUIER ruta
+      de este SPA (no hay SSR, index.html es el mismo para "/", "/i/{token}"
+      y "/evento") -- exactamente lo que queremos: que el flyer real
+      aparezca como preview sin importar qué link personal se comparta.
+      og-flyer.png vive en public/ (se sirve tal cual, sin build step) y es
+      copia de assets/avisos-fuente/flyer-invitacion-standalone.png -- si se
+      regenera el flyer, actualizar ambos archivos.
+    -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Estás en la lista — Cumpleaños Fabrizio" />
+    <meta
+      property="og:description"
+      content="Viernes 9 de octubre, 22:00 hrs. Pasaje Argentina 2299, Independencia. Confirma tu asistencia."
+    />
+    <meta property="og:image" content="https://fcumple-ten.vercel.app/og-flyer.png" />
+    <meta property="og:image:width" content="1122" />
+    <meta property="og:image:height" content="1402" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="https://fcumple-ten.vercel.app/og-flyer.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

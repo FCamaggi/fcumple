@@ -114,4 +114,13 @@ export interface Guest {
    * camera flow.
    */
   photoQuota?: number;
+  /**
+   * Teléfono de WhatsApp del invitado (columna `guests.phone`, opcional,
+   * cargada a mano por el admin) -- ver
+   * docs/05-comunicacion/sistema-de-mensajes.md. Solo lo usa SendInviteButton
+   * para armar un link `wa.me/<numero>` directo; es un dato sensible, nunca
+   * expuesto por las RPCs guest-facing ni mostrado fuera del formulario de
+   * edición del admin.
+   */
+  phone?: string | null;
 }

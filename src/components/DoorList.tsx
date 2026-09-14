@@ -261,7 +261,12 @@ function DoorListRow({ guest, index, onEditGuest, eventConfig }: DoorListRowProp
       <td className="px-4 py-3 text-right align-top">
         <div className="flex items-center justify-end gap-2">
           {guest.token && (
-            <SendInviteButton guestName={guest.fullName} token={guest.token} eventConfig={eventConfig} />
+            <SendInviteButton
+              guestName={guest.fullName}
+              token={guest.token}
+              eventConfig={eventConfig}
+              phone={guest.phone}
+            />
           )}
           <button
             type="button"

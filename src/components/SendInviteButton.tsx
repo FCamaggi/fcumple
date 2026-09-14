@@ -2,6 +2,19 @@ import type { EventConfig } from '../types';
 
 const FALLBACK = 'por confirmar';
 
+// Los emoji de la plantilla (ver buildInviteMessage) se escriben como
+// escapes explícitos `\u{...}` en vez de pegar el glifo literal en el
+// código fuente. Un glifo pegado directo puede corromperse en mojibake
+// ("�") si el archivo se guarda/edita con un encoding distinto de UTF-8 en
+// algún punto de la cadena de herramientas (el usuario accede al repo desde
+// Windows vía red) -- el escape de code point es inmune a eso porque el
+// motor de JS lo resuelve en tiempo de parseo, no depende de cómo el
+// archivo .tsx haya sido guardado en disco.
+const PARTY_POPPER = '\u{1F389}'; // 🎉
+const CALENDAR = '\u{1F4C5}'; // 📅
+const CLOCK_TEN = '\u{1F559}'; // 🕙
+const ROUND_PUSHPIN = '\u{1F4CD}'; // 📍
+
 const DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
 const MESES = [
   'enero',
@@ -35,6 +48,16 @@ function formatHora(iso: string): string {
   return `${pad(date.getHours())}:${pad(date.getMinutes())} hrs`;
 }
 
+// Usa solo el primer nombre del invitado (el usuario pidió un mensaje más
+// corto/directo): separa por el primer espacio tras recortar espacios al
+// inicio/fin y colapsar espacios múltiples entre palabras. Si no hay
+// espacio, usa el nombre completo tal cual.
+function firstName(fullName: string): string {
+  const trimmed = fullName.trim().replace(/\s+/g, ' ');
+  const spaceIdx = trimmed.indexOf(' ');
+  return spaceIdx === -1 ? trimmed : trimmed.slice(0, spaceIdx);
+}
+
 /**
  * Arma el mensaje exacto de
  * docs/05-comunicacion/sistema-de-mensajes.md § "Plantilla del mensaje",
@@ -47,12 +70,13 @@ export function buildInviteMessage(guestName: string, token: string, eventConfig
   const hora = eventConfig?.eventDate ? formatHora(eventConfig.eventDate) : FALLBACK;
   const lugar = eventConfig?.location ?? FALLBACK;
   const link = `${window.location.origin}/i/${token}`;
+  const nombre = firstName(guestName);
 
-  return `¡Hola ${guestName}! 🎉 Estás invitado/a a mi cumpleaños.
+  return `¡Hola ${nombre}! ${PARTY_POPPER} Estás invitado/a a mi cumpleaños.
 
-📅 ${fecha}
-🕙 ${hora}
-📍 ${lugar}
+${CALENDAR} ${fecha}
+${CLOCK_TEN} ${hora}
+${ROUND_PUSHPIN} ${lugar}
 
 Confirma tu asistencia acá (y avísame si vienes con alguien más):
 ${link}
@@ -60,23 +84,38 @@ ${link}
 ¡Espero verte ahí!`;
 }
 
+// Deja solo dígitos -- saca espacios, guiones, paréntesis y el "+" inicial
+// que el admin puede haber tipeado a mano en el campo de teléfono, para
+// armar el path `wa.me/<digits>` (que no acepta ningún otro carácter).
+function normalizePhone(phone: string): string {
+  return phone.replace(/\D/g, '');
+}
+
 interface SendInviteButtonProps {
   guestName: string;
   token: string;
   eventConfig: EventConfig | null;
+  /**
+   * Teléfono de WhatsApp del invitado (guests.phone), si el admin lo cargó.
+   * Cuando está presente arma un link `wa.me/<numero>` que abre directo la
+   * conversación de ese contacto; si no, cae al comportamiento genérico de
+   * siempre (`wa.me/?text=...`, sin destinatario) y el admin elige el
+   * contacto a mano.
+   */
+  phone?: string | null;
 }
 
 /**
  * SendInviteButton — el asistente de envío por WhatsApp
  * (docs/05-comunicacion/sistema-de-mensajes.md). Abre `wa.me` con el
- * mensaje precargado y sin destinatario fijo: el admin elige el contacto
- * correcto desde su propio WhatsApp. No guarda ni transmite ningún
- * teléfono -- el proyecto no almacena esa información.
+ * mensaje precargado; con teléfono cargado, apunta directo a ese contacto,
+ * y sin teléfono, sin destinatario fijo para que el admin lo elija a mano.
  */
-export default function SendInviteButton({ guestName, token, eventConfig }: SendInviteButtonProps) {
+export default function SendInviteButton({ guestName, token, eventConfig, phone }: SendInviteButtonProps) {
   function handleClick() {
     const message = buildInviteMessage(guestName, token, eventConfig);
-    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
+    const digits = phone ? normalizePhone(phone) : '';
+    window.open(`https://wa.me/${digits}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
   }
 
   return (

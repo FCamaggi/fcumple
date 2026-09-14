@@ -61,7 +61,13 @@ export default function ImportGuestsModal({ open, onClose, onImported }: ImportG
     if (!preview || preview.valid.length === 0) return;
     setImporting(true);
     const results = await Promise.allSettled(
-      preview.valid.map((row) => createGuest({ fullName: row.fullName, plusOnesAllowed: row.plusOnesAllowed }))
+      preview.valid.map((row) =>
+        createGuest(
+          row.phone
+            ? { fullName: row.fullName, plusOnesAllowed: row.plusOnesAllowed, phone: row.phone }
+            : { fullName: row.fullName, plusOnesAllowed: row.plusOnesAllowed },
+        ),
+      )
     );
     const created: Guest[] = [];
     let failed = 0;
@@ -103,7 +109,7 @@ export default function ImportGuestsModal({ open, onClose, onImported }: ImportG
                 onChange={(e) => setText(e.target.value)}
                 rows={6}
                 className="bg-ink-950 px-3 py-2 font-mono text-xs text-paper-100 outline-none"
-                placeholder="full_name,plus_ones_allowed"
+                placeholder="full_name,plus_ones_allowed,phone (opcional)"
               />
             </div>
 

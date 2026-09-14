@@ -272,7 +272,7 @@ export default function PostsPanel() {
               <PostImageThumb path={createCoverPath} alt="Portada" className="mt-1 h-20 w-20 object-cover" />
             )}
           </Field>
-          <Field label="Galería (podés elegir varias)" htmlFor="new-post-gallery">
+          <Field label="Galería (puedes elegir varias)" htmlFor="new-post-gallery">
             <input
               id="new-post-gallery"
               type="file"
@@ -352,7 +352,7 @@ export default function PostsPanel() {
                       <PostImageThumb path={editCoverPath} alt="Portada" className="mt-1 h-20 w-20 object-cover" />
                     )}
                   </Field>
-                  <Field label="Galería (podés elegir varias)" htmlFor={`edit-gallery-${post.id}`}>
+                  <Field label="Galería (puedes elegir varias)" htmlFor={`edit-gallery-${post.id}`}>
                     <input
                       id={`edit-gallery-${post.id}`}
                       type="file"

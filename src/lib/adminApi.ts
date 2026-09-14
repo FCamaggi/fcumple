@@ -2,7 +2,7 @@ import { supabase } from './supabaseClient';
 import type { Guest, RsvpStatus } from '../types';
 
 const GUEST_COLUMNS =
-  'id, token, full_name, status, plus_ones_allowed, plus_ones_confirmed, guest_note, admin_note, responded_at, created_at, updated_at, checked_in_at, is_dev, photo_quota';
+  'id, token, full_name, status, plus_ones_allowed, plus_ones_confirmed, guest_note, admin_note, responded_at, created_at, updated_at, checked_in_at, is_dev, photo_quota, phone';
 
 interface GuestRow {
   id: string;
@@ -19,6 +19,7 @@ interface GuestRow {
   checked_in_at: string | null;
   is_dev: boolean;
   photo_quota: number;
+  phone: string | null;
 }
 
 function mapRow(row: GuestRow): Guest {
@@ -37,6 +38,7 @@ function mapRow(row: GuestRow): Guest {
     checkedInAt: row.checked_in_at,
     isDev: row.is_dev,
     photoQuota: row.photo_quota,
+    phone: row.phone,
   };
 }
 
@@ -58,11 +60,13 @@ export interface CreateGuestInput {
   fullName: string;
   plusOnesAllowed: number;
   photoQuota?: number;
+  phone?: string | null;
 }
 
 export async function createGuest(input: CreateGuestInput): Promise<Guest> {
   const row: Record<string, unknown> = { full_name: input.fullName, plus_ones_allowed: input.plusOnesAllowed };
   if (input.photoQuota !== undefined) row.photo_quota = input.photoQuota;
+  if (input.phone !== undefined) row.phone = input.phone;
 
   const { data, error } = await supabase.from('guests').insert(row).select(GUEST_COLUMNS).single();
 
@@ -78,6 +82,7 @@ export interface UpdateGuestPatch {
   guestNote?: string | null;
   adminNote?: string | null;
   photoQuota?: number;
+  phone?: string | null;
 }
 
 // Explicit allowlist: `id` and `token` (and anything else not listed here)
@@ -92,6 +97,7 @@ function toRow(patch: UpdateGuestPatch): Record<string, unknown> {
   if (patch.guestNote !== undefined) row.guest_note = patch.guestNote;
   if (patch.adminNote !== undefined) row.admin_note = patch.adminNote;
   if (patch.photoQuota !== undefined) row.photo_quota = patch.photoQuota;
+  if (patch.phone !== undefined) row.phone = patch.phone;
   return row;
 }
 
