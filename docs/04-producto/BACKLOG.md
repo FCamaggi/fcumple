@@ -130,6 +130,26 @@ Decisiones de diseño:
 
 **Evidencia**: TDD real (test antes que código) para la pieza pura: `src/lib/photoTimeline.test.ts` (6 tests) escrito y corrido en rojo antes de crear `photoTimeline.ts`, incluye el caso de banda que cruza medianoche y el de fotos con horas UTC que caen en distinto día en Chile. `src/components/RevealedRoll.test.tsx`, `src/lib/photosApi.test.ts` y `src/pages/EventHubPage.test.tsx` actualizados para el prop/mapeo nuevos. `npm run typecheck` limpio, `npm test` → 333/333 en 43 archivos, `npm run build` sin errores (mismo warning preexistente de tamaño de chunk). `npm run test:db` → 79/79 en 9 archivos (Docker real, corrido de punta a punta incluyendo el fix del bug de reaplicación de migraciones descrito arriba; `supabase/tests/photos.test.ts` suma 2 casos nuevos para `created_at` en `list_revealed_photos`).
 
+## Etapa 10 — Cartelera: carga perezosa por banda horaria, LISTO PARA IMPLEMENTAR (2026-09-14)
+
+El usuario pidió un reset de datos de prueba (fotos + posts, invitados/RSVP intactos) para poder probar limpio, y de ahí surgió una duda técnica real: `EventHubPage.tsx` (`/evento`) hoy pide *todas* las fotos reveladas al entrar y dispara un `Promise.all` con una URL firmada individual por cada una, todas en paralelo — sin paginar, sin lazy loading. Investigación antes de proponer nada:
+
+- **Confirmado por lectura de código**: el `useEffect` de `listRevealedPhotos` en `EventHubPage.tsx` sí hace exactamente eso — N requests de URL firmada + N descargas de imagen simultáneas apenas carga la página, sin relación con lo que el usuario realmente ve en pantalla.
+- **Números reales del evento** (consultados contra el Supabase real, no estimados): 31 invitados reales (sin contar el invitado DEV). Con la fórmula de cupo actual (`3 + plusOnesAllowed`), el máximo teórico son 117 fotos; con la fórmula evaluada de `3` fijo hubieran sido 93 — **se decidió no cambiar la fórmula**, sigue `3 + plusOnesAllowed`.
+- **Storage no es el cuello de botella real**: free tier de Supabase da 1GB de storage de archivos ([fuente](https://www.itpathsolutions.com/supabase-free-tier-limits)); con fotos comprimidas a máx. 1600px/calidad 0.8 (~150-400KB c/u) y hasta 117 fotos en el peor caso, son ~20-45MB totales — muy por debajo del límite. **El riesgo real es el egress** (banda ancha): el free tier da 5GB/mes, y si 30+ invitados entran varias veces a `/evento` sin caché ni lazy loading, cada visita puede re-descargar el rollo completo.
+
+**Decisiones tomadas con el usuario**:
+1. **Descarga**: solo por foto individual (un link/botón de descarga por foto abierta), no "descargar todo el bloque" en zip — no se agrega ninguna librería de compresión nueva.
+2. **Cupo default de fotos**: sin cambios, se mantiene `3 + plusOnesAllowed`.
+
+**Diseño de la carga perezosa** (sobre `RevealedRoll.tsx`/`EventHubPage.tsx`, reusando `groupPhotosByHourBand` de la Etapa 9):
+
+1. `EventHubPage.tsx` deja de resolver URLs firmadas por su cuenta: sigue llamando a `listRevealedPhotos()` (liviano, solo `storage_path`+`created_at`, sin bytes de imagen) pero pasa esos datos crudos a `RevealedRoll`, que pasa a ser responsable de resolver URLs firmadas él mismo, banda por banda, bajo demanda — cambio de contrato: `RevealedRoll` recibe `photos: { storagePath: string; createdAt: string }[]` en vez de `photos: TimelinePhoto[]` (URLs ya resueltas).
+2. **Preview por banda**: al agrupar con `groupPhotosByHourBand`, cada banda se muestra colapsada por default. Solo se piden URLs firmadas (`getSignedPhotoUrl`) para las primeras 3 fotos de cada banda (las que se ven en el preview), no para el resto — igual que pedía el usuario ("que salgan de previsualización las 3 primeras de ese bloque").
+3. **Expandir banda**: un tap/click sobre la banda ("Ver las N fotos" o similar) dispara la resolución de URLs firmadas para el resto de las fotos de esa banda únicamente (las 3 del preview ya resueltas no se vuelven a pedir), y renderiza el grid completo de esa banda. Otras bandas no tocadas no piden nada.
+4. **Descarga por foto**: dentro de una banda expandida, cada foto suma un link/botón de descarga que pide una URL firmada nueva con la opción `download` de Supabase Storage (`createSignedUrl(path, ttl, { download: true })`) — pedida recién al tocar "Descargar", no precalculada para toda la banda de antes (mismo criterio de pereza que el resto del diseño).
+5. Sin cambios de esquema ni de RPC — `listRevealedPhotos()`/`getSignedPhotoUrl()` ya existen y alcanzan tal cual están.
+
 ## Etapa 8 — Cámara dedicada a pantalla completa (Implementada, 2026-09-14)
 
 El usuario hizo un QA manual del flujo de invitado (`docs/08-QA/140920260509.md`) y encontró, entre otras cosas, un pedido grande: que `CameraCapture` deje de sentirse "un componente nomás" y simule de verdad una cámara — pantalla completa al usarla, zoom, enfoque, detección de orientación, opciones de flash, y posiblemente marcos/elementos fijos superpuestos para encuadrar la foto.
