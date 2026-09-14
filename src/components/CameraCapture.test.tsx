@@ -13,10 +13,12 @@ import type { CameraTrackCapabilities } from '../lib/cameraControls';
  * What's covered here (same honesty criterion as QrScanner.test.tsx and
  * the original version of this file): the "what happens with an
  * already-captured blob" logic lives in usePhotoCapture
- * (src/hooks/usePhotoCapture.test.ts), and "what controls to show given a
- * capabilities object" lives in lib/cameraControls.test.ts (both fully
- * covered there, without simulating a real track). What's exercised below
- * about CameraCapture itself:
+ * (src/hooks/usePhotoCapture.test.ts); "what controls to show given a
+ * capabilities object" and the zoom presets formula live in
+ * lib/cameraControls.test.ts; frame navigation and draw dispatch live in
+ * lib/cameraFrames.test.ts (all fully covered there, without simulating a
+ * real track or canvas). What's exercised below about CameraCapture
+ * itself:
  *  1. the out-of-quota short-circuit (no camera opened, "Cerrar" still
  *     works) -- a pure prop-driven branch, no camera involved;
  *  2. the fallback message when `navigator.mediaDevices` doesn't exist,
@@ -24,16 +26,22 @@ import type { CameraTrackCapabilities } from '../lib/cameraControls';
  *  3. the close button always calling onClose;
  *  4. with a *mocked* getUserMedia/MediaStreamTrack (not a real camera --
  *     just a fake object shaped like one, same idea as mocking
- *     `uploadPhoto`), that the zoom slider / torch toggle only render when
+ *     `uploadPhoto`), that the zoom chips / torch toggle only render when
  *     the mocked track reports that capability, and that interacting with
- *     them calls `track.applyConstraints` with the right value.
+ *     them calls `track.applyConstraints` with the right value;
+ *  5. that the accessible ‹/› frame buttons (the tap fallback to the
+ *     swipe gesture, same criterion as FaderToggle's tap-target snap
+ *     zones) cycle the frame label shown below the shutter.
  *
  * NOT covered, and not realistically coverable in jsdom: actually opening
- * a device camera, drawing a live video frame to canvas, resizing/
- * compressing real pixels, or a user physically pressing the shutter on a
- * live feed. jsdom has no camera and no real `<video>`/`<canvas>` pixel
- * pipeline -- the mocked getUserMedia below never produces real video, it
- * only exercises the React wiring around a track's capabilities.
+ * a device camera, drawing a live video frame to canvas (mirrored or with
+ * a frame baked in), resizing/compressing real pixels, or a user
+ * physically pressing the shutter or swiping on a live feed. jsdom has no
+ * camera and no real `<video>`/`<canvas>` pixel pipeline -- the mocked
+ * getUserMedia below never produces real video, it only exercises the
+ * React wiring around a track's capabilities. Framer Motion's pan gesture
+ * (`onPanEnd`) also isn't simulated here for the same reason drag isn't in
+ * FaderToggle.test.tsx -- only its accessible button fallback is tested.
  */
 
 function makeTrack(capabilities: CameraTrackCapabilities = {}) {
@@ -133,19 +141,20 @@ describe('CameraCapture', () => {
     expect(screen.queryByRole('button', { name: /flash/i })).not.toBeInTheDocument();
   });
 
-  it('renders the zoom slider only when the mocked track reports a zoom capability, and applies constraints on change', async () => {
+  it('renders zoom preset chips only when the mocked track reports a zoom capability, and applies constraints when one is tapped', async () => {
     const track = makeTrack({ zoom: { min: 1, max: 5, step: 0.5 } });
     mockCamera(track);
+    const user = userEvent.setup();
     render(<CameraCapture token="tok123" quota={{ quota: 5, used: 2 }} onClose={() => {}} />);
 
-    const slider = await screen.findByLabelText(/zoom/i);
+    // getZoomPresets({ min: 1, max: 5 }) === [1, 3, 5] -- covered in
+    // lib/cameraControls.test.ts, this only checks the chips are wired up.
+    const midChip = await screen.findByRole('button', { name: '3.0x' });
     expect(screen.queryByRole('button', { name: /flash/i })).not.toBeInTheDocument();
 
-    fireEventChange(slider, '2.5');
+    await user.click(midChip);
 
-    await waitFor(() =>
-      expect(track.applyConstraints).toHaveBeenCalledWith({ advanced: [{ zoom: 2.5 }] }),
-    );
+    await waitFor(() => expect(track.applyConstraints).toHaveBeenCalledWith({ advanced: [{ zoom: 3 }] }));
   });
 
   it('renders the torch toggle only when the mocked track reports a torch capability, and applies constraints on tap', async () => {
@@ -177,14 +186,30 @@ describe('CameraCapture', () => {
     expect(screen.queryByLabelText(/zoom/i)).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /flash/i })).not.toBeInTheDocument();
   });
-});
 
-// React Testing Library's `userEvent` doesn't have a built-in "drag this
-// range input to a value" helper -- firing the native change event
-// directly is the documented way to move a controlled <input type="range">.
-function fireEventChange(element: HTMLElement, value: string) {
-  const input = element as HTMLInputElement;
-  const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
-  setter?.call(input, value);
-  input.dispatchEvent(new Event('change', { bubbles: true }));
-}
+  it('shows an icon button (not a text link) to flip between front and back camera', async () => {
+    render(<CameraCapture token="tok123" quota={{ quota: 5, used: 2 }} onClose={() => {}} />);
+
+    await screen.findByText(/no permite acceder a la cámara/i);
+    expect(screen.getByRole('button', { name: 'Cambiar cámara' })).toBeInTheDocument();
+    expect(screen.queryByText('Cambiar cámara', { selector: 'a' })).not.toBeInTheDocument();
+  });
+
+  it('starts on "sin marco" and cycles frames via the accessible ‹/› fallback buttons, wrapping around', async () => {
+    render(<CameraCapture token="tok123" quota={{ quota: 5, used: 2 }} onClose={() => {}} />);
+    const user = userEvent.setup();
+
+    await screen.findByText(/no permite acceder a la cámara/i);
+    expect(screen.getByText(/marco \/\/ sin marco/i)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Siguiente marco' }));
+    expect(screen.getByText(/marco \/\/ esquinas neón/i)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Marco anterior' }));
+    expect(screen.getByText(/marco \/\/ sin marco/i)).toBeInTheDocument();
+
+    // Wraps to the last frame going backwards from the start.
+    await user.click(screen.getByRole('button', { name: 'Marco anterior' }));
+    expect(screen.getByText(/marco \/\/ tipográfico/i)).toBeInTheDocument();
+  });
+});

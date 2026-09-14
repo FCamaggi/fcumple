@@ -51,3 +51,30 @@ export function getCameraControlsAvailability(
 
   return { zoom, torch: capabilities.torch === true };
 }
+
+/**
+ * Presets de zoom (Etapa 9, Frente 1) -- reemplazan el slider continuo por
+ * tres chips: mínimo, medio y máximo del rango real que reportó el
+ * dispositivo (`track.getCapabilities().zoom`). No son valores fijos tipo
+ * "0.5x/1x/2x" a propósito: no siempre calzan con las lentes físicas reales
+ * de cada dispositivo.
+ *
+ * Caso borde: si el rango no alcanza para al menos dos valores distintos
+ * separados por `step` (`max - min < step`), tres chips mostrarían el mismo
+ * número repetido -- se devuelve un único preset (el punto medio) en su
+ * lugar. Con `step > 0` y `max - min >= step`, el punto medio siempre queda
+ * estrictamente entre `min` y `max`, así que los tres valores son distintos
+ * entre sí sin necesidad de deduplicar.
+ */
+export function getZoomPresets(range: ZoomRange): number[] {
+  const { min, max, step } = range;
+  const mid = min + (max - min) / 2;
+  // `max - min <= 0` cubre min === max sin depender de step -- un
+  // dispositivo puede reportar step: 0 explícito (no solo ausente) en ese
+  // caso, y `max - min < step` da 0 < 0 = false, lo que devolvería
+  // [min, mid, max] con los tres valores idénticos (keys de React
+  // duplicadas en ZoomChips). Chequear el rango en sí, no solo contra
+  // step, cierra ese caso sin cambiar el comportamiento normal.
+  if (max - min <= 0 || max - min < step) return [mid];
+  return [min, mid, max];
+}

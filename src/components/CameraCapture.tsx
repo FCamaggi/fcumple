@@ -1,13 +1,15 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion, type PanInfo } from 'framer-motion';
 import { usePhotoCapture } from '../hooks/usePhotoCapture';
 import { useOrientation } from '../hooks/useOrientation';
 import {
   getCameraControlsAvailability,
+  getZoomPresets,
   type CameraControlsAvailability,
   type CameraTrackCapabilities,
   type CameraTrackConstraintSet,
 } from '../lib/cameraControls';
+import { FRAME_IDS, FRAME_LABELS, drawFrame, getFrameIndexAfterSwipe, type FrameId } from '../lib/cameraFrames';
 import FilmRollCounter from './FilmRollCounter';
 import type { PhotoQuota } from '../types';
 
@@ -21,6 +23,10 @@ interface CameraCaptureProps {
 const MAX_DIMENSION = 1600;
 const JPEG_QUALITY = 0.8;
 const NO_CONTROLS: CameraControlsAvailability = { zoom: null, torch: false };
+// Distancia mínima de arrastre horizontal para contar como swipe de cambio
+// de marco -- por debajo de esto es más probable que haya sido un tap o un
+// scroll accidental que una intención real de cambiar de marco.
+const SWIPE_THRESHOLD = 48;
 
 /**
  * CameraCapture -- cámara dedicada del invitado, a pantalla completa
@@ -36,11 +42,34 @@ const NO_CONTROLS: CameraControlsAvailability = { zoom: null, torch: false };
  * diferencia de zoom/torch, que sí son capabilities reales aunque no
  * estándar).
  *
+ * Etapa 9, Frente 1 (docs/BACKLOG.md) sumó tres cosas sobre esa base:
+ *  1. Espejo real en cámara frontal (`facingMode: 'user'`), tanto en el
+ *     preview (`<video>` con `scaleX(-1)` vía CSS) como en la foto final
+ *     (mismo `scaleX(-1)` aplicado al compositar sobre el `<canvas>` antes
+ *     de `toBlob`, ver `handleShoot`) -- el usuario prefirió "igual a lo
+ *     que vio al sacarla" por sobre la convención fotográfica de guardar
+ *     sin espejar.
+ *  2. Zoom con chips de presets (`getZoomPresets`) en vez de slider, y
+ *     disparador circular + ícono de flip (SVGs inline hechos a mano --
+ *     primer uso de este patrón en el proyecto, no hay ninguna librería de
+ *     íconos entre las dependencias).
+ *  3. Marcos aplicables a la foto (`lib/cameraFrames.ts`), navegables con
+ *     swipe horizontal sobre el preview (más botones ‹/› como fallback
+ *     accesible, mismo criterio que el fallback de teclado/tap de
+ *     FaderToggle.tsx y el input manual de QrScanner.tsx). La selección
+ *     vive en el estado de este componente, así que se resetea sola cada
+ *     vez que se desmonta y se vuelve a montar (cerrar/reabrir la cámara).
+ *
  * Mismo criterio de testing que QrScanner.tsx: la lógica de "qué pasa con
  * un blob ya capturado" vive en usePhotoCapture (testable, ver su test),
- * y "qué controles mostrar dado un objeto de capabilities" vive en
- * lib/cameraControls.ts (testable sin un track real, ver su test). Lo que
- * sí se prueba de este componente en jsdom, ver CameraCapture.test.tsx.
+ * "qué controles mostrar dado un objeto de capabilities" y los presets de
+ * zoom viven en lib/cameraControls.ts (testable sin un track real), y la
+ * navegación entre marcos + las rutinas de dibujo viven en
+ * lib/cameraFrames.ts (testable con un CanvasRenderingContext2D mockeado,
+ * ver su test). Lo que sí se prueba de este componente en jsdom, ver
+ * CameraCapture.test.tsx -- el compositado real del espejo y de un marco
+ * sobre píxeles reales de video no es testable en jsdom (no hay cámara ni
+ * pipeline de <canvas> real), igual que el resto de la captura.
  */
 export default function CameraCapture({ token, quota, onQuotaChange, onClose }: CameraCaptureProps) {
   const reduceMotion = useReducedMotion() ?? false;
@@ -55,6 +84,8 @@ export default function CameraCapture({ token, quota, onQuotaChange, onClose }: 
   const [controls, setControls] = useState<CameraControlsAvailability>(NO_CONTROLS);
   const [zoom, setZoom] = useState<number | null>(null);
   const [torchOn, setTorchOn] = useState(false);
+  const [frameIndex, setFrameIndex] = useState(0);
+  const frameId = FRAME_IDS[frameIndex];
 
   const remaining = Math.max(0, quota.quota - quota.used);
   const outOfShots = remaining <= 0;
@@ -143,6 +174,15 @@ export default function CameraCapture({ token, quota, onQuotaChange, onClose }: 
     }
   }
 
+  function handleSwipeFrame(direction: 'left' | 'right') {
+    setFrameIndex((i) => getFrameIndexAfterSwipe(i, direction, FRAME_IDS.length));
+  }
+
+  function handlePanEnd(_event: PointerEvent | MouseEvent | TouchEvent, info: PanInfo) {
+    if (Math.abs(info.offset.x) < SWIPE_THRESHOLD) return;
+    handleSwipeFrame(info.offset.x < 0 ? 'left' : 'right');
+  }
+
   function handleShoot() {
     const video = videoRef.current;
     const canvas = canvasRef.current;
@@ -153,7 +193,22 @@ export default function CameraCapture({ token, quota, onQuotaChange, onClose }: 
     canvas.height = Math.round(video.videoHeight * scale);
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+
+    // El espejo del preview frontal tiene que quedar grabado en la foto
+    // final (decisión del usuario: "igual a lo que vio al sacarla"), pero
+    // SOLO en los píxeles de la cámara -- el marco de encima se dibuja
+    // después, ya restaurada la transformación, para que texto/formas
+    // queden derechos en vez de espejados.
+    ctx.save();
+    if (facingMode === 'user') {
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+    }
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    ctx.restore();
+
+    drawFrame(ctx, frameId, canvas.width, canvas.height);
+
     canvas.toBlob(
       (blob) => {
         if (blob) capture(blob);
@@ -184,9 +239,10 @@ export default function CameraCapture({ token, quota, onQuotaChange, onClose }: 
         <button
           type="button"
           onClick={() => setFacingMode((m) => (m === 'environment' ? 'user' : 'environment'))}
-          className="font-mono text-[10px] uppercase tracking-wider text-paper-100/70 underline underline-offset-4"
+          aria-label="Cambiar cámara"
+          className="tap-target flex items-center justify-center text-paper-100/80 transition-colors hover:text-paper-100"
         >
-          Cambiar cámara
+          <FlipCameraIcon />
         </button>
       </CameraHeader>
 
@@ -197,50 +253,52 @@ export default function CameraCapture({ token, quota, onQuotaChange, onClose }: 
             <p className="font-sans text-sm text-paper-100/80">{cameraError}</p>
           </div>
         ) : (
-          <div className="relative flex-1 overflow-hidden bg-ink-950">
+          <motion.div
+            className="relative flex-1 touch-pan-y overflow-hidden bg-ink-950"
+            onPanEnd={handlePanEnd}
+          >
             {/* eslint-disable-next-line jsx-a11y/media-has-caption -- live camera preview, no captionable content */}
-            <video ref={videoRef} className="h-full w-full object-cover" muted playsInline aria-hidden />
+            <video
+              ref={videoRef}
+              className="h-full w-full object-cover"
+              style={facingMode === 'user' ? { transform: 'scaleX(-1)' } : undefined}
+              muted
+              playsInline
+              aria-hidden
+            />
             <canvas ref={canvasRef} className="hidden" aria-hidden />
             <FramingGuide orientation={orientation} />
-          </div>
+            <FrameOverlay frameId={frameId} />
+          </motion.div>
         )}
 
-        <div className="flex flex-col gap-3 bg-ink-900 p-3">
-          <FilmRollCounter quota={quota.quota} used={quota.used} />
+        <div className="flex flex-col gap-2 bg-ink-900 p-2.5">
+          <div className="flex items-center gap-2">
+            <FilmRollCounter quota={quota.quota} used={quota.used} />
 
-          {controls.zoom && (
-            <div className="flex flex-col gap-1">
-              <label
-                htmlFor="camera-zoom"
-                className="font-mono text-[10px] uppercase tracking-widest text-paper-100/70"
-              >
-                Zoom
-              </label>
-              <input
-                id="camera-zoom"
-                type="range"
-                min={controls.zoom.min}
-                max={controls.zoom.max}
-                step={controls.zoom.step}
-                value={zoom ?? controls.zoom.min}
-                onChange={(e) => handleZoomChange(Number(e.target.value))}
-                className="w-full accent-hotpink-500"
-              />
+            <div className="flex flex-1 flex-col gap-1.5">
+              {controls.zoom && (
+                <ZoomChips
+                  presets={getZoomPresets(controls.zoom)}
+                  value={zoom ?? controls.zoom.min}
+                  onChange={handleZoomChange}
+                />
+              )}
+
+              {controls.torch && (
+                <button
+                  type="button"
+                  onClick={handleTorchToggle}
+                  aria-pressed={torchOn}
+                  className={`tap-target self-start px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-wider ${
+                    torchOn ? 'bg-acid-400 text-ink-950 shadow-glow-acid' : 'bg-smoke-700/30 text-paper-100'
+                  }`}
+                >
+                  Flash {torchOn ? 'activado' : 'apagado'}
+                </button>
+              )}
             </div>
-          )}
-
-          {controls.torch && (
-            <button
-              type="button"
-              onClick={handleTorchToggle}
-              aria-pressed={torchOn}
-              className={`tap-target self-start px-3 py-2 font-mono text-[10px] font-bold uppercase tracking-wider ${
-                torchOn ? 'bg-acid-400 text-ink-950 shadow-glow-acid' : 'bg-smoke-700/30 text-paper-100'
-              }`}
-            >
-              Flash {torchOn ? 'activado' : 'apagado'}
-            </button>
-          )}
+          </div>
 
           <AnimatePresence mode="wait">
             {state.phase === 'success' ? (
@@ -250,18 +308,34 @@ export default function CameraCapture({ token, quota, onQuotaChange, onClose }: 
             ) : null}
           </AnimatePresence>
 
-          <button
-            type="button"
-            disabled={!cameraReady || !!cameraError || state.phase === 'uploading'}
-            onClick={handleShoot}
-            className={`tap-target h-14 font-display text-lg uppercase tracking-wider transition-all active:scale-[0.98] ${
-              !cameraReady || !!cameraError || state.phase === 'uploading'
-                ? 'cursor-not-allowed bg-smoke-700/40 text-paper-100/70'
-                : 'bg-hotpink-500 text-ink-950 shadow-glow-hotpink'
-            }`}
-          >
-            {state.phase === 'uploading' ? 'Revelando el disparo...' : 'Disparar'}
-          </button>
+          <div className="flex items-center justify-center gap-4">
+            <button
+              type="button"
+              onClick={() => handleSwipeFrame('right')}
+              aria-label="Marco anterior"
+              className="tap-target flex items-center justify-center text-paper-100/60 transition-colors hover:text-paper-100"
+            >
+              <ChevronIcon direction="left" />
+            </button>
+
+            <ShutterButton
+              disabled={!cameraReady || !!cameraError || state.phase === 'uploading'}
+              uploading={state.phase === 'uploading'}
+              onClick={handleShoot}
+            />
+
+            <button
+              type="button"
+              onClick={() => handleSwipeFrame('left')}
+              aria-label="Siguiente marco"
+              className="tap-target flex items-center justify-center text-paper-100/60 transition-colors hover:text-paper-100"
+            >
+              <ChevronIcon direction="right" />
+            </button>
+          </div>
+          <span className="text-center font-mono text-[10px] uppercase tracking-widest text-paper-100/60">
+            Marco // {FRAME_LABELS[frameId]}
+          </span>
         </div>
       </div>
     </div>
@@ -289,6 +363,111 @@ function CameraHeader({ onClose, children }: { onClose: () => void; children?: R
 }
 
 /**
+ * Chips de zoom (Etapa 9, Frente 1) -- reemplazan el slider continuo por
+ * botones discretos sobre los presets de `getZoomPresets`. Un único chip
+ * (rango sin margen para 3 valores distintos) se muestra igual, sin
+ * duplicarse.
+ */
+function ZoomChips({
+  presets,
+  value,
+  onChange,
+}: {
+  presets: number[];
+  value: number;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <div role="group" aria-label="Zoom" className="flex gap-1.5">
+      {presets.map((preset) => {
+        const active = Math.abs(preset - value) < 0.001;
+        return (
+          <button
+            key={preset}
+            type="button"
+            onClick={() => onChange(preset)}
+            aria-pressed={active}
+            className={`tap-target px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-wider ${
+              active ? 'bg-hotpink-500 text-ink-950 shadow-glow-hotpink' : 'bg-smoke-700/30 text-paper-100'
+            }`}
+          >
+            {preset.toFixed(1)}x
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
+ * Disparador circular hecho a mano en SVG -- el proyecto no tiene ninguna
+ * librería de íconos entre sus dependencias (solo framer-motion, ver
+ * package.json), así que agregar una sola para dos glifos habría sido
+ * desproporcionado. Mismo criterio para FlipCameraIcon/ChevronIcon.
+ */
+function ShutterButton({
+  disabled,
+  uploading,
+  onClick,
+}: {
+  disabled: boolean;
+  uploading: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      aria-label={uploading ? 'Revelando el disparo' : 'Disparar'}
+      className={`tap-target flex h-16 w-16 shrink-0 items-center justify-center rounded-full border-4 transition-all active:scale-95 ${
+        disabled
+          ? 'cursor-not-allowed border-smoke-700/40'
+          : 'border-paper-100 shadow-glow-hotpink'
+      }`}
+    >
+      <span
+        className={`h-12 w-12 rounded-full transition-colors ${
+          disabled ? 'bg-smoke-700/40' : uploading ? 'animate-pulse bg-hotpink-500/60' : 'bg-hotpink-500'
+        }`}
+      />
+    </button>
+  );
+}
+
+function FlipCameraIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M4 7a8 8 0 0 1 13.5-3.5L19 5"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path d="M19 2v4h-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M20 17a8 8 0 0 1-13.5 3.5L5 19"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path d="M5 22v-4h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function ChevronIcon({ direction }: { direction: 'left' | 'right' }) {
+  const d = direction === 'left' ? 'M15 6l-6 6 6 6' : 'M9 6l6 6-6 6';
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d={d} stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/**
  * Guías decorativas de encuadre -- puramente visuales (pointer-events-none,
  * aria-hidden), viven adentro del contenedor del <video> así que nunca
  * pueden tapar el botón de disparo ni los controles de zoom/torch, que son
@@ -310,6 +489,84 @@ function FramingGuide({ orientation }: { orientation: 'portrait' | 'landscape' }
         <span className="absolute -bottom-px -left-px h-6 w-6 border-b-2 border-l-2 border-acid-400" />
         <span className="absolute -bottom-px -right-px h-6 w-6 border-b-2 border-r-2 border-acid-400" />
       </div>
+    </div>
+  );
+}
+
+/**
+ * Capa de preview en vivo de los marcos -- DOM/CSS por rendimiento (no un
+ * <canvas> de preview), superpuesta al <video> igual que FramingGuide. Debe
+ * mantenerse equivalente a mano a las rutinas reales de
+ * lib/cameraFrames.ts, que son las que de verdad quedan grabadas en el
+ * JPEG -- ver el comentario de cabecera de ese archivo.
+ */
+function FrameOverlay({ frameId }: { frameId: FrameId }) {
+  if (frameId === 'none') return null;
+
+  return (
+    <div className="pointer-events-none absolute inset-0" aria-hidden>
+      {frameId === 'neon-corners' && (
+        <>
+          <span className="absolute left-3 top-3 h-10 w-10 border-l-4 border-t-4 border-hotpink-500 shadow-glow-hotpink" />
+          <span className="absolute right-3 top-3 h-10 w-10 border-r-4 border-t-4 border-hotpink-500 shadow-glow-hotpink" />
+          <span className="absolute bottom-3 left-3 h-10 w-10 border-b-4 border-l-4 border-hotpink-500 shadow-glow-hotpink" />
+          <span className="absolute bottom-3 right-3 h-10 w-10 border-b-4 border-r-4 border-hotpink-500 shadow-glow-hotpink" />
+        </>
+      )}
+
+      {frameId === 'roll-ticket' && (
+        <div className="absolute inset-x-0 bottom-0 flex h-[10%] items-center justify-center bg-ink-950/85">
+          <span className="font-mono text-xs uppercase tracking-widest text-paper-100">FCUMPLE // 09.10.26</span>
+        </div>
+      )}
+
+      {frameId === 'polaroid' && (
+        <div className="absolute inset-0 border-[3vw] border-b-[10vw] border-paper-100" />
+      )}
+
+      {frameId === 'laser-grid' && (
+        <>
+          <span className="absolute left-0 top-[6%] h-px w-12 bg-laser-500" />
+          <span className="absolute left-0 top-[9%] h-px w-12 bg-laser-500" />
+          <span className="absolute left-0 top-[12%] h-px w-12 bg-laser-500" />
+          <span className="absolute right-0 top-[6%] h-px w-12 bg-laser-500" />
+          <span className="absolute right-0 top-[9%] h-px w-12 bg-laser-500" />
+          <span className="absolute right-0 top-[12%] h-px w-12 bg-laser-500" />
+          <span className="absolute bottom-[6%] left-0 h-px w-12 bg-laser-500" />
+          <span className="absolute bottom-[9%] left-0 h-px w-12 bg-laser-500" />
+          <span className="absolute bottom-[12%] left-0 h-px w-12 bg-laser-500" />
+          <span className="absolute bottom-[6%] right-0 h-px w-12 bg-laser-500" />
+          <span className="absolute bottom-[9%] right-0 h-px w-12 bg-laser-500" />
+          <span className="absolute bottom-[12%] right-0 h-px w-12 bg-laser-500" />
+        </>
+      )}
+
+      {frameId === 'confetti' && (
+        <>
+          <span className="absolute left-[4%] top-[6%] h-2.5 w-2.5 rounded-full bg-hotpink-500" />
+          <span className="absolute left-[9%] top-[3%] h-2.5 w-2.5 bg-acid-400" />
+          <span className="absolute left-[3%] top-[12%] h-2.5 w-2.5 bg-laser-500" />
+          <span className="absolute right-[4%] top-[5%] h-2.5 w-2.5 rounded-full bg-flame-500" />
+          <span className="absolute right-[9%] top-[9%] h-2.5 w-2.5 bg-hotpink-500" />
+          <span className="absolute right-[3%] top-[14%] h-2.5 w-2.5 rounded-full bg-acid-400" />
+          <span className="absolute bottom-[8%] left-[5%] h-2.5 w-2.5 rounded-full bg-laser-500" />
+          <span className="absolute bottom-[4%] left-[10%] h-2.5 w-2.5 bg-flame-500" />
+          <span className="absolute bottom-[6%] right-[6%] h-2.5 w-2.5 bg-hotpink-500" />
+          <span className="absolute bottom-[10%] right-[10%] h-2.5 w-2.5 rounded-full bg-acid-400" />
+        </>
+      )}
+
+      {frameId === 'vinyl' && (
+        <div className="absolute bottom-0 right-0 h-1/3 w-1/3 overflow-hidden">
+          <div className="absolute -bottom-1/2 -right-1/2 h-full w-full rounded-full border-8 border-acid-400/70 bg-ink-950/50" />
+        </div>
+      )}
+
+      {frameId === 'typographic' && (
+        <span className="absolute bottom-3 left-3 font-display text-lg uppercase tracking-wide text-paper-100">
+          Fabrizio // 26
+        </span>
+      )}
     </div>
   );
 }
