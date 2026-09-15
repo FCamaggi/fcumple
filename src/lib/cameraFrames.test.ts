@@ -1,48 +1,19 @@
 import { describe, expect, it, vi } from 'vitest';
-import { FRAME_IDS, FRAME_LABELS, drawFrame, getFrameIndexAfterSwipe } from './cameraFrames';
+import { FRAME_IDS, FRAME_IMAGE_SRC, FRAME_LABELS, drawFrame, getFrameIndexAfterSwipe } from './cameraFrames';
 
 /**
- * Lo que sí es testable acá sin un <canvas> real (mismo criterio que
- * cameraControls.test.ts): la navegación pura entre marcos (índice + índice
- * dado un swipe) y que `drawFrame` invoque al menos una llamada de dibujo
- * en un contexto 2D *mockeado* para cada marco real, y ninguna para "sin
- * marco". No se verifica el resultado visual/pixel a pixel -- eso solo se
- * puede juzgar a ojo (igual que el resto del pipeline de captura, ver
- * CameraCapture.tsx).
+ * Lo que sí es testable acá sin un <canvas>/<img> reales (mismo criterio
+ * que cameraControls.test.ts): la navegación pura entre marcos (índice +
+ * índice dado un swipe), que cada marco real tenga una ruta de imagen y un
+ * label, y que `drawFrame` delegue en `ctx.drawImage` cuando recibe una
+ * imagen ya cargada y no haga nada cuando recibe `null` (ni marco ni
+ * imagen sin cargar). No se verifica el resultado visual/pixel a pixel --
+ * eso solo se puede juzgar a ojo (igual que el resto del pipeline de
+ * captura, ver CameraCapture.tsx).
  */
 
 function makeMockCtx() {
-  return {
-    save: vi.fn(),
-    restore: vi.fn(),
-    beginPath: vi.fn(),
-    closePath: vi.fn(),
-    moveTo: vi.fn(),
-    lineTo: vi.fn(),
-    arc: vi.fn(),
-    stroke: vi.fn(),
-    fill: vi.fn(),
-    fillRect: vi.fn(),
-    strokeRect: vi.fn(),
-    fillText: vi.fn(),
-    fillStyle: '',
-    strokeStyle: '',
-    lineWidth: 0,
-    font: '',
-    textAlign: 'start' as CanvasTextAlign,
-    textBaseline: 'alphabetic' as CanvasTextBaseline,
-    globalAlpha: 1,
-  };
-}
-
-function drawCallCount(ctx: ReturnType<typeof makeMockCtx>) {
-  return (
-    ctx.fillRect.mock.calls.length +
-    ctx.strokeRect.mock.calls.length +
-    ctx.stroke.mock.calls.length +
-    ctx.fill.mock.calls.length +
-    ctx.fillText.mock.calls.length
-  );
+  return { drawImage: vi.fn() };
 }
 
 describe('FRAME_IDS', () => {
@@ -58,6 +29,16 @@ describe('FRAME_IDS', () => {
   it('has a human label for every frame id', () => {
     for (const id of FRAME_IDS) {
       expect(FRAME_LABELS[id]).toBeTruthy();
+    }
+  });
+
+  it('has an image path for every frame id except "none"', () => {
+    for (const id of FRAME_IDS) {
+      if (id === 'none') {
+        expect(FRAME_IMAGE_SRC[id]).toBeUndefined();
+      } else {
+        expect(FRAME_IMAGE_SRC[id]).toMatch(/^\/marcos\/\d\.png$/);
+      }
     }
   });
 });
@@ -86,22 +67,23 @@ describe('getFrameIndexAfterSwipe', () => {
 });
 
 describe('drawFrame', () => {
-  it('does not draw anything for "none"', () => {
+  it('does not draw anything when the image is null (either "none" or not loaded yet)', () => {
     const ctx = makeMockCtx();
-    drawFrame(ctx as unknown as CanvasRenderingContext2D, 'none', 800, 600);
-    expect(drawCallCount(ctx)).toBe(0);
+    drawFrame(ctx as unknown as CanvasRenderingContext2D, null, 800, 600);
+    expect(ctx.drawImage).not.toHaveBeenCalled();
   });
 
-  it.each(FRAME_IDS.filter((id) => id !== 'none'))('draws at least one shape for "%s"', (id) => {
+  it('draws the given image stretched to fill the canvas when it is loaded', () => {
     const ctx = makeMockCtx();
-    drawFrame(ctx as unknown as CanvasRenderingContext2D, id, 800, 600);
-    expect(drawCallCount(ctx)).toBeGreaterThan(0);
+    const image = {} as HTMLImageElement;
+    drawFrame(ctx as unknown as CanvasRenderingContext2D, image, 800, 600);
+    expect(ctx.drawImage).toHaveBeenCalledWith(image, 0, 0, 800, 600);
   });
 
   it('never throws on a tiny or unusual canvas size', () => {
-    for (const id of FRAME_IDS) {
-      const ctx = makeMockCtx();
-      expect(() => drawFrame(ctx as unknown as CanvasRenderingContext2D, id, 1, 1)).not.toThrow();
-    }
+    const ctx = makeMockCtx();
+    const image = {} as HTMLImageElement;
+    expect(() => drawFrame(ctx as unknown as CanvasRenderingContext2D, image, 1, 1)).not.toThrow();
+    expect(() => drawFrame(ctx as unknown as CanvasRenderingContext2D, null, 1, 1)).not.toThrow();
   });
 });

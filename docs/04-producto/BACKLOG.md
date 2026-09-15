@@ -39,7 +39,7 @@ El usuario probó lo anterior y trajo tres correcciones reales:
 
 **Evidencia**: TDD real, implementación con `agency-frontend-developer`, revisión independiente con `agency-code-reviewer`. Un hallazgo 🟡 (`GuestEditModal`/`AdminPage` guardaba `''` en vez de `null` al borrar el teléfono) corregido: `handleSave` ahora normaliza a `null`. `npm run typecheck` limpio, `npm test` → 271/271 en 38 archivos, `npm run build` sin errores, `npm run test:db` → 74/74 en 8 archivos (Docker real, incluye `guests-phone.test.ts`).
 
-## Etapa 12 — Marcos reales de cámara (assets/marcos), LISTO PARA IMPLEMENTAR (2026-09-15)
+## Etapa 12 — Marcos reales de cámara (assets/marcos), Implementada (2026-09-15)
 
 El usuario dejó 7 PNG diseñados a mano en `assets/marcos/1.png`…`7.png` (fuera de `public/`, no se despliegan tal cual — hay que copiarlos a `public/marcos/`, mismo criterio que `og-image.jpg`). Reemplazan por completo los 7 marcos placeholder dibujados en `<canvas>` de la Etapa 9 (esquinas neón, ticket de carrete, polaroid, etc., que eran un placeholder explícitamente "no cerrado" en esa etapa).
 
@@ -61,6 +61,15 @@ Diseño:
 4. **`handleShoot`**: en vez de llamar a una rutina de dibujo por `frameId`, dibuja directo la `HTMLImageElement` ya cargada sobre el canvas (`ctx.drawImage(img, 0, 0, canvas.width, canvas.height)`) después del espejo, antes de `toBlob` — mismo punto del pipeline que hoy.
 5. **Preview en vivo**: `FrameOverlay` pasa a ser un `<img src={...} className="pointer-events-none absolute inset-0 h-full w-full object-fill" aria-hidden />` en vez de las formas CSS aproximadas. **Importante**: `object-fill` (estira para llenar, no recorta ni deja bandas), no `object-cover`/`object-contain` — tiene que ser la MISMA estrategia de escalado que usa `ctx.drawImage(img, 0, 0, canvas.width, canvas.height)` en el canvas real (que también estira sin mantener proporción), para que lo que el invitado ve en el preview coincida exactamente con lo que termina en la foto, sin importar si el video real es 3:4, 4:3 o 16:9.
 6. **Cantidad y orden**: se mantienen los mismos 7 marcos + "sin marco" (sin agregar ni sacar ninguno) — el usuario ya los diseñó a propósito, no hay decisión de producto pendiente acá, solo integrarlos bien.
+
+Implementado tal cual el diseño de arriba, con `agency-frontend-developer`:
+
+- **`lib/cameraFrames.ts`**: reescrito — se eliminó toda la lógica de dibujo Canvas 2D (`drawNeonCorners`/`drawRollTicket`/`drawPolaroid`/`drawLaserGrid`/`drawConfetti`/`drawVinyl`/`drawTypographic` y sus colores). Nuevos `FrameId` (`disposable`, `date-stamp`, `light-leak`, `cumple-fabrizio`, `stickers`, `viewfinder`, `fcumple-tape`, más `none`) con `FRAME_LABELS` en español y `FRAME_IMAGE_SRC` (`FrameId → /marcos/N.png`). `drawFrame` cambió de firma: recibe la `HTMLImageElement` ya cargada (no el `frameId`) y hace `ctx.drawImage(image, 0, 0, width, height)` si no es `null`. `getFrameIndexAfterSwipe` no se tocó.
+- **`hooks/useFrameImages.ts`** (nuevo): precarga los 7 PNG al montar `CameraCapture` con el constructor `Image` global, y expone `Partial<Record<FrameId, HTMLImageElement>>` con las que ya dispararon `onload`. Si el invitado dispara antes de que la imagen del marco actual haya cargado, esa foto sale sin marco a propósito — no se bloquea el disparador esperando la red.
+- **`components/CameraCapture.tsx`**: `handleShoot` pasa la `HTMLImageElement` precargada correspondiente al `frameId` actual (o `null` si es `'none'` o todavía no cargó) al mismo punto del pipeline de antes (después del espejo, antes de `toBlob`). `FrameOverlay` (preview en vivo) pasó de formas CSS aproximadas por marco a un `<img>` simple apuntando a `FRAME_IMAGE_SRC[frameId]`, con `object-fill` (no `object-cover`/`object-contain`) para estirar igual que `ctx.drawImage` en el canvas real — así el preview coincide con la foto final sin importar la proporción real del video del dispositivo.
+- **Assets**: los 7 PNG ya estaban copiados en `public/marcos/1.png`…`7.png` antes de este trabajo (servidos tal cual, fuera del bundle de Vite).
+
+**Evidencia**: TDD real (test antes que código). `lib/cameraFrames.test.ts` reescrito para la nueva firma de `drawFrame` (llama a `ctx.drawImage` con una imagen cargada, no hace nada con `null`) más cobertura de `FRAME_IMAGE_SRC`; `getFrameIndexAfterSwipe` sin cambios. `hooks/useFrameImages.test.ts` (nuevo) mockea el constructor `Image` global y verifica que dispara la carga de las 7 rutas y que expone cada imagen recién cuando su `onload` dispara. `CameraCapture.test.tsx` actualizado con los labels reales (`Desechable`, `Cinta FCumple`) en el test de navegación por swipe/botones. `npm run typecheck` limpio, `npm test` → 332/332 en 44 archivos, `npm run build` sin errores (mismo warning preexistente de chunk >500kB, no relacionado a este cambio).
 
 ## Etapa 11 — QA post-Etapa 9/10: fader (bug real) y cámara (zoom, confirmación), Implementada (2026-09-15)
 

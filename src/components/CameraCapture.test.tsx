@@ -231,14 +231,14 @@ describe('CameraCapture', () => {
     expect(screen.getByText(/marco \/\/ sin marco/i)).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Siguiente marco' }));
-    expect(screen.getByText(/marco \/\/ esquinas neón/i)).toBeInTheDocument();
+    expect(screen.getByText(/marco \/\/ desechable/i)).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Marco anterior' }));
     expect(screen.getByText(/marco \/\/ sin marco/i)).toBeInTheDocument();
 
     // Wraps to the last frame going backwards from the start.
     await user.click(screen.getByRole('button', { name: 'Marco anterior' }));
-    expect(screen.getByText(/marco \/\/ tipográfico/i)).toBeInTheDocument();
+    expect(screen.getByText(/marco \/\/ cinta fcumple/i)).toBeInTheDocument();
   });
 
   describe('review screen before sending (Etapa 11, punto 4)', () => {

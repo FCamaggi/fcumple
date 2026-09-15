@@ -2,13 +2,21 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { motion, AnimatePresence, useReducedMotion, type PanInfo } from 'framer-motion';
 import { usePhotoCapture } from '../hooks/usePhotoCapture';
 import { useOrientation } from '../hooks/useOrientation';
+import { useFrameImages } from '../hooks/useFrameImages';
 import {
   getCameraControlsAvailability,
   type CameraControlsAvailability,
   type CameraTrackCapabilities,
   type CameraTrackConstraintSet,
 } from '../lib/cameraControls';
-import { FRAME_IDS, FRAME_LABELS, drawFrame, getFrameIndexAfterSwipe, type FrameId } from '../lib/cameraFrames';
+import {
+  FRAME_IDS,
+  FRAME_IMAGE_SRC,
+  FRAME_LABELS,
+  drawFrame,
+  getFrameIndexAfterSwipe,
+  type FrameId,
+} from '../lib/cameraFrames';
 import FilmRollCounter from './FilmRollCounter';
 import type { PhotoQuota } from '../types';
 
@@ -103,6 +111,7 @@ export default function CameraCapture({ token, quota, onQuotaChange, onClose }: 
   const [torchOn, setTorchOn] = useState(false);
   const [frameIndex, setFrameIndex] = useState(0);
   const frameId = FRAME_IDS[frameIndex];
+  const frameImages = useFrameImages();
   // Foto recién sacada, pendiente de "Repetir"/"Enviar" (Etapa 11, punto 4)
   // -- `capture(blob)` (la única llamada que de verdad sube y gasta un
   // disparo del rollo) sólo se dispara desde "Enviar", ver handleSend.
@@ -224,7 +233,7 @@ export default function CameraCapture({ token, quota, onQuotaChange, onClose }: 
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     ctx.restore();
 
-    drawFrame(ctx, frameId, canvas.width, canvas.height);
+    drawFrame(ctx, frameId === 'none' ? null : (frameImages[frameId] ?? null), canvas.width, canvas.height);
 
     canvas.toBlob(
       (blob) => {
@@ -526,80 +535,21 @@ function FramingGuide({ orientation }: { orientation: 'portrait' | 'landscape' }
 }
 
 /**
- * Capa de preview en vivo de los marcos -- DOM/CSS por rendimiento (no un
- * <canvas> de preview), superpuesta al <video> igual que FramingGuide. Debe
- * mantenerse equivalente a mano a las rutinas reales de
- * lib/cameraFrames.ts, que son las que de verdad quedan grabadas en el
- * JPEG -- ver el comentario de cabecera de ese archivo.
+ * Preview en vivo del marco actual -- un <img> superpuesto al <video>
+ * igual que FramingGuide, apuntando al mismo PNG que `drawFrame` graba en
+ * la foto final (Etapa 12; ya no hace falta mantener a mano una capa
+ * CSS/DOM equivalente a una rutina de dibujo aparte, como en la Etapa 9).
+ * `object-fill` a propósito, no `object-cover`/`object-contain`: tiene que
+ * estirar igual que `ctx.drawImage(img, 0, 0, canvas.width, canvas.height)`
+ * en el canvas real, para que el preview coincida con la foto final sin
+ * importar la proporción real del video del dispositivo.
  */
 function FrameOverlay({ frameId }: { frameId: FrameId }) {
-  if (frameId === 'none') return null;
+  const src = FRAME_IMAGE_SRC[frameId];
+  if (!src) return null;
 
   return (
-    <div className="pointer-events-none absolute inset-0" aria-hidden>
-      {frameId === 'neon-corners' && (
-        <>
-          <span className="absolute left-3 top-3 h-10 w-10 border-l-4 border-t-4 border-hotpink-500 shadow-glow-hotpink" />
-          <span className="absolute right-3 top-3 h-10 w-10 border-r-4 border-t-4 border-hotpink-500 shadow-glow-hotpink" />
-          <span className="absolute bottom-3 left-3 h-10 w-10 border-b-4 border-l-4 border-hotpink-500 shadow-glow-hotpink" />
-          <span className="absolute bottom-3 right-3 h-10 w-10 border-b-4 border-r-4 border-hotpink-500 shadow-glow-hotpink" />
-        </>
-      )}
-
-      {frameId === 'roll-ticket' && (
-        <div className="absolute inset-x-0 bottom-0 flex h-[10%] items-center justify-center bg-ink-950/85">
-          <span className="font-mono text-xs uppercase tracking-widest text-paper-100">FCUMPLE // 09.10.26</span>
-        </div>
-      )}
-
-      {frameId === 'polaroid' && (
-        <div className="absolute inset-0 border-[3vw] border-b-[10vw] border-paper-100" />
-      )}
-
-      {frameId === 'laser-grid' && (
-        <>
-          <span className="absolute left-0 top-[6%] h-px w-12 bg-laser-500" />
-          <span className="absolute left-0 top-[9%] h-px w-12 bg-laser-500" />
-          <span className="absolute left-0 top-[12%] h-px w-12 bg-laser-500" />
-          <span className="absolute right-0 top-[6%] h-px w-12 bg-laser-500" />
-          <span className="absolute right-0 top-[9%] h-px w-12 bg-laser-500" />
-          <span className="absolute right-0 top-[12%] h-px w-12 bg-laser-500" />
-          <span className="absolute bottom-[6%] left-0 h-px w-12 bg-laser-500" />
-          <span className="absolute bottom-[9%] left-0 h-px w-12 bg-laser-500" />
-          <span className="absolute bottom-[12%] left-0 h-px w-12 bg-laser-500" />
-          <span className="absolute bottom-[6%] right-0 h-px w-12 bg-laser-500" />
-          <span className="absolute bottom-[9%] right-0 h-px w-12 bg-laser-500" />
-          <span className="absolute bottom-[12%] right-0 h-px w-12 bg-laser-500" />
-        </>
-      )}
-
-      {frameId === 'confetti' && (
-        <>
-          <span className="absolute left-[4%] top-[6%] h-2.5 w-2.5 rounded-full bg-hotpink-500" />
-          <span className="absolute left-[9%] top-[3%] h-2.5 w-2.5 bg-acid-400" />
-          <span className="absolute left-[3%] top-[12%] h-2.5 w-2.5 bg-laser-500" />
-          <span className="absolute right-[4%] top-[5%] h-2.5 w-2.5 rounded-full bg-flame-500" />
-          <span className="absolute right-[9%] top-[9%] h-2.5 w-2.5 bg-hotpink-500" />
-          <span className="absolute right-[3%] top-[14%] h-2.5 w-2.5 rounded-full bg-acid-400" />
-          <span className="absolute bottom-[8%] left-[5%] h-2.5 w-2.5 rounded-full bg-laser-500" />
-          <span className="absolute bottom-[4%] left-[10%] h-2.5 w-2.5 bg-flame-500" />
-          <span className="absolute bottom-[6%] right-[6%] h-2.5 w-2.5 bg-hotpink-500" />
-          <span className="absolute bottom-[10%] right-[10%] h-2.5 w-2.5 rounded-full bg-acid-400" />
-        </>
-      )}
-
-      {frameId === 'vinyl' && (
-        <div className="absolute bottom-0 right-0 h-1/3 w-1/3 overflow-hidden">
-          <div className="absolute -bottom-1/2 -right-1/2 h-full w-full rounded-full border-8 border-acid-400/70 bg-ink-950/50" />
-        </div>
-      )}
-
-      {frameId === 'typographic' && (
-        <span className="absolute bottom-3 left-3 font-display text-lg uppercase tracking-wide text-paper-100">
-          Fabrizio // 26
-        </span>
-      )}
-    </div>
+    <img src={src} alt="" className="pointer-events-none absolute inset-0 h-full w-full object-fill" aria-hidden />
   );
 }
 
