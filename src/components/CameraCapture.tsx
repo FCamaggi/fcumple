@@ -4,7 +4,6 @@ import { usePhotoCapture } from '../hooks/usePhotoCapture';
 import { useOrientation } from '../hooks/useOrientation';
 import {
   getCameraControlsAvailability,
-  getZoomPresets,
   type CameraControlsAvailability,
   type CameraTrackCapabilities,
   type CameraTrackConstraintSet,
@@ -22,7 +21,7 @@ interface CameraCaptureProps {
 
 const MAX_DIMENSION = 1600;
 const JPEG_QUALITY = 0.8;
-const NO_CONTROLS: CameraControlsAvailability = { zoom: null, torch: false };
+const NO_CONTROLS: CameraControlsAvailability = { torch: false };
 // Distancia mínima de arrastre horizontal para contar como swipe de cambio
 // de marco -- por debajo de esto es más probable que haya sido un tap o un
 // scroll accidental que una intención real de cambiar de marco.
@@ -39,8 +38,7 @@ const SWIPE_THRESHOLD = 48;
  *
  * El enfoque manual queda explícitamente fuera de alcance de esta etapa
  * (no hay una API web estable y ampliamente soportada para eso -- a
- * diferencia de zoom/torch, que sí son capabilities reales aunque no
- * estándar).
+ * diferencia del torch, que sí es una capability real aunque no estándar).
  *
  * Etapa 9, Frente 1 (docs/BACKLOG.md) sumó tres cosas sobre esa base:
  *  1. Espejo real en cámara frontal (`facingMode: 'user'`), tanto en el
@@ -49,8 +47,7 @@ const SWIPE_THRESHOLD = 48;
  *     de `toBlob`, ver `handleShoot`) -- el usuario prefirió "igual a lo
  *     que vio al sacarla" por sobre la convención fotográfica de guardar
  *     sin espejar.
- *  2. Zoom con chips de presets (`getZoomPresets`) en vez de slider, y
- *     disparador circular + ícono de flip (SVGs inline hechos a mano --
+ *  2. Disparador circular + ícono de flip (SVGs inline hechos a mano --
  *     primer uso de este patrón en el proyecto, no hay ninguna librería de
  *     íconos entre las dependencias).
  *  3. Marcos aplicables a la foto (`lib/cameraFrames.ts`), navegables con
@@ -60,16 +57,37 @@ const SWIPE_THRESHOLD = 48;
  *     vive en el estado de este componente, así que se resetea sola cada
  *     vez que se desmonta y se vuelve a montar (cerrar/reabrir la cámara).
  *
+ * Etapa 11 (QA del usuario tras probar en un celular real) ajustó dos
+ * cosas más:
+ *  4. Se sacó el control de zoom por completo (`getZoomPresets`/
+ *     `ZoomChips`/el campo `zoom` de `CameraControlsAvailability`): lo que
+ *     el navegador expone como "zoom" es zoom digital de la lente activa,
+ *     no una selección de lentes físicas, y la mayoría de los dispositivos
+ *     no reporta nada por debajo de 1x -- ver docs/04-producto/BACKLOG.md,
+ *     Etapa 11, punto 3. El torch/flash no se tocó, sigue condicional a
+ *     `capabilities.torch`.
+ *  5. Pantalla de revisión antes de subir: `handleShoot` sigue componiendo
+ *     el frame igual que antes, pero en vez de llamar a `capture(blob)`
+ *     directo, guarda el blob y una URL de objeto (`reviewBlob`/
+ *     `reviewUrl`) y muestra una pantalla "Repetir/Enviar" a pantalla
+ *     completa sobre el preview en vivo (que sigue corriendo de fondo, no
+ *     se pausa ni se reinicia). Sólo "Enviar" llama a `capture`, que es lo
+ *     único que de verdad gasta un disparo del rollo (ver `usePhotoCapture`
+ *     -> `uploadPhoto` -> `submit_photo`); "Repetir" descarta el blob y
+ *     revoca la URL de objeto sin gastar nada.
+ *
  * Mismo criterio de testing que QrScanner.tsx: la lógica de "qué pasa con
  * un blob ya capturado" vive en usePhotoCapture (testable, ver su test),
- * "qué controles mostrar dado un objeto de capabilities" y los presets de
- * zoom viven en lib/cameraControls.ts (testable sin un track real), y la
- * navegación entre marcos + las rutinas de dibujo viven en
- * lib/cameraFrames.ts (testable con un CanvasRenderingContext2D mockeado,
- * ver su test). Lo que sí se prueba de este componente en jsdom, ver
- * CameraCapture.test.tsx -- el compositado real del espejo y de un marco
- * sobre píxeles reales de video no es testable en jsdom (no hay cámara ni
- * pipeline de <canvas> real), igual que el resto de la captura.
+ * "qué controles mostrar dado un objeto de capabilities" vive en
+ * lib/cameraControls.ts (testable sin un track real), y la navegación entre
+ * marcos + las rutinas de dibujo viven en lib/cameraFrames.ts (testable con
+ * un CanvasRenderingContext2D mockeado, ver su test). Lo que sí se prueba
+ * de este componente en jsdom, ver CameraCapture.test.tsx -- el compositado
+ * real del espejo y de un marco sobre píxeles reales de video no es
+ * testable en jsdom (no hay cámara ni pipeline de <canvas> real), igual que
+ * el resto de la captura. `URL.createObjectURL`/`revokeObjectURL` sí están
+ * en jsdom, así que el flujo Repetir/Enviar sobre un blob mockeado se
+ * prueba de punta a punta.
  */
 export default function CameraCapture({ token, quota, onQuotaChange, onClose }: CameraCaptureProps) {
   const reduceMotion = useReducedMotion() ?? false;
@@ -82,10 +100,25 @@ export default function CameraCapture({ token, quota, onQuotaChange, onClose }: 
   const [cameraReady, setCameraReady] = useState(false);
   const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
   const [controls, setControls] = useState<CameraControlsAvailability>(NO_CONTROLS);
-  const [zoom, setZoom] = useState<number | null>(null);
   const [torchOn, setTorchOn] = useState(false);
   const [frameIndex, setFrameIndex] = useState(0);
   const frameId = FRAME_IDS[frameIndex];
+  // Foto recién sacada, pendiente de "Repetir"/"Enviar" (Etapa 11, punto 4)
+  // -- `capture(blob)` (la única llamada que de verdad sube y gasta un
+  // disparo del rollo) sólo se dispara desde "Enviar", ver handleSend.
+  const [reviewBlob, setReviewBlob] = useState<Blob | null>(null);
+  const [reviewUrl, setReviewUrl] = useState<string | null>(null);
+
+  // Revoca la URL de objeto de la revisión anterior (o de la actual, al
+  // desmontar con una revisión pendiente) para no filtrar memoria. Corre en
+  // cada cambio de reviewUrl, no sólo al desmontar: cuando handleRetake/
+  // handleSend la ponen en null, este cleanup revoca la URL que quedó
+  // colgada del cierre anterior del efecto.
+  useEffect(() => {
+    return () => {
+      if (reviewUrl) URL.revokeObjectURL(reviewUrl);
+    };
+  }, [reviewUrl]);
 
   const remaining = Math.max(0, quota.quota - quota.used);
   const outOfShots = remaining <= 0;
@@ -96,12 +129,10 @@ export default function CameraCapture({ token, quota, onQuotaChange, onClose }: 
     let stream: MediaStream | null = null;
 
     // El track (y sus capabilities) son de la corrida anterior del efecto
-    // -- limpiarlos ahora evita mostrar controles de zoom/torch de la
-    // cámara vieja mientras arranca la nueva (ej. al tocar "Cambiar
-    // cámara").
+    // -- limpiarlos ahora evita mostrar el control de torch de la cámara
+    // vieja mientras arranca la nueva (ej. al tocar "Cambiar cámara").
     setCameraReady(false);
     setControls(NO_CONTROLS);
-    setZoom(null);
     setTorchOn(false);
     trackRef.current = null;
 
@@ -127,9 +158,7 @@ export default function CameraCapture({ token, quota, onQuotaChange, onClose }: 
         // Safari no implementa getCapabilities() -- el optional chaining
         // es obligatorio acá, no una precaución de más.
         const caps = (track?.getCapabilities?.() ?? null) as CameraTrackCapabilities | null;
-        const availability = getCameraControlsAvailability(caps);
-        setControls(availability);
-        if (availability.zoom) setZoom(availability.zoom.min);
+        setControls(getCameraControlsAvailability(caps));
       } catch {
         setCameraError('No pudimos acceder a la cámara. Revisá los permisos del navegador.');
       }
@@ -144,33 +173,21 @@ export default function CameraCapture({ token, quota, onQuotaChange, onClose }: 
     };
   }, [facingMode, outOfShots]);
 
-  async function handleZoomChange(value: number) {
-    setZoom(value);
-    const track = trackRef.current;
-    if (!track) return;
-    try {
-      // La capability existía cuando se leyó getCapabilities(), pero el
-      // navegador puede igual rechazar el constraint en runtime -- no hay
-      // mejor recuperación que dejar el control como está. El cast hace
-      // falta porque `zoom`/`torch` no están en los tipos DOM estándar de
-      // MediaTrackConstraintSet (ver lib/cameraControls.ts).
-      const constraints: CameraTrackConstraintSet = { zoom: value };
-      await track.applyConstraints({ advanced: [constraints] } as MediaTrackConstraints);
-    } catch {
-      /* ver comentario de arriba */
-    }
-  }
-
   async function handleTorchToggle() {
     const next = !torchOn;
     setTorchOn(next);
     const track = trackRef.current;
     if (!track) return;
     try {
+      // La capability existía cuando se leyó getCapabilities(), pero el
+      // navegador puede igual rechazar el constraint en runtime -- no hay
+      // mejor recuperación que dejar el control como está. El cast hace
+      // falta porque `torch` no está en los tipos DOM estándar de
+      // MediaTrackConstraintSet (ver lib/cameraControls.ts).
       const constraints: CameraTrackConstraintSet = { torch: next };
       await track.applyConstraints({ advanced: [constraints] } as MediaTrackConstraints);
     } catch {
-      /* mismo criterio que handleZoomChange */
+      /* ver comentario de arriba */
     }
   }
 
@@ -211,11 +228,28 @@ export default function CameraCapture({ token, quota, onQuotaChange, onClose }: 
 
     canvas.toBlob(
       (blob) => {
-        if (blob) capture(blob);
+        if (!blob) return;
+        // No sube todavía -- sólo guarda el blob y su URL de objeto para
+        // la pantalla de revisión (Etapa 11, punto 4). `capture(blob)`
+        // recién se llama desde handleSend.
+        setReviewBlob(blob);
+        setReviewUrl(URL.createObjectURL(blob));
       },
       'image/jpeg',
       JPEG_QUALITY,
     );
+  }
+
+  function handleRetake() {
+    setReviewBlob(null);
+    setReviewUrl(null);
+  }
+
+  function handleSend() {
+    if (!reviewBlob) return;
+    capture(reviewBlob);
+    setReviewBlob(null);
+    setReviewUrl(null);
   }
 
   if (outOfShots) {
@@ -277,14 +311,6 @@ export default function CameraCapture({ token, quota, onQuotaChange, onClose }: 
             <FilmRollCounter quota={quota.quota} used={quota.used} />
 
             <div className="flex flex-1 flex-col gap-1.5">
-              {controls.zoom && (
-                <ZoomChips
-                  presets={getZoomPresets(controls.zoom)}
-                  value={zoom ?? controls.zoom.min}
-                  onChange={handleZoomChange}
-                />
-              )}
-
               {controls.torch && (
                 <button
                   type="button"
@@ -319,7 +345,7 @@ export default function CameraCapture({ token, quota, onQuotaChange, onClose }: 
             </button>
 
             <ShutterButton
-              disabled={!cameraReady || !!cameraError || state.phase === 'uploading'}
+              disabled={!cameraReady || !!cameraError || state.phase === 'uploading' || !!reviewUrl}
               uploading={state.phase === 'uploading'}
               onClick={handleShoot}
             />
@@ -337,6 +363,49 @@ export default function CameraCapture({ token, quota, onQuotaChange, onClose }: 
             Marco // {FRAME_LABELS[frameId]}
           </span>
         </div>
+      </div>
+
+      {reviewUrl && (
+        <ReviewScreen photoUrl={reviewUrl} onRetake={handleRetake} onSend={handleSend} />
+      )}
+    </div>
+  );
+}
+
+/**
+ * Pantalla de revisión (Etapa 11, punto 4) -- se superpone al preview en
+ * vivo, que sigue corriendo de fondo debajo (no se desmonta el <video>,
+ * así que no hace falta volver a pedir getUserMedia al tocar "Repetir").
+ */
+function ReviewScreen({
+  photoUrl,
+  onRetake,
+  onSend,
+}: {
+  photoUrl: string;
+  onRetake: () => void;
+  onSend: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-[60] flex flex-col bg-ink-950" aria-label="Revisión de la foto">
+      <div className="relative flex-1 overflow-hidden bg-ink-950">
+        <img src={photoUrl} alt="Foto recién sacada, todavía sin enviar" className="h-full w-full object-contain" />
+      </div>
+      <div className="flex items-center justify-center gap-3 bg-ink-900 p-3">
+        <button
+          type="button"
+          onClick={onRetake}
+          className="tap-target flex-1 bg-smoke-700/30 px-4 py-3 font-mono text-[11px] font-bold uppercase tracking-wider text-paper-100 transition-colors hover:bg-smoke-700/50"
+        >
+          Repetir
+        </button>
+        <button
+          type="button"
+          onClick={onSend}
+          className="tap-target flex-1 bg-hotpink-500 px-4 py-3 font-mono text-[11px] font-bold uppercase tracking-wider text-ink-950 shadow-glow-hotpink transition-colors"
+        >
+          Enviar
+        </button>
       </div>
     </div>
   );
@@ -359,43 +428,6 @@ function CameraHeader({ onClose, children }: { onClose: () => void; children?: R
         </button>
       </div>
     </header>
-  );
-}
-
-/**
- * Chips de zoom (Etapa 9, Frente 1) -- reemplazan el slider continuo por
- * botones discretos sobre los presets de `getZoomPresets`. Un único chip
- * (rango sin margen para 3 valores distintos) se muestra igual, sin
- * duplicarse.
- */
-function ZoomChips({
-  presets,
-  value,
-  onChange,
-}: {
-  presets: number[];
-  value: number;
-  onChange: (value: number) => void;
-}) {
-  return (
-    <div role="group" aria-label="Zoom" className="flex gap-1.5">
-      {presets.map((preset) => {
-        const active = Math.abs(preset - value) < 0.001;
-        return (
-          <button
-            key={preset}
-            type="button"
-            onClick={() => onChange(preset)}
-            aria-pressed={active}
-            className={`tap-target px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-wider ${
-              active ? 'bg-hotpink-500 text-ink-950 shadow-glow-hotpink' : 'bg-smoke-700/30 text-paper-100'
-            }`}
-          >
-            {preset.toFixed(1)}x
-          </button>
-        );
-      })}
-    </div>
   );
 }
 
@@ -470,8 +502,8 @@ function ChevronIcon({ direction }: { direction: 'left' | 'right' }) {
 /**
  * Guías decorativas de encuadre -- puramente visuales (pointer-events-none,
  * aria-hidden), viven adentro del contenedor del <video> así que nunca
- * pueden tapar el botón de disparo ni los controles de zoom/torch, que son
- * un bloque hermano fuera de este contenedor. El aspecto del marco cambia
+ * pueden tapar el botón de disparo ni el control de torch, que son un
+ * bloque hermano fuera de este contenedor. El aspecto del marco cambia
  * según la orientación real del dispositivo (useOrientation), no un
  * breakpoint fijo -- girar el teléfono con la cámara abierta reacomoda la
  * guía en vivo.

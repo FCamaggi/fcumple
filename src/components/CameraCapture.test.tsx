@@ -7,6 +7,7 @@ vi.mock('../lib/photosApi', () => ({
 }));
 
 import CameraCapture from './CameraCapture';
+import { uploadPhoto } from '../lib/photosApi';
 import type { CameraTrackCapabilities } from '../lib/cameraControls';
 
 /**
@@ -26,12 +27,19 @@ import type { CameraTrackCapabilities } from '../lib/cameraControls';
  *  3. the close button always calling onClose;
  *  4. with a *mocked* getUserMedia/MediaStreamTrack (not a real camera --
  *     just a fake object shaped like one, same idea as mocking
- *     `uploadPhoto`), that the zoom chips / torch toggle only render when
- *     the mocked track reports that capability, and that interacting with
- *     them calls `track.applyConstraints` with the right value;
+ *     `uploadPhoto`), that the torch toggle only renders when the mocked
+ *     track reports that capability, and that interacting with it calls
+ *     `track.applyConstraints` with the right value;
  *  5. that the accessible ‹/› frame buttons (the tap fallback to the
  *     swipe gesture, same criterion as FaderToggle's tap-target snap
- *     zones) cycle the frame label shown below the shutter.
+ *     zones) cycle the frame label shown below the shutter;
+ *  6. the review flow added in Etapa 11 (point 4): a mocked `canvas.toBlob`
+ *     stands in for the real compositing pipeline (not testable in jsdom
+ *     either, same reasons as below) to check that tapping the shutter
+ *     shows the Repetir/Enviar screen instead of uploading straight away,
+ *     that "Repetir" discards it and goes back to the live preview without
+ *     ever calling `uploadPhoto`, and that "Enviar" is what actually
+ *     triggers the upload with the captured blob.
  *
  * NOT covered, and not realistically coverable in jsdom: actually opening
  * a device camera, drawing a live video frame to canvas (mirrored or with
@@ -65,12 +73,51 @@ function mockCamera(track: ReturnType<typeof makeTrack>) {
   return { getUserMedia, stream };
 }
 
+/**
+ * Deja el pipeline de <canvas> de handleShoot ejecutable en jsdom (que no
+ * implementa un contexto 2D real): un <video> con dimensiones falsas para
+ * pasar el guard de tamaño, un contexto 2D mockeado (mismo criterio que
+ * cameraFrames.test.ts) y un toBlob síncrono con un Blob falso. El marco
+ * arranca en "sin marco" (ver FRAME_IDS[0]), así que drawFrame no llama a
+ * ningún método de dibujo real del contexto mockeado.
+ */
+function mockCanvasPipeline() {
+  vi.spyOn(window.HTMLVideoElement.prototype, 'videoWidth', 'get').mockReturnValue(640);
+  vi.spyOn(window.HTMLVideoElement.prototype, 'videoHeight', 'get').mockReturnValue(480);
+  const ctx = {
+    save: vi.fn(),
+    restore: vi.fn(),
+    translate: vi.fn(),
+    scale: vi.fn(),
+    drawImage: vi.fn(),
+  };
+  vi.spyOn(window.HTMLCanvasElement.prototype, 'getContext').mockReturnValue(
+    ctx as unknown as CanvasRenderingContext2D,
+  );
+  vi.spyOn(window.HTMLCanvasElement.prototype, 'toBlob').mockImplementation((callback) => {
+    callback(new Blob(['fake-jpeg'], { type: 'image/jpeg' }));
+  });
+
+  return ctx;
+}
+
 beforeEach(() => {
   // jsdom no implementa HTMLMediaElement.play() -- sin este stub, el
   // `await videoRef.current.play()` del componente rechaza con "Not
   // implemented" y el flujo cae al mensaje de error en vez de abrir la
   // cámara mockeada.
   vi.spyOn(window.HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
+
+  // jsdom tampoco implementa URL.createObjectURL/revokeObjectURL (usadas
+  // por la pantalla de revisión, Etapa 11). Asignación directa en vez de
+  // vi.stubGlobal/vi.spyOn a propósito: React 18 difiere el cleanup de
+  // efectos pasivos (el que llama a revokeObjectURL al desmontar) más allá
+  // del afterEach síncrono de este archivo -- si el stub se deshace ahí
+  // (unstubAllGlobals/restoreAllMocks), ese cleanup diferido explota contra
+  // un URL ya restaurado. Una asignación real no la toca ninguno de los
+  // dos, así que sobrevive a ese cleanup tardío sin falsos negativos.
+  URL.createObjectURL = vi.fn(() => 'blob:mock-photo');
+  URL.revokeObjectURL = vi.fn();
 });
 
 afterEach(() => {
@@ -132,29 +179,12 @@ describe('CameraCapture', () => {
     expect(screen.getByRole('button', { name: /disparar/i })).toBeDisabled();
   });
 
-  it('does not render zoom or torch controls when the mocked track reports neither capability', async () => {
+  it('does not render the torch toggle when the mocked track reports no torch capability', async () => {
     mockCamera(makeTrack({}));
     render(<CameraCapture token="tok123" quota={{ quota: 5, used: 2 }} onClose={() => {}} />);
 
     await waitFor(() => expect(screen.getByRole('button', { name: /disparar/i })).toBeEnabled());
-    expect(screen.queryByLabelText(/zoom/i)).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /flash/i })).not.toBeInTheDocument();
-  });
-
-  it('renders zoom preset chips only when the mocked track reports a zoom capability, and applies constraints when one is tapped', async () => {
-    const track = makeTrack({ zoom: { min: 1, max: 5, step: 0.5 } });
-    mockCamera(track);
-    const user = userEvent.setup();
-    render(<CameraCapture token="tok123" quota={{ quota: 5, used: 2 }} onClose={() => {}} />);
-
-    // getZoomPresets({ min: 1, max: 5 }) === [1, 3, 5] -- covered in
-    // lib/cameraControls.test.ts, this only checks the chips are wired up.
-    const midChip = await screen.findByRole('button', { name: '3.0x' });
-    expect(screen.queryByRole('button', { name: /flash/i })).not.toBeInTheDocument();
-
-    await user.click(midChip);
-
-    await waitFor(() => expect(track.applyConstraints).toHaveBeenCalledWith({ advanced: [{ zoom: 3 }] }));
   });
 
   it('renders the torch toggle only when the mocked track reports a torch capability, and applies constraints on tap', async () => {
@@ -164,7 +194,6 @@ describe('CameraCapture', () => {
     render(<CameraCapture token="tok123" quota={{ quota: 5, used: 2 }} onClose={() => {}} />);
 
     const toggle = await screen.findByRole('button', { name: /flash/i });
-    expect(screen.queryByLabelText(/zoom/i)).not.toBeInTheDocument();
 
     await user.click(toggle);
 
@@ -183,7 +212,6 @@ describe('CameraCapture', () => {
     render(<CameraCapture token="tok123" quota={{ quota: 5, used: 2 }} onClose={() => {}} />);
 
     await waitFor(() => expect(screen.getByRole('button', { name: /disparar/i })).toBeEnabled());
-    expect(screen.queryByLabelText(/zoom/i)).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /flash/i })).not.toBeInTheDocument();
   });
 
@@ -211,5 +239,60 @@ describe('CameraCapture', () => {
     // Wraps to the last frame going backwards from the start.
     await user.click(screen.getByRole('button', { name: 'Marco anterior' }));
     expect(screen.getByText(/marco \/\/ tipográfico/i)).toBeInTheDocument();
+  });
+
+  describe('review screen before sending (Etapa 11, punto 4)', () => {
+    it('shows the Repetir/Enviar review screen on shoot, without uploading yet', async () => {
+      mockCanvasPipeline();
+      mockCamera(makeTrack({}));
+      const user = userEvent.setup();
+      render(<CameraCapture token="tok123" quota={{ quota: 5, used: 2 }} onClose={() => {}} />);
+
+      const shutter = await screen.findByRole('button', { name: /disparar/i });
+      await waitFor(() => expect(shutter).toBeEnabled());
+
+      await user.click(shutter);
+
+      expect(await screen.findByRole('button', { name: /repetir/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /enviar/i })).toBeInTheDocument();
+      expect(screen.getByAltText(/foto recién sacada/i)).toBeInTheDocument();
+      expect(uploadPhoto).not.toHaveBeenCalled();
+    });
+
+    it('discards the shot and returns to the live preview when "Repetir" is tapped, without uploading', async () => {
+      mockCanvasPipeline();
+      mockCamera(makeTrack({}));
+      const user = userEvent.setup();
+      render(<CameraCapture token="tok123" quota={{ quota: 5, used: 2 }} onClose={() => {}} />);
+
+      const shutter = await screen.findByRole('button', { name: /disparar/i });
+      await waitFor(() => expect(shutter).toBeEnabled());
+      await user.click(shutter);
+
+      await user.click(await screen.findByRole('button', { name: /repetir/i }));
+
+      expect(screen.queryByRole('button', { name: /repetir/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /enviar/i })).not.toBeInTheDocument();
+      await waitFor(() => expect(shutter).toBeEnabled());
+      expect(uploadPhoto).not.toHaveBeenCalled();
+    });
+
+    it('uploads the captured blob only when "Enviar" is tapped', async () => {
+      mockCanvasPipeline();
+      mockCamera(makeTrack({}));
+      const user = userEvent.setup();
+      render(<CameraCapture token="tok123" quota={{ quota: 5, used: 2 }} onClose={() => {}} />);
+
+      const shutter = await screen.findByRole('button', { name: /disparar/i });
+      await waitFor(() => expect(shutter).toBeEnabled());
+      await user.click(shutter);
+
+      await user.click(await screen.findByRole('button', { name: /enviar/i }));
+
+      await waitFor(() => expect(uploadPhoto).toHaveBeenCalledTimes(1));
+      const [, blobArg] = vi.mocked(uploadPhoto).mock.calls[0];
+      expect(blobArg).toBeInstanceOf(Blob);
+      expect(screen.queryByRole('button', { name: /repetir/i })).not.toBeInTheDocument();
+    });
   });
 });

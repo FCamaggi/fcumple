@@ -39,7 +39,7 @@ El usuario probó lo anterior y trajo tres correcciones reales:
 
 **Evidencia**: TDD real, implementación con `agency-frontend-developer`, revisión independiente con `agency-code-reviewer`. Un hallazgo 🟡 (`GuestEditModal`/`AdminPage` guardaba `''` en vez de `null` al borrar el teléfono) corregido: `handleSave` ahora normaliza a `null`. `npm run typecheck` limpio, `npm test` → 271/271 en 38 archivos, `npm run build` sin errores, `npm run test:db` → 74/74 en 8 archivos (Docker real, incluye `guests-phone.test.ts`).
 
-## Etapa 11 — QA post-Etapa 9/10: fader (bug real) y cámara (zoom, confirmación) — 2026-09-14, LISTO PARA IMPLEMENTAR
+## Etapa 11 — QA post-Etapa 9/10: fader (bug real) y cámara (zoom, confirmación), Implementada (2026-09-15)
 
 Nuevo QA del usuario tras probar en un celular real las etapas anteriores. Cuatro puntos:
 
@@ -51,6 +51,15 @@ Nuevo QA del usuario tras probar en un celular real las etapas anteriores. Cuatr
    - Dos acciones: **"Repetir"** (descarta el blob/URL, revoca el object URL, vuelve al preview en vivo de la cámara sin gastar cupo) y **"Enviar"** (recién ahí llama a `capture(blob)`, que dispara la subida real vía `usePhotoCapture`/`uploadPhoto`/`submit_photo`).
    - **Sin impacto en cupo ni en esquema**: `submit_photo` (la RPC que efectivamente cuenta contra `photo_quota`) solo se llama al confirmar, nunca al capturar — repetir una foto todo lo que haga falta antes de confirmar no gasta ningún disparo del rollo.
    - El stream de cámara sigue corriendo de fondo mientras se revisa (no hace falta pausarlo ni reiniciarlo al repetir, más simple y más rápido que parar/re-pedir `getUserMedia`).
+
+### Implementación (puntos 3 y 4; 1 y 2 ya estaban resueltos, sin cambios)
+
+- **`src/lib/cameraControls.ts`**: se sacaron `getZoomPresets`, `ZoomRange` y el campo `zoom` de `CameraControlsAvailability` — `getCameraControlsAvailability` ahora sólo calcula `{ torch }`. `CameraTrackCapabilities.zoom` se dejó como campo opcional (tipo preparado, ya no se lee en ningún lado).
+- **`src/components/CameraCapture.tsx`**: sacados el estado `zoom`, `handleZoomChange` y el componente `ZoomChips` con su bloque JSX (`controls.zoom && (...)`); el toggle de torch quedó intacto. `handleShoot` sigue componiendo el frame igual que antes, pero en vez de llamar a `capture(blob)` guarda el blob y una URL de objeto en estado nuevo (`reviewBlob`/`reviewUrl`) y se agregó `ReviewScreen`, un overlay full-screen (`z-[60]`, por encima del contenedor principal en `z-50`) con la foto y los botones **Repetir** (`handleRetake`, descarta el blob) / **Enviar** (`handleSend`, recién ahí llama a `capture`). El `<video>` no se desmonta en ningún momento del flujo, así que el stream sigue corriendo de fondo sin volver a pedir `getUserMedia`. El disparador queda deshabilitado mientras hay una revisión pendiente (no se puede sacar una foto encima de otra sin resolver la anterior).
+- Decisión de implementación no obvia: la URL de objeto se revoca desde el cleanup de un único `useEffect([reviewUrl])` (no con llamadas manuales a `URL.revokeObjectURL` en `handleRetake`/`handleSend`) — ese cleanup corre tanto en cada cambio de `reviewUrl` (incluido pasar a `null`) como al desmontar con una revisión pendiente, así que cubre los tres casos (repetir, enviar, cerrar la cámara a mitad de revisión) con una sola pieza de código.
+- Tests: `src/lib/cameraControls.test.ts` reescrito sin los casos de `getZoomPresets`/zoom. `src/components/CameraCapture.test.tsx`: sacados los tests de zoom; agregado un helper `mockCanvasPipeline` (mismo criterio que `cameraFrames.test.ts` para el contexto 2D, más `videoWidth`/`videoHeight` y `toBlob` mockeados para poder ejercitar `handleShoot` en jsdom) y tres tests nuevos que cubren que disparar no sube nada todavía, que "Repetir" vuelve al preview sin llamar a `uploadPhoto`, y que "Enviar" es lo único que dispara la subida con el blob capturado.
+
+**Evidencia**: `npm run typecheck` limpio. `npm test` → 334/334 en 43 archivos (incluye los 17 de `cameraControls.test.ts` + `CameraCapture.test.tsx`). `npm run build` sin errores (mismo warning preexistente de chunk >500kB en `index` por Framer Motion, no relacionado a este cambio).
 
 ## Etapa 9 — QA del usuario tras la Etapa 8 (2026-09-14), scoping en curso
 
