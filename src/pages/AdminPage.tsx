@@ -166,6 +166,19 @@ export default function AdminPage() {
     setToast(`${created.length} invitado${created.length === 1 ? '' : 's'} importado${created.length === 1 ? '' : 's'}`);
   }
 
+  function handleUpdatedFromImport(updated: Guest[]) {
+    setGuests((prev) => {
+      const copy = [...prev];
+      for (const u of updated) {
+        const idx = copy.findIndex((g) => g.id === u.id);
+        if (idx !== -1) copy[idx] = u;
+      }
+      return copy;
+    });
+    setToastKind('success');
+    setToast(`${updated.length} invitado${updated.length === 1 ? '' : 's'} actualizado${updated.length === 1 ? '' : 's'}`);
+  }
+
   return (
     <div className="min-h-screen bg-ink-950 text-paper-100">
       <header className="flex flex-col gap-3 bg-ink-900 px-4 py-3 shadow-lg sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4">
@@ -299,7 +312,13 @@ export default function AdminPage() {
 
       <CreateGuestModal open={creating} onClose={() => setCreating(false)} onCreate={handleCreate} />
 
-      <ImportGuestsModal open={importing} onClose={() => setImporting(false)} onImported={handleImported} />
+      <ImportGuestsModal
+        open={importing}
+        guests={guests}
+        onClose={() => setImporting(false)}
+        onImported={handleImported}
+        onUpdated={handleUpdatedFromImport}
+      />
 
       <SignalToast message={toast} kind={toastKind} onDismiss={() => setToast(null)} />
     </div>

@@ -30,16 +30,16 @@ describe('guestsToCsv', () => {
   it('serializes guests with the expected header, including phone', () => {
     const csv = guestsToCsv(guests);
     const lines = csv.split('\r\n');
-    expect(lines[0]).toBe('full_name,status,plus_ones_allowed,plus_ones_confirmed,guest_note,phone');
+    expect(lines[0]).toBe('token,full_name,status,plus_ones_allowed,plus_ones_confirmed,guest_note,phone');
   });
 
   it('leaves phone blank when the guest has none', () => {
     const csv = guestsToCsv(guests);
     const lines = csv.split('\r\n');
     expect(lines[1]).toBe(
-      'Maria Fernanda Contreras,confirmed,2,1,"sin nueces, sin lácteos",987654321',
+      ',Maria Fernanda Contreras,confirmed,2,1,"sin nueces, sin lácteos",987654321',
     );
-    expect(lines[2]).toBe('"José ""Pepe"" Díaz",pending,0,0,,');
+    expect(lines[2]).toBe(',"José ""Pepe"" Díaz",pending,0,0,,');
   });
 
   it('escapes commas, quotes and newlines in fields', () => {
@@ -58,7 +58,7 @@ describe('guestsToCsv', () => {
     const csv = guestsToCsv(withCommas);
     const lines = csv.split('\r\n');
     expect(lines[1]).toBe(
-      '"Ana, la del piso 3",declined,1,0,"trae ""algo especial"", llega tarde\ny se va temprano",'
+      ',"Ana, la del piso 3",declined,1,0,"trae ""algo especial"", llega tarde\ny se va temprano",'
     );
   });
 
@@ -67,7 +67,7 @@ describe('guestsToCsv', () => {
     // naive split would produce more than 5 fields for the José row's quoted name if unescaped;
     // here quoting means "José ""Pepe"" Díaz" stays a single field
     const lines = csv.split('\r\n');
-    expect(lines[2]).toBe('"José ""Pepe"" Díaz",pending,0,0,,');
+    expect(lines[2]).toBe(',"José ""Pepe"" Díaz",pending,0,0,,');
   });
 });
 
@@ -75,7 +75,7 @@ describe('csvTemplate', () => {
   it('has the header expected for import, including the optional phone column', () => {
     const csv = csvTemplate();
     const lines = csv.split('\r\n');
-    expect(lines[0]).toBe('full_name,plus_ones_allowed,phone');
+    expect(lines[0]).toBe('token,full_name,status,plus_ones_allowed,plus_ones_confirmed,guest_note,phone');
   });
 
   it('includes an example row', () => {

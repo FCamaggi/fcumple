@@ -1,9 +1,12 @@
 import type { Guest } from '../types';
 
-const EXPORT_HEADER = ['full_name', 'status', 'plus_ones_allowed', 'plus_ones_confirmed', 'guest_note', 'phone'];
-// `phone` es opcional al importar (docs/05-comunicacion/sistema-de-mensajes.md):
-// un CSV sin esa columna sigue funcionando exactamente igual que antes.
-const IMPORT_HEADER = ['full_name', 'plus_ones_allowed', 'phone'];
+const EXPORT_HEADER = ['token', 'full_name', 'status', 'plus_ones_allowed', 'plus_ones_confirmed', 'guest_note', 'phone'];
+// `token` es la clave de upsert al importar: una fila con token existente
+// actualiza a ese invitado en vez de crear uno nuevo. `phone`, `status`,
+// `plus_ones_confirmed` y `guest_note` son opcionales al importar
+// (docs/05-comunicacion/sistema-de-mensajes.md): un CSV sin esas columnas
+// sigue funcionando exactamente igual que antes (solo crea invitados).
+const IMPORT_HEADER = ['token', 'full_name', 'status', 'plus_ones_allowed', 'plus_ones_confirmed', 'guest_note', 'phone'];
 
 function escapeCsvField(value: string): string {
   if (/[",\r\n]/.test(value)) {
@@ -20,14 +23,14 @@ export function guestsToCsv(guests: Guest[]): string {
   const lines = [toCsvLine(EXPORT_HEADER)];
   for (const g of guests) {
     lines.push(
-      toCsvLine([g.fullName, g.status, g.plusOnesAllowed, g.plusOnesConfirmed, g.guestNote ?? '', g.phone ?? ''])
+      toCsvLine([g.token ?? '', g.fullName, g.status, g.plusOnesAllowed, g.plusOnesConfirmed, g.guestNote ?? '', g.phone ?? ''])
     );
   }
   return lines.join('\r\n');
 }
 
 export function csvTemplate(): string {
-  const lines = [toCsvLine(IMPORT_HEADER), toCsvLine(['Ana Torres', 1, '+56 9 1234 5678'])];
+  const lines = [toCsvLine(IMPORT_HEADER), toCsvLine(['', 'Ana Torres', 'pending', 1, 0, '', '+56 9 1234 5678'])];
   return lines.join('\r\n');
 }
 
@@ -103,6 +106,15 @@ function parseCsvRows(text: string): string[][] {
 export interface ParsedGuestRow {
   fullName: string;
   plusOnesAllowed: number;
+  /** Presente solo si el CSV traía una columna `token` con valor no vacío;
+   * marca la fila como una actualización de un invitado existente. */
+  token?: string;
+  /** Solo presente si el CSV traía una columna `status` con valor no vacío. */
+  status?: string;
+  /** Solo presente si el CSV traía una columna `plus_ones_confirmed` con valor no vacío. */
+  plusOnesConfirmed?: number;
+  /** Solo presente si el CSV traía una columna `guest_note` con valor no vacío. */
+  guestNote?: string;
   /** Solo presente si el CSV traía una columna `phone` con valor no vacío. */
   phone?: string;
 }
@@ -125,10 +137,14 @@ export function parseGuestsCsv(text: string): ParseGuestsCsvResult {
   if (rows.length === 0) return { valid, errors };
 
   const header = rows[0].map((h) => h.trim().toLowerCase());
+  const tokenIdx = header.indexOf('token');
   const nameIdx = header.indexOf('full_name');
+  const statusIdx = header.indexOf('status');
   const plusOnesIdx = header.indexOf('plus_ones_allowed');
-  // Columna opcional: si el CSV no la trae, phoneIdx queda en -1 y cada fila
-  // simplemente no incluye `phone`, sin afectar el resto del parseo.
+  const plusOnesConfirmedIdx = header.indexOf('plus_ones_confirmed');
+  const guestNoteIdx = header.indexOf('guest_note');
+  // Columnas opcionales: si el CSV no las trae, sus índices quedan en -1 y
+  // cada fila simplemente no incluye ese campo, sin afectar el resto del parseo.
   const phoneIdx = header.indexOf('phone');
 
   if (nameIdx === -1 || plusOnesIdx === -1) {
@@ -139,8 +155,12 @@ export function parseGuestsCsv(text: string): ParseGuestsCsvResult {
   for (let r = 1; r < rows.length; r++) {
     const rowNumber = r + 1; // 1-based, counting the header as row 1
     const cols = rows[r];
+    const token = tokenIdx === -1 ? '' : (cols[tokenIdx] ?? '').trim();
     const fullName = (cols[nameIdx] ?? '').trim();
+    const statusRaw = statusIdx === -1 ? '' : (cols[statusIdx] ?? '').trim();
     const plusOnesRaw = (cols[plusOnesIdx] ?? '').trim();
+    const plusOnesConfirmedRaw = plusOnesConfirmedIdx === -1 ? '' : (cols[plusOnesConfirmedIdx] ?? '').trim();
+    const guestNoteRaw = guestNoteIdx === -1 ? undefined : (cols[guestNoteIdx] ?? '').trim();
 
     if (!fullName) {
       errors.push({ row: rowNumber, message: 'Falta el nombre completo' });
@@ -159,7 +179,37 @@ export function parseGuestsCsv(text: string): ParseGuestsCsvResult {
     }
 
     const phone = phoneIdx === -1 ? '' : (cols[phoneIdx] ?? '').trim();
-    valid.push(phone ? { fullName, plusOnesAllowed, phone } : { fullName, plusOnesAllowed });
+
+    let status: string | undefined;
+    if (statusRaw) {
+      if (!['pending', 'confirmed', 'declined'].includes(statusRaw)) {
+        errors.push({ row: rowNumber, message: 'status debe ser pending, confirmed o declined' });
+        continue;
+      }
+      status = statusRaw;
+    }
+
+    let plusOnesConfirmed: number | undefined;
+    if (plusOnesConfirmedRaw) {
+      if (!/^\d+$/.test(plusOnesConfirmedRaw)) {
+        errors.push({ row: rowNumber, message: 'plus_ones_confirmed debe ser numérico' });
+        continue;
+      }
+      plusOnesConfirmed = Number(plusOnesConfirmedRaw);
+      if (plusOnesConfirmed < 0) {
+        errors.push({ row: rowNumber, message: 'plus_ones_confirmed no puede ser negativo' });
+        continue;
+      }
+    }
+
+    const parsedRow: ParsedGuestRow = { fullName, plusOnesAllowed };
+    if (token) parsedRow.token = token;
+    if (status) parsedRow.status = status;
+    if (plusOnesConfirmed !== undefined) parsedRow.plusOnesConfirmed = plusOnesConfirmed;
+    if (guestNoteRaw !== undefined && guestNoteRaw !== '') parsedRow.guestNote = guestNoteRaw;
+    if (phone) parsedRow.phone = phone;
+
+    valid.push(parsedRow);
   }
 
   return { valid, errors };

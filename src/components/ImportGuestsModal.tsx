@@ -1,22 +1,26 @@
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { csvTemplate, parseGuestsCsv, type ParsedGuestRow, type ParseGuestsCsvError } from '../lib/csv';
-import { createGuest } from '../lib/adminApi';
+import { createGuest, updateGuest } from '../lib/adminApi';
 import type { Guest } from '../types';
 
 interface ImportGuestsModalProps {
   open: boolean;
+  guests: Guest[];
   onClose: () => void;
   onImported: (created: Guest[]) => void;
+  onUpdated: (updated: Guest[]) => void;
 }
 
 interface Preview {
-  valid: ParsedGuestRow[];
+  toCreate: ParsedGuestRow[];
+  toUpdate: { row: ParsedGuestRow; id: string }[];
   errors: ParseGuestsCsvError[];
 }
 
 interface ImportSummary {
   created: number;
+  updated: number;
   failed: number;
 }
 
@@ -35,10 +39,14 @@ function downloadTemplate() {
 
 /**
  * Import de invitados vía CSV pegado a mano: previsualiza filas
- * válidas/con error antes de confirmar, y al confirmar crea cada fila
- * válida contra adminApi.createGuest sin que un fallo bloquee al resto.
+ * válidas/con error antes de confirmar. Una fila sin `token` crea un
+ * invitado nuevo contra adminApi.createGuest; una fila con `token` que
+ * matchea a un invitado existente lo actualiza contra adminApi.updateGuest
+ * (status, plus_ones_confirmed, guest_note, phone). Un `token` que no
+ * matchea a ningún invitado se marca como error para no crear uno nuevo
+ * por accidente. Un fallo individual no bloquea al resto de las filas.
  */
-export default function ImportGuestsModal({ open, onClose, onImported }: ImportGuestsModalProps) {
+export default function ImportGuestsModal({ open, guests, onClose, onImported, onUpdated }: ImportGuestsModalProps) {
   const [text, setText] = useState('');
   const [preview, setPreview] = useState<Preview | null>(null);
   const [importing, setImporting] = useState(false);
@@ -46,7 +54,24 @@ export default function ImportGuestsModal({ open, onClose, onImported }: ImportG
 
   function handlePreview() {
     const result = parseGuestsCsv(text);
-    setPreview(result);
+    const toCreate: ParsedGuestRow[] = [];
+    const toUpdate: { row: ParsedGuestRow; id: string }[] = [];
+    const additionalErrors: ParseGuestsCsvError[] = [];
+
+    for (const row of result.valid) {
+      if (row.token) {
+        const existing = guests.find((g) => g.token === row.token);
+        if (existing) {
+          toUpdate.push({ row, id: existing.id });
+        } else {
+          additionalErrors.push({ row: -1, message: `Token no encontrado: ${row.token}` });
+        }
+      } else {
+        toCreate.push(row);
+      }
+    }
+
+    setPreview({ toCreate, toUpdate, errors: [...result.errors, ...additionalErrors] });
     setSummary(null);
   }
 
@@ -58,10 +83,11 @@ export default function ImportGuestsModal({ open, onClose, onImported }: ImportG
   }
 
   async function handleConfirm() {
-    if (!preview || preview.valid.length === 0) return;
+    if (!preview || (preview.toCreate.length === 0 && preview.toUpdate.length === 0)) return;
     setImporting(true);
-    const results = await Promise.allSettled(
-      preview.valid.map((row) =>
+
+    const createResults = await Promise.allSettled(
+      preview.toCreate.map((row) =>
         createGuest(
           row.phone
             ? { fullName: row.fullName, plusOnesAllowed: row.plusOnesAllowed, phone: row.phone }
@@ -69,15 +95,35 @@ export default function ImportGuestsModal({ open, onClose, onImported }: ImportG
         ),
       )
     );
+    const updateResults = await Promise.allSettled(
+      preview.toUpdate.map(({ row, id }) =>
+        updateGuest(id, {
+          fullName: row.fullName,
+          plusOnesAllowed: row.plusOnesAllowed,
+          ...(row.status !== undefined && { status: row.status as Guest['status'] }),
+          ...(row.plusOnesConfirmed !== undefined && { plusOnesConfirmed: row.plusOnesConfirmed }),
+          ...(row.guestNote !== undefined && { guestNote: row.guestNote }),
+          ...(row.phone !== undefined && { phone: row.phone }),
+        }),
+      )
+    );
+
     const created: Guest[] = [];
+    const updated: Guest[] = [];
     let failed = 0;
-    for (const r of results) {
+    for (const r of createResults) {
       if (r.status === 'fulfilled') created.push(r.value);
       else failed++;
     }
+    for (const r of updateResults) {
+      if (r.status === 'fulfilled') updated.push(r.value);
+      else failed++;
+    }
+
     setImporting(false);
-    setSummary({ created: created.length, failed });
+    setSummary({ created: created.length, updated: updated.length, failed });
     if (created.length > 0) onImported(created);
+    if (updated.length > 0) onUpdated(updated);
   }
 
   return (
@@ -133,8 +179,7 @@ export default function ImportGuestsModal({ open, onClose, onImported }: ImportG
             {preview && (
               <div className="flex flex-col gap-2 bg-ink-950 p-3 font-mono text-[11px] text-paper-100/80">
                 <span>
-                  {preview.valid.length} fila{preview.valid.length === 1 ? '' : 's'} válida
-                  {preview.valid.length === 1 ? '' : 's'} · {preview.errors.length} error
+                  {preview.toCreate.length} a crear · {preview.toUpdate.length} a actualizar · {preview.errors.length} error
                   {preview.errors.length === 1 ? '' : 'es'}
                 </span>
                 {preview.errors.length > 0 && (
@@ -151,7 +196,8 @@ export default function ImportGuestsModal({ open, onClose, onImported }: ImportG
 
             {summary && (
               <div className="bg-ink-950 p-3 font-mono text-[11px] text-paper-100/80">
-                {summary.created} creado{summary.created === 1 ? '' : 's'}
+                {summary.created} creado{summary.created === 1 ? '' : 's'} · {summary.updated} actualizado
+                {summary.updated === 1 ? '' : 's'}
                 {summary.failed > 0 && (
                   <span className="text-flame-500">
                     {' '}
@@ -169,14 +215,14 @@ export default function ImportGuestsModal({ open, onClose, onImported }: ImportG
               >
                 Cerrar
               </button>
-              {preview && preview.valid.length > 0 && (
+              {preview && preview.toCreate.length + preview.toUpdate.length > 0 && (
                 <button
                   type="button"
                   onClick={handleConfirm}
                   disabled={importing}
                   className="flex-1 bg-acid-400 px-4 py-2 font-mono text-[11px] font-bold uppercase tracking-wider text-ink-950 shadow-glow-acid active:scale-95 disabled:opacity-50"
                 >
-                  {importing ? 'Importando…' : `Confirmar (${preview.valid.length})`}
+                  {importing ? 'Importando…' : `Confirmar (${preview.toCreate.length + preview.toUpdate.length})`}
                 </button>
               )}
             </div>
