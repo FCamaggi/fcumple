@@ -39,6 +39,29 @@ El usuario probó lo anterior y trajo tres correcciones reales:
 
 **Evidencia**: TDD real, implementación con `agency-frontend-developer`, revisión independiente con `agency-code-reviewer`. Un hallazgo 🟡 (`GuestEditModal`/`AdminPage` guardaba `''` en vez de `null` al borrar el teléfono) corregido: `handleSave` ahora normaliza a `null`. `npm run typecheck` limpio, `npm test` → 271/271 en 38 archivos, `npm run build` sin errores, `npm run test:db` → 74/74 en 8 archivos (Docker real, incluye `guests-phone.test.ts`).
 
+## Etapa 12 — Marcos reales de cámara (assets/marcos), LISTO PARA IMPLEMENTAR (2026-09-15)
+
+El usuario dejó 7 PNG diseñados a mano en `assets/marcos/1.png`…`7.png` (fuera de `public/`, no se despliegan tal cual — hay que copiarlos a `public/marcos/`, mismo criterio que `og-image.jpg`). Reemplazan por completo los 7 marcos placeholder dibujados en `<canvas>` de la Etapa 9 (esquinas neón, ticket de carrete, polaroid, etc., que eran un placeholder explícitamente "no cerrado" en esa etapa).
+
+**Verificado antes de proponer nada**: los 7 PNG tienen canal alfa real (`color_type` PNG = 6, RGBA — confirmado leyendo el chunk IHDR de cada archivo) y miden `1086×1448` (proporción 3:4, la misma que ya usa `FramingGuide` en orientación vertical). Contenido de cada uno (por inspección visual):
+1. `1.png` — estampado tipo cámara desechable: ícono de flash y de batería en las esquinas superiores, fecha "09 10 26" abajo a la derecha.
+2. `2.png` — solo la fecha "09 10 26" abajo a la derecha, minimalista.
+3. `3.png` — light leak (destello) hotpink/laser cubriendo los bordes izquierdo y derecho.
+4. `4.png` — "CUMPLE FABRIZIO" tipografía manuscrita grande arriba a la izquierda, más una corona y una rayita dibujadas.
+5. `5.png` — collage de stickers (carita sonriente, cinta "NO SIGNAL", rayo, corazón roto, círculo, estrella, CD/disco) dispersos por el cuadro.
+6. `6.png` — marco tipo visor de cámara real: esquinas tipo corchete, punto rojo de "REC" arriba a la izquierda, brackets de foco al centro, ícono de batería abajo a la izquierda.
+7. `7.png` — cinta washi "FCumple" arriba a la izquierda con una flecha, una rayita y un círculo dibujado a mano abajo a la derecha.
+
+**Simplificación de arquitectura respecto a la Etapa 9**: como ahora los marcos son imágenes reales (no formas dibujadas a mano en Canvas 2D API), la "arquitectura de dos capas mantenidas equivalentes a mano" de la Etapa 9 (preview CSS + rutina de dibujo separada) deja de hacer falta — tanto el preview en vivo como la foto final pueden dibujar el mismo PNG. Se elimina toda la lógica de `drawNeonCorners`/`drawRollTicket`/etc. de `lib/cameraFrames.ts` y el `FrameOverlay` con formas CSS aproximadas en `CameraCapture.tsx`.
+
+Diseño:
+1. **Assets**: copiar los 7 PNG a `public/marcos/1.png`…`7.png` (servidos tal cual, sin pasar por el bundle de JS — son ~2MB combinados, no tiene sentido inflar el bundle de Vite con eso).
+2. **`lib/cameraFrames.ts`**: nuevos `FrameId` con nombres que reflejen el contenido real (ej. `disposable`, `date-stamp`, `light-leak`, `cumple-fabrizio`, `stickers`, `viewfinder`, `fcumple-tape`, más `none`), un mapa `FrameId → ruta del PNG` (`/marcos/N.png`), y `FRAME_LABELS` actualizado con nombres en español acordes (ver la lista de arriba). `getFrameIndexAfterSwipe` no cambia (lógica pura de navegación, sin relación con qué es cada marco).
+3. **Precarga de imágenes**: nuevo hook (ej. `useFrameImages`) que precarga los 7 `HTMLImageElement` al montar `CameraCapture` (antes de que el usuario llegue a disparar), expone qué imágenes ya cargaron. Si el usuario dispara antes de que la imagen del marco actual termine de cargar, esa foto sale sin marco (no se bloquea el disparador esperando red) — documentar esto como decisión consciente, no como bug.
+4. **`handleShoot`**: en vez de llamar a una rutina de dibujo por `frameId`, dibuja directo la `HTMLImageElement` ya cargada sobre el canvas (`ctx.drawImage(img, 0, 0, canvas.width, canvas.height)`) después del espejo, antes de `toBlob` — mismo punto del pipeline que hoy.
+5. **Preview en vivo**: `FrameOverlay` pasa a ser un `<img src={...} className="pointer-events-none absolute inset-0 h-full w-full object-fill" aria-hidden />` en vez de las formas CSS aproximadas. **Importante**: `object-fill` (estira para llenar, no recorta ni deja bandas), no `object-cover`/`object-contain` — tiene que ser la MISMA estrategia de escalado que usa `ctx.drawImage(img, 0, 0, canvas.width, canvas.height)` en el canvas real (que también estira sin mantener proporción), para que lo que el invitado ve en el preview coincida exactamente con lo que termina en la foto, sin importar si el video real es 3:4, 4:3 o 16:9.
+6. **Cantidad y orden**: se mantienen los mismos 7 marcos + "sin marco" (sin agregar ni sacar ninguno) — el usuario ya los diseñó a propósito, no hay decisión de producto pendiente acá, solo integrarlos bien.
+
 ## Etapa 11 — QA post-Etapa 9/10: fader (bug real) y cámara (zoom, confirmación), Implementada (2026-09-15)
 
 Nuevo QA del usuario tras probar en un celular real las etapas anteriores. Cuatro puntos:
