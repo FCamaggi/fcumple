@@ -39,6 +39,23 @@ El usuario probó lo anterior y trajo tres correcciones reales:
 
 **Evidencia**: TDD real, implementación con `agency-frontend-developer`, revisión independiente con `agency-code-reviewer`. Un hallazgo 🟡 (`GuestEditModal`/`AdminPage` guardaba `''` en vez de `null` al borrar el teléfono) corregido: `handleSave` ahora normaliza a `null`. `npm run typecheck` limpio, `npm test` → 271/271 en 38 archivos, `npm run build` sin errores, `npm run test:db` → 74/74 en 8 archivos (Docker real, incluye `guests-phone.test.ts`).
 
+## Etapa 13 — Descarga de fotos vía Web Share API, LISTO PARA IMPLEMENTAR (2026-09-15)
+
+El usuario preguntó si al descargar una foto de la cartelera (`RevealedRoll.tsx`, `PhotoTile.handleDownload`) es posible que se dispare "guardar en la biblioteca de fotos" del celular en vez de una descarga de archivo genérica.
+
+**Investigación antes de proponer nada**: hoy `handleDownload` arma un `<a>` apuntando a una URL firmada de Supabase Storage con `Content-Disposition: attachment` (`getSignedPhotoDownloadUrl`, opción `download: true` de `createSignedUrl`). No existe ninguna API web que permita escribir directo a la galería de fotos sin que el usuario intervenga (restricción de privacidad deliberada de los navegadores, no algo evitable). El comportamiento real varía por plataforma:
+- **Android/Chrome**: la descarga cae a "Downloads", pero Android suele indexar esas imágenes en Fotos/Galería automáticamente de todos modos.
+- **iOS/Safari**: como el archivo se sirve desde otro dominio (Supabase Storage, no el de la app), Safari es poco confiable con `Content-Disposition: attachment` cross-origin — lo más probable es que abra la imagen en el navegador en vez de descargarla, y el invitado tenga que guardarla a mano.
+
+**Decisión tomada con el usuario**: usar la **Web Share API** (`navigator.share` con un `File` adjunto) como camino principal en dispositivos que la soportan — abre la hoja nativa de compartir del celular, con "Guardar imagen"/"Guardar en Fotos" a un toque, en vez de un link de descarga crudo. El link de descarga actual (`<a>` + `getSignedPhotoDownloadUrl`) queda como respaldo para desktop y navegadores sin soporte.
+
+Diseño:
+1. **Detección de soporte**: `typeof navigator.share === 'function'` y, si hay `navigator.canShare`, confirmar que acepta `files` antes de intentarlo (algunos navegadores tienen `share()` pero no soportan compartir archivos, solo texto/links).
+2. **Camino Web Share**: al tocar "Descargar", si hay soporte, hacer `fetch()` de la URL de preview ya cargada (la foto ya está en pantalla, no hace falta pedir una URL de descarga aparte), convertir la respuesta a `Blob` → `File` (nombre tipo `fcumple-foto.jpg`, `type: 'image/jpeg'`), y llamar `navigator.share({ files: [file] })`.
+3. **Cancelación silenciosa**: si el usuario cierra la hoja de compartir sin elegir nada, `share()` rechaza con `AbortError` — hay que ignorarlo (no mostrar error), es una cancelación normal, no una falla.
+4. **Fallback**: si no hay soporte de Web Share, o si `canShare` rechaza los `files`, o si `share()`/el `fetch()` previo fallan por un motivo que NO sea cancelación del usuario, usar el camino actual (`getSignedPhotoDownloadUrl` + `<a>`) sin romper nada de lo que ya funciona.
+5. **Sin cambios de esquema/RPC** — `getSignedPhotoDownloadUrl`/`getSignedPhotoUrl` ya existen y alcanzan.
+
 ## Etapa 12 — Marcos reales de cámara (assets/marcos), Implementada (2026-09-15)
 
 El usuario dejó 7 PNG diseñados a mano en `assets/marcos/1.png`…`7.png` (fuera de `public/`, no se despliegan tal cual — hay que copiarlos a `public/marcos/`, mismo criterio que `og-image.jpg`). Reemplazan por completo los 7 marcos placeholder dibujados en `<canvas>` de la Etapa 9 (esquinas neón, ticket de carrete, polaroid, etc., que eran un placeholder explícitamente "no cerrado" en esa etapa).
