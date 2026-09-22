@@ -14,6 +14,13 @@ interface AnnouncementFeedProps {
  * en `ink-900`, sin sombra suave ni esquinas redondeadas (lista negra
  * DESIGN.md §3), con el cuerpo completo (son pocos avisos, no hace falta
  * truncar ni paginar) y cuándo se publicó en tiempo relativo.
+ *
+ * Etapa 14 (QA manual, feedback de usuario): el orden (más nuevo arriba) no
+ * cambia -- leer de abajo hacia arriba YA es cronológico -- pero eso no era
+ * evidente sin una pista visual, así que se agrega un riel vertical tipo
+ * línea de tiempo (spine) con un marcador cuadrado duro por tarjeta, más un
+ * timestamp absoluto ("10 MAY · 09:00", horario America/Santiago, mismo
+ * criterio de `lib/photoTimeline.ts`) junto al relativo que ya existía.
  */
 export default function AnnouncementFeed({ posts }: AnnouncementFeedProps) {
   if (posts.length === 0) return null;
@@ -29,7 +36,8 @@ export default function AnnouncementFeed({ posts }: AnnouncementFeedProps) {
       <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-laser-500">
         On air // avisos
       </span>
-      <div className="flex flex-col gap-4">
+      <div className="relative flex flex-col gap-4 pl-5">
+        <div aria-hidden="true" className="absolute bottom-1 left-1 top-1 w-px bg-smoke-700/60" />
         {ordered.map((post) => (
           <AnnouncementCard key={post.id} post={post} />
         ))}
@@ -101,14 +109,19 @@ function AnnouncementCard({ post }: { post: Post }) {
   }, [galleryImages]);
 
   return (
-    <article className="flex flex-col gap-2 border border-smoke-700/50 bg-ink-900 p-4 shadow-xl">
+    <article className="relative flex flex-col gap-2 border border-smoke-700/50 bg-ink-900 p-4 shadow-xl">
+      <span
+        aria-hidden="true"
+        className="absolute -left-[22px] top-5 h-2 w-2 -translate-y-1/2 bg-laser-500"
+      />
       {coverUrl && (
         <img src={coverUrl} alt={post.title} className="aspect-video w-full object-cover" />
       )}
       <div className="flex items-start justify-between gap-2">
         <h3 className="font-display text-xl uppercase leading-tight text-paper-100">{post.title}</h3>
-        <span className="shrink-0 font-mono text-[10px] uppercase tracking-wider text-paper-100/50">
-          {formatRelativeTime(post.publishedAt)}
+        <span className="flex shrink-0 flex-col items-end gap-0.5 font-mono text-[10px] uppercase tracking-wider text-paper-100/50">
+          <span>{formatAbsoluteTime(post.publishedAt)}</span>
+          <span>{formatRelativeTime(post.publishedAt)}</span>
         </span>
       </div>
       {post.subtitle && (
@@ -132,6 +145,27 @@ function AnnouncementCard({ post }: { post: Post }) {
       )}
     </article>
   );
+}
+
+// Mismo criterio que `chileDateAndHour` en lib/photoTimeline.ts: horario de
+// América/Santiago vía Intl (resuelve el offset correcto, cambio de horario
+// de verano incluido, sin cálculo manual), armado a mano como
+// "10 MAY · 09:00" -- el timestamp absoluto que responde "cuándo se subió
+// cada cosa" (feedback QA), complementario al relativo de abajo.
+const absoluteTimeFormatter = new Intl.DateTimeFormat('es-CL', {
+  timeZone: 'America/Santiago',
+  day: '2-digit',
+  month: 'short',
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false,
+});
+
+function formatAbsoluteTime(iso: string | null): string {
+  if (!iso) return '';
+  const parts = absoluteTimeFormatter.formatToParts(new Date(iso));
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? '';
+  return `${get('day')} ${get('month').replace('.', '')} · ${get('hour')}:${get('minute')}`;
 }
 
 // "hace {N}{unit}": minutos hasta 59, horas hasta 23, después días. No usa

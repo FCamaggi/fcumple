@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { getSignedPhotoDownloadUrl, getSignedPhotoUrl } from '../lib/photosApi';
+import { getSignedPhotoUrl } from '../lib/photosApi';
 import { groupPhotosByHourBand, type PhotoTimelineBand } from '../lib/photoTimeline';
+import PhotoLightbox from './PhotoLightbox';
 
 export interface RawRevealedPhoto {
   storagePath: string;
@@ -28,9 +29,13 @@ const PREVIEW_SIZE = 3;
  * las fotos -- pasa a `RevealedRoll` los datos crudos (`storagePath` +
  * `createdAt`) y este componente resuelve URLs de a poco, banda por banda:
  * solo las primeras `PREVIEW_SIZE` fotos de cada banda al montar (lo que se
- * ve en el preview), y el resto recién cuando el usuario expande esa banda
- * puntual. Una banda con `PREVIEW_SIZE` fotos o menos no tiene nada que
- * expandir, así que queda "expandida" desde el inicio.
+ * ve en el preview).
+ *
+ * Etapa 14 (QA manual, feedback de usuario): "Ver las N fotos" ya no expande
+ * el grid en línea -- abre `PhotoLightbox`, un visor fullscreen de a una
+ * foto por vez con navegación y un único botón de descarga para la foto que
+ * se está viendo. Tocar cualquier thumbnail del preview también abre el
+ * visor, arrancando en esa foto.
  */
 export default function RevealedRoll({ photos }: RevealedRollProps) {
   if (photos.length === 0) return null;
@@ -53,11 +58,10 @@ export default function RevealedRoll({ photos }: RevealedRollProps) {
 
 function HourBand({ band }: { band: PhotoTimelineBand<RawRevealedPhoto> }) {
   const previewPhotos = band.photos.slice(0, PREVIEW_SIZE);
-  const restPhotos = band.photos.slice(PREVIEW_SIZE);
-  const needsExpansion = restPhotos.length > 0;
+  const hasMore = band.photos.length > PREVIEW_SIZE;
 
-  const [expanded, setExpanded] = useState(!needsExpansion);
   const [urls, setUrls] = useState<Record<string, string>>({});
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   // Preview: se resuelven las primeras PREVIEW_SIZE fotos apenas la banda
   // aparece, sin esperar ninguna interacción del usuario.
@@ -81,28 +85,12 @@ function HourBand({ band }: { band: PhotoTimelineBand<RawRevealedPhoto> }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [band.label]);
 
-  async function handleExpand() {
-    setExpanded(true);
-    const entries = await Promise.all(
-      restPhotos.map(async (photo) => {
-        const url = await getSignedPhotoUrl(photo.storagePath).catch(() => null);
-        return [photo.storagePath, url] as const;
-      }),
-    );
-    setUrls((prev) => ({
-      ...prev,
-      ...Object.fromEntries(entries.filter((entry): entry is [string, string] => entry[1] !== null)),
-    }));
-  }
-
-  const visiblePhotos = expanded ? band.photos : previewPhotos;
-
   return (
     <div className="flex flex-col gap-1">
-      {needsExpansion && !expanded ? (
+      {hasMore ? (
         <button
           type="button"
-          onClick={handleExpand}
+          onClick={() => setLightboxIndex(0)}
           className="text-left font-mono text-[10px] uppercase tracking-widest text-paper-100/50 underline decoration-dotted underline-offset-2"
         >
           {band.label} · Ver las {band.photos.length} fotos
@@ -111,41 +99,24 @@ function HourBand({ band }: { band: PhotoTimelineBand<RawRevealedPhoto> }) {
         <span className="font-mono text-[10px] uppercase tracking-widest text-paper-100/50">{band.label}</span>
       )}
       <div className="grid grid-cols-3 gap-1">
-        {visiblePhotos.map((photo) => {
+        {previewPhotos.map((photo, i) => {
           const url = urls[photo.storagePath];
           if (!url) return null;
           return (
-            <PhotoTile key={photo.storagePath} url={url} storagePath={photo.storagePath} downloadable={expanded} />
+            <button
+              key={photo.storagePath}
+              type="button"
+              onClick={() => setLightboxIndex(i)}
+              aria-label={`Ver foto ${i + 1} de la banda ${band.label}`}
+              className="block"
+            >
+              <img src={url} alt="" className="aspect-square w-full object-cover" />
+            </button>
           );
         })}
       </div>
-    </div>
-  );
-}
-
-function PhotoTile({ url, storagePath, downloadable }: { url: string; storagePath: string; downloadable: boolean }) {
-  async function handleDownload() {
-    const downloadUrl = await getSignedPhotoDownloadUrl(storagePath).catch(() => null);
-    if (!downloadUrl) return;
-    const link = document.createElement('a');
-    link.href = downloadUrl;
-    link.rel = 'noopener';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }
-
-  return (
-    <div className="relative">
-      <img src={url} alt="" className="aspect-square w-full object-cover" />
-      {downloadable && (
-        <button
-          type="button"
-          onClick={handleDownload}
-          className="absolute bottom-1 right-1 bg-ink-950/80 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-widest text-paper-100"
-        >
-          Descargar
-        </button>
+      {lightboxIndex !== null && (
+        <PhotoLightbox photos={band.photos} startIndex={lightboxIndex} onClose={() => setLightboxIndex(null)} />
       )}
     </div>
   );

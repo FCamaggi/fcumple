@@ -83,6 +83,26 @@ describe('AnnouncementFeed', () => {
     expect(screen.getByText(/hace 2d/i)).toBeInTheDocument();
   });
 
+  it('shows an absolute "published" timestamp in Chile time next to the relative one', () => {
+    render(<AnnouncementFeed posts={[withCover, withoutCover]} />);
+
+    // withCover.publishedAt = 2026-05-10T09:00:00Z -> America/Santiago (UTC-4
+    // in May, no DST) = 05:00.
+    expect(screen.getByText(/10 may · 05:00/i)).toBeInTheDocument();
+    // withoutCover.publishedAt = 2026-05-08T12:00:00Z -> 08:00 Chile.
+    expect(screen.getByText(/08 may · 08:00/i)).toBeInTheDocument();
+  });
+
+  it('renders a vertical timeline rail with a marker per post', () => {
+    const { container } = render(<AnnouncementFeed posts={[withCover, withoutCover]} />);
+
+    const rail = container.querySelector('[aria-hidden="true"].bg-smoke-700\\/60');
+    expect(rail).toBeInTheDocument();
+
+    const markers = container.querySelectorAll('[aria-hidden="true"].bg-laser-500');
+    expect(markers).toHaveLength(2);
+  });
+
   it('shows gallery images below the body when the post has them', async () => {
     vi.mocked(listPostImages).mockResolvedValueOnce([
       { id: 'img1', postId: 'p1', storagePath: 'p1/gal-a.jpg', position: 0 },

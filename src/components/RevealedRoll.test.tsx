@@ -11,7 +11,8 @@ vi.mock('../lib/photosApi', () => ({
 import { getSignedPhotoUrl, getSignedPhotoDownloadUrl } from '../lib/photosApi';
 
 // Banda "22:00 — 23:00" (Chile) con 5 fotos -- más que el preview de 3, para
-// poder probar la carga perezosa del resto al expandir.
+// poder probar que el visor arranca con la banda completa sin volver a pedir
+// las 3 primeras.
 const bandPhotos = [
   { storagePath: 'tok1/a.jpg', createdAt: '2026-10-10T01:00:00Z' }, // 22:00
   { storagePath: 'tok2/b.jpg', createdAt: '2026-10-10T01:10:00Z' }, // 22:10
@@ -56,68 +57,61 @@ describe('RevealedRoll', () => {
     expect(getSignedPhotoUrl).not.toHaveBeenCalledWith('tok4/d.jpg');
     expect(getSignedPhotoUrl).not.toHaveBeenCalledWith('tok5/e.jpg');
 
-    expect(screen.getByRole('button', { name: /22:00 — 23:00/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /ver las 5 fotos/i })).toBeInTheDocument();
     expect(screen.getByText('23:00 — 00:00')).toBeInTheDocument();
   });
 
-  it('expands a band on click, resolving only the remaining photos (not the preview ones again)', async () => {
-    const user = userEvent.setup();
-    render(<RevealedRoll photos={[...bandPhotos, otherBandPhoto]} />);
-
-    await screen.findAllByRole('presentation');
-    vi.mocked(getSignedPhotoUrl).mockClear();
-
-    const expandButton = screen.getByRole('button', { name: /ver las 5 fotos/i });
-    await user.click(expandButton);
-
-    await waitFor(() => {
-      expect(getSignedPhotoUrl).toHaveBeenCalledTimes(2);
-    });
-    expect(getSignedPhotoUrl).toHaveBeenCalledWith('tok4/d.jpg');
-    expect(getSignedPhotoUrl).toHaveBeenCalledWith('tok5/e.jpg');
-    expect(getSignedPhotoUrl).not.toHaveBeenCalledWith('tok1/a.jpg');
-
-    await waitFor(() => {
-      expect(screen.getAllByRole('presentation')).toHaveLength(6); // 5 de la banda expandida + 1 de la otra
-    });
-  });
-
-  it('expanding a band does not fetch anything for the other bands', async () => {
-    const user = userEvent.setup();
-    render(<RevealedRoll photos={[...bandPhotos, otherBandPhoto]} />);
-
-    await screen.findAllByRole('presentation');
-    vi.mocked(getSignedPhotoUrl).mockClear();
-
-    await user.click(screen.getByRole('button', { name: /ver las 5 fotos/i }));
-
-    await waitFor(() => {
-      expect(getSignedPhotoUrl).toHaveBeenCalledTimes(2);
-    });
-    expect(getSignedPhotoUrl).not.toHaveBeenCalledWith('tok6/f.jpg');
-  });
-
-  it('a band with 3 or fewer photos has no expand button and shows a download button per photo right away', async () => {
+  it('a band with 3 or fewer photos has no "ver las N fotos" button, just the band label', async () => {
     render(<RevealedRoll photos={[otherBandPhoto]} />);
 
     await screen.findAllByRole('presentation');
 
     expect(screen.queryByRole('button', { name: /ver las/i })).not.toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: /descargar/i })).toHaveLength(1);
+    expect(screen.getByText('23:00 — 00:00')).toBeInTheDocument();
   });
 
-  it('a download button only requests a signed download url once clicked, not before', async () => {
+  it('clicking "ver las N fotos" opens the lightbox starting at the first photo of the band', async () => {
     const user = userEvent.setup();
-    render(<RevealedRoll photos={[otherBandPhoto]} />);
+    render(<RevealedRoll photos={[...bandPhotos, otherBandPhoto]} />);
 
     await screen.findAllByRole('presentation');
-    expect(getSignedPhotoDownloadUrl).not.toHaveBeenCalled();
 
-    await user.click(screen.getByRole('button', { name: /descargar/i }));
+    await user.click(screen.getByRole('button', { name: /ver las 5 fotos/i }));
 
-    await waitFor(() => {
-      expect(getSignedPhotoDownloadUrl).toHaveBeenCalledWith('tok6/f.jpg');
-    });
-    expect(getSignedPhotoDownloadUrl).toHaveBeenCalledTimes(1);
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog).toHaveAccessibleName(/foto 1 de 5/i);
+  });
+
+  it('clicking a preview thumbnail opens the lightbox starting at that photo', async () => {
+    const user = userEvent.setup();
+    render(<RevealedRoll photos={[...bandPhotos, otherBandPhoto]} />);
+
+    await screen.findAllByRole('presentation');
+
+    await user.click(screen.getByRole('button', { name: 'Ver foto 2 de la banda 22:00 — 23:00' }));
+
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog).toHaveAccessibleName(/foto 2 de 5/i);
+  });
+
+  it('closing the lightbox removes it from the document', async () => {
+    const user = userEvent.setup();
+    render(<RevealedRoll photos={[...bandPhotos, otherBandPhoto]} />);
+
+    await screen.findAllByRole('presentation');
+    await user.click(screen.getByRole('button', { name: /ver las 5 fotos/i }));
+    await screen.findByRole('dialog');
+
+    await user.click(screen.getByRole('button', { name: 'Cerrar visor de fotos' }));
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('no longer shows a per-tile download button on the preview thumbnails', async () => {
+    render(<RevealedRoll photos={[...bandPhotos, otherBandPhoto]} />);
+
+    await screen.findAllByRole('presentation');
+
+    expect(screen.queryByRole('button', { name: /descargar/i })).not.toBeInTheDocument();
   });
 });
