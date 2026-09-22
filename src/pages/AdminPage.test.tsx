@@ -7,6 +7,7 @@ vi.mock('../lib/adminApi', () => ({
   listGuests: vi.fn(),
   createGuest: vi.fn(),
   updateGuest: vi.fn(),
+  updateAllPhotoQuotas: vi.fn(),
   deleteGuest: vi.fn(),
 }));
 vi.mock('../lib/auth', () => ({
@@ -35,7 +36,7 @@ vi.mock('../lib/postsApi', () => ({
   getPostImageUrl: vi.fn((path: string) => `https://cdn.example/${path}`),
 }));
 
-import { listGuests, createGuest, updateGuest, deleteGuest } from '../lib/adminApi';
+import { listGuests, createGuest, updateGuest, deleteGuest, updateAllPhotoQuotas } from '../lib/adminApi';
 import { signOut } from '../lib/auth';
 import { getEventConfig } from '../lib/eventApi';
 import { listAllPosts } from '../lib/postsApi';
@@ -93,6 +94,33 @@ afterEach(() => {
 });
 
 describe('AdminPage', () => {
+
+  it('allows the admin to assign a global photo quota', async () => {
+    vi.mocked(listGuests).mockResolvedValue([{ id: "g1", fullName: "Maria Fernanda Contreras", status: "pending", plusOnesAllowed: 1, plusOnesConfirmed: 0, guestNote: null, respondedAt: null, checkedInAt: null, photoQuota: 5 }]);
+    const user = userEvent.setup();
+    render(<AdminPage />);
+
+    // Wait for initial load
+    expect(await screen.findByText('Maria Fernanda Contreras')).toBeInTheDocument();
+
+    // Open modal
+    await user.click(screen.getByRole('button', { name: /asignar cupo fotos/i }));
+
+    // Check modal exists
+    expect(await screen.findByText('Cupo global de fotos')).toBeInTheDocument();
+
+    // Type new quota
+    const input = screen.getByLabelText(/nuevo cupo para todos/i);
+    await user.type(input, '10');
+
+    // Apply
+    await user.click(screen.getByRole('button', { name: /aplicar/i }));
+
+    // Verify call
+    expect(updateAllPhotoQuotas).toHaveBeenCalledWith(10);
+    expect(await screen.findByText('Cupo de fotos actualizado a 10 para todos los invitados')).toBeInTheDocument();
+  });
+
   it('loads and shows the guest list', async () => {
     vi.mocked(listGuests).mockResolvedValueOnce([guest]);
 

@@ -61,12 +61,20 @@ export interface CreateGuestInput {
   plusOnesAllowed: number;
   photoQuota?: number;
   phone?: string | null;
+  status?: RsvpStatus;
+  plusOnesConfirmed?: number;
+  guestNote?: string | null;
+  adminNote?: string | null;
 }
 
 export async function createGuest(input: CreateGuestInput): Promise<Guest> {
   const row: Record<string, unknown> = { full_name: input.fullName, plus_ones_allowed: input.plusOnesAllowed };
   if (input.photoQuota !== undefined) row.photo_quota = input.photoQuota;
   if (input.phone !== undefined) row.phone = input.phone;
+  if (input.status !== undefined) row.status = input.status;
+  if (input.plusOnesConfirmed !== undefined) row.plus_ones_confirmed = input.plusOnesConfirmed;
+  if (input.guestNote !== undefined) row.guest_note = input.guestNote;
+  if (input.adminNote !== undefined) row.admin_note = input.adminNote;
 
   const { data, error } = await supabase.from('guests').insert(row).select(GUEST_COLUMNS).single();
 
@@ -99,6 +107,16 @@ function toRow(patch: UpdateGuestPatch): Record<string, unknown> {
   if (patch.photoQuota !== undefined) row.photo_quota = patch.photoQuota;
   if (patch.phone !== undefined) row.phone = patch.phone;
   return row;
+}
+
+
+export async function updateAllPhotoQuotas(quota: number): Promise<void> {
+  const { error } = await supabase
+    .from('guests')
+    .update({ photo_quota: quota })
+    .neq('id', '00000000-0000-0000-0000-000000000000'); // Dummy condition to allow bulk update without warnings
+
+  if (error) fail('actualizar cupo de fotos global', error);
 }
 
 export async function updateGuest(id: string, patch: UpdateGuestPatch): Promise<Guest> {
