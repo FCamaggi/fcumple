@@ -1,9 +1,10 @@
+import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useMemo, useState } from 'react';
-import { listGuests, createGuest, updateGuest, deleteGuest } from '../lib/adminApi';
+import { listGuests, createGuest, updateGuest, deleteGuest, updateAllPhotoQuotas } from '../lib/adminApi';
 import { signOut } from '../lib/auth';
 import { getEventConfig } from '../lib/eventApi';
 import { useIsMobile } from '../hooks/useIsMobile';
-import type { EventConfig, Guest } from '../types';
+import type { EventConfig, Guest, RsvpStatus } from '../types';
 import HeadcountMeter from '../components/HeadcountMeter';
 import DoorList from '../components/DoorList';
 import GuestEditModal from '../components/GuestEditModal';
@@ -27,6 +28,28 @@ export default function AdminPage() {
   const [editingGuest, setEditingGuest] = useState<Guest | null>(null);
   const [creating, setCreating] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [globalQuotaInput, setGlobalQuotaInput] = useState('');
+  const [showGlobalQuotaModal, setShowGlobalQuotaModal] = useState(false);
+
+  async function handleSetGlobalPhotoQuota() {
+    const parsed = parseInt(globalQuotaInput, 10);
+    if (isNaN(parsed) || parsed < 0) {
+      setToastKind('error');
+      setToast('Ingrese un cupo válido');
+      return;
+    }
+    try {
+      await updateAllPhotoQuotas(parsed);
+      setGuests((prev) => prev.map((g) => ({ ...g, photoQuota: parsed })));
+      setShowGlobalQuotaModal(false);
+      setGlobalQuotaInput('');
+      setToastKind('success');
+      setToast(`Cupo de fotos actualizado a ${parsed} para todos los invitados`);
+    } catch (err) {
+      notifyError('actualizar el cupo global', err);
+    }
+  }
+
   const [toast, setToast] = useState<string | null>(null);
   const [toastKind, setToastKind] = useState<'success' | 'error'>('success');
   const [showEventSettings, setShowEventSettings] = useState(false);
@@ -93,7 +116,16 @@ export default function AdminPage() {
     setToast(err instanceof Error ? err.message : `No pudimos ${action}.`);
   }
 
-  async function handleCreate(input: { fullName: string; plusOnesAllowed: number; photoQuota: number; phone?: string }) {
+  async function handleCreate(input: {
+    fullName: string;
+    plusOnesAllowed: number;
+    photoQuota: number;
+    phone?: string;
+    status?: RsvpStatus;
+    plusOnesConfirmed?: number;
+    guestNote?: string | null;
+    adminNote?: string | null;
+  }) {
     try {
       const created = await createGuest(input);
       setGuests((prev) => [...prev, created]);
@@ -111,6 +143,8 @@ export default function AdminPage() {
         fullName: draft.fullName,
         status: draft.status,
         plusOnesAllowed: draft.plusOnesAllowed,
+        plusOnesConfirmed: draft.plusOnesConfirmed,
+        guestNote: draft.guestNote,
         adminNote: draft.adminNote,
         photoQuota: draft.photoQuota,
         phone: draft.phone?.trim() ? draft.phone.trim() : null,
@@ -287,6 +321,20 @@ export default function AdminPage() {
 
         {!doorMode && (
           <div className="flex items-center justify-end gap-2">
+                        <button
+              type="button"
+              onClick={() => setCreating(true)}
+              className="border border-acid-400/50 bg-acid-400/10 px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-acid-400 transition-colors hover:bg-acid-400/20"
+            >
+              Añadir invitado
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowGlobalQuotaModal(true)}
+              className="border border-smoke-700/50 px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-hotpink-500 transition-colors hover:bg-smoke-700/30"
+            >
+              Asignar cupo fotos
+            </button>
             <ExportGuestsButton guests={guests} />
             <button
               type="button"
@@ -319,6 +367,62 @@ export default function AdminPage() {
         onImported={handleImported}
         onUpdated={handleUpdatedFromImport}
       />
+
+
+      <AnimatePresence>
+        {showGlobalQuotaModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-ink-950/90 p-4 backdrop-blur-sm"
+            onClick={() => setShowGlobalQuotaModal(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              onClick={(e) => e.stopPropagation()}
+              className="flex w-full max-w-sm flex-col gap-4 border border-smoke-700/50 bg-ink-900 p-6 shadow-2xl"
+            >
+              <span className="font-mono text-[11px] uppercase tracking-widest text-hotpink-500">Cupo global de fotos</span>
+
+              <div className="flex flex-col gap-1">
+                <label htmlFor="global-quota" className="font-mono text-[11px] uppercase tracking-wider text-paper-100/70">
+                  Nuevo cupo para TODOS
+                </label>
+                <input
+                  id="global-quota"
+                  type="number"
+                  min={0}
+                  value={globalQuotaInput}
+                  onChange={(e) => setGlobalQuotaInput(e.target.value)}
+                  className="bg-ink-950 px-3 py-2 font-sans text-sm text-paper-100 outline-none"
+                  placeholder="Ej: 5"
+                  autoFocus
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowGlobalQuotaModal(false)}
+                  className="flex-1 bg-smoke-700/30 px-4 py-2 font-mono text-[11px] uppercase tracking-wider text-paper-100 hover:bg-smoke-700/50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSetGlobalPhotoQuota}
+                  className="flex-1 bg-hotpink-500 px-4 py-2 font-mono text-[11px] font-bold uppercase tracking-wider text-ink-950 transition-transform active:scale-95"
+                >
+                  Aplicar
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <SignalToast message={toast} kind={toastKind} onDismiss={() => setToast(null)} />
     </div>

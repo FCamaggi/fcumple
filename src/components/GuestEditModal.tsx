@@ -98,7 +98,7 @@ export default function GuestEditModal({ guest, onClose, onSave, onDelete }: Gue
                       aria-label="Reducir cupo máximo"
                       className="tap-target flex items-center justify-center border border-smoke-700/50 font-display text-xl text-paper-100 active:scale-95"
                       onClick={() =>
-                        setDraft({ ...draft, plusOnesAllowed: Math.max(0, draft.plusOnesAllowed - 1) })
+                        setDraft({ ...draft, plusOnesAllowed: Math.max(0, draft.plusOnesAllowed - 1), plusOnesConfirmed: Math.min(draft.plusOnesConfirmed, Math.max(0, draft.plusOnesAllowed - 1)) })
                       }
                     >
                       −
@@ -114,6 +114,38 @@ export default function GuestEditModal({ guest, onClose, onSave, onDelete }: Gue
                       aria-label="Aumentar cupo máximo"
                       className="tap-target flex items-center justify-center border border-smoke-700/50 font-display text-xl text-acid-400 shadow-glow-acid active:scale-95"
                       onClick={() => setDraft({ ...draft, plusOnesAllowed: draft.plusOnesAllowed + 1 })}
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex flex-col justify-between border border-smoke-700/40 bg-ink-900 p-4 md:col-span-7">
+                  <div className="mb-2 flex items-center justify-between font-mono text-[11px] font-bold uppercase tracking-wider text-paper-100">
+                    <span>Acompañantes confirmados</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-4 bg-ink-950 p-3">
+                    <button
+                      type="button"
+                      aria-label="Reducir acompañantes confirmados"
+                      className="tap-target flex items-center justify-center border border-smoke-700/50 font-display text-xl text-paper-100 active:scale-95"
+                      onClick={() =>
+                        setDraft({ ...draft, plusOnesConfirmed: Math.max(0, draft.plusOnesConfirmed - 1) })
+                      }
+                    >
+                      −
+                    </button>
+                    <div className="flex flex-col items-center">
+                      <span className="font-display text-4xl text-acid-400">+{draft.plusOnesConfirmed}</span>
+                      <span className="font-mono text-[10px] uppercase tracking-widest text-paper-100/70">
+                        Confirmados
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      aria-label="Aumentar acompañantes confirmados"
+                      className="tap-target flex items-center justify-center border border-smoke-700/50 font-display text-xl text-acid-400 shadow-glow-acid active:scale-95"
+                      onClick={() => setDraft({ ...draft, plusOnesConfirmed: Math.min(draft.plusOnesAllowed, draft.plusOnesConfirmed + 1) })}
                     >
                       +
                     </button>
@@ -172,6 +204,23 @@ export default function GuestEditModal({ guest, onClose, onSave, onDelete }: Gue
                   onChange={(e) => setDraft({ ...draft, phone: e.target.value })}
                   placeholder="+56 9 1234 5678"
                   className="bg-ink-950 px-3 py-2 font-sans text-sm text-paper-100 outline-none"
+                />
+              </div>
+
+              <div className="relative border border-smoke-700/40 bg-ink-900 p-4">
+                <label
+                  htmlFor="guest-note"
+                  className="absolute -top-3 left-4 bg-ink-900 px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-widest text-paper-100"
+                >
+                  Nota del invitado
+                </label>
+                <textarea
+                  id="guest-note"
+                  rows={2}
+                  value={draft.guestNote ?? ''}
+                  onChange={(e) => setDraft({ ...draft, guestNote: e.target.value })}
+                  placeholder="Mensaje dejado por el invitado..."
+                  className="mt-2 w-full resize-none bg-transparent font-mono text-sm text-paper-100 outline-none"
                 />
               </div>
 
