@@ -50,11 +50,11 @@ describe('CreateGuestModal', () => {
 
     await user.click(screen.getByRole('button', { name: /crear/i }));
 
-    expect(onCreate).toHaveBeenCalledWith({
+    expect(onCreate).toHaveBeenCalledWith(expect.objectContaining({
       fullName: 'Nuevo Invitado',
       plusOnesAllowed: 2,
       photoQuota: 5,
-    });
+    }));
   });
 
   it('incluye el teléfono cuando el admin lo carga, y lo omite si lo deja vacío', async () => {

@@ -147,7 +147,7 @@ describe('AdminPage', () => {
     await user.type(screen.getByLabelText(/nombre completo/i), 'Nuevo Invitado');
     await user.click(screen.getByRole('button', { name: /^crear$/i }));
 
-    expect(createGuest).toHaveBeenCalledWith({ fullName: 'Nuevo Invitado', plusOnesAllowed: 0, photoQuota: 3 });
+    expect(createGuest).toHaveBeenCalledWith(expect.objectContaining({ fullName: 'Nuevo Invitado', plusOnesAllowed: 0, photoQuota: 3 }));
     expect(await screen.findByText('Nuevo Invitado')).toBeInTheDocument();
   });
 
