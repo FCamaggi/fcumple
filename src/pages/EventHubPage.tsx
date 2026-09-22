@@ -88,7 +88,13 @@ export default function EventHubPage() {
     listRevealedPhotos()
       .then((photos: Photo[]) => {
         if (active) {
-          setRevealedPhotos(photos.map((p) => ({ storagePath: p.storagePath, createdAt: p.createdAt })));
+          setRevealedPhotos(
+            photos.map((p) => ({
+              storagePath: p.storagePath,
+              displayStoragePath: p.displayStoragePath,
+              createdAt: p.createdAt,
+            })),
+          );
         }
       })
       .catch(() => {

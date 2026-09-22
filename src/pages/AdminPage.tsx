@@ -148,6 +148,7 @@ export default function AdminPage() {
         adminNote: draft.adminNote,
         photoQuota: draft.photoQuota,
         phone: draft.phone?.trim() ? draft.phone.trim() : null,
+        autoApprovePhotos: draft.autoApprovePhotos,
       });
       setGuests((prev) => prev.map((g) => (g.id === updated.id ? updated : g)));
       setEditingGuest(null);

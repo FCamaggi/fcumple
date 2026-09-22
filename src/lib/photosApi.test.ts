@@ -56,30 +56,104 @@ describe('getPhotoQuota', () => {
 
 describe('uploadPhoto', () => {
   const blob = new Blob(['fake-jpeg-bytes'], { type: 'image/jpeg' });
+  const displayBlob = new Blob(['fake-jpeg-display-bytes'], { type: 'image/jpeg' });
 
-  it('uploads the blob to storage under {token}/{uuid}.jpg and registers it via submit_photo', async () => {
+  it('uploads both the original and display blobs and registers both paths via submit_photo', async () => {
     const upload = vi.fn().mockResolvedValue({ data: { path: 'tok123/fixed-uuid.jpg' }, error: null });
     storageFrom.mockReturnValue({ upload });
     rpc.mockResolvedValue({
-      data: [{ id: 'photo-1', guest_id: 'g1', storage_path: 'tok123/fixed-uuid.jpg', status: 'pending', created_at: '2026-06-01T00:00:00Z' }],
+      data: [
+        {
+          id: 'photo-1',
+          guest_id: 'g1',
+          storage_path: 'tok123/fixed-uuid.jpg',
+          display_storage_path: 'tok123/fixed-uuid-display.jpg',
+          status: 'pending',
+          created_at: '2026-06-01T00:00:00Z',
+        },
+      ],
       error: null,
     });
 
-    const photo = await uploadPhoto('tok123', blob);
+    const photo = await uploadPhoto('tok123', blob, displayBlob);
 
     expect(storageFrom).toHaveBeenCalledWith('party-photos');
     expect(upload).toHaveBeenCalledWith('tok123/fixed-uuid.jpg', blob, { contentType: 'image/jpeg' });
-    expect(rpc).toHaveBeenCalledWith('submit_photo', { p_token: 'tok123', p_storage_path: 'tok123/fixed-uuid.jpg' });
+    expect(upload).toHaveBeenCalledWith('tok123/fixed-uuid-display.jpg', displayBlob, { contentType: 'image/jpeg' });
+    expect(rpc).toHaveBeenCalledWith('submit_photo', {
+      p_token: 'tok123',
+      p_storage_path: 'tok123/fixed-uuid.jpg',
+      p_display_storage_path: 'tok123/fixed-uuid-display.jpg',
+    });
     expect(photo).toEqual({
       id: 'photo-1',
       guestId: 'g1',
       storagePath: 'tok123/fixed-uuid.jpg',
+      displayStoragePath: 'tok123/fixed-uuid-display.jpg',
       status: 'pending',
       createdAt: '2026-06-01T00:00:00Z',
     });
   });
 
-  it('throws a readable error when the storage upload fails, without calling submit_photo', async () => {
+  it('submits with a null display path (but still submits the original) when no display blob is given', async () => {
+    const upload = vi.fn().mockResolvedValue({ data: { path: 'tok123/fixed-uuid.jpg' }, error: null });
+    storageFrom.mockReturnValue({ upload });
+    rpc.mockResolvedValue({
+      data: [
+        {
+          id: 'photo-1',
+          guest_id: 'g1',
+          storage_path: 'tok123/fixed-uuid.jpg',
+          display_storage_path: null,
+          status: 'pending',
+          created_at: '2026-06-01T00:00:00Z',
+        },
+      ],
+      error: null,
+    });
+
+    await uploadPhoto('tok123', blob);
+
+    expect(upload).toHaveBeenCalledTimes(1); // only the original, no display upload attempted
+    expect(rpc).toHaveBeenCalledWith('submit_photo', {
+      p_token: 'tok123',
+      p_storage_path: 'tok123/fixed-uuid.jpg',
+      p_display_storage_path: null,
+    });
+  });
+
+  it('falls back to a null display path (without failing the whole upload) when the display upload fails', async () => {
+    const upload = vi
+      .fn()
+      .mockResolvedValueOnce({ data: { path: 'tok123/fixed-uuid.jpg' }, error: null }) // original: succeeds
+      .mockResolvedValueOnce({ data: null, error: { message: 'display bucket full' } }); // display: fails
+    storageFrom.mockReturnValue({ upload });
+    rpc.mockResolvedValue({
+      data: [
+        {
+          id: 'photo-1',
+          guest_id: 'g1',
+          storage_path: 'tok123/fixed-uuid.jpg',
+          display_storage_path: null,
+          status: 'pending',
+          created_at: '2026-06-01T00:00:00Z',
+        },
+      ],
+      error: null,
+    });
+
+    const photo = await uploadPhoto('tok123', blob, displayBlob);
+
+    expect(upload).toHaveBeenCalledTimes(2);
+    expect(rpc).toHaveBeenCalledWith('submit_photo', {
+      p_token: 'tok123',
+      p_storage_path: 'tok123/fixed-uuid.jpg',
+      p_display_storage_path: null,
+    });
+    expect(photo.displayStoragePath).toBeNull();
+  });
+
+  it('throws a readable error when the original storage upload fails, without calling submit_photo', async () => {
     const upload = vi.fn().mockResolvedValue({ data: null, error: { message: 'bucket full' } });
     storageFrom.mockReturnValue({ upload });
 
@@ -122,6 +196,7 @@ describe('listAllPhotosForModeration', () => {
         id: 'p1',
         guestId: 'g1',
         storagePath: 'tok1/a.jpg',
+        displayStoragePath: null,
         status: 'pending',
         createdAt: '2026-06-01T00:00:00Z',
         guestFullName: 'Juana Pérez',
@@ -193,11 +268,11 @@ describe('getSignedPhotoDownloadUrl', () => {
 });
 
 describe('listRevealedPhotos', () => {
-  it('maps the storage paths and created_at returned by the RPC into approved Photo stubs', async () => {
+  it('maps the storage paths, display paths and created_at returned by the RPC into approved Photo stubs', async () => {
     rpc.mockResolvedValue({
       data: [
-        { storage_path: 'tok1/a.jpg', created_at: '2026-10-09T22:15:00Z' },
-        { storage_path: 'tok2/b.jpg', created_at: '2026-10-09T23:05:00Z' },
+        { storage_path: 'tok1/a.jpg', display_storage_path: 'tok1/a-display.jpg', created_at: '2026-10-09T22:15:00Z' },
+        { storage_path: 'tok2/b.jpg', display_storage_path: null, created_at: '2026-10-09T23:05:00Z' },
       ],
       error: null,
     });
@@ -206,8 +281,22 @@ describe('listRevealedPhotos', () => {
 
     expect(rpc).toHaveBeenCalledWith('list_revealed_photos');
     expect(photos).toEqual([
-      { id: 'tok1/a.jpg', guestId: '', storagePath: 'tok1/a.jpg', status: 'approved', createdAt: '2026-10-09T22:15:00Z' },
-      { id: 'tok2/b.jpg', guestId: '', storagePath: 'tok2/b.jpg', status: 'approved', createdAt: '2026-10-09T23:05:00Z' },
+      {
+        id: 'tok1/a.jpg',
+        guestId: '',
+        storagePath: 'tok1/a.jpg',
+        displayStoragePath: 'tok1/a-display.jpg',
+        status: 'approved',
+        createdAt: '2026-10-09T22:15:00Z',
+      },
+      {
+        id: 'tok2/b.jpg',
+        guestId: '',
+        storagePath: 'tok2/b.jpg',
+        displayStoragePath: null,
+        status: 'approved',
+        createdAt: '2026-10-09T23:05:00Z',
+      },
     ]);
   });
 

@@ -30,6 +30,9 @@ formato que espera `supabase db push`):
 | `20260913090000_dev_guest_support.sql` | Columna `is_dev` en `guests`, invitado DEV fijo (`token = 'dev-preview'`), exclusión de `is_dev` en `get_public_headcount()`, RPC `dev_reset_guest()`. |
 | `20260913100000_posts_images.sql` | Columnas `subtitle` y `cover_image_path` en `posts`, tabla `post_images` (galería) + RLS. |
 | `20260913100001_storage_post_images.sql` | Bucket `post-images` + políticas RLS de `storage.objects`. |
+| `20260914100000_rpc_list_revealed_photos_created_at.sql` | Suma `created_at` al retorno de `list_revealed_photos()`. |
+| `20260922100000_guests_auto_approve_photos.sql` | Columna `auto_approve_photos` en `guests`, `submit_photo` inserta con `status` según esa columna. |
+| `20260922100001_photos_display_storage_path.sql` | Columna `display_storage_path` en `photos`, `submit_photo` acepta un 3er parámetro opcional, `list_revealed_photos` y `storage_path_is_revealed` lo exponen/reconocen. |
 
 Aplicarlas a un proyecto hosted real es un paso posterior (`supabase db
 push`), fuera del alcance de este trabajo — acá solo se versionan y se
@@ -161,17 +164,18 @@ Ver decisiones de producto en `docs/BACKLOG.md` (Etapa 2) y
   Storage, y después llama a `submit_photo` con el mismo path para
   registrar la metadata.
 
-### `submit_photo(p_token text, p_storage_path text)`
+### `submit_photo(p_token text, p_storage_path text, p_display_storage_path text default null)`
 
 Devuelve la fila insertada:
 
 ```ts
 {
-  id: string;              // uuid
-  guest_id: string;        // uuid
+  id: string;                          // uuid
+  guest_id: string;                    // uuid
   storage_path: string;
-  status: 'pending';       // siempre 'pending' al insertar
-  created_at: string;      // timestamptz ISO
+  display_storage_path: string | null; // null si no se pasó p_display_storage_path
+  status: 'approved' | 'pending';      // según guests.auto_approve_photos del invitado
+  created_at: string;                  // timestamptz ISO
 }
 ```
 
@@ -179,14 +183,50 @@ Devuelve la fila insertada:
 - Tira excepción si `p_storage_path` no empieza exactamente con `{token}/`
   (`errcode 22023`) — evita que alguien registre metadata apuntando al
   archivo de otro invitado.
+- Si se pasa `p_display_storage_path` (no null), se valida con el mismo
+  chequeo de prefijo `{token}/` (mismo `errcode 22023`). Si es `null` (el
+  default), se salta la validación por completo — pensado para fotos sin
+  versión de display, o subidas desde un frontend viejo que todavía no
+  manda este parámetro.
 - Tira excepción si el invitado ya alcanzó `photo_quota` (`errcode 22023`).
   Cuenta **todas** las fotos del invitado sin importar `status` (pending +
   approved + rejected), para que reintentar después de un rechazo no evada
-  el cupo.
+  el cupo. El cálculo del cupo es independiente de `auto_approve_photos` —
+  una foto auto-aprobada cuenta contra el cupo exactamente igual que una
+  pendiente.
+- El `status` de la fila insertada ya no es siempre `'pending'`: es
+  `'approved'` si `guests.auto_approve_photos` del invitado es `true` (el
+  default de esa columna), o `'pending'` si es `false` — ver sección
+  "Auto-aprobación de fotos por invitado" más abajo. Cualquiera sea el
+  resultado, sigue siendo la misma fila de `photos`, así que el resto del
+  contrato (cupo, moderación de `pending`/`rejected` vía `moderatePhoto`,
+  etc.) no cambia.
 - Esta función solo registra la metadata; no valida ni escribe el archivo
   en Storage — eso ya tiene que haber pasado (la policy de `storage.objects`
   para `anon` INSERT es la que valida que el path pertenezca a un invitado
-  real, ver más abajo).
+  real, ver más abajo). Lo mismo aplica al archivo de
+  `display_storage_path`: es un segundo objeto en el mismo bucket, bajo el
+  mismo `{token}/...`, cubierto por la misma policy de INSERT (no hace
+  falta una policy nueva, ver más abajo).
+
+### Auto-aprobación de fotos por invitado (`guests.auto_approve_photos`)
+
+Columna nueva en `guests`, `boolean not null default true`. Por default,
+las fotos de cualquier invitado se auto-aprueban al subirlas (`submit_photo`
+inserta con `status = 'approved'` directamente) y nunca pasan por la cola de
+moderación. El admin puede marcar puntualmente a un invitado en particular
+(alguien de quien no se fía para postear algo apropiado) con
+`auto_approve_photos = false`, y de ahí en adelante sus fotos vuelven a caer
+en `status = 'pending'` y necesitan `moderatePhoto` como antes. El default
+es "auto-aprobado" a propósito — el admin marca las excepciones, nunca al
+revés.
+
+No hace falta ninguna policy de RLS nueva para editar esta columna: `guests`
+ya le da a `authenticated` UPDATE completo vía la policy
+`authenticated_full_access` (`for all ... using (true) with check (true)`,
+más el `grant ... update ... to authenticated` de
+`20260911120004_create_guests.sql`) — es simplemente una columna más en una
+tabla que el admin ya puede escribir sin restricción.
 
 ### `get_photo_quota(p_token text)`
 
@@ -200,6 +240,28 @@ Devuelve 0 o 1 fila:
 ```
 
 Un token inexistente devuelve 0 filas, mismo criterio que `get_guest_by_token`.
+
+### `list_revealed_photos()`
+
+Sin parámetros, sin token — cualquiera puede llamarla, incluso sin sesión.
+Devuelve una fila por cada foto `approved` una vez que el rollo está
+revelado (0 filas si `event_config.photos_revealed_at` sigue en `null`,
+sin importar cuántas fotos estén `approved`):
+
+```ts
+{
+  storage_path: string;
+  display_storage_path: string | null; // null si esa foto no tiene versión de display
+  created_at: string;                  // timestamptz ISO
+}[]
+```
+
+Nunca expone `guest_id` ni `status` — solo lo necesario para construir la
+URL firmada de cada imagen (la de display para el grid/lightbox, la
+original para la descarga) y agrupar por hora en la cartelera. Igual que
+`get_guest_by_token`/`submit_photo`, es `security definer` con
+`search_path` fijado a `public` y `grant execute` para `anon` y
+`authenticated`.
 
 ### Revelado del rollo
 
@@ -217,7 +279,17 @@ ningún objeto del bucket, sin importar su `status`.
   sobre por qué eso queda enteramente en `submit_photo`, para evitar una
   condición de carrera entre el chequeo y el insert real del archivo).
 - `anon` **SELECT**: solo para objetos con una fila `approved` en `photos`
-  y `event_config.photos_revealed_at` no nulo.
+  y `event_config.photos_revealed_at` no nulo. Desde
+  `20260922100001_photos_display_storage_path.sql`, esto vale tanto para
+  `storage_path` como para `display_storage_path` de esa fila — son dos
+  objetos distintos del mismo bucket para la misma foto, y ambos quedan
+  legibles (o ambos bloqueados) bajo exactamente las mismas condiciones.
+  `public.storage_path_is_revealed(p_path)` chequea
+  `(p.storage_path = p_path or p.display_storage_path = p_path)` en vez de
+  comparar solo contra `storage_path`. No hizo falta ninguna policy nueva
+  de INSERT para el segundo archivo: la policy `guest_insert_own_folder`
+  ya permite cualquier nombre de archivo bajo `{token}/...`, sin importar
+  cuántos objetos suba el invitado por foto.
 - `anon`: sin política de UPDATE ni DELETE — no puede modificar ni borrar
   nada, ni siquiera lo que subió.
 - `authenticated`: acceso completo (SELECT/UPDATE/DELETE, y de hecho

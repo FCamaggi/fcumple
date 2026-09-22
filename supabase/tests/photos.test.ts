@@ -8,25 +8,32 @@ let admin: Client;
 async function insertGuest(overrides: Partial<{
   full_name: string;
   photo_quota: number;
+  auto_approve_photos: boolean;
 }> = {}) {
   const full_name = overrides.full_name ?? 'Guest Test';
   const photo_quota = overrides.photo_quota ?? 5;
+  const auto_approve_photos = overrides.auto_approve_photos ?? true;
 
   const result = await admin.query<{ id: string; token: string }>(
-    `insert into public.guests (full_name, photo_quota)
-     values ($1, $2)
+    `insert into public.guests (full_name, photo_quota, auto_approve_photos)
+     values ($1, $2, $3)
      returning id, token`,
-    [full_name, photo_quota],
+    [full_name, photo_quota, auto_approve_photos],
   );
   return result.rows[0];
 }
 
-async function insertPhoto(guestId: string, storagePath: string, status = 'pending') {
+async function insertPhoto(
+  guestId: string,
+  storagePath: string,
+  status = 'pending',
+  displayStoragePath: string | null = null,
+) {
   const result = await admin.query<{ id: string }>(
-    `insert into public.photos (guest_id, storage_path, status)
-     values ($1, $2, $3)
+    `insert into public.photos (guest_id, storage_path, status, display_storage_path)
+     values ($1, $2, $3, $4)
      returning id`,
-    [guestId, storagePath, status],
+    [guestId, storagePath, status, displayStoragePath],
   );
   return result.rows[0];
 }
@@ -57,8 +64,8 @@ beforeEach(async () => {
 });
 
 describe('submit_photo', () => {
-  it('inserts a pending row and returns it when the token is valid and quota is available', async () => {
-    const guest = await insertGuest({ photo_quota: 5 });
+  it('inserts a pending row and returns it when the token is valid, quota is available and moderation is required', async () => {
+    const guest = await insertGuest({ photo_quota: 5, auto_approve_photos: false });
 
     const result = await asRole(admin, 'anon', () =>
       admin.query('select * from submit_photo($1, $2)', [guest.token, `${guest.token}/photo1.jpg`]),
@@ -111,6 +118,81 @@ describe('submit_photo', () => {
     await expect(
       asRole(admin, 'anon', () =>
         admin.query('select * from submit_photo($1, $2)', ['no-such-token', 'no-such-token/x.jpg']),
+      ),
+    ).rejects.toThrow();
+  });
+
+  it('auto-approves the photo when the guest has auto_approve_photos = true (the default)', async () => {
+    const guest = await insertGuest({ auto_approve_photos: true });
+
+    const result = await asRole(admin, 'anon', () =>
+      admin.query('select * from submit_photo($1, $2)', [guest.token, `${guest.token}/photo1.jpg`]),
+    );
+
+    expect(result.rows[0].status).toBe('approved');
+  });
+
+  it('leaves the photo pending when the guest has auto_approve_photos = false', async () => {
+    const guest = await insertGuest({ auto_approve_photos: false });
+
+    const result = await asRole(admin, 'anon', () =>
+      admin.query('select * from submit_photo($1, $2)', [guest.token, `${guest.token}/photo1.jpg`]),
+    );
+
+    expect(result.rows[0].status).toBe('pending');
+  });
+
+  it('counts photos toward quota regardless of auto-approve status', async () => {
+    const guest = await insertGuest({ photo_quota: 2, auto_approve_photos: true });
+    await asRole(admin, 'anon', () =>
+      admin.query('select * from submit_photo($1, $2)', [guest.token, `${guest.token}/a.jpg`]),
+    );
+    await asRole(admin, 'anon', () =>
+      admin.query('select * from submit_photo($1, $2)', [guest.token, `${guest.token}/b.jpg`]),
+    );
+
+    await expect(
+      asRole(admin, 'anon', () =>
+        admin.query('select * from submit_photo($1, $2)', [guest.token, `${guest.token}/c.jpg`]),
+      ),
+    ).rejects.toThrow();
+  });
+
+  it('stores and returns display_storage_path when provided', async () => {
+    const guest = await insertGuest();
+
+    const result = await asRole(admin, 'anon', () =>
+      admin.query('select * from submit_photo($1, $2, $3)', [
+        guest.token,
+        `${guest.token}/photo1.jpg`,
+        `${guest.token}/photo1-thumb.jpg`,
+      ]),
+    );
+
+    expect(result.rows[0].display_storage_path).toBe(`${guest.token}/photo1-thumb.jpg`);
+  });
+
+  it('leaves display_storage_path null when not provided', async () => {
+    const guest = await insertGuest();
+
+    const result = await asRole(admin, 'anon', () =>
+      admin.query('select * from submit_photo($1, $2)', [guest.token, `${guest.token}/photo1.jpg`]),
+    );
+
+    expect(result.rows[0].display_storage_path).toBeNull();
+  });
+
+  it('rejects a display_storage_path that does not start with the caller token', async () => {
+    const guest = await insertGuest();
+    const otherGuest = await insertGuest({ full_name: 'Other Guest' });
+
+    await expect(
+      asRole(admin, 'anon', () =>
+        admin.query('select * from submit_photo($1, $2, $3)', [
+          guest.token,
+          `${guest.token}/photo1.jpg`,
+          `${otherGuest.token}/sneaky-thumb.jpg`,
+        ]),
       ),
     ).rejects.toThrow();
   });
@@ -248,6 +330,25 @@ describe('RLS on storage.objects (party-photos)', () => {
     expect(result.rows).toHaveLength(1);
   });
 
+  it('lets anon read the display_storage_path object of an approved, revealed photo', async () => {
+    const guest = await insertGuest();
+    const path = `${guest.token}/photo.jpg`;
+    const displayPath = `${guest.token}/photo-thumb.jpg`;
+    await admin.query(`insert into storage.objects (bucket_id, name) values ('party-photos', $1)`, [displayPath]);
+    await insertPhoto(guest.id, path, 'approved', displayPath);
+    await asRole(admin, 'authenticated', () =>
+      admin.query(
+        `insert into public.event_config (id, photos_revealed_at) values (true, now())
+         on conflict (id) do update set photos_revealed_at = excluded.photos_revealed_at`,
+      ),
+    );
+
+    const result = await asRole(admin, 'anon', () =>
+      admin.query('select * from storage.objects where name = $1', [displayPath]),
+    );
+    expect(result.rows).toHaveLength(1);
+  });
+
   it('does not let anon read an approved object before the roll is revealed', async () => {
     const guest = await insertGuest();
     const path = `${guest.token}/photo.jpg`;
@@ -327,14 +428,27 @@ describe('list_revealed_photos', () => {
     expect(result.rows.map((r) => r.storage_path)).toEqual([`${guest.token}/a.jpg`]);
   });
 
-  it('never exposes guest_id or status, only storage_path and created_at', async () => {
+  it('never exposes guest_id or status, only storage_path, display_storage_path and created_at', async () => {
     const guest = await insertGuest();
     await insertPhoto(guest.id, `${guest.token}/a.jpg`, 'approved');
     await admin.query('update public.event_config set photos_revealed_at = now() where id = true');
 
     const result = await asRole(admin, 'anon', () => admin.query('select * from list_revealed_photos()'));
 
-    expect(Object.keys(result.rows[0])).toEqual(['storage_path', 'created_at']);
+    expect(Object.keys(result.rows[0])).toEqual(['storage_path', 'display_storage_path', 'created_at']);
+  });
+
+  it('returns display_storage_path when the photo has one, and null otherwise', async () => {
+    const guest = await insertGuest();
+    await insertPhoto(guest.id, `${guest.token}/a.jpg`, 'approved', `${guest.token}/a-thumb.jpg`);
+    await insertPhoto(guest.id, `${guest.token}/b.jpg`, 'approved');
+    await admin.query('update public.event_config set photos_revealed_at = now() where id = true');
+
+    const result = await asRole(admin, 'anon', () => admin.query('select * from list_revealed_photos()'));
+    const byPath = Object.fromEntries(result.rows.map((r) => [r.storage_path, r.display_storage_path]));
+
+    expect(byPath[`${guest.token}/a.jpg`]).toBe(`${guest.token}/a-thumb.jpg`);
+    expect(byPath[`${guest.token}/b.jpg`]).toBeNull();
   });
 
   it('returns the real created_at of each approved photo', async () => {

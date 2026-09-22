@@ -4,6 +4,13 @@ import { getSignedPhotoDownloadUrl, getSignedPhotoUrl } from '../lib/photosApi';
 
 export interface LightboxPhoto {
   storagePath: string;
+  /**
+   * Bandwidth-friendly copy for on-screen viewing (Etapa 15) -- `null` for
+   * photos that predate the feature or whose display copy failed to
+   * generate/upload. The fullscreen image prefers this; the download
+   * button always requests `storagePath` (the original) regardless.
+   */
+  displayStoragePath: string | null;
   createdAt: string;
 }
 
@@ -62,12 +69,16 @@ export default function PhotoLightbox({ photos, startIndex, onClose }: PhotoLigh
   const goPrev = useCallback(() => goTo(index - 1), [goTo, index]);
   const goNext = useCallback(() => goTo(index + 1), [goTo, index]);
 
-  const resolveUrl = useCallback((storagePath: string): Promise<string | null> => {
+  // Etapa 15: la cache y el resultado siguen indexados por `storagePath`
+  // (identificador estable de la foto), pero la URL que efectivamente se
+  // pide es la de la copia "display" cuando existe -- cayendo al original
+  // si esta foto no tiene una.
+  const resolveUrl = useCallback((photo: LightboxPhoto): Promise<string | null> => {
     const cache = urlCacheRef.current;
-    const cached = cache.get(storagePath);
+    const cached = cache.get(photo.storagePath);
     if (cached) return cached;
-    const promise = getSignedPhotoUrl(storagePath).catch(() => null);
-    cache.set(storagePath, promise);
+    const promise = getSignedPhotoUrl(photo.displayStoragePath ?? photo.storagePath).catch(() => null);
+    cache.set(photo.storagePath, promise);
     return promise;
   }, []);
 
@@ -138,7 +149,7 @@ export default function PhotoLightbox({ photos, startIndex, onClose }: PhotoLigh
 
     Promise.all(
       toResolve.map(async (photo) => {
-        const url = await resolveUrl(photo.storagePath);
+        const url = await resolveUrl(photo);
         return [photo.storagePath, url] as const;
       }),
     ).then((entries) => {

@@ -18,7 +18,7 @@ import {
   type FrameId,
 } from '../lib/cameraFrames';
 import FilmRollCounter from './FilmRollCounter';
-import type { PhotoQuota } from '../types';
+import type { Photo, PhotoQuota } from '../types';
 
 interface CameraCaptureProps {
   token: string;
@@ -29,6 +29,15 @@ interface CameraCaptureProps {
 
 const MAX_DIMENSION = 1600;
 const JPEG_QUALITY = 0.8;
+// Etapa 15: segunda copia "display" más liviana, pensada para navegar el
+// rollo revelado (RevealedRoll/PhotoLightbox) sin gastar el ancho de banda
+// del original -- la descarga siempre sirve el original completo, esta
+// copia nunca se ofrece para eso. 640px/0.7 quedan bien por debajo de
+// MAX_DIMENSION/JPEG_QUALITY a propósito: la meta acá es un archivo
+// sensiblemente más chico para un grid de thumbnails y un visor a pantalla
+// completa (que igual reescala en CSS), no calidad prístina.
+const DISPLAY_MAX_DIMENSION = 640;
+const DISPLAY_JPEG_QUALITY = 0.7;
 const NO_CONTROLS: CameraControlsAvailability = { torch: false };
 // Distancia mínima de arrastre horizontal para contar como swipe de cambio
 // de marco -- por debajo de esto es más probable que haya sido un tap o un
@@ -117,6 +126,14 @@ export default function CameraCapture({ token, quota, onQuotaChange, onClose }: 
   // disparo del rollo) sólo se dispara desde "Enviar", ver handleSend.
   const [reviewBlob, setReviewBlob] = useState<Blob | null>(null);
   const [reviewUrl, setReviewUrl] = useState<string | null>(null);
+  // Copia "display" del mismo disparo (Etapa 15) -- generada junto al blob
+  // original en handleShoot, viaja con él por toda la pantalla de revisión
+  // y solo se sube (best-effort, ver photosApi.uploadPhoto) al tocar
+  // "Enviar". `null` es un estado válido, no un error: significa que la
+  // generación en canvas falló (o su contexto 2D no está disponible), y
+  // handleSend igual manda el original -- ver el comentario dentro de
+  // handleShoot.
+  const [reviewDisplayBlob, setReviewDisplayBlob] = useState<Blob | null>(null);
 
   // Revoca la URL de objeto de la revisión anterior (o de la actual, al
   // desmontar con una revisión pendiente) para no filtrar memoria. Corre en
@@ -243,6 +260,28 @@ export default function CameraCapture({ token, quota, onQuotaChange, onClose }: 
         // recién se llama desde handleSend.
         setReviewBlob(blob);
         setReviewUrl(URL.createObjectURL(blob));
+
+        // Etapa 15: además del original, genera la copia "display" a partir
+        // del mismo canvas ya compositado (marco incluido), reescalada a un
+        // máximo más chico. Best-effort: si el contexto 2D del canvas
+        // auxiliar no está disponible o este segundo toBlob no produce un
+        // blob, reviewDisplayBlob queda en null y handleSend igual manda el
+        // original -- no bloquea el disparo por esto.
+        const displayScale = Math.min(1, DISPLAY_MAX_DIMENSION / Math.max(canvas.width, canvas.height));
+        const displayCanvas = document.createElement('canvas');
+        displayCanvas.width = Math.max(1, Math.round(canvas.width * displayScale));
+        displayCanvas.height = Math.max(1, Math.round(canvas.height * displayScale));
+        const displayCtx = displayCanvas.getContext('2d');
+        if (!displayCtx) {
+          setReviewDisplayBlob(null);
+          return;
+        }
+        displayCtx.drawImage(canvas, 0, 0, displayCanvas.width, displayCanvas.height);
+        displayCanvas.toBlob(
+          (displayBlob) => setReviewDisplayBlob(displayBlob),
+          'image/jpeg',
+          DISPLAY_JPEG_QUALITY,
+        );
       },
       'image/jpeg',
       JPEG_QUALITY,
@@ -252,13 +291,15 @@ export default function CameraCapture({ token, quota, onQuotaChange, onClose }: 
   function handleRetake() {
     setReviewBlob(null);
     setReviewUrl(null);
+    setReviewDisplayBlob(null);
   }
 
   function handleSend() {
     if (!reviewBlob) return;
-    capture(reviewBlob);
+    capture(reviewBlob, reviewDisplayBlob);
     setReviewBlob(null);
     setReviewUrl(null);
+    setReviewDisplayBlob(null);
   }
 
   if (outOfShots) {
@@ -337,7 +378,7 @@ export default function CameraCapture({ token, quota, onQuotaChange, onClose }: 
 
           <AnimatePresence mode="wait">
             {state.phase === 'success' ? (
-              <ConfirmationBanner key="success" reduceMotion={reduceMotion} onDismiss={reset} />
+              <ConfirmationBanner key="success" status={state.status} reduceMotion={reduceMotion} onDismiss={reset} />
             ) : state.phase === 'error' ? (
               <ErrorBanner key="error" message={state.message} onDismiss={reset} />
             ) : null}
@@ -553,7 +594,22 @@ function FrameOverlay({ frameId }: { frameId: FrameId }) {
   );
 }
 
-function ConfirmationBanner({ reduceMotion, onDismiss }: { reduceMotion: boolean; onDismiss: () => void }) {
+// El texto depende de si el invitado tiene auto_approve_photos (el default,
+// ver submit_photo): con status 'approved' la foto ya quedó firme en el
+// rollo, sin pasar por moderación -- prometer un paso que la mayoría de las
+// fotos ya no atraviesa sería directamente falso.
+function ConfirmationBanner({
+  status,
+  reduceMotion,
+  onDismiss,
+}: {
+  status: Photo['status'];
+  reduceMotion: boolean;
+  onDismiss: () => void;
+}) {
+  const message =
+    status === 'approved' ? 'Quedó en el rollo.' : 'Quedó en el rollo. Pasa por moderación antes de revelarse.';
+
   return (
     <motion.div
       role="status"
@@ -563,7 +619,7 @@ function ConfirmationBanner({ reduceMotion, onDismiss }: { reduceMotion: boolean
       transition={reduceMotion ? { duration: 0 } : { duration: 0.3 }}
       className="flex items-center justify-between gap-3 bg-acid-400/10 px-3 py-2"
     >
-      <p className="font-sans text-sm text-acid-400">Quedó en el rollo. Pasa por moderación antes de revelarse.</p>
+      <p className="font-sans text-sm text-acid-400">{message}</p>
       <button type="button" onClick={onDismiss} className="font-mono text-[10px] uppercase text-paper-100/70">
         Ok
       </button>

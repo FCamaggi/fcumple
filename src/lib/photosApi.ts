@@ -12,6 +12,7 @@ interface PhotoRow {
   id: string;
   guest_id: string;
   storage_path: string;
+  display_storage_path?: string | null;
   status: Photo['status'];
   created_at: string;
 }
@@ -21,6 +22,7 @@ function mapRow(row: PhotoRow): Photo {
     id: row.id,
     guestId: row.guest_id,
     storagePath: row.storage_path,
+    displayStoragePath: row.display_storage_path ?? null,
     status: row.status,
     createdAt: row.created_at,
   };
@@ -50,8 +52,17 @@ export async function getPhotoQuota(token: string): Promise<PhotoQuota> {
 // orphaned in Storage (anon has no delete policy to clean it up itself —
 // see supabase/README.md). Rather than pretend that's a success, this
 // throws a distinct, honest message for that case.
-export async function uploadPhoto(token: string, blob: Blob): Promise<Photo> {
-  const path = `${token}/${crypto.randomUUID()}.jpg`;
+//
+// `displayBlob` (Etapa 15) is the smaller, bandwidth-friendly copy
+// CameraCapture generates alongside the original for browsing the revealed
+// roll. It's uploaded to a second object in the same guest folder
+// ({token}/{uuid}-display.jpg) and best-effort only: if it's missing, or if
+// its upload fails for any reason, this still submits the guest's real
+// photo with `p_display_storage_path: null` rather than failing the whole
+// upload — a guest should never lose their shot over a thumbnail problem.
+export async function uploadPhoto(token: string, blob: Blob, displayBlob?: Blob | null): Promise<Photo> {
+  const uuid = crypto.randomUUID();
+  const path = `${token}/${uuid}.jpg`;
 
   const { error: uploadError } = await supabase.storage.from(BUCKET).upload(path, blob, {
     contentType: 'image/jpeg',
@@ -61,7 +72,25 @@ export async function uploadPhoto(token: string, blob: Blob): Promise<Photo> {
     fail('subir la foto', uploadError);
   }
 
-  const { data, error } = await supabase.rpc('submit_photo', { p_token: token, p_storage_path: path });
+  let displayPath: string | null = null;
+  if (displayBlob) {
+    const candidatePath = `${token}/${uuid}-display.jpg`;
+    const { error: displayUploadError } = await supabase.storage.from(BUCKET).upload(candidatePath, displayBlob, {
+      contentType: 'image/jpeg',
+    });
+    // Best-effort, see comment above: swallow the failure and fall back to
+    // null instead of throwing — the original photo (already uploaded
+    // above) must still make it through submit_photo.
+    if (!displayUploadError) {
+      displayPath = candidatePath;
+    }
+  }
+
+  const { data, error } = await supabase.rpc('submit_photo', {
+    p_token: token,
+    p_storage_path: path,
+    p_display_storage_path: displayPath,
+  });
 
   if (error) {
     throw new Error(
@@ -144,10 +173,13 @@ export async function listRevealedPhotos(): Promise<Photo[]> {
 
   if (error) fail('cargar el rollo revelado', error);
 
-  return ((data ?? []) as Array<{ storage_path: string; created_at: string }>).map((row) => ({
+  return (
+    (data ?? []) as Array<{ storage_path: string; display_storage_path: string | null; created_at: string }>
+  ).map((row) => ({
     id: row.storage_path,
     guestId: '',
     storagePath: row.storage_path,
+    displayStoragePath: row.display_storage_path ?? null,
     status: 'approved' as const,
     createdAt: row.created_at,
   }));

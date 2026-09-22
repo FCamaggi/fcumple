@@ -294,5 +294,28 @@ describe('CameraCapture', () => {
       expect(blobArg).toBeInstanceOf(Blob);
       expect(screen.queryByRole('button', { name: /repetir/i })).not.toBeInTheDocument();
     });
+
+    it('generates and sends a second, smaller "display" blob alongside the original (Etapa 15)', async () => {
+      mockCanvasPipeline();
+      mockCamera(makeTrack({}));
+      const user = userEvent.setup();
+      render(<CameraCapture token="tok123" quota={{ quota: 5, used: 2 }} onClose={() => {}} />);
+
+      const shutter = await screen.findByRole('button', { name: /disparar/i });
+      await waitFor(() => expect(shutter).toBeEnabled());
+      await user.click(shutter);
+
+      await user.click(await screen.findByRole('button', { name: /enviar/i }));
+
+      await waitFor(() => expect(uploadPhoto).toHaveBeenCalledTimes(1));
+      const [, blobArg, displayBlobArg] = vi.mocked(uploadPhoto).mock.calls[0];
+      expect(blobArg).toBeInstanceOf(Blob);
+      // Both toBlob calls in handleShoot go through the same mocked
+      // HTMLCanvasElement.prototype.toBlob (see mockCanvasPipeline), which
+      // always resolves synchronously with a fake blob -- so in this test
+      // environment the display blob is never null, only in the real
+      // "context 2D unavailable" edge case handled by CameraCapture itself.
+      expect(displayBlobArg).toBeInstanceOf(Blob);
+    });
   });
 });

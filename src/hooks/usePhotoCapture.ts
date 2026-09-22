@@ -1,11 +1,16 @@
 import { useCallback, useState } from 'react';
 import { uploadPhoto } from '../lib/photosApi';
-import type { PhotoQuota } from '../types';
+import type { Photo, PhotoQuota } from '../types';
 
 export type PhotoCaptureState =
   | { phase: 'idle' }
   | { phase: 'uploading' }
-  | { phase: 'success' }
+  // `status` viaja desde submit_photo (ver photosApi.uploadPhoto): con
+  // guests.auto_approve_photos=true (el default) llega 'approved' directo,
+  // sin pasar por moderación -- el consumidor de este estado (la
+  // ConfirmationBanner de CameraCapture) lo necesita para no prometer un
+  // paso de moderación que la mayoría de las fotos ya no atraviesa.
+  | { phase: 'success'; status: Photo['status'] }
   | { phase: 'error'; message: string };
 
 /**
@@ -19,13 +24,13 @@ export function usePhotoCapture(token: string, quota: PhotoQuota, onQuotaChange?
   const [state, setState] = useState<PhotoCaptureState>({ phase: 'idle' });
 
   const capture = useCallback(
-    async (blob: Blob) => {
+    async (blob: Blob, displayBlob?: Blob | null) => {
       setState({ phase: 'uploading' });
       try {
-        await uploadPhoto(token, blob);
+        const photo = await uploadPhoto(token, blob, displayBlob);
         const next = { quota: quota.quota, used: quota.used + 1 };
         onQuotaChange?.(next);
-        setState({ phase: 'success' });
+        setState({ phase: 'success', status: photo.status });
       } catch (err) {
         setState({ phase: 'error', message: err instanceof Error ? err.message : 'No pudimos subir la foto.' });
       }

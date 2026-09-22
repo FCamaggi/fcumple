@@ -11,9 +11,9 @@ vi.mock('../lib/photosApi', () => ({
 import { getSignedPhotoUrl, getSignedPhotoDownloadUrl } from '../lib/photosApi';
 
 const photos = [
-  { storagePath: 'tok/a.jpg', createdAt: '2026-10-10T01:00:00Z' },
-  { storagePath: 'tok/b.jpg', createdAt: '2026-10-10T01:10:00Z' },
-  { storagePath: 'tok/c.jpg', createdAt: '2026-10-10T01:20:00Z' },
+  { storagePath: 'tok/a.jpg', displayStoragePath: 'tok/a-display.jpg', createdAt: '2026-10-10T01:00:00Z' },
+  { storagePath: 'tok/b.jpg', displayStoragePath: null, createdAt: '2026-10-10T01:10:00Z' },
+  { storagePath: 'tok/c.jpg', displayStoragePath: 'tok/c-display.jpg', createdAt: '2026-10-10T01:20:00Z' },
 ];
 
 beforeEach(() => {
@@ -34,6 +34,7 @@ describe('PhotoLightbox', () => {
     expect(screen.getByText('2 / 3')).toBeInTheDocument();
 
     await waitFor(() => {
+      // 'b' has no display copy (null), so it falls back to the original.
       expect(getSignedPhotoUrl).toHaveBeenCalledWith('tok/b.jpg');
     });
   });
@@ -42,15 +43,42 @@ describe('PhotoLightbox', () => {
     render(<PhotoLightbox photos={photos} startIndex={1} onClose={vi.fn()} />);
 
     await waitFor(() => {
-      expect(getSignedPhotoUrl).toHaveBeenCalledWith('tok/a.jpg');
+      // 'a' and 'c' have a display copy and are requested via that path;
+      // 'b' has none and falls back to its original.
+      expect(getSignedPhotoUrl).toHaveBeenCalledWith('tok/a-display.jpg');
       expect(getSignedPhotoUrl).toHaveBeenCalledWith('tok/b.jpg');
-      expect(getSignedPhotoUrl).toHaveBeenCalledWith('tok/c.jpg');
+      expect(getSignedPhotoUrl).toHaveBeenCalledWith('tok/c-display.jpg');
     });
     // With 3 photos total, "neighbors" of index 1 covers the whole band --
     // the guarantee under test is that it never resolves more than what's
     // reachable from the current position (no front-loading unrelated
     // bands), which the RevealedRoll-level tests also cover.
     expect(getSignedPhotoUrl).toHaveBeenCalledTimes(3);
+  });
+
+  it('falls back to the original storage path for viewing when a photo has no display copy', async () => {
+    const noDisplayPhotos = [{ storagePath: 'tok/only.jpg', displayStoragePath: null, createdAt: '2026-10-10T01:00:00Z' }];
+    render(<PhotoLightbox photos={noDisplayPhotos} startIndex={0} onClose={vi.fn()} />);
+
+    await screen.findByRole('dialog');
+
+    await waitFor(() => {
+      expect(getSignedPhotoUrl).toHaveBeenCalledWith('tok/only.jpg');
+    });
+  });
+
+  it('prefers the display copy over the original for on-screen viewing when one exists', async () => {
+    const withDisplayPhotos = [
+      { storagePath: 'tok/only.jpg', displayStoragePath: 'tok/only-display.jpg', createdAt: '2026-10-10T01:00:00Z' },
+    ];
+    render(<PhotoLightbox photos={withDisplayPhotos} startIndex={0} onClose={vi.fn()} />);
+
+    await screen.findByRole('dialog');
+
+    await waitFor(() => {
+      expect(getSignedPhotoUrl).toHaveBeenCalledWith('tok/only-display.jpg');
+    });
+    expect(getSignedPhotoUrl).not.toHaveBeenCalledWith('tok/only.jpg');
   });
 
   it('navigates to the next photo via the next button and updates the position indicator', async () => {
@@ -121,7 +149,7 @@ describe('PhotoLightbox', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it('requests a signed download url only for the currently shown photo, lazily on click', async () => {
+  it('requests a signed download url for the original storage path even though this photo has a display copy, lazily on click', async () => {
     const user = userEvent.setup();
     render(<PhotoLightbox photos={photos} startIndex={0} onClose={vi.fn()} />);
 
@@ -156,9 +184,12 @@ describe('PhotoLightbox', () => {
 
     await screen.findByRole('dialog');
     await waitFor(() => {
-      expect(getSignedPhotoUrl).toHaveBeenCalledWith('tok/a.jpg');
+      // 'a' has a display copy, so it's resolved via that path, not the original.
+      expect(getSignedPhotoUrl).toHaveBeenCalledWith('tok/a-display.jpg');
     });
-    const callsForAOnMount = vi.mocked(getSignedPhotoUrl).mock.calls.filter(([path]) => path === 'tok/a.jpg').length;
+    const callsForAOnMount = vi
+      .mocked(getSignedPhotoUrl)
+      .mock.calls.filter(([path]) => path === 'tok/a-display.jpg').length;
     expect(callsForAOnMount).toBe(1);
 
     await user.click(screen.getByRole('button', { name: 'Foto siguiente' })); // index 0 -> 1
@@ -168,9 +199,12 @@ describe('PhotoLightbox', () => {
       expect(screen.getByText('1 / 3')).toBeInTheDocument();
     });
 
-    // 'a' was already resolved (and cached) on mount -- going back to it
-    // should reuse that cached promise instead of issuing a fresh request.
-    const callsForAAfterNav = vi.mocked(getSignedPhotoUrl).mock.calls.filter(([path]) => path === 'tok/a.jpg').length;
+    // 'a' was already resolved (and cached, keyed by its stable storagePath)
+    // on mount -- going back to it should reuse that cached promise instead
+    // of issuing a fresh request.
+    const callsForAAfterNav = vi
+      .mocked(getSignedPhotoUrl)
+      .mock.calls.filter(([path]) => path === 'tok/a-display.jpg').length;
     expect(callsForAAfterNav).toBe(1);
   });
 

@@ -20,6 +20,7 @@ const older = {
   id: 'p1',
   guestId: 'g1',
   storagePath: 'tok1/a.jpg',
+  displayStoragePath: null,
   status: 'pending' as const,
   createdAt: '2026-06-01T09:00:00Z',
   guestFullName: 'Juana Pérez',

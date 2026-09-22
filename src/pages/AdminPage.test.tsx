@@ -270,6 +270,7 @@ describe('AdminPage', () => {
         id: 'ph1',
         guestId: 'g1',
         storagePath: 'mafe-8842/a.jpg',
+        displayStoragePath: null,
         status: 'pending',
         createdAt: '2026-06-01T00:00:00Z',
         guestFullName: 'Maria Fernanda Contreras',

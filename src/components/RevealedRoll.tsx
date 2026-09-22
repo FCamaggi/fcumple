@@ -5,6 +5,13 @@ import PhotoLightbox from './PhotoLightbox';
 
 export interface RawRevealedPhoto {
   storagePath: string;
+  /**
+   * Bandwidth-friendly copy for on-screen viewing (Etapa 15) -- `null` for
+   * photos uploaded before this feature existed, or when generating it
+   * failed. Preview thumbnails prefer this over `storagePath`; the download
+   * button (in PhotoLightbox) always uses `storagePath` regardless.
+   */
+  displayStoragePath: string | null;
   createdAt: string;
 }
 
@@ -69,7 +76,10 @@ function HourBand({ band }: { band: PhotoTimelineBand<RawRevealedPhoto> }) {
     let active = true;
     Promise.all(
       previewPhotos.map(async (photo) => {
-        const url = await getSignedPhotoUrl(photo.storagePath).catch(() => null);
+        // Etapa 15: prefiere la copia "display" (más liviana) para el
+        // preview del grid, cayendo al original si esta foto no tiene una
+        // (subida antes de la feature, o cuya generación falló).
+        const url = await getSignedPhotoUrl(photo.displayStoragePath ?? photo.storagePath).catch(() => null);
         return [photo.storagePath, url] as const;
       }),
     ).then((entries) => {

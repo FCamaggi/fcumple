@@ -82,6 +82,15 @@ export interface Photo {
   id: string;
   guestId: string;
   storagePath: string;
+  /**
+   * Path of the smaller, bandwidth-friendly "display" copy of this photo in
+   * the same Storage bucket, or `null` when this photo predates the
+   * feature (or its display copy failed to generate/upload -- see
+   * `uploadPhoto` in `lib/photosApi.ts`). Viewing UI should prefer this
+   * over `storagePath`, falling back to the original when it's null;
+   * downloads must always use `storagePath` regardless.
+   */
+  displayStoragePath: string | null;
   status: 'pending' | 'approved' | 'rejected';
   createdAt: string;
 }
@@ -123,4 +132,16 @@ export interface Guest {
    * edición del admin.
    */
   phone?: string | null;
+  /**
+   * `guests.auto_approve_photos` (column default `true`) -- whether this
+   * guest's photos skip the moderation queue and land as `'approved'`
+   * directly (see `submit_photo` in supabase/README.md). Admin-facing only
+   * (same convention as `photoQuota`/`isDev`) -- guest-facing RPCs
+   * (get_guest_by_token, submit_rsvp, check_in_guest, dev_reset_guest)
+   * never return it, so it's optional here rather than required.
+   * Admin-editable via `GuestEditModal`; treat `undefined` the same as
+   * `true` (checked by default) since the DB column itself defaults to
+   * `true`.
+   */
+  autoApprovePhotos?: boolean;
 }

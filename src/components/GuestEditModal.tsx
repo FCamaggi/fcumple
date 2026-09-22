@@ -207,6 +207,27 @@ export default function GuestEditModal({ guest, onClose, onSave, onDelete }: Gue
                 />
               </div>
 
+              <div className="flex items-center justify-between gap-3 border border-smoke-700/40 bg-ink-900 p-4">
+                <div className="flex flex-col gap-0.5">
+                  <label
+                    htmlFor="guest-auto-approve-photos"
+                    className="font-mono text-[11px] font-bold uppercase tracking-wider text-paper-100"
+                  >
+                    Auto-aprobar sus fotos
+                  </label>
+                  <span className="font-sans text-xs text-paper-100/60">
+                    Si lo destildás, sus fotos van a la cola de moderación antes de aparecer en el rollo.
+                  </span>
+                </div>
+                <input
+                  id="guest-auto-approve-photos"
+                  type="checkbox"
+                  checked={draft.autoApprovePhotos ?? true}
+                  onChange={(e) => setDraft({ ...draft, autoApprovePhotos: e.target.checked })}
+                  className="tap-target h-5 w-5 shrink-0 accent-acid-400"
+                />
+              </div>
+
               <div className="relative border border-smoke-700/40 bg-ink-900 p-4">
                 <label
                   htmlFor="guest-note"

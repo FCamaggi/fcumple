@@ -14,16 +14,16 @@ import { getSignedPhotoUrl, getSignedPhotoDownloadUrl } from '../lib/photosApi';
 // poder probar que el visor arranca con la banda completa sin volver a pedir
 // las 3 primeras.
 const bandPhotos = [
-  { storagePath: 'tok1/a.jpg', createdAt: '2026-10-10T01:00:00Z' }, // 22:00
-  { storagePath: 'tok2/b.jpg', createdAt: '2026-10-10T01:10:00Z' }, // 22:10
-  { storagePath: 'tok3/c.jpg', createdAt: '2026-10-10T01:20:00Z' }, // 22:20
-  { storagePath: 'tok4/d.jpg', createdAt: '2026-10-10T01:30:00Z' }, // 22:30
-  { storagePath: 'tok5/e.jpg', createdAt: '2026-10-10T01:40:00Z' }, // 22:40
+  { storagePath: 'tok1/a.jpg', displayStoragePath: 'tok1/a-display.jpg', createdAt: '2026-10-10T01:00:00Z' }, // 22:00
+  { storagePath: 'tok2/b.jpg', displayStoragePath: null, createdAt: '2026-10-10T01:10:00Z' }, // 22:10
+  { storagePath: 'tok3/c.jpg', displayStoragePath: 'tok3/c-display.jpg', createdAt: '2026-10-10T01:20:00Z' }, // 22:20
+  { storagePath: 'tok4/d.jpg', displayStoragePath: null, createdAt: '2026-10-10T01:30:00Z' }, // 22:30
+  { storagePath: 'tok5/e.jpg', displayStoragePath: null, createdAt: '2026-10-10T01:40:00Z' }, // 22:40
 ];
 
 // Banda "23:00 — 00:00" (Chile) con 1 sola foto -- para probar que expandir
 // una banda no dispara nada en otra.
-const otherBandPhoto = { storagePath: 'tok6/f.jpg', createdAt: '2026-10-10T02:00:00Z' }; // 23:00
+const otherBandPhoto = { storagePath: 'tok6/f.jpg', displayStoragePath: null, createdAt: '2026-10-10T02:00:00Z' }; // 23:00
 
 beforeEach(() => {
   vi.mocked(getSignedPhotoUrl).mockReset();
@@ -50,9 +50,11 @@ describe('RevealedRoll', () => {
     });
 
     expect(getSignedPhotoUrl).toHaveBeenCalledTimes(4);
-    expect(getSignedPhotoUrl).toHaveBeenCalledWith('tok1/a.jpg');
+    // Etapa 15: prefiere la copia "display" cuando la foto tiene una
+    // (tok1, tok3); cae al original cuando no (tok2, tok6).
+    expect(getSignedPhotoUrl).toHaveBeenCalledWith('tok1/a-display.jpg');
     expect(getSignedPhotoUrl).toHaveBeenCalledWith('tok2/b.jpg');
-    expect(getSignedPhotoUrl).toHaveBeenCalledWith('tok3/c.jpg');
+    expect(getSignedPhotoUrl).toHaveBeenCalledWith('tok3/c-display.jpg');
     expect(getSignedPhotoUrl).toHaveBeenCalledWith('tok6/f.jpg');
     expect(getSignedPhotoUrl).not.toHaveBeenCalledWith('tok4/d.jpg');
     expect(getSignedPhotoUrl).not.toHaveBeenCalledWith('tok5/e.jpg');

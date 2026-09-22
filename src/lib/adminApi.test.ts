@@ -24,6 +24,7 @@ const row = {
   is_dev: false,
   photo_quota: 5,
   phone: '987654321',
+  auto_approve_photos: true,
 };
 
 function chain(result: { data: unknown; error: unknown }) {
@@ -56,6 +57,7 @@ describe('listGuests', () => {
     expect(selected).toMatch(/admin_note/);
     expect(selected).toMatch(/is_dev/);
     expect(selected).toMatch(/phone/);
+    expect(selected).toMatch(/auto_approve_photos/);
     expect(guests).toEqual([
       {
         id: 'g1',
@@ -73,6 +75,7 @@ describe('listGuests', () => {
         isDev: false,
         photoQuota: 5,
         phone: '987654321',
+        autoApprovePhotos: true,
       },
     ]);
   });
@@ -178,6 +181,15 @@ describe('updateGuest', () => {
     await updateGuest('g1', { phone: null });
 
     expect(builder.update).toHaveBeenCalledWith({ phone: null });
+  });
+
+  it('maps autoApprovePhotos to auto_approve_photos', async () => {
+    const builder = chain({ data: row, error: null });
+    from.mockReturnValue(builder);
+
+    await updateGuest('g1', { autoApprovePhotos: false });
+
+    expect(builder.update).toHaveBeenCalledWith({ auto_approve_photos: false });
   });
 });
 

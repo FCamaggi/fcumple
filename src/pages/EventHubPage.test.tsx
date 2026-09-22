@@ -148,7 +148,14 @@ describe('EventHubPage', () => {
     vi.mocked(getEventConfig).mockReset();
     vi.mocked(getEventConfig).mockResolvedValue({ ...baseConfig, photosRevealedAt: '2026-06-01T00:00:00Z' });
     vi.mocked(listRevealedPhotos).mockResolvedValueOnce([
-      { id: 'tok1/a.jpg', guestId: '', storagePath: 'tok1/a.jpg', status: 'approved', createdAt: '2026-10-10T01:10:00Z' },
+      {
+        id: 'tok1/a.jpg',
+        guestId: '',
+        storagePath: 'tok1/a.jpg',
+        displayStoragePath: 'tok1/a-display.jpg',
+        status: 'approved',
+        createdAt: '2026-10-10T01:10:00Z',
+      },
     ]);
 
     render(<EventHubPage />);
@@ -157,7 +164,9 @@ describe('EventHubPage', () => {
     // EventHubPage ya no resuelve URLs firmadas por su cuenta (Etapa 10) --
     // eso pasó a ser responsabilidad de RevealedRoll, banda por banda.
     // Igual se resuelve la URL de preview porque RevealedRoll la pide al
-    // montar, así que se verifica que llegue el storage_path correcto.
-    expect(getSignedPhotoUrl).toHaveBeenCalledWith('tok1/a.jpg');
+    // montar (Etapa 15: prefiriendo la copia "display" cuando existe, así
+    // que se verifica que `displayStoragePath` llegó hasta RevealedRoll y
+    // fue lo que efectivamente se pidió).
+    expect(getSignedPhotoUrl).toHaveBeenCalledWith('tok1/a-display.jpg');
   });
 });

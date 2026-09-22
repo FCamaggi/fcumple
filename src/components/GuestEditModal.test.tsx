@@ -69,4 +69,41 @@ describe('GuestEditModal', () => {
 
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ phone: '987654321' }));
   });
+
+  it('el toggle de auto-aprobar fotos está tildado por default para un invitado sin el campo seteado (fila vieja con el default de la DB)', () => {
+    render(<GuestEditModal guest={guest} onClose={vi.fn()} onSave={vi.fn()} onDelete={vi.fn()} />);
+
+    expect(screen.getByLabelText(/auto-aprobar sus fotos/i)).toBeChecked();
+  });
+
+  it('el toggle de auto-aprobar fotos está tildado por default para un invitado con auto_approve_photos true', () => {
+    render(
+      <GuestEditModal
+        guest={{ ...guest, autoApprovePhotos: true }}
+        onClose={vi.fn()}
+        onSave={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByLabelText(/auto-aprobar sus fotos/i)).toBeChecked();
+  });
+
+  it('destildar el toggle de auto-aprobar fotos y guardar envía autoApprovePhotos: false', async () => {
+    const onSave = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <GuestEditModal
+        guest={{ ...guest, autoApprovePhotos: true }}
+        onClose={vi.fn()}
+        onSave={onSave}
+        onDelete={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByLabelText(/auto-aprobar sus fotos/i));
+    await user.click(screen.getByRole('button', { name: /guardar cambios/i }));
+
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ autoApprovePhotos: false }));
+  });
 });

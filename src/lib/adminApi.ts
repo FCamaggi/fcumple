@@ -2,7 +2,7 @@ import { supabase } from './supabaseClient';
 import type { Guest, RsvpStatus } from '../types';
 
 const GUEST_COLUMNS =
-  'id, token, full_name, status, plus_ones_allowed, plus_ones_confirmed, guest_note, admin_note, responded_at, created_at, updated_at, checked_in_at, is_dev, photo_quota, phone';
+  'id, token, full_name, status, plus_ones_allowed, plus_ones_confirmed, guest_note, admin_note, responded_at, created_at, updated_at, checked_in_at, is_dev, photo_quota, phone, auto_approve_photos';
 
 interface GuestRow {
   id: string;
@@ -20,6 +20,7 @@ interface GuestRow {
   is_dev: boolean;
   photo_quota: number;
   phone: string | null;
+  auto_approve_photos: boolean;
 }
 
 function mapRow(row: GuestRow): Guest {
@@ -39,6 +40,7 @@ function mapRow(row: GuestRow): Guest {
     isDev: row.is_dev,
     photoQuota: row.photo_quota,
     phone: row.phone,
+    autoApprovePhotos: row.auto_approve_photos,
   };
 }
 
@@ -91,6 +93,7 @@ export interface UpdateGuestPatch {
   adminNote?: string | null;
   photoQuota?: number;
   phone?: string | null;
+  autoApprovePhotos?: boolean;
 }
 
 // Explicit allowlist: `id` and `token` (and anything else not listed here)
@@ -106,6 +109,7 @@ function toRow(patch: UpdateGuestPatch): Record<string, unknown> {
   if (patch.adminNote !== undefined) row.admin_note = patch.adminNote;
   if (patch.photoQuota !== undefined) row.photo_quota = patch.photoQuota;
   if (patch.phone !== undefined) row.phone = patch.phone;
+  if (patch.autoApprovePhotos !== undefined) row.auto_approve_photos = patch.autoApprovePhotos;
   return row;
 }
 
