@@ -33,3 +33,5 @@ coverage/
 
 # claude code session-local files
 .claude/
+.agents/
+skills-lock.json
