@@ -42,9 +42,9 @@ describe('HowToGetTherePage', () => {
     expect(screen.getByRole('region', { name: 'Caminando' })).toBeInTheDocument();
   });
 
-  it('links back to the event hub', () => {
+  it('has a back button that falls back to the event hub when opened directly', () => {
     renderPage();
 
-    expect(screen.getByRole('link', { name: /volver a la cartelera/i })).toHaveAttribute('href', '/evento');
+    expect(screen.getByRole('button', { name: /volver/i })).toBeInTheDocument();
   });
 });

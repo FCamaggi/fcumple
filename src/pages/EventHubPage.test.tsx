@@ -63,6 +63,16 @@ describe('EventHubPage', () => {
     expect(await screen.findByRole('link', { name: /cómo llegar/i })).toHaveAttribute('href', '/como-llegar');
   });
 
+  it('shows a back button when the hub was reached from another page', async () => {
+    render(
+      <MemoryRouter initialEntries={['/i/mafe-8842', '/evento']} initialIndex={1}>
+        <EventHubPage />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByRole('button', { name: /volver/i })).toBeInTheDocument();
+  });
+
   it('shows the countdown to the event once loaded', async () => {
     render(<MemoryRouter><EventHubPage /></MemoryRouter>);
 
