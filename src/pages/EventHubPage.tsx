@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { getEventConfig, getPublicHeadcount } from '../lib/eventApi';
 import { listPublishedPosts } from '../lib/postsApi';
 import { listRevealedPhotos } from '../lib/photosApi';
+import BackButton from '../components/BackButton';
 import AnnouncementFeed from '../components/AnnouncementFeed';
 import RevealedRoll, { type RawRevealedPhoto } from '../components/RevealedRoll';
 import type { EventConfig, Photo, Post } from '../types';
@@ -119,6 +120,8 @@ export default function EventHubPage() {
       <div className="film-grain pointer-events-none absolute inset-0 opacity-[0.03]" aria-hidden />
 
       <div className="relative mx-auto flex max-w-md flex-col gap-5">
+        <BackButton />
+
         <header className="flex flex-col gap-1 text-center">
           <span className="font-mono text-[11px] uppercase tracking-widest text-laser-500">La cartelera // abierto para todos</span>
           <h1 className="font-display text-4xl uppercase leading-none tracking-wide text-paper-100">

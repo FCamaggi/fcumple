@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import BackButton from '../components/BackButton';
 import {
   ARRIVAL_HINT,
   DESTINATION_LABEL,
@@ -24,6 +24,8 @@ export default function HowToGetTherePage() {
       <div className="film-grain pointer-events-none absolute inset-0 opacity-[0.03]" aria-hidden />
 
       <div className="relative mx-auto flex max-w-md flex-col gap-5">
+        <BackButton fallbackTo="/evento" />
+
         <header className="flex flex-col gap-1 text-center">
           <span className="font-mono text-[11px] uppercase tracking-widest text-laser-500">El mapa // abierto para todos</span>
           <h1 className="font-display text-4xl uppercase leading-none tracking-wide text-paper-100">Cómo llegar</h1>
@@ -39,13 +41,6 @@ export default function HowToGetTherePage() {
             ))}
           </section>
         ))}
-
-        <Link
-          to="/evento"
-          className="tap-target flex items-center justify-center bg-laser-500/10 px-4 py-3 font-mono text-[11px] font-bold uppercase tracking-wider text-laser-500"
-        >
-          Volver a la cartelera
-        </Link>
       </div>
     </div>
   );
