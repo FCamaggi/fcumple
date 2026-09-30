@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import EventHubPage from './EventHubPage';
 
 vi.mock('../lib/eventApi', () => ({
@@ -51,20 +52,26 @@ describe('EventHubPage', () => {
   it('shows a loading state while the event config is being fetched', () => {
     vi.mocked(getEventConfig).mockReturnValue(new Promise(() => {}));
 
-    render(<EventHubPage />);
+    render(<MemoryRouter><EventHubPage /></MemoryRouter>);
 
     expect(screen.getByText(/cargando la cartelera/i)).toBeInTheDocument();
   });
 
+  it('links to the how-to-get-there page', async () => {
+    render(<MemoryRouter><EventHubPage /></MemoryRouter>);
+
+    expect(await screen.findByRole('link', { name: /cómo llegar/i })).toHaveAttribute('href', '/como-llegar');
+  });
+
   it('shows the countdown to the event once loaded', async () => {
-    render(<EventHubPage />);
+    render(<MemoryRouter><EventHubPage /></MemoryRouter>);
 
     expect(await screen.findByText(/NOCTURNA/i)).toBeInTheDocument();
     expect(screen.getByText(/faltan/i)).toBeInTheDocument();
   });
 
   it('shows only the total headcount number, never guest names', async () => {
-    render(<EventHubPage />);
+    render(<MemoryRouter><EventHubPage /></MemoryRouter>);
 
     expect(await screen.findByText('38')).toBeInTheDocument();
     expect(screen.queryByText(/maria fernanda/i)).not.toBeInTheDocument();
@@ -73,7 +80,7 @@ describe('EventHubPage', () => {
   it('degrades gracefully when the headcount fetch fails', async () => {
     vi.mocked(getPublicHeadcount).mockRejectedValueOnce(new Error('network down'));
 
-    render(<EventHubPage />);
+    render(<MemoryRouter><EventHubPage /></MemoryRouter>);
 
     expect(await screen.findByText(/NOCTURNA/i)).toBeInTheDocument();
     expect(screen.queryByText(/undefined/i)).not.toBeInTheDocument();
@@ -82,7 +89,7 @@ describe('EventHubPage', () => {
   it('degrades gracefully when the event is not configured yet', async () => {
     vi.mocked(getEventConfig).mockResolvedValueOnce(null);
 
-    render(<EventHubPage />);
+    render(<MemoryRouter><EventHubPage /></MemoryRouter>);
 
     expect(await screen.findByText('38')).toBeInTheDocument();
     expect(screen.queryByText(/undefined/i)).not.toBeInTheDocument();
@@ -101,7 +108,7 @@ describe('EventHubPage', () => {
       },
     ]);
 
-    render(<EventHubPage />);
+    render(<MemoryRouter><EventHubPage /></MemoryRouter>);
 
     expect((await screen.findAllByText(/ya salió la lista/i)).length).toBeGreaterThan(0);
   });
@@ -119,7 +126,7 @@ describe('EventHubPage', () => {
       },
     ]);
 
-    render(<EventHubPage />);
+    render(<MemoryRouter><EventHubPage /></MemoryRouter>);
     await screen.findByText(/ya salió la lista/i);
 
     const feedHeading = screen.getByText(/on air \/\/ avisos/i);
@@ -128,7 +135,7 @@ describe('EventHubPage', () => {
   });
 
   it('shows the event status strip with the countdown and a small headcount chip, not a giant tally', async () => {
-    render(<EventHubPage />);
+    render(<MemoryRouter><EventHubPage /></MemoryRouter>);
 
     const statusStrip = await screen.findByLabelText('Estado del evento');
     expect(statusStrip).toHaveTextContent('38');
@@ -136,7 +143,7 @@ describe('EventHubPage', () => {
   });
 
   it('does not show the revealed roll before the admin reveals it', async () => {
-    render(<EventHubPage />);
+    render(<MemoryRouter><EventHubPage /></MemoryRouter>);
 
     await screen.findByText(/NOCTURNA/i);
 
@@ -158,7 +165,7 @@ describe('EventHubPage', () => {
       },
     ]);
 
-    render(<EventHubPage />);
+    render(<MemoryRouter><EventHubPage /></MemoryRouter>);
 
     expect(await screen.findByLabelText('Rollo revelado')).toBeInTheDocument();
     // EventHubPage ya no resuelve URLs firmadas por su cuenta (Etapa 10) --

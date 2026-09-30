@@ -315,6 +315,15 @@ describe('GuestPage', () => {
     expect(hubLink).toHaveAttribute('href', '/evento');
   });
 
+  it('shows a link to the how-to-get-there page once the guest is loaded', async () => {
+    vi.mocked(getGuestByToken).mockResolvedValueOnce(pendingGuest);
+
+    renderAt('mafe-8842');
+    await screen.findByText(/maria fernanda contreras/i);
+
+    expect(screen.getByRole('link', { name: /cómo llegar/i })).toHaveAttribute('href', '/como-llegar');
+  });
+
   it('shows the camera section with the remaining shots once checked in at the door', async () => {
     vi.mocked(getGuestByToken).mockResolvedValueOnce(checkedInGuest);
     vi.mocked(getPhotoQuota).mockResolvedValueOnce({ quota: 5, used: 4 });
