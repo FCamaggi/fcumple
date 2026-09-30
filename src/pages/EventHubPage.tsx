@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import { getEventConfig, getPublicHeadcount } from '../lib/eventApi';
 import { listPublishedPosts } from '../lib/postsApi';
@@ -126,6 +127,13 @@ export default function EventHubPage() {
         </header>
 
         <EventStatusStrip eventDate={eventConfig?.eventDate ?? null} headcount={headcount} />
+
+        <Link
+          to="/como-llegar"
+          className="tap-target flex items-center justify-center bg-acid-400 px-4 py-3 font-mono text-[11px] font-bold uppercase tracking-wider text-ink-950"
+        >
+          Cómo llegar
+        </Link>
 
         <AnnouncementFeed posts={posts} />
 

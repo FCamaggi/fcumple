@@ -433,7 +433,7 @@ export default function GuestPage() {
 
         {/* ConfirmedScreen carries its own link to the hub as part of its CTA
             block; showing the generic chip too would just duplicate it. */}
-        {!loading && guest && !(guest.status === 'confirmed' && !editing) && <EventHubChip />}
+        {!loading && guest && !(guest.status === 'confirmed' && !editing) && <><EventHubChip /><HowToGetThereLink /></>}
 
         {/* Solo para DEV_GUEST_TOKEN, y ADEMÁS de la experiencia real de
             invitado, no en su lugar -- ver docs/BACKLOG.md Etapa 5, Parte B. */}
@@ -505,6 +505,17 @@ function EventHubChip() {
       className="tap-target flex items-center justify-center gap-2 bg-ink-900 px-4 py-3 font-mono text-[11px] font-bold uppercase tracking-wider text-laser-500 shadow-xl transition-colors hover:bg-laser-500/10"
     >
       Ver la cartelera del evento
+    </Link>
+  );
+}
+
+function HowToGetThereLink() {
+  return (
+    <Link
+      to="/como-llegar"
+      className="tap-target flex items-center justify-center gap-2 bg-ink-900 px-4 py-3 font-mono text-[11px] font-bold uppercase tracking-wider text-acid-400 shadow-xl transition-colors hover:bg-acid-400/10"
+    >
+      Cómo llegar
     </Link>
   );
 }
@@ -612,6 +623,12 @@ function ConfirmedScreen({
           className="tap-target flex items-center justify-center bg-laser-500/10 px-4 py-3 font-mono text-[11px] font-bold uppercase tracking-wider text-laser-500"
         >
           Ver la cartelera del evento
+        </Link>
+        <Link
+          to="/como-llegar"
+          className="tap-target flex items-center justify-center bg-acid-400/10 px-4 py-3 font-mono text-[11px] font-bold uppercase tracking-wider text-acid-400"
+        >
+          Cómo llegar
         </Link>
         <button
           type="button"

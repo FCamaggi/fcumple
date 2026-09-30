@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import GuestPage from './pages/GuestPage';
 import EventHubPage from './pages/EventHubPage';
+import HowToGetTherePage from './pages/HowToGetTherePage';
 import RequireAuth from './components/RequireAuth';
 
 // /admin (y todo lo que solo se usa desde ahí: DoorList, GuestEditModal,
@@ -24,6 +25,7 @@ export default function App() {
         <Route path="/" element={<Navigate to="/i/invalido" replace />} />
         <Route path="/i/:token" element={<GuestPage />} />
         <Route path="/evento" element={<EventHubPage />} />
+        <Route path="/como-llegar" element={<HowToGetTherePage />} />
         <Route
           path="/admin"
           element={
