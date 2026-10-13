@@ -2,16 +2,88 @@
 
 ## Principio
 
-**Solo el organizador diseña la experiencia de cámara.** El invitado no crea, sube ni edita nada: elige entre lo que el organizador dejó activo. Esto simplifica moderación, almacenamiento y permisos.
+**Solo el organizador diseña la experiencia de cámara.** El invitado no crea ni sube nada: elige entre lo que el organizador dejó activo.
 
-Hoy (Fase 0) los marcos son 7 PNG fijos en `public/marcos/` listados en código (`cameraFrames.ts`: `FRAME_IDS`, `FRAME_LABELS`, `FRAME_IMAGE_SRC`) y el invitado los recorre con swipe. Fase 1 los pasa a datos por evento.
+## Qué cambia respecto a la Fase 0
 
-## Conceptos
+Los 7 marcos actuales (`public/marcos/*.png`, listados en `cameraFrames.ts`) son imágenes con **texto incrustado** ("Cumple Fabrizio", fechas, etc.). El contenido de un evento cambia, así que **no sirven y se retiran**. Los PNG quedan archivados en `assets/marcos/` y salen de `public/` al terminar la Etapa 3.
 
-- **Recurso:** un marco o un sticker. Pertenece a un evento.
-- **Toggle de recurso:** cada recurso tiene `enabled`. Si está desactivado no aparece en la cámara del invitado, pero se conserva para reactivarlo.
-- **Biblioteca base:** marcos incluidos en la plataforma (los 7 actuales) que el organizador puede activar/desactivar sin subir nada. Se "copian por referencia" al crear el evento (filas con `source = 'builtin'`).
-- **Recursos propios:** PNG subidos por el organizador (`source = 'custom'`).
+En su lugar:
+
+1. **Marcos genéricos paramétricos**: plantillas dibujadas por código, con colores y textos que el organizador edita.
+2. **Stickers de dos tipos**: **emojis** e **imágenes subidas** por el organizador.
+3. **Toggles** por recurso y globales.
+
+## 1. Marcos paramétricos
+
+Un marco = una **plantilla** + sus **parámetros**. Se dibuja con Canvas 2D mediante una función pura `renderFrame(ctx, width, height, template, params)`. La misma función pinta la vista previa en vivo, la vista previa del editor y la foto final, así que nunca se desalinean (el problema de "dos capas a mano" que la Etapa 12 de la Fase 0 ya había eliminado, ahora sin PNG).
+
+Todas las medidas están normalizadas respecto al lado menor de la imagen, de modo que el marco se ve igual a cualquier resolución y orientación.
+
+### Plantillas iniciales
+
+| Plantilla | Descripción | Parámetros que usa |
+|---|---|---|
+| `border` | Borde sólido con esquinas redondeadas opcionales. | color principal, grosor, radio |
+| `polaroid` | Borde ancho con pie para una leyenda. | color de fondo, color de texto, leyenda, tipografía |
+| `film` | Franja de rollo con perforaciones y texto corto. | color principal, texto, tipografía |
+| `viewfinder` | Esquinas de visor y marca tipo REC con fecha. | color principal, grosor, texto/fecha |
+| `banner` | Banda superior o inferior con título y subtítulo. | color de banda, color de texto, título, subtítulo, posición, tipografía |
+| `glow` | Degradé/destello de color en los bordes. | color principal, color secundario, intensidad |
+
+Cada plantilla declara qué parámetros usa; el editor solo muestra esos controles.
+
+### Parámetros
+
+```ts
+interface FrameParams {
+  primaryColor?: string;    // #RRGGBB
+  secondaryColor?: string;
+  textColor?: string;
+  title?: string;           // máx. 60 caracteres
+  subtitle?: string;        // máx. 60 caracteres
+  caption?: string;         // máx. 60 caracteres
+  font?: FontKey;           // de una lista cerrada
+  thickness?: number;       // 0–1, relativo
+  radius?: number;          // 0–1, relativo
+  position?: 'top' | 'bottom';
+}
+```
+
+- **Textos libres**, escritos por el organizador. Al crear un marco se prerrellenan con el nombre y la fecha del evento, pero se editan.
+- **Tipografías**: lista cerrada de ~6 (las de la app más 2–3 expresivas: manuscrita, máquina de escribir, display), autoalojadas. Antes de dibujar se espera `document.fonts.load(...)`; el texto se ajusta al ancho disponible (reduce tamaño y luego trunca con "…").
+- **Colores**: selector con paletas sugeridas y color libre. El editor avisa si el texto queda con poco contraste sobre su fondo.
+- **Validación** compartida entre el editor y la base (esquema en TypeScript + `check` de tamaño en el `jsonb`). Un marco nunca puede referirse a un recurso externo, así que no hay subida de archivos para marcos.
+
+Fuera de alcance: variables por invitado (`{{guest_name}}`), marcos propios en PNG y editor libre (Fase 2).
+
+## 2. Stickers
+
+### Emojis
+
+- El sticker es un carácter Unicode (o secuencia) guardado como texto. No hay archivos ni almacenamiento.
+- El organizador los elige con un selector de emojis dentro del panel (por ejemplo `emoji-picker-element` o los datos de `emojibase`; verificar licencia al integrar).
+- **Estilo iPhone:** los emojis de Apple **no se pueden redistribuir** (su licencia los limita a plataformas Apple), así que no se pueden empaquetar ni generar en el servidor. La alternativa es dibujarlos con la **fuente de emoji del dispositivo** (`font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji"`) en el canvas. Consecuencia:
+  - Un invitado con iPhone ve y compone con emojis de Apple: el resultado es exactamente el estilo pedido.
+  - Un invitado con Android o PC los ve y compone con el estilo de su dispositivo (Noto, Samsung…), así que dentro de una misma galería pueden mezclarse estilos.
+- **Decisión de MVP:** se usa la fuente nativa. Si la mezcla molesta, la Fase 2 agrega un conjunto abierto empaquetado (Noto Emoji, Twemoji o Fluent Emoji, todos con licencias permisivas) para que todos los dispositivos se vean igual, aunque no sea el de Apple.
+
+### Imágenes
+
+- El organizador sube PNG, WebP o JPEG (idealmente con transparencia). **No se acepta SVG.**
+- El cliente la procesa antes de subir: recorta al contenido visible, la reduce a un máximo de 512 px por lado, la convierte a WebP, elimina metadatos EXIF y rechaza archivos de más de ~300 KB después de procesar.
+- Se guarda en el bucket `event-assets` bajo el prefijo `{event_id}/stickers/`.
+- **CORS y canvas:** dibujar una imagen de otro origen "contamina" el canvas y rompe `toBlob`. Las imágenes se cargan con `crossOrigin="anonymous"` y el bucket debe responder con las cabeceras CORS adecuadas; hay que probarlo en Safari iOS real. (Los PNG de la Fase 0 eran del mismo origen, por eso esto no se había notado.)
+- Tope por evento (p. ej. 40 stickers de imagen) para cuidar el 1 GB de Storage del free tier.
+
+## 3. Toggles de recursos
+
+Dos niveles:
+
+- **Global** (en `events.settings.camera`): `frames_enabled` y `stickers_enabled`. Apagar marcos deja solo "Sin marco"; apagar stickers oculta la bandeja.
+- **Por recurso**: cada marco y cada sticker tiene `enabled`. Desactivado = no aparece en la cámara, pero se conserva para reactivarlo. El borrado real elimina también el objeto de Storage (si es imagen).
+
+También: orden manual (`sort_order`) y marco por defecto (`events.settings.camera.default_frame_id`).
 
 ## Modelo de datos
 
@@ -19,74 +91,57 @@ Hoy (Fase 0) los marcos son 7 PNG fijos en `public/marcos/` listados en código 
 event_frames
   id uuid pk
   event_id uuid not null references events on delete cascade
-  source text check (source in ('builtin','custom'))
-  builtin_key text            -- 'disposable', 'date-stamp'… cuando source='builtin'
-  storage_path text           -- ruta en event-assets cuando source='custom'
-  label text not null
+  template text not null           -- 'border' | 'polaroid' | 'film' | 'viewfinder' | 'banner' | 'glow'
+  label text not null              -- nombre interno
+  params jsonb not null            -- FrameParams
   enabled boolean not null default true
   sort_order int not null default 0
-  created_at
+  created_at, updated_at
 
 event_stickers
   id uuid pk
   event_id uuid not null references events on delete cascade
-  source text check (source in ('builtin','custom'))
-  builtin_key text
-  storage_path text
-  label text not null
+  kind text not null check (kind in ('emoji','image'))
+  emoji text                       -- cuando kind='emoji'
+  storage_path text                -- cuando kind='image'
+  label text
   enabled boolean not null default true
   sort_order int not null default 0
   created_at
+  check ((kind='emoji' and emoji is not null) or (kind='image' and storage_path is not null))
 ```
 
-`enabled = false` oculta; no se borra. El borrado real solo para recursos `custom` y borra el objeto de Storage.
-
-Además, en `events.settings`:
-
-```
-camera: {
-  frames_enabled: boolean,     -- toggle global: apagarlo deja solo "Sin marco"
-  stickers_enabled: boolean,   -- toggle global
-  default_frame_id: uuid|null  -- marco preseleccionado
-}
-```
-
-Es decir, **dos niveles de toggle**: global por categoría (marcos / stickers) e individual por recurso.
+Al crear un evento se siembran 2–3 marcos de ejemplo (editables) y un puñado de emojis festivos, para que la cámara no quede vacía.
 
 ## Seguridad
 
-- Escritura (insertar, editar, activar, borrar, subir archivos): solo el organizador dueño del evento (política RLS por `owner_id`).
-- Lectura por el invitado: solo vía RPC `list_event_camera_assets(p_token)` que resuelve el evento desde el token y devuelve únicamente recursos con `enabled = true` y respeta los toggles globales. Devuelve URLs firmadas (el bucket es privado) o rutas públicas si se decide un bucket público de solo lectura para `event-assets`.
-- Subidas: solo PNG/WebP con canal alfa, tamaño máximo (p. ej. 1,5 MB por recurso) y dimensiones esperadas; validación en cliente y en una política de storage / RPC. Tope de recursos custom por evento (p. ej. 20 marcos, 40 stickers) para controlar el uso del free tier.
+- Escritura (crear, editar, activar, subir, borrar): solo el organizador dueño del evento (RLS por `owner_id`).
+- Lectura del invitado: solo vía RPC `list_event_camera_assets(p_token)`; devuelve únicamente recursos con `enabled = true`, respeta los toggles globales y solo del evento del invitado. Las imágenes se sirven con URL firmada o con un bucket de solo lectura en un prefijo no listable (decidir en la implementación; si es público, nada sensible puede ir ahí).
+- Validación de subidas en el cliente **y** en servidor (tipo MIME, tamaño, prefijo del evento) mediante política de Storage.
 
 ## Panel del organizador (`/admin/e/:eventId/camara`)
 
-1. **Pestaña Marcos:** lista con miniatura, nombre, interruptor (toggle) de activo, reordenar (arrastrar o flechas), marco por defecto, subir marco propio, borrar (solo custom).
-2. **Pestaña Stickers:** igual que marcos, con subida de stickers propios.
-3. **Interruptores globales** "Mostrar marcos" y "Permitir stickers".
-4. **Vista previa:** simulación de la cámara con los recursos activos sobre una imagen de ejemplo, para que el organizador vea el resultado antes del evento.
-5. El panel reutiliza `FaderToggle` para los interruptores, por coherencia visual (ver `fase-0-evento-unico/03-diseno/DESIGN.md`).
+1. **Marcos:** lista con miniatura, interruptor de activo (`FaderToggle`), reordenar, marco por defecto, duplicar, borrar. "Nuevo marco" → elegir plantilla → editor.
+2. **Editor de marco:** controles según la plantilla (colores, textos, tipografía, grosor) y **vista previa en vivo** sobre una foto de ejemplo, con el mismo `renderFrame` que usa la cámara.
+3. **Stickers:** pestaña de emojis (selector + lista) y pestaña de imágenes (subir, procesar, lista); cada uno con su interruptor.
+4. **Interruptores globales** "Mostrar marcos" y "Permitir stickers".
+5. **Vista previa de la cámara completa** con todo lo activo.
 
 ## Cámara del invitado
 
-**Marcos:** el carrusel por swipe de `CameraCapture` se alimenta de los marcos activos del evento, no de la constante `FRAME_IDS`. `getFrameIndexAfterSwipe` se conserva tal cual. Si `frames_enabled = false` o no hay marcos activos, solo existe "Sin marco".
+- El carrusel por swipe de `CameraCapture` se alimenta de los marcos activos del evento (ya no de `FRAME_IDS`). `getFrameIndexAfterSwipe` se conserva. Sin marcos activos, solo "Sin marco".
+- Bandeja de stickers activos. Al tocar uno aparece sobre el visor; se arrastra, se escala con pellizco y se rota con dos dedos (Pointer Events con `touch-action: none`). Máximo ~5 por foto.
+- Posición, escala y rotación se guardan en coordenadas normalizadas (0–1).
+- Al capturar, `usePhotoCapture` compone en este orden: **foto → stickers → marco** (el marco queda encima). La foto sube ya compuesta, como hoy; no se guardan los stickers aplicados.
+- Solo Canvas 2D; sin WebGL ni shaders. Las imágenes de stickers y las fuentes se precargan antes de abrir la cámara (`useFrameImages` se extiende a stickers).
 
-**Stickers (nuevo):**
+## Tests
 
-- Una bandeja con los stickers activos; el invitado toca uno y aparece sobre el visor.
-- Gestos: arrastrar, pellizcar para escalar, girar con dos dedos. Se pueden poner varios, con un máximo (p. ej. 5) para evitar fotos ilegibles.
-- Posición, escala y rotación se guardan en **coordenadas normalizadas** (0.0–1.0 respecto al ancho/alto), de modo que el resultado es independiente de la resolución.
-- Al capturar, `usePhotoCapture` dibuja sobre el canvas: foto → stickers → marco (el marco queda siempre encima). Es la misma estrategia que ya usa `drawFrame` para el marco.
-- La foto sube ya compuesta (igual que hoy con el marco); no se almacena la lista de stickers aplicados. Si más adelante se quiere "des-aplicar", se guardaría el original aparte (Fase 2).
-
-**Rendimiento:** solo Canvas 2D (sin WebGL ni shaders). Los PNG de recursos se precargan con `useFrameImages` (extendido a stickers) antes de abrir la cámara.
-
-## Compatibilidad con la Fase 0
-
-- Los 7 marcos actuales pasan a ser la biblioteca `builtin`; el evento #1 queda con los 7 activos y comportamiento idéntico.
-- Las rutas `/marcos/N.png` siguen sirviéndose desde `public/` para los `builtin`.
-- Los tests de `cameraFrames`, `CameraCapture` y `useFrameImages` se adaptan para recibir la lista de recursos por parámetro en vez de la constante.
+- `renderFrame` por plantilla: prueba de humo con canvas simulado (que dibuje, que respete el ajuste de texto y los límites).
+- Validación de `FrameParams`: textos largos, colores inválidos, plantilla desconocida.
+- DB: un invitado nunca recibe recursos desactivados ni de otro evento; un organizador no puede escribir en recursos de otro.
+- Componentes: panel (toggles, orden) y cámara (carrusel con datos del evento, composición de stickers).
 
 ## Fuera de alcance (Fase 2)
 
-Marcos dinámicos con variables (`{{event_title}}`, `{{guest_name}}`…), editor visual para componer marcos dentro de la app, packs de pago, logos de patrocinadores, QR secundarios.
+Variables por invitado, marcos PNG propios, editor libre de composición, conjunto de emojis abierto y consistente entre dispositivos, packs temáticos de la plataforma, guardar el original sin stickers.

@@ -22,8 +22,21 @@ Decisiones tomadas por el usuario el 2026-10-13 sobre cada punto del [informe or
 
 Spec: [`../fase-1-mvp-multitenant/marcos-y-stickers.md`](../fase-1-mvp-multitenant/marcos-y-stickers.md).
 
+## Ronda 2 (2026-10-13): acceso de invitados y contenido de marcos
+
+| # | Tema | Decisión | Dónde queda |
+|---|---|---|---|
+| D10 | Enlaces `/i/:token` por invitado | **Se eliminan.** Hubo un solo evento y ya pasó; no se conserva compatibilidad ni se migran datos. | [`acceso-de-invitados.md`](../fase-1-mvp-multitenant/acceso-de-invitados.md) |
+| D11 | Cómo se entrega el acceso | **Un solo enlace/QR por evento**, el mismo para todos. Mandar un link a cada invitado (con su teléfono) es incómodo. | idem |
+| D12 | Identificación del invitado | **Por RUT** (dato semipúblico: identifica, no autentica). Correo queda como alternativa futura. | idem; segundo factor en Fase 2 |
+| D13 | Marcos actuales | **Se retiran.** Tienen texto incrustado y el contenido cambia por evento. | [`marcos-y-stickers.md`](../fase-1-mvp-multitenant/marcos-y-stickers.md) |
+| D14 | Marcos nuevos | **Genéricos y paramétricos**: colores y textos editables por el organizador. | idem |
+| D15 | Stickers | **Emojis** (estilo iPhone mediante la fuente del dispositivo) **e imágenes subidas** por el organizador. | idem |
+
+Nota sobre D15: los emojis de Apple no son redistribuibles, así que "estilo iPhone" se logra dibujando con la fuente nativa del dispositivo; en Android o PC se verán con el estilo de ese sistema. Un conjunto abierto consistente queda en la Fase 2.
+
 ## Supuestos derivados
 
 - Un solo desarrollador, un solo cliente real al inicio (el propio usuario) → se prioriza que el evento siga funcionando sobre generalidad.
-- La capa de datos del evento actual (Fase 0) se **migra** al nuevo esquema como el primer evento de la plataforma, sin perder invitados ni fotos.
-- El modelo de acceso de invitados por token de enlace/QR se mantiene (no se migra a Supabase Auth anónima con claims).
+- **No se migra el evento de la Fase 0**: se conserva un respaldo y el esquema se reinicia.
+- Dentro del sistema, el token del invitado se mantiene como secreto de sesión (así se reutilizan las RPC existentes), pero ya no se envía por invitado: lo entrega la identificación por RUT.

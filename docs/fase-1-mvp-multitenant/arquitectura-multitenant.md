@@ -26,44 +26,44 @@ event_frames    (ver marcos-y-stickers.md)
 event_stickers  (ver marcos-y-stickers.md)
 ```
 
-Índices: `(event_id)` en cada tabla hija y `unique (event_id, token)` donde corresponda. `guests.token` sigue siendo único globalmente (el enlace del invitado no incluye el slug en el modelo actual `/i/:token`, así que el token resuelve el evento).
+Índices: `(event_id)` en cada tabla hija y `unique (event_id, token)` donde corresponda. `guests.token` sigue siendo único globalmente y resuelve el evento. `guests` gana `rut text` (normalizado, `unique (event_id, rut)` cuando no es nulo), `claimed_at`, `last_seen_at` y `approval_status` ('approved' | 'pending' | 'rejected'). `events.settings.access` define el modo de acceso.
 
 ## Seguridad (RLS)
 
 **Organizador** (autenticado): política por tabla con `event_id in (select id from events where owner_id = auth.uid())`. Se reemplazan todas las `authenticated_full_access using (true)`.
 
-**Invitado** (anónimo, sin JWT): se mantiene el modelo de Fase 0. Ninguna política para `anon`; todo acceso por RPC `SECURITY DEFINER` que resuelve `guest → event_id` desde el token y filtra por ese `event_id`. Las RPC existentes (`get_guest_by_token`, `submit_rsvp`, `submit_photo`, `get_photo_quota`, `check_in_guest`, `list_revealed_photos`, `get_public_headcount`, …) cambian así:
+**Invitado** (anónimo, sin JWT): se mantiene el modelo de la Fase 0. Ninguna política para `anon`; todo acceso por RPC `SECURITY DEFINER` que resuelve `guest → event_id` desde el token y filtra por ese `event_id`. La diferencia es de dónde sale el token: ya no lo envía el organizador por invitado, lo entrega la RPC nueva `identify_guest(p_slug, p_rut)` (ver [`acceso-de-invitados.md`](./acceso-de-invitados.md)). Las RPC existentes (`get_guest_by_token`, `submit_rsvp`, `submit_photo`, `get_photo_quota`, `check_in_guest`, `list_revealed_photos`, `get_public_headcount`, …) cambian así:
 
 - Las que reciben token: derivan `event_id` del invitado; ya no asumen "el único evento".
-- Las que hoy son globales (`get_public_headcount`, info del evento, avisos del hub `/evento`): reciben `p_slug` y filtran por evento.
+- Las que hoy son globales (`get_public_headcount`, info del evento, avisos): reciben `p_slug` y filtran por evento.
+- Nuevas: `identify_guest`, `request_access` (modo con solicitudes), `list_event_camera_assets(p_token)`.
 
 **Storage:** el bucket privado `party-photos` se mantiene, con rutas `"{event_id}/{guest_id}/{uuid}.jpg"`. Las políticas de storage (`token_matches_guest` y similares) validan que el prefijo `event_id` coincida con el del invitado. Un bucket nuevo (o prefijo) `event-assets` para marcos/stickers del organizador (ver spec).
 
-**Por qué no JWT con claims:** el informe proponía sesión anónima con claims. Exigiría reescribir el flujo completo de invitados y no aporta aislamiento adicional mientras las RPC filtren por evento. Se difiere.
+**Por qué no JWT con claims:** el informe proponía sesión anónima con claims. Exigiría reescribir el flujo completo de invitados y no aporta aislamiento adicional mientras las RPC filtren por evento. Se difiere (junto con sesiones por dispositivo) a la Fase 2.
 
 ## Rutas del frontend
 
 | Ruta Fase 0 | Fase 1 |
 |---|---|
-| `/i/:token` | `/i/:token` (sin cambio; el token resuelve el evento) |
-| `/evento` | `/e/:slug` (hub público) |
+| `/i/:token` | **Desaparece.** Ver [`acceso-de-invitados.md`](./acceso-de-invitados.md). |
+| `/evento` | `/e/:slug` — entrada del invitado: si no hay token guardado muestra "¿Quién eres?"; si lo hay, el hub (avisos, cámara, carrete). |
 | `/como-llegar` | `/e/:slug/como-llegar` (datos del evento en BD, no en `routes.ts`) |
-| `/admin` | `/admin` (lista de eventos del organizador) y `/admin/e/:eventId/...` (consola del evento) |
+| `/admin` | `/admin` (lista de eventos del organizador) y `/admin/e/:eventId/{invitados,fotos,avisos,camara,ajustes}` |
 | `/` redirige a `/i/invalido` | landing mínima o login de organizador |
 
-`routes.ts` (rutas de "cómo llegar" codificadas) pasa a datos por evento (`events.settings` o tabla propia). Puede dejarse hardcodeado para el evento 1 si se acota el MVP.
+`routes.ts` (rutas de "cómo llegar" codificadas) pasa a datos por evento (`events.settings` o tabla propia).
 
-## Migración del evento actual
+## Reinicio del esquema (sin migración del evento anterior)
 
-Una migración de datos, en una sola transacción:
+El evento de la Fase 0 ya ocurrió y no se conserva. Por eso **no hay migración de datos ni compatibilidad con los tokens/enlaces viejos**:
 
-1. Crear `events` y el evento #1 a partir de `event_config` (slug p. ej. `cumple-fabrizio`, `owner_id` = el admin actual).
-2. Agregar `event_id` como nullable, rellenar con el id del evento #1, luego `set not null`.
-3. Mover los objetos existentes de Storage al nuevo prefijo (o mantener ambos formatos con una política que acepte el viejo hasta migrar).
-4. Reescribir políticas y RPC.
-5. Verificar con los tests existentes adaptados + un test de aislamiento nuevo.
+1. Respaldo previo: `pg_dump` del proyecto y descarga de lo que se quiera guardar del bucket `party-photos` (archivo personal).
+2. Nuevas migraciones que eliminan los objetos de la Fase 0 (`event_config`, `guests`, `photos`, `posts`, `post_images` y sus RPC) y crean el esquema multi-tenant desde cero. El historial de migraciones viejo se deja intacto.
+3. Vaciar el bucket `party-photos` y crear los buckets nuevos con prefijo `event_id`.
+4. Adaptar los tests de `supabase/tests` al esquema nuevo.
 
-Los enlaces `/i/:token` ya entregados deben seguir funcionando. **No se tocan los tokens.**
+> Confirmar con el usuario antes de ejecutar el borrado en producción (acción irreversible sin el respaldo).
 
 ## Tests
 

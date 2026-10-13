@@ -14,16 +14,18 @@ Cuando un ítem se decida construir: se escribe su spec en una carpeta de fase n
 | 2.4 | **Organizaciones con varios miembros** | Tabla `organizations`; hoy el tenant es el organizador. |
 | 2.5 | **Términos, privacidad y reporte de abusos** | Necesario antes de abrir a terceros. Ley chilena de datos personales; GDPR si hay usuarios europeos. |
 | 2.6 | **Descarga de la galería en ZIP** | Sobre la Web Share API ya existente para fotos individuales. |
+| 2.7 | **Identificación reforzada** | Correo o código por SMS como segundo factor, sesiones por dispositivo con revocación individual, aviso de privacidad completo (Ley 21.719). Ver [`acceso-de-invitados.md`](../fase-1-mvp-multitenant/acceso-de-invitados.md). |
 
 ## Fase 3 — Experiencia en vivo y marcos avanzados
 
 | # | Ítem | Notas |
 |---|---|---|
 | 3.1 | **Muro en vivo** (`/e/:slug/live`) | Supabase Realtime; modos cuadrícula/foto destacada; QR flotante. Revisar el tope de 200 conexiones. |
-| 3.2 | **Marcos dinámicos premium** | Variables `{{event_title}}`, `{{event_date}}`, `{{host_names}}`, `{{guest_name}}`; tipografías; logos de patrocinadores. Extiende [`marcos-y-stickers.md`](../fase-1-mvp-multitenant/marcos-y-stickers.md). |
-| 3.3 | **Editor visual de marcos** dentro de la app | Hoy el organizador sube PNG ya hechos. |
-| 3.4 | **Packs de marcos/stickers** de la plataforma | Biblioteca temática (bodas, cumpleaños, corporativo). |
+| 3.2 | **Variables por invitado en marcos** | `{{guest_name}}` y similares; hoy los textos de los marcos son fijos por evento. Extiende [`marcos-y-stickers.md`](../fase-1-mvp-multitenant/marcos-y-stickers.md). |
+| 3.3 | **Marcos PNG propios y editor libre** | Subir un marco ya diseñado, logos de patrocinadores, QR secundarios, composición libre de capas. |
+| 3.4 | **Packs de la plataforma** | Plantillas, paletas y stickers temáticos (bodas, cumpleaños, corporativo). |
 | 3.5 | **Guardar original sin stickers** | Para poder re-componer o des-aplicar después. |
+| 3.5b | **Emojis consistentes entre dispositivos** | Conjunto abierto empaquetado (Noto, Twemoji o Fluent) si la mezcla de estilos nativos molesta. Los emojis de Apple no son redistribuibles. |
 | 3.6 | **Moderación delegada** | Rol "moderador" invitado por el organizador; gestos de swipe tipo tarjeta; VIP. |
 | 3.7 | **Captura offline** | Cola en IndexedDB con Service Worker y sincronización en segundo plano. |
 
