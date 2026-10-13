@@ -46,18 +46,18 @@ const SWIPE_THRESHOLD = 48;
 
 /**
  * CameraCapture -- cámara dedicada del invitado, a pantalla completa
- * (docs/BACKLOG.md Etapa 8; reemplaza el bloque embebido de la Etapa 2).
+ * (docs/fase-0-evento-unico/04-producto/BACKLOG.md Etapa 8; reemplaza el bloque embebido de la Etapa 2).
  * Mismo patrón de overlay full-screen que QrScanner.tsx: se abre bajo
  * demanda desde GuestPage (no se monta automáticamente), con `onClose`
  * obligatorio. Dispara sobre un <canvas> oculto, redimensiona a un máximo
  * de MAX_DIMENSION px en el lado más largo y comprime a JPEG antes de
- * subir (ver docs/02-arquitectura/02-arquitectura-tecnica.md §8.3).
+ * subir (ver docs/fase-0-evento-unico/02-arquitectura/02-arquitectura-tecnica.md §8.3).
  *
  * El enfoque manual queda explícitamente fuera de alcance de esta etapa
  * (no hay una API web estable y ampliamente soportada para eso -- a
  * diferencia del torch, que sí es una capability real aunque no estándar).
  *
- * Etapa 9, Frente 1 (docs/BACKLOG.md) sumó tres cosas sobre esa base:
+ * Etapa 9, Frente 1 (docs/fase-0-evento-unico/04-producto/BACKLOG.md) sumó tres cosas sobre esa base:
  *  1. Espejo real en cámara frontal (`facingMode: 'user'`), tanto en el
  *     preview (`<video>` con `scaleX(-1)` vía CSS) como en la foto final
  *     (mismo `scaleX(-1)` aplicado al compositar sobre el `<canvas>` antes
@@ -80,7 +80,7 @@ const SWIPE_THRESHOLD = 48;
  *     `ZoomChips`/el campo `zoom` de `CameraControlsAvailability`): lo que
  *     el navegador expone como "zoom" es zoom digital de la lente activa,
  *     no una selección de lentes físicas, y la mayoría de los dispositivos
- *     no reporta nada por debajo de 1x -- ver docs/04-producto/BACKLOG.md,
+ *     no reporta nada por debajo de 1x -- ver docs/fase-0-evento-unico/04-producto/BACKLOG.md,
  *     Etapa 11, punto 3. El torch/flash no se tocó, sigue condicional a
  *     `capabilities.torch`.
  *  5. Pantalla de revisión antes de subir: `handleShoot` sigue componiendo

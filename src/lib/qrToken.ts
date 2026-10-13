@@ -1,7 +1,7 @@
 /**
  * The door QR encodes either the full guest link (`https://.../i/{token}`,
  * matching the `/i/:token` route in App.tsx) or the bare token by itself
- * (both are valid per docs/BACKLOG.md Etapa 3 -- "no hace falta un formato
+ * (both are valid per docs/fase-0-evento-unico/04-producto/BACKLOG.md Etapa 3 -- "no hace falta un formato
  * nuevo"). This parses either shape tolerantly: a parseable URL yields its
  * last non-empty path segment, anything else is treated as a bare token
  * (trimmed of surrounding whitespace, which some QR generators/scanners

@@ -129,7 +129,7 @@ describe('AdminPage', () => {
     expect(await screen.findByText(/maria fernanda contreras/i)).toBeInTheDocument();
   });
 
-  // docs/BACKLOG.md Etapa 5, Parte B: el invitado semilla de dev
+  // docs/fase-0-evento-unico/04-producto/BACKLOG.md Etapa 5, Parte B: el invitado semilla de dev
   // (isDev: true) nunca debe inflar los números reales de logística.
   it('excludes the dev guest from the confirmed and real-headcount tallies', async () => {
     const devGuest: Guest = {

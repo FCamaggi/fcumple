@@ -24,7 +24,7 @@ const PREVIEW_SIZE = 3;
 /**
  * RevealedRoll — DESIGN.md §1/§7.9, extraído de GuestPage (era una función
  * interna ahí) para poder mostrarlo también en el hub público `/evento`
- * (docs/BACKLOG.md, Decisión 4.3). Nadie ve el rollo -- ni siquiera sus
+ * (docs/fase-0-evento-unico/04-producto/BACKLOG.md, Decisión 4.3). Nadie ve el rollo -- ni siquiera sus
  * propias fotos -- antes de que el admin lo revele; ese gate vive en quien
  * llama a este componente (photosRevealedAt + fotos ya cargadas), no acá.
  *

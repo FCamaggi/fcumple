@@ -83,7 +83,7 @@ describe('SendInviteButton', () => {
     const [url, target, features] = vi.mocked(window.open).mock.calls[0];
     expect(String(url)).toMatch(/^https:\/\/wa\.me\/\?text=/);
     // No phone number ever gets baked into the link -- the admin picks the
-    // contact by hand inside WhatsApp (docs/05-comunicacion/sistema-de-mensajes.md).
+    // contact by hand inside WhatsApp (docs/fase-0-evento-unico/05-comunicacion/sistema-de-mensajes.md).
     expect(String(url)).not.toMatch(/wa\.me\/\d/);
     expect(decodeURIComponent(String(url).replace('https://wa.me/?text=', ''))).toContain('Maria');
     expect(target).toBe('_blank');

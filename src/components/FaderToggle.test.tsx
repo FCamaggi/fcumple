@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-// docs/BACKLOG.md §5.3: el bug era que el knob se montaba en el extremo
+// docs/fase-0-evento-unico/04-producto/BACKLOG.md §5.3: el bug era que el knob se montaba en el extremo
 // izquierdo (x=0) y solo llegaba al centro vía un `animate()` async dentro
 // de un `useEffect` -- si el usuario arrastraba antes de que esa animación
 // terminara, `handleDragEnd` leía un `x` todavía cerca de 0 y lo redondeaba

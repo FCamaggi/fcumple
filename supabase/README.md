@@ -148,8 +148,8 @@ Devuelve 0 o 1 fila, misma forma que `check_in_guest`:
 
 ## Galería de fotos (`photos` + Storage)
 
-Ver decisiones de producto en `docs/BACKLOG.md` (Etapa 2) y
-`docs/DESEO-DISENO-USUARIO.md` §9. Contrato para el frontend:
+Ver decisiones de producto en `docs/fase-0-evento-unico/04-producto/BACKLOG.md` (Etapa 2) y
+`docs/fase-0-evento-unico/01-vision/DESEO-DISENO-USUARIO.md` §9. Contrato para el frontend:
 
 ### Bucket y convención de paths
 
@@ -398,7 +398,7 @@ Galería de fotos adicionales por aviso, ordenadas por `position`:
 ## Autenticación del admin
 
 Un solo usuario admin vía Supabase Auth (email/password), como recomienda
-`docs/02-arquitectura-tecnica.md` sección 5. No hay migración para esto
+`docs/fase-0-evento-unico/02-arquitectura/02-arquitectura-tecnica.md` sección 5. No hay migración para esto
 (Supabase Auth trae su propio schema `auth`); se crea una sola vez, fuera de
 las migraciones:
 

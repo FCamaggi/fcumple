@@ -52,7 +52,7 @@ describe('guests.phone', () => {
   });
 
   // El teléfono es un dato sensible que solo el admin necesita: las RPCs
-  // guest-facing (docs/05-comunicacion/sistema-de-mensajes.md) no deben
+  // guest-facing (docs/fase-0-evento-unico/05-comunicacion/sistema-de-mensajes.md) no deben
   // filtrarlo nunca al propio invitado.
   it('is never returned by get_guest_by_token', async () => {
     const inserted = await admin.query<{ token: string }>(

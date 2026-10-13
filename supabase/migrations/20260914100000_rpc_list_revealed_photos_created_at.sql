@@ -1,4 +1,4 @@
--- Frente 3 (docs/BACKLOG.md, Etapa 9): la cartelera va a agrupar el rollo
+-- Frente 3 (docs/fase-0-evento-unico/04-producto/BACKLOG.md, Etapa 9): la cartelera va a agrupar el rollo
 -- revelado en bandas de una hora, y para eso necesita `created_at` de cada
 -- foto. El límite de privacidad ya decidido para este frente se mantiene
 -- intacto: sigue sin exponerse `guest_id` (ni ningún otro dato de quién

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-// Debajo de esto, /admin cambia a "modo puerta" (docs/BACKLOG.md, Decisión
+// Debajo de esto, /admin cambia a "modo puerta" (docs/fase-0-evento-unico/04-producto/BACKLOG.md, Decisión
 // 4.1): el admin real de este proyecto va a estar parado en la puerta con
 // el teléfono en la mano buena parte de la noche.
 export const MOBILE_BREAKPOINT = 768;

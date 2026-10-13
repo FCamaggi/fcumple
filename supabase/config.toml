@@ -20,7 +20,7 @@ port = 54323
 
 [auth]
 enabled = true
-# Email/password only, for the single admin account (docs/02-arquitectura-tecnica.md, section 5).
+# Email/password only, for the single admin account (docs/fase-0-evento-unico/02-arquitectura/02-arquitectura-tecnica.md, section 5).
 # No public sign-up: the admin user is created once, out of band -- see README.md.
 enable_signup = false
 

@@ -12,7 +12,7 @@ describe('RsvpDeadlineStrip', () => {
     vi.useRealTimers();
   });
 
-  // docs/BACKLOG.md §5.2: con un deadline a varios días de distancia esto
+  // docs/fase-0-evento-unico/04-producto/BACKLOG.md §5.2: con un deadline a varios días de distancia esto
   // mostraba un número de horas grande (ej. "432h") en vez de días+horas.
   it('shows days and hours when more than a day remains', () => {
     render(<RsvpDeadlineStrip deadline="2026-09-15T03:00:00Z" />);

@@ -1,3 +1,5 @@
+> **Fase 0 (evento único).** Este documento describe la app tal como quedó antes de la plataforma multi-tenant. Lo que viene está en [`../../fase-1-mvp-multitenant/README.md`](../../fase-1-mvp-multitenant/README.md).
+
 # Estado actual de la app (fuente de verdad rápida)
 
 > Última verificación por lectura de código: 2026-09-14. Si este documento y el código difieren, el código manda — actualizá esto en la siguiente sesión que toque algo relevante.

@@ -1,5 +1,5 @@
 -- Feature: envío directo de invitación por WhatsApp
--- (docs/05-comunicacion/sistema-de-mensajes.md). El admin puede cargar a
+-- (docs/fase-0-evento-unico/05-comunicacion/sistema-de-mensajes.md). El admin puede cargar a
 -- mano el número de WhatsApp de un invitado para que SendInviteButton arme
 -- un link `wa.me/<numero>` directo (abre la conversación de ese contacto en
 -- vez del selector genérico). Nullable y sin constraint de formato: el

@@ -1,5 +1,5 @@
 -- Public contract: the ONLY way a guest can write their own RSVP.
--- Defense in depth against RF11 (docs/DESIGN.md 7.2): the frontend already
+-- Defense in depth against RF11 (docs/fase-0-evento-unico/03-diseno/DESIGN.md 7.2): the frontend already
 -- keeps the FaderToggle from submitting while undecided, but this function
 -- is the last line of defense -- it refuses to ever persist status =
 -- 'pending' (or anything other than 'confirmed'/'declined') through this

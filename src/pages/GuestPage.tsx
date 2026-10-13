@@ -436,7 +436,7 @@ export default function GuestPage() {
         {!loading && guest && !(guest.status === 'confirmed' && !editing) && <><EventHubChip /><HowToGetThereLink /></>}
 
         {/* Solo para DEV_GUEST_TOKEN, y ADEMÁS de la experiencia real de
-            invitado, no en su lugar -- ver docs/BACKLOG.md Etapa 5, Parte B. */}
+            invitado, no en su lugar -- ver docs/fase-0-evento-unico/04-producto/BACKLOG.md Etapa 5, Parte B. */}
         {!loading && guest && guest.token === DEV_GUEST_TOKEN && (
           <Suspense fallback={null}>
             <DevPanel guest={guest} token={guest.token} onGuestChange={handleDevGuestChange} />
@@ -465,7 +465,7 @@ export default function GuestPage() {
 }
 
 // Card liviano dentro del scroll normal de la página -- la cámara en sí
-// (docs/BACKLOG.md Etapa 8) ahora es una experiencia a pantalla completa
+// (docs/fase-0-evento-unico/04-producto/BACKLOG.md Etapa 8) ahora es una experiencia a pantalla completa
 // que sólo se monta cuando el invitado la abre a propósito, nunca de
 // arranque al cargar /i/:token.
 function CameraSection({ quota, onOpen }: { quota: PhotoQuota; onOpen: () => void }) {
@@ -495,7 +495,7 @@ function CameraSection({ quota, onOpen }: { quota: PhotoQuota; onOpen: () => voi
   );
 }
 
-// El link visible hacia el hub compartido (docs/BACKLOG.md, Decisión 4.3):
+// El link visible hacia el hub compartido (docs/fase-0-evento-unico/04-producto/BACKLOG.md, Decisión 4.3):
 // avisos, cuenta atrás y rollo revelado ya no viven embebidos acá, este
 // chip es cómo se llega a esa vista común.
 function EventHubChip() {

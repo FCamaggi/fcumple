@@ -16,7 +16,7 @@
  * digital de la lente activa, no una selección de lentes físicas
  * (ultra gran angular/normal/óptico) como pedía el usuario, y la mayoría de
  * los dispositivos ni siquiera reporta un mínimo por debajo de 1x -- ver
- * docs/04-producto/BACKLOG.md, Etapa 11, punto 3.
+ * docs/fase-0-evento-unico/04-producto/BACKLOG.md, Etapa 11, punto 3.
  */
 
 export interface CameraTrackCapabilities extends MediaTrackCapabilities {

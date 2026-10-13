@@ -1,4 +1,4 @@
--- Bug real encontrado en producción (docs/BACKLOG.md, Etapa 5, punto
+-- Bug real encontrado en producción (docs/fase-0-evento-unico/04-producto/BACKLOG.md, Etapa 5, punto
 -- "persistencia del check-in"): get_guest_by_token/submit_rsvp nunca
 -- devolvían checked_in_at -- el frontend lo hardcodeaba a null (ver
 -- src/lib/guestApi.ts). Eso significaba que un invitado real NUNCA podía

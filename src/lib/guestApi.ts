@@ -9,7 +9,7 @@ interface GuestRow {
   plus_ones_confirmed: number;
   guest_note: string | null;
   responded_at: string | null;
-  // Bug real corregido (docs/BACKLOG.md, Etapa 5, "persistencia del
+  // Bug real corregido (docs/fase-0-evento-unico/04-producto/BACKLOG.md, Etapa 5, "persistencia del
   // check-in"): get_guest_by_token/submit_rsvp ahora sí devuelven esta
   // columna (ver supabase/migrations/20260913110000_expose_checked_in_at_to_guest.sql).
   // Antes se hardcodeaba a null acá abajo, así que un invitado real nunca

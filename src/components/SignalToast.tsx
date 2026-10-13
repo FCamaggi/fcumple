@@ -15,7 +15,7 @@ const KIND_STYLES: Record<SignalKind, string> = {
   info: 'border-laser-500 text-laser-500 shadow-glow-laser',
 };
 
-// docs/BACKLOG.md §4.4: sin esto el toast solo se cerraba si el padre
+// docs/fase-0-evento-unico/04-producto/BACKLOG.md §4.4: sin esto el toast solo se cerraba si el padre
 // limpiaba `message` a mano o el usuario lo tocaba.
 const AUTO_DISMISS_MS = 4500;
 

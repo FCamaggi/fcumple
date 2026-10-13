@@ -378,7 +378,7 @@ describe('GuestPage', () => {
 
   it('still shows the camera for a pending guest who was scanned at the door before confirming (check-in is decoupled from RSVP, Etapa 3)', async () => {
     // No es un estado inconsistente: es un caso real y documentado
-    // (docs/04-producto/BACKLOG.md, "gateada por check-in real, no por
+    // (docs/fase-0-evento-unico/04-producto/BACKLOG.md, "gateada por check-in real, no por
     // RSVP") -- alguien puede llegar y ser escaneado en la puerta antes de
     // confirmar su RSVP desde el link. La cámara se gatea por checkedInAt,
     // nunca por status. El bug real de "invitación + cámara mostrándose

@@ -1,7 +1,7 @@
 import type { RsvpStatus } from '../types';
 
 /**
- * Color de destello por estado, alineado a docs/DESIGN.md sección 4/6.2:
+ * Color de destello por estado, alineado a docs/fase-0-evento-unico/03-diseno/DESIGN.md sección 4/6.2:
  * confirmado = acid-400, rechazado = flame-500, pendiente = smoke-700 (neutro).
  */
 export const STATUS_FLASH_COLOR: Record<RsvpStatus, string> = {

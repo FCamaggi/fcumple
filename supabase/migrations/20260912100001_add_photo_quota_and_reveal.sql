@@ -6,7 +6,7 @@ alter table public.guests
 -- null = the roll is still hidden from everyone, including the guest who
 -- took the photo. The admin sets this to now() to "reveal the roll" once,
 -- from then on approved photos become visible. There is no public RPC to
--- clear it back to null on purpose (see docs/BACKLOG.md Etapa 2) -- the
+-- clear it back to null on purpose (see docs/fase-0-evento-unico/04-producto/BACKLOG.md Etapa 2) -- the
 -- admin can do that by hand via SQL if they ever need to.
 alter table public.event_config
   add column if not exists photos_revealed_at timestamptz;
