@@ -12,6 +12,7 @@ Esquema nuevo, **separado a propósito** de `supabase/migrations/` (Fase 0). El 
 | `…100005_rpc_identify` | `identify_guest`, `identify_guest_verified` (solo `service_role`), núcleo compartido y freno de intentos. |
 | `…100006_rpc_guest` | RPC del invitado y del hub público, `check_in_guest` (solo dueño), `create_event`. |
 | `…100007_storage` | Buckets `party-photos` y `post-images` con rutas por `event_id` y políticas por dueño / carpeta del invitado. |
+| `…100008_verified_lookup_quota` | `register_verified_lookup` (solo `service_role`): presupuesto de consultas del camino `rut_lookup`, antes de llamar a un proveedor de pago. |
 
 No hay ninguna columna que guarde un RUT (un test lo verifica).
 

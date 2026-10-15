@@ -10,18 +10,26 @@ Sin fechas fijas: un solo desarrollador, y el orden importa más que el calendar
 - [x] Paso de CI para la suite nueva.
 - [ ] Workflow de keep-alive para el Supabase gratuito (se pausa a los 7 días sin actividad).
 - [ ] Crear el proyecto Supabase nuevo y aplicar las migraciones (ver plan de corte en `arquitectura-multitenant.md`).
-- [ ] **Decisión pendiente:** proveedor de identidad para `rut_lookup` (hasta entonces, solo `name`).
+- [ ] **Decisión pendiente:** proveedor de identidad **con contrato** para `rut_lookup` (el raspador de nombrerutyfirma.com fue evaluado y descartado, ver `docs/estrategia/`). Hasta entonces, solo `name`.
 
 **Salida:** dos eventos de prueba aislados; un invitado se identifica con el enlace único y usa las RPC.
 
-## Etapa 2 — Frontend por evento y panel del organizador (2–3 sem)
+## Etapa 2 — Frontend por evento y panel del organizador (en curso)
 
-- [ ] Contexto de evento en el frontend; rutas `/e/:slug`, `/admin`, `/admin/e/:eventId/...`.
-- [ ] Crear/listar/editar eventos (nombre, fecha, lugar, slug).
-- [ ] Datos de "cómo llegar" y hub por evento en vez de constantes en `routes.ts`.
-- [ ] Adaptar capa `lib/*Api.ts` para pasar `eventId`/`slug`.
-- [ ] Pantalla "¿Quién eres?" (nombre y apellido; ramas `ambiguous` / `pending_approval`), `ShareEventLink` (enlace + QR + mensaje único), importación CSV (sin teléfono), búsqueda por nombre en la lista de puerta, "mi QR" para el check-in.
-- [ ] Retirar `/i/:token`, `SendInviteButton` y `guests.phone` de la UI.
+Hecho (primera rebanada: entrada del invitado):
+- [x] `src/lib/platformApi.ts`: evento público, identificación por nombre y por RUT, sesión del invitado en `localStorage` (token y nombre; nunca RUT).
+- [x] `/e/:slug` (`EventEntryPage`) con `IdentifyForm` ("¿Quién eres?"): nombre y apellido, o RUT según el evento; maneja `ok`, `ambiguous`, `not_found`, `pending_approval` y el límite de intentos.
+- [x] `src/lib/rut.ts`: formato y dígito verificador.
+- [x] `POST /api/identify` (`api/identify.ts` + `src/server/identifyHandler.ts`): resuelve RUT → nombre con un proveedor inyectado y llama a `identify_guest_verified`. Consume el presupuesto de consultas (`register_verified_lookup`) antes de gastar una llamada al proveedor. **Sin proveedor configurado responde 501**: no hay ninguno registrado.
+
+Pendiente:
+- [ ] Hub del invitado en `/e/:slug` (avisos, cámara, rollo, cuenta regresiva, cómo llegar) migrado a las RPC de la Fase 1: `list_published_posts`, `get_public_headcount(slug)`, `list_revealed_photos(token)`, rutas de Storage `{event_id}/{guest_id}/…`. Hoy `GuestPage` y `EventHubPage` siguen usando las RPC de la Fase 0.
+- [ ] Panel del organizador: `/admin` con lista de eventos, `create_event`, `/admin/e/:eventId/...` (invitados con importación CSV, solicitudes pendientes, fotos, avisos, ajustes de acceso).
+- [ ] `ShareEventLink` (copiar enlace, descargar QR, mensaje único para WhatsApp) y "mi QR" para la puerta.
+- [ ] Datos de "cómo llegar" por evento en vez de constantes en `routes.ts`.
+- [ ] Retirar `/i/:token`, `SendInviteButton`, `WristbandCard` y `guests.phone` de la UI al hacer el corte.
+
+> Mientras no se haga el corte a un proyecto Supabase nuevo, las rutas de la Fase 0 (`/i/:token`, `/evento`, `/admin`) y la ruta nueva `/e/:slug` hablan con esquemas distintos: cada ruta solo funciona contra la base que le corresponde.
 
 ## Etapa 3 — Marcos y stickers por evento (2–3 sem)
 

@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import GuestPage from './pages/GuestPage';
 import EventHubPage from './pages/EventHubPage';
 import HowToGetTherePage from './pages/HowToGetTherePage';
+import EventEntryPage from './pages/EventEntryPage';
 import RequireAuth from './components/RequireAuth';
 
 // /admin (y todo lo que solo se usa desde ahí: DoorList, GuestEditModal,
@@ -24,6 +25,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Navigate to="/i/invalido" replace />} />
         <Route path="/i/:token" element={<GuestPage />} />
+        <Route path="/e/:slug" element={<EventEntryPage />} />
         <Route path="/evento" element={<EventHubPage />} />
         <Route path="/como-llegar" element={<HowToGetTherePage />} />
         <Route

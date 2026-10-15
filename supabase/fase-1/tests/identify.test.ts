@@ -289,4 +289,47 @@ describe('RUT: nunca se guarda y solo entra por el camino verificado', () => {
     `);
     expect(rows).toEqual([]);
   });
+
+  it('register_verified_lookup: solo service_role, 10 consultas por IP cada 10 minutos', async () => {
+    const ev = await createEvent(db, owner, { identifier: 'rut_lookup' });
+
+    await expect(
+      asAnon(db, () => db.query('select register_verified_lookup($1, $2)', [ev.id, '1.1.1.1'])),
+    ).rejects.toMatchObject({ code: '42501' });
+    await expect(
+      asUser(db, owner, () => db.query('select register_verified_lookup($1, $2)', [ev.id, '1.1.1.1'])),
+    ).rejects.toMatchObject({ code: '42501' });
+
+    for (let i = 0; i < 10; i++) {
+      await asServiceRole(db, () => db.query('select register_verified_lookup($1, $2)', [ev.id, '1.1.1.1']));
+    }
+    await expect(
+      asServiceRole(db, () => db.query('select register_verified_lookup($1, $2)', [ev.id, '1.1.1.1'])),
+    ).rejects.toMatchObject({ code: '53400' });
+
+    // Otra IP sigue pudiendo consultar.
+    await expect(
+      asServiceRole(db, () => db.query('select register_verified_lookup($1, $2)', [ev.id, '2.2.2.2'])),
+    ).resolves.toBeDefined();
+  });
+
+  it('register_verified_lookup: tope de 60 por evento aunque cambie la IP', async () => {
+    const ev = await createEvent(db, owner, { identifier: 'rut_lookup' });
+    for (let i = 0; i < 60; i++) {
+      await asServiceRole(db, () =>
+        db.query('select register_verified_lookup($1, $2)', [ev.id, `10.2.${Math.floor(i / 250)}.${i % 250}`]),
+      );
+    }
+    await expect(
+      asServiceRole(db, () => db.query('select register_verified_lookup($1, $2)', [ev.id, '10.9.9.9'])),
+    ).rejects.toMatchObject({ code: '53400' });
+  });
+
+  it('register_verified_lookup: evento inexistente falla con P0002', async () => {
+    await expect(
+      asServiceRole(db, () =>
+        db.query('select register_verified_lookup($1, $2)', ['00000000-0000-0000-0000-000000000000', 'x']),
+      ),
+    ).rejects.toMatchObject({ code: 'P0002' });
+  });
 });
