@@ -5,22 +5,20 @@ Sin fechas fijas: un solo desarrollador, y el orden importa más que el calendar
 ## Etapa 1 — Esquema multi-tenant (hecha en la base; 76 tests)
 
 - [x] Esquema nuevo en `supabase/fase-1/migrations/`: `events`, `guests` (nombre y apellido obligatorios), `photos`, `posts`, `post_images`, RLS por dueño, buckets con rutas por `event_id`.
-- [x] RPC: `identify_guest` (3 modos de acceso, freno de intentos), `identify_guest_verified` (solo `service_role`, no recibe RUT), `get_event_public`, `get_guest_by_token`, `submit_rsvp`, `get_photo_quota`, `submit_photo`, `check_in_guest` (solo dueño), `list_revealed_photos(token)`, `get_public_headcount(slug)`, `list_published_posts(slug)`, `create_event`.
-- [x] Suite `npm run test:db:fase1`: aislamiento entre dos organizadores, privilegios de `anon`, storage, identificación.
+- [x] RPC: `register_guest` y `login_guest` (inscripción y sesión con nombre + PIN, hash bcrypt, bloqueo tras 5 PIN equivocados, freno de intentos), `get_event_public`, `get_guest_by_token`, `submit_rsvp`, `get_photo_quota`, `submit_photo`, `check_in_guest` (solo dueño), `list_revealed_photos(token)`, `get_public_headcount(slug)`, `list_published_posts(slug)`, `create_event`, `regenerate_guest_token` (restablece el acceso y borra el PIN).
+- [x] Suite `npm run test:db:fase1` (90 tests): aislamiento entre dos organizadores, privilegios de `anon`, storage, inscripción y sesión con PIN. El arnés replica Supabase (pgcrypto en `extensions`), lo que detectó un `search_path` incorrecto que habría roto `create_event` y las altas en producción.
 - [x] Paso de CI para la suite nueva.
 - [ ] Workflow de keep-alive para el Supabase gratuito (se pausa a los 7 días sin actividad).
 - [ ] Crear el proyecto Supabase nuevo y aplicar las migraciones (ver plan de corte en `arquitectura-multitenant.md`).
-- [ ] **Decisión pendiente:** proveedor de identidad **con contrato** para `rut_lookup` (el raspador de nombrerutyfirma.com fue evaluado y descartado, ver `docs/estrategia/`). Hasta entonces, solo `name`.
 
-**Salida:** dos eventos de prueba aislados; un invitado se identifica con el enlace único y usa las RPC.
+**Salida:** dos eventos de prueba aislados; un invitado se inscribe con el enlace único y usa las RPC.
 
 ## Etapa 2 — Frontend por evento y panel del organizador (en curso)
 
 Hecho (primera rebanada: entrada del invitado):
-- [x] `src/lib/platformApi.ts`: evento público, identificación por nombre y por RUT, sesión del invitado en `localStorage` (token y nombre; nunca RUT).
-- [x] `/e/:slug` (`EventEntryPage`) con `IdentifyForm` ("¿Quién eres?"): nombre y apellido, o RUT según el evento; maneja `ok`, `ambiguous`, `not_found`, `pending_approval` y el límite de intentos.
-- [x] `src/lib/rut.ts`: formato y dígito verificador.
-- [x] `POST /api/identify` (`api/identify.ts` + `src/server/identifyHandler.ts`): resuelve RUT → nombre con un proveedor inyectado y llama a `identify_guest_verified`. Consume el presupuesto de consultas (`register_verified_lookup`) antes de gastar una llamada al proveedor. **Sin proveedor configurado responde 501**: no hay ninguno registrado.
+- [x] `src/lib/platformApi.ts`: evento público, `registerGuest` / `loginGuest`, sesión del invitado en `localStorage` (token y nombre; nunca el PIN).
+- [x] `/e/:slug` (`EventEntryPage`) con `IdentifyForm`: pestañas "Inscribirme" (nombre, apellido, PIN y repetirlo) y "Ya me inscribí" (nombre y PIN); maneja `name_taken`, `ambiguous`, `not_found`, `pending_approval`, `invalid`, `locked`, `needs_registration` y el límite de intentos.
+- [x] Se eliminó la ruta de RUT (`rut.ts`, `/api/identify`, proveedores): ya no hace falta.
 
 Hecho (segunda rebanada: panel del organizador, rutas `/panel` y `/panel/e/:eventId`):
 - [x] `src/lib/organizerApi.ts`: eventos del organizador, alta con `create_event`, ajustes, invitados (alta masiva por líneas, aprobar/rechazar solicitudes, quitar, regenerar acceso con `regenerate_guest_token`).
@@ -75,8 +73,8 @@ Etapa 2 depende de la 1. Las etapas 3 y 4 dependen de la 2 pero son independient
 | Riesgo | Mitigación |
 |---|---|
 | Afectar la producción de la Fase 0 al desplegar | El esquema nuevo vive en `supabase/fase-1/` (fuera del `db push`) y se aplica a un proyecto Supabase nuevo. |
-| Suplantación o prueba masiva de nombres | Enlace no adivinable, límite de intentos por IP y evento, regeneración de token por el organizador. |
-| Verificación por RUT con costo y requisitos legales | Opcional y desactivada: el MVP corre solo con `name`; si se activa, el RUT no se persiste y el proveedor se revisa contractualmente. |
+| Suplantación de un invitado | PIN con hash bcrypt, bloqueo de 10 minutos tras 5 PIN equivocados, freno de intentos por IP y evento, "Restablecer acceso" del organizador. |
+| PIN corto (4 dígitos) | Aceptado: solo protege fotos de una fiesta; la tabla de credenciales no tiene permisos y hay bloqueo por intentos. |
 | Canvas contaminado por imágenes de otro origen (stickers) | `crossOrigin="anonymous"` + CORS en el bucket; probar `toBlob` en Safari iOS desde el inicio. |
 | Emojis distintos según dispositivo | Aceptado en el MVP (fuente nativa); conjunto abierto en la Fase 2 si molesta. |
 | Fuga entre eventos por una RPC olvidada | Lista de verificación de todas las RPC y test de aislamiento. |

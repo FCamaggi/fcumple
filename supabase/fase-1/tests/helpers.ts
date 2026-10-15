@@ -28,12 +28,32 @@ async function createAuthSchema(client: Client): Promise<void> {
   `);
 }
 
+// En Supabase, pgcrypto (gen_random_bytes, crypt, gen_salt) vive en el esquema
+// `extensions`, NO en `public`, y los roles lo tienen en su search_path. Las
+// funciones SECURITY DEFINER de las migraciones fijan `search_path`, asi que
+// deben incluir `extensions` para encontrarlas. Replicarlo aqui hace fallar un
+// search_path incorrecto en los tests en vez de en produccion.
+async function createExtensionsSchema(client: Client): Promise<void> {
+  await client.query(`
+    create schema if not exists extensions;
+    drop extension if exists pgcrypto cascade;
+    create extension pgcrypto with schema extensions;
+    grant usage on schema extensions to anon, authenticated, service_role;
+    alter role anon set search_path = "$user", public, extensions;
+    alter role authenticated set search_path = "$user", public, extensions;
+    alter role service_role set search_path = "$user", public, extensions;
+    alter role postgres set search_path = "$user", public, extensions;
+    set search_path = "$user", public, extensions;
+  `);
+}
+
 // Deja la base como un proyecto Supabase recien creado y aplica las
 // migraciones de la Fase 1 desde cero. Imita los privilegios por defecto de
 // Supabase (anon/authenticated/service_role reciben todo en `public`), de modo
 // que un `revoke` olvidado en una migracion SI haga fallar los tests.
 export async function resetAndMigrate(client: Client): Promise<void> {
   await createSupabaseRoles(client);
+  await createExtensionsSchema(client);
   await createAuthSchema(client);
   await createStorageSchema(client);
 
@@ -129,21 +149,19 @@ export async function createEvent(
     slug: string;
     name: string;
     access_mode: string;
-    identifier: string;
     camera_unlock: string;
     rsvp_enabled: boolean;
   }> = {},
 ): Promise<{ id: string; slug: string }> {
   const slug = overrides.slug ?? `evento-${Math.random().toString(36).slice(2, 8)}`;
   const { rows } = await client.query<{ id: string; slug: string }>(
-    `insert into public.events (owner_id, slug, name, access_mode, identifier, camera_unlock, rsvp_enabled)
-     values ($1, $2, $3, $4, $5, $6, $7) returning id, slug`,
+    `insert into public.events (owner_id, slug, name, access_mode, camera_unlock, rsvp_enabled)
+     values ($1, $2, $3, $4, $5, $6) returning id, slug`,
     [
       ownerId,
       slug,
       overrides.name ?? 'Evento de prueba',
-      overrides.access_mode ?? 'list',
-      overrides.identifier ?? 'name',
+      overrides.access_mode ?? 'open',
       overrides.camera_unlock ?? 'on_identify',
       overrides.rsvp_enabled ?? false,
     ],

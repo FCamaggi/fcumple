@@ -8,9 +8,9 @@ interface EventSettingsPanelProps {
 }
 
 const ACCESS_LABELS: Record<AccessMode, string> = {
-  list: 'Solo quienes están en la lista',
-  list_requests: 'Lista, y quien no está puede pedir acceso',
-  open: 'Abierto: entra cualquiera con el enlace',
+  open: 'Abierto: cualquiera con el enlace se inscribe',
+  list: 'Solo quienes están en mi lista',
+  list_requests: 'Mi lista, y quien no está puede pedir acceso',
 };
 
 const UNLOCK_LABELS: Record<CameraUnlock, string> = {
@@ -123,7 +123,7 @@ export default function EventSettingsPanel({ event, onSave }: EventSettingsPanel
       </label>
 
       <p className="font-sans text-xs text-paper-100/60">
-        Identificación: nombre y apellido. La verificación por RUT todavía no está disponible.
+        Cada invitado se inscribe con su nombre y apellido y un PIN que elige él mismo. No se pide RUT, correo ni teléfono.
       </p>
 
       {message && (

@@ -11,8 +11,7 @@ El informe proponía `tenant_id` + `event_id`. Con un solo desarrollador y pocos
 ```
 events         id, owner_id → auth.users, slug (único), name, starts_at, location,
                rsvp_deadline, photos_revealed_at,
-               access_mode ('list'|'list_requests'|'open'),
-               identifier ('name'|'rut_lookup'),
+               access_mode ('open'|'list'|'list_requests'),  -- por defecto 'open'
                camera_unlock ('on_identify'|'on_checkin'),
                rsvp_enabled
 guests         id, event_id, full_name, name_tokens text[] (la mantiene un trigger),
@@ -21,26 +20,28 @@ guests         id, event_id, full_name, name_tokens text[] (la mantiene un trigg
                approval_status ('approved'|'pending'|'rejected'),
                claimed_at, last_seen_at
                — mínimo 2 palabras en el nombre; único por (event_id, name_tokens)
+guest_credentials  guest_id, pin_hash (bcrypt), failed_count, locked_until
+               — sin ningún permiso para anon ni authenticated
 photos         id, event_id, guest_id, storage_path, display_storage_path, status
                — FK compuesta (guest_id, event_id): no puede colgar de otro evento
 posts          id, event_id, title, subtitle, body, cover_image_path, published_at
 post_images    id, event_id, post_id, storage_path, position  (FK compuesta con posts)
-identify_attempts  event_id, client_key, attempted_at  (freno de intentos; sin acceso externo)
+identify_attempts  event_id, client_key, attempted_at  (fallos de inscripción / login; sin acceso externo)
 ```
 
-No existe ninguna columna de RUT. Las opciones de cámara (`frames_enabled`, `stickers_enabled`, marco por defecto) y las tablas `event_frames` / `event_stickers` llegan en la Etapa 3 como **columnas** de `events` (no un `jsonb`), por el mismo motivo que arriba: tipado y RLS más simples.
+No existe ninguna columna de RUT, correo, teléfono ni PIN en claro. Las opciones de cámara (`frames_enabled`, `stickers_enabled`, marco por defecto) y las tablas `event_frames` / `event_stickers` llegan en la Etapa 3 como **columnas** de `events` (no un `jsonb`), por el mismo motivo que arriba: tipado y RLS más simples.
 
 ## Seguridad (RLS)
 
 **Organizador** (autenticado): política por tabla con `event_id in (select id from events where owner_id = auth.uid())`. Se reemplazan todas las `authenticated_full_access using (true)`.
 
-**Invitado** (anónimo, sin JWT): se mantiene el modelo de la Fase 0. Ninguna política para `anon`; todo acceso por RPC `SECURITY DEFINER` que resuelve `guest → event_id` desde el token y filtra por ese `event_id`. La diferencia es de dónde sale el token: ya no lo envía el organizador por invitado, lo entrega la RPC nueva `identify_guest(p_slug, p_rut)` (ver [`acceso-de-invitados.md`](./acceso-de-invitados.md)). Las RPC cambian así:
+**Invitado** (anónimo, sin JWT): se mantiene el modelo de la Fase 0. Ninguna política para `anon`; todo acceso por RPC `SECURITY DEFINER` que resuelve `guest → event_id` desde el token y filtra por ese `event_id`. La diferencia es de dónde sale el token: ya no lo envía el organizador por invitado, lo entregan `register_guest` y `login_guest` (inscripción y sesión con PIN; ver [`acceso-de-invitados.md`](./acceso-de-invitados.md)). Las RPC cambian así:
 
 - Las que reciben token: derivan `event_id` del invitado; ya no asumen "el único evento".
 - Las que hoy son globales (`get_public_headcount`, info del evento, avisos): reciben `p_slug` y filtran por evento.
-- Nuevas: `identify_guest`, `identify_guest_verified` (solo `service_role`), `get_event_public`, `list_published_posts`, `create_event`; `list_event_camera_assets(p_token)` llega en la Etapa 3.
+- Nuevas: `register_guest`, `login_guest`, `get_event_public`, `list_published_posts`, `create_event`; `list_event_camera_assets(p_token)` llega en la Etapa 3.
 - Endurecidas respecto a la Fase 0: `check_in_guest` solo para el dueño del evento; `list_revealed_photos(p_token)` exige un invitado identificado (antes era público y sin token).
-- Las tablas no tienen ningún privilegio para `anon`; todo pasa por RPC. Las funciones internas (`_identify_core`, `_approved_guest`) están revocadas para `anon` y `authenticated`.
+- Las tablas no tienen ningún privilegio para `anon`; todo pasa por RPC. Las funciones internas (`_guard_attempts`, `_record_failure`, `_set_credentials`, `_approved_guest`) están revocadas para `anon` y `authenticated`.
 
 **Storage:** buckets privados `party-photos` (rutas `{event_id}/{guest_id}/{archivo}`) y `post-images` (`{event_id}/{archivo}`). El invitado solo puede subir dentro de su propia carpeta; el organizador, solo en las de sus eventos. **Nunca el token en la ruta**: en la Fase 0 las rutas empezaban con el token del fotógrafo y `list_revealed_photos()` (pública, sin token) las devolvía, de modo que cualquiera con la clave anónima podía leer los tokens de quienes subieron fotos tras el revelado. El bucket `event-assets` para stickers llega en la Etapa 3.
 

@@ -42,7 +42,6 @@ const event: EventPublic = {
   location: null,
   rsvpDeadline: null,
   accessMode: 'list',
-  identifier: 'name',
   cameraUnlock: 'on_identify',
   rsvpEnabled: false,
   photosRevealed: false,

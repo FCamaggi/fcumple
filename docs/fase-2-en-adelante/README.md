@@ -14,8 +14,7 @@ Cuando un ítem se decida construir: se escribe su spec en una carpeta de fase n
 | 2.4 | **Organizaciones con varios miembros** | Tabla `organizations`; hoy el tenant es el organizador. |
 | 2.5 | **Términos, privacidad y reporte de abusos** | Necesario antes de abrir a terceros. Ley chilena de datos personales; GDPR si hay usuarios europeos. |
 | 2.6 | **Descarga de la galería en ZIP** | Sobre la Web Share API ya existente para fotos individuales. |
-| 2.7a | **Clave personal del invitado** (propuesta) | El invitado elige una clave (PIN) la primera vez que entra; después, el nombre solo no basta. Evita la suplantación sin terceros ni RUT. Por confirmar con el usuario; si se aprueba, pasa a la Fase 1. |
-| 2.7 | **Identificación reforzada** | Proveedor de identidad para `rut_lookup` (función `/api/identify`; el RUT no se persiste), correo o código por SMS como segundo factor, sesiones por dispositivo con revocación individual, aviso de privacidad completo (Ley 21.719). Ver [`acceso-de-invitados.md`](../fase-1-mvp-multitenant/acceso-de-invitados.md). |
+| 2.7 | **Recuperación y verificación de identidad** | Correo o código por SMS para recuperar el PIN sin el organizador, sesiones por dispositivo con revocación individual, aviso de privacidad completo (Ley 21.719). La verificación por RUT con un servicio externo se evaluó y se descartó por ahora (ver [`evaluacion-rutificador-nombrerutyfirma.md`](../estrategia/evaluacion-rutificador-nombrerutyfirma.md)); solo volvería con un proveedor con contrato. |
 
 ## Fase 3 — Experiencia en vivo y marcos avanzados
 

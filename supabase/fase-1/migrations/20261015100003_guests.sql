@@ -3,7 +3,7 @@ create table public.guests (
   event_id uuid not null references public.events (id) on delete cascade,
   full_name text not null,
   -- Palabras normalizadas de full_name (ver name_tokens). La mantiene el
-  -- trigger de abajo; es lo que usa identify_guest para encontrar al invitado.
+  -- trigger de abajo; es lo que usan register_guest / login_guest para encontrarlo.
   name_tokens text[] not null default '{}',
   token text not null unique default public.generate_guest_token(),
   status text not null default 'pending' check (status in ('pending', 'confirmed', 'declined')),
@@ -83,9 +83,25 @@ create policy "owner_all" on public.guests
   using (public.is_event_owner(event_id))
   with check (public.is_event_owner(event_id));
 
--- Intentos fallidos de identificacion, para frenar que alguien pruebe nombres
--- hasta descubrir quienes estan en la lista. Sin acceso para nadie salvo las
--- funciones SECURITY DEFINER.
+-- Credenciales del invitado: el PIN que ELIGE al inscribirse (hash bcrypt, nunca
+-- el PIN) y el bloqueo por intentos fallidos. Tabla aparte, sin ningun permiso
+-- para anon ni authenticated: ni el organizador puede leer los hashes (un PIN de
+-- 4 digitos se adivinaria a partir del hash). Solo las funciones SECURITY
+-- DEFINER la tocan.
+create table public.guest_credentials (
+  guest_id uuid primary key references public.guests (id) on delete cascade,
+  pin_hash text not null,
+  failed_count int not null default 0,
+  locked_until timestamptz,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.guest_credentials enable row level security;
+revoke all on public.guest_credentials from anon, authenticated;
+
+-- Intentos fallidos de inscripcion / inicio de sesion, para frenar que alguien
+-- pruebe nombres hasta descubrir quienes estan. Sin acceso para nadie salvo
+-- las funciones SECURITY DEFINER.
 create table public.identify_attempts (
   id bigint generated always as identity primary key,
   event_id uuid not null references public.events (id) on delete cascade,

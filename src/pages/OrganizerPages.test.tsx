@@ -36,7 +36,6 @@ const event: api.OrganizerEvent = {
   startsAt: null,
   location: null,
   accessMode: 'list',
-  identifier: 'name',
   cameraUnlock: 'on_identify',
   rsvpEnabled: false,
   photosRevealedAt: null,

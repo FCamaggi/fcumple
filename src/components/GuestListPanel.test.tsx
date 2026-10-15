@@ -100,10 +100,10 @@ describe('GuestListPanel', () => {
     const props = setup([ana]);
 
     vi.mocked(window.confirm).mockReturnValueOnce(false);
-    await userEvent.click(screen.getByRole('button', { name: 'Regenerar acceso' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Restablecer acceso' }));
     expect(props.onRegenerate).not.toHaveBeenCalled();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Regenerar acceso' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Restablecer acceso' }));
     expect(props.onRegenerate).toHaveBeenCalledWith(ana);
 
     vi.mocked(window.confirm).mockReturnValueOnce(false);

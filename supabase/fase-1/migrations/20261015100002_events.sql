@@ -12,18 +12,15 @@ create table public.events (
   -- null = el rollo sigue oculto para todos. El organizador lo fija a now()
   -- para "revelar".
   photos_revealed_at timestamptz,
-  -- Como entran los invitados (ver docs/fase-1-mvp-multitenant/acceso-de-invitados.md):
-  --   list           solo quien esta en la lista
-  --   list_requests  lista + solicitudes que el organizador aprueba
-  --   open           cualquiera con el enlace, escribiendo nombre y apellido
-  access_mode text not null default 'list'
-    check (access_mode in ('list', 'list_requests', 'open')),
-  -- name        el invitado escribe nombre y apellido (identify_guest)
-  -- rut_lookup  un servicio externo resuelve RUT -> nombre; el RUT jamas se
-  --             guarda (identify_guest_verified, solo service_role)
-  identifier text not null default 'name'
-    check (identifier in ('name', 'rut_lookup')),
-  -- on_identify: la camara se habilita al identificarse.
+  -- Como entran los invitados (ver docs/fase-1-mvp-multitenant/acceso-de-invitados.md).
+  -- En todos los modos la persona se inscribe / inicia sesion con su nombre y
+  -- apellido y un PIN que ella misma elige:
+  --   open           cualquiera con el enlace se inscribe (por defecto)
+  --   list           solo quien el organizador cargo en la lista puede inscribirse
+  --   list_requests  lista + solicitudes de quien no esta, que el organizador aprueba
+  access_mode text not null default 'open'
+    check (access_mode in ('open', 'list', 'list_requests')),
+  -- on_identify: la camara se habilita al entrar.
   -- on_checkin:  solo despues de que el organizador marca la llegada.
   camera_unlock text not null default 'on_identify'
     check (camera_unlock in ('on_identify', 'on_checkin')),
@@ -42,7 +39,7 @@ create or replace function public.is_event_owner(p_event_id uuid)
 returns boolean
 language sql
 security definer
-set search_path = public
+set search_path = public, extensions
 stable
 as $$
   select exists (

@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import type { AccessMode, Identifier } from './platformApi';
+import type { AccessMode } from './platformApi';
 import type { ModerationPhoto } from './photosApi';
 import type { Photo } from '../types';
 
@@ -18,7 +18,6 @@ export interface OrganizerEvent {
   startsAt: string | null;
   location: string | null;
   accessMode: AccessMode;
-  identifier: Identifier;
   cameraUnlock: CameraUnlock;
   rsvpEnabled: boolean;
   photosRevealedAt: string | null;
@@ -47,7 +46,6 @@ interface EventRow {
   starts_at: string | null;
   location: string | null;
   access_mode: AccessMode;
-  identifier: Identifier;
   camera_unlock: CameraUnlock;
   rsvp_enabled: boolean;
   photos_revealed_at: string | null;
@@ -77,7 +75,6 @@ function mapEvent(row: EventRow): OrganizerEvent {
     startsAt: row.starts_at,
     location: row.location,
     accessMode: row.access_mode,
-    identifier: row.identifier,
     cameraUnlock: row.camera_unlock,
     rsvpEnabled: row.rsvp_enabled,
     photosRevealedAt: row.photos_revealed_at,
@@ -159,7 +156,6 @@ export interface EventSettingsPatch {
   startsAt?: string | null;
   location?: string | null;
   accessMode?: AccessMode;
-  identifier?: Identifier;
   cameraUnlock?: CameraUnlock;
   rsvpEnabled?: boolean;
 }
@@ -170,7 +166,6 @@ export async function updateEvent(eventId: string, patch: EventSettingsPatch): P
   if (patch.startsAt !== undefined) row.starts_at = patch.startsAt;
   if (patch.location !== undefined) row.location = patch.location;
   if (patch.accessMode !== undefined) row.access_mode = patch.accessMode;
-  if (patch.identifier !== undefined) row.identifier = patch.identifier;
   if (patch.cameraUnlock !== undefined) row.camera_unlock = patch.cameraUnlock;
   if (patch.rsvpEnabled !== undefined) row.rsvp_enabled = patch.rsvpEnabled;
 

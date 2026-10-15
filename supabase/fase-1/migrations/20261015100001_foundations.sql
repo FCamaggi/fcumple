@@ -2,16 +2,20 @@
 -- Este directorio NO es el que aplica `supabase db push` en el deploy de la
 -- Fase 0: ver ../README.md para el plan de corte a un proyecto nuevo.
 
+-- En Supabase pgcrypto vive en el esquema `extensions`: toda funcion que fije
+-- `search_path` debe incluirlo (`public, extensions`) para encontrar
+-- gen_random_bytes / crypt / gen_salt.
 create extension if not exists pgcrypto;
 
 -- Token de sesion del invitado (72 bits, URL-safe). Ya no viaja en un enlace
--- por invitado: lo entrega identify_guest tras identificarse. NUNCA debe
+-- por invitado: lo entregan register_guest / login_guest. NUNCA debe
 -- formar parte de una ruta de Storage (la Fase 0 lo hacia y list_revealed_photos
 -- lo filtraba a cualquiera; aqui las rutas usan ids no secretos).
 create or replace function public.generate_guest_token()
 returns text
 language sql
 volatile
+set search_path = public, extensions
 as $$
   select translate(encode(gen_random_bytes(9), 'base64'), '+/=', '-_');
 $$;
@@ -72,6 +76,7 @@ create or replace function public.random_suffix(p_len int default 4)
 returns text
 language plpgsql
 volatile
+set search_path = public, extensions
 as $$
 declare
   alphabet constant text := 'abcdefghjkmnpqrstuvwxyz23456789';

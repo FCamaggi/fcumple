@@ -2,12 +2,14 @@ import { supabase } from './supabaseClient';
 
 /**
  * Capa de acceso de la Fase 1 (plataforma multi-tenant): evento público e
- * identificación del invitado con el enlace único `/e/:slug`. Habla con las
- * RPC de supabase/fase-1/ (no con las de la Fase 0).
+ * inscripción / inicio de sesión del invitado con el enlace único `/e/:slug`.
+ * Habla con las RPC de supabase/fase-1/ (no con las de la Fase 0).
+ *
+ * El invitado se inscribe con su nombre y apellido y un PIN que elige él
+ * mismo. No se pide ni se guarda ningún otro dato personal.
  */
 
-export type AccessMode = 'list' | 'list_requests' | 'open';
-export type Identifier = 'name' | 'rut_lookup';
+export type AccessMode = 'open' | 'list' | 'list_requests';
 
 export interface EventPublic {
   id: string;
@@ -16,16 +18,16 @@ export interface EventPublic {
   location: string | null;
   rsvpDeadline: string | null;
   accessMode: AccessMode;
-  identifier: Identifier;
   cameraUnlock: 'on_identify' | 'on_checkin';
   rsvpEnabled: boolean;
   photosRevealed: boolean;
 }
 
-export type IdentifyOutcome = 'ok' | 'ambiguous' | 'not_found' | 'pending_approval';
+export type RegisterOutcome = 'ok' | 'pending_approval' | 'name_taken' | 'not_found' | 'ambiguous';
+export type LoginOutcome = 'ok' | 'pending_approval' | 'invalid' | 'ambiguous' | 'locked' | 'needs_registration';
 
-export interface IdentifyResult {
-  outcome: IdentifyOutcome;
+export interface AuthResult<O extends string> {
+  outcome: O;
   guestToken: string | null;
   guestId: string | null;
   guestName: string | null;
@@ -51,14 +53,13 @@ interface EventRow {
   location: string | null;
   rsvp_deadline: string | null;
   access_mode: AccessMode;
-  identifier: Identifier;
   camera_unlock: 'on_identify' | 'on_checkin';
   rsvp_enabled: boolean;
   photos_revealed: boolean;
 }
 
-interface IdentifyRow {
-  outcome: IdentifyOutcome;
+interface AuthRow<O extends string> {
+  outcome: O;
   guest_token: string | null;
   guest_id: string | null;
   guest_name: string | null;
@@ -78,16 +79,15 @@ export async function getEventPublic(slug: string): Promise<EventPublic | null> 
     location: row.location,
     rsvpDeadline: row.rsvp_deadline,
     accessMode: row.access_mode,
-    identifier: row.identifier,
     cameraUnlock: row.camera_unlock,
     rsvpEnabled: row.rsvp_enabled,
     photosRevealed: row.photos_revealed,
   };
 }
 
-function mapIdentify(row: IdentifyRow | undefined): IdentifyResult {
+function mapAuth<O extends string>(row: AuthRow<O> | undefined): AuthResult<O> {
   if (!row) {
-    throw new Error('No pudimos identificarte. Intenta de nuevo en un momento.');
+    throw new Error('No pudimos completar la operación. Intenta de nuevo en un momento.');
   }
   return {
     outcome: row.outcome,
@@ -97,65 +97,39 @@ function mapIdentify(row: IdentifyRow | undefined): IdentifyResult {
   };
 }
 
-const TOO_MANY_ATTEMPTS = 'Demasiados intentos seguidos. Espera unos minutos y vuelve a probar.';
-
-/** Identificación por nombre y apellido (`identify_guest`). */
-export async function identifyByName(slug: string, name: string): Promise<IdentifyResult> {
-  const { data, error } = await supabase.rpc('identify_guest', { p_slug: slug, p_name: name });
-
-  if (error) {
-    switch (error.code) {
-      case '22023':
-        throw new Error('Escribe tu nombre y tu apellido.');
-      case '53400':
-        throw new Error(TOO_MANY_ATTEMPTS);
-      case 'P0002':
-        throw new Error('Este evento no existe o el enlace está mal escrito.');
-      case '42501':
-        throw new Error('Este evento te identifica con tu RUT.');
-      default:
-        throw new Error('No pudimos identificarte. Intenta de nuevo en un momento.');
-    }
+function authError(error: { code?: string; message?: string }): Error {
+  switch (error.code) {
+    case '22023':
+      return new Error(
+        /pin/i.test(error.message ?? '')
+          ? 'El PIN debe tener entre 4 y 6 números.'
+          : 'Escribe tu nombre y tu apellido.',
+      );
+    case '53400':
+      return new Error(
+        /limit reached/i.test(error.message ?? '')
+          ? 'Este evento ya llegó al máximo de invitados.'
+          : 'Demasiados intentos seguidos. Espera unos minutos y vuelve a probar.',
+      );
+    case 'P0002':
+      return new Error('Este evento no existe o el enlace está mal escrito.');
+    default:
+      return new Error('No pudimos completar la operación. Intenta de nuevo en un momento.');
   }
-
-  return mapIdentify((data as IdentifyRow[] | null)?.[0]);
 }
 
-/**
- * Identificación por RUT: el RUT viaja a la función serverless `/api/identify`,
- * que lo resuelve con un proveedor externo y NO lo guarda. Aquí tampoco se
- * guarda: ni en estado persistente, ni en almacenamiento, ni en logs.
- */
-export async function identifyByRut(slug: string, rut: string): Promise<IdentifyResult> {
-  let response: Response;
-  try {
-    response = await fetch('/api/identify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ slug, rut }),
-    });
-  } catch {
-    throw new Error('No pudimos conectarnos. Revisa tu conexión e intenta de nuevo.');
-  }
+/** "Inscribirme": nombre y apellido + un PIN de 4 a 6 números que elige la persona. */
+export async function registerGuest(slug: string, name: string, pin: string): Promise<AuthResult<RegisterOutcome>> {
+  const { data, error } = await supabase.rpc('register_guest', { p_slug: slug, p_name: name, p_pin: pin });
+  if (error) throw authError(error);
+  return mapAuth((data as AuthRow<RegisterOutcome>[] | null)?.[0]);
+}
 
-  const payload = (await response.json().catch(() => null)) as (Partial<IdentifyRow> & { error?: string }) | null;
-
-  if (!response.ok) {
-    switch (response.status) {
-      case 400:
-        throw new Error('Revisa tu RUT: parece que hay un error de tipeo.');
-      case 404:
-        throw new Error('Este evento no existe o el enlace está mal escrito.');
-      case 429:
-        throw new Error(TOO_MANY_ATTEMPTS);
-      case 501:
-        throw new Error('La verificación por RUT todavía no está disponible para este evento.');
-      default:
-        throw new Error('No pudimos identificarte. Intenta de nuevo en un momento.');
-    }
-  }
-
-  return mapIdentify(payload as IdentifyRow | undefined);
+/** "Ya me inscribí": nombre y PIN. */
+export async function loginGuest(slug: string, name: string, pin: string): Promise<AuthResult<LoginOutcome>> {
+  const { data, error } = await supabase.rpc('login_guest', { p_slug: slug, p_name: name, p_pin: pin });
+  if (error) throw authError(error);
+  return mapAuth((data as AuthRow<LoginOutcome>[] | null)?.[0]);
 }
 
 export async function getMyGuest(token: string): Promise<MyGuest | null> {
@@ -181,7 +155,7 @@ export async function getMyGuest(token: string): Promise<MyGuest | null> {
 }
 
 // --- Sesión del invitado en este dispositivo -----------------------------
-// Solo el token y el nombre. NUNCA el RUT. El almacenamiento puede fallar o
+// Solo el token y el nombre. NUNCA el PIN. El almacenamiento puede fallar o
 // vaciarse (modo privado, Safari que limpia datos de sitios sin uso): en ese
 // caso el invitado simplemente se identifica de nuevo.
 

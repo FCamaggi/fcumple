@@ -52,7 +52,6 @@ const eventRow = {
   starts_at: null,
   location: 'Casa',
   access_mode: 'list',
-  identifier: 'name',
   camera_unlock: 'on_identify',
   rsvp_enabled: false,
   photos_revealed_at: null,

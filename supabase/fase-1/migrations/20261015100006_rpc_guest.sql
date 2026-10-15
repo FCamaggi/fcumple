@@ -8,7 +8,7 @@ create or replace function public._approved_guest(p_token text)
 returns setof public.guests
 language sql
 security definer
-set search_path = public
+set search_path = public, extensions
 stable
 as $$
   select * from public.guests g
@@ -25,18 +25,17 @@ returns table (
   location text,
   rsvp_deadline timestamptz,
   access_mode text,
-  identifier text,
   camera_unlock text,
   rsvp_enabled boolean,
   photos_revealed boolean
 )
 language sql
 security definer
-set search_path = public
+set search_path = public, extensions
 stable
 as $$
   select e.id, e.name, e.starts_at, e.location, e.rsvp_deadline, e.access_mode,
-         e.identifier, e.camera_unlock, e.rsvp_enabled, (e.photos_revealed_at is not null)
+         e.camera_unlock, e.rsvp_enabled, (e.photos_revealed_at is not null)
   from public.events e
   where e.slug = p_slug;
 $$;
@@ -58,7 +57,7 @@ returns table (
 )
 language sql
 security definer
-set search_path = public
+set search_path = public, extensions
 stable
 as $$
   select g.id, g.event_id, g.full_name, g.status, g.plus_ones_allowed, g.plus_ones_confirmed,
@@ -88,7 +87,7 @@ returns table (
 )
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 declare
   v_guest public.guests%rowtype;
@@ -132,7 +131,7 @@ create or replace function public.get_photo_quota(p_token text)
 returns table (quota int, used int)
 language sql
 security definer
-set search_path = public
+set search_path = public, extensions
 stable
 as $$
   select g.photo_quota,
@@ -160,7 +159,7 @@ returns table (
 )
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 declare
   v_guest public.guests%rowtype;
@@ -224,7 +223,7 @@ returns table (
 )
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 declare
   v_guest public.guests%rowtype;
@@ -261,7 +260,7 @@ returns table (
 )
 language sql
 security definer
-set search_path = public
+set search_path = public, extensions
 stable
 as $$
   select p.storage_path, p.display_storage_path, p.created_at
@@ -279,7 +278,7 @@ create or replace function public.get_public_headcount(p_slug text)
 returns int
 language sql
 security definer
-set search_path = public
+set search_path = public, extensions
 stable
 as $$
   select coalesce(sum(1 + g.plus_ones_confirmed), 0)::int
@@ -304,7 +303,7 @@ returns table (
 )
 language sql
 security definer
-set search_path = public
+set search_path = public, extensions
 stable
 as $$
   select p.id, p.title, p.subtitle, p.body, p.cover_image_path, p.published_at,
@@ -332,7 +331,7 @@ create or replace function public.create_event(
 returns setof public.events
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 declare
   v_base text;

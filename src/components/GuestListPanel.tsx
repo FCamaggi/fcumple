@@ -12,9 +12,10 @@ interface GuestListPanelProps {
 const buttonClass = 'h-8 border border-smoke-700/60 px-3 font-mono text-[11px] uppercase tracking-wider text-paper-100';
 
 /**
- * Lista de invitados del evento. Cada persona se registra por nombre y
- * apellido (no se guarda ningún RUT). Las solicitudes de acceso pendientes
- * aparecen arriba para aprobarlas o rechazarlas.
+ * Invitados del evento. Cada persona se inscribe sola con el enlace (nombre y
+ * apellido + un PIN que elige); también se puede cargar una lista a mano. Las
+ * solicitudes de acceso pendientes aparecen arriba para aprobarlas o
+ * rechazarlas, y "Restablecer acceso" ayuda a quien olvidó su PIN.
  */
 export default function GuestListPanel({ guests, onAdd, onReview, onRemove, onRegenerate }: GuestListPanelProps) {
   const [text, setText] = useState('');
@@ -91,7 +92,7 @@ export default function GuestListPanel({ guests, onAdd, onReview, onRemove, onRe
 
       <form onSubmit={handleAdd} className="flex flex-col gap-2" aria-label="Alta de invitados">
         <label htmlFor="guest-names" className="font-mono text-[11px] uppercase tracking-wider text-paper-100/70">
-          Agregar invitados (un nombre y apellido por línea)
+          Agregar invitados a mano (opcional; un nombre y apellido por línea)
         </label>
         <textarea
           id="guest-names"
@@ -128,7 +129,7 @@ export default function GuestListPanel({ guests, onAdd, onReview, onRemove, onRe
           Invitados: {members.length} · han entrado: {entered}
         </h2>
         {members.length === 0 ? (
-          <p className="font-sans text-sm text-paper-100/60">Todavía no hay invitados. Agrega los primeros arriba.</p>
+          <p className="font-sans text-sm text-paper-100/60">Todavía no hay invitados. Aparecerán aquí a medida que se inscriban con el enlace del evento.</p>
         ) : (
           <ul className="flex flex-col gap-1">
             {members.map((guest) => (
@@ -150,12 +151,12 @@ export default function GuestListPanel({ guests, onAdd, onReview, onRemove, onRe
                     type="button"
                     className={buttonClass}
                     onClick={() => {
-                      if (window.confirm(`¿Cerrar la sesión de ${guest.fullName}? Tendrá que identificarse de nuevo.`)) {
+                      if (window.confirm(`¿Restablecer el acceso de ${guest.fullName}? Se cierra su sesión y tendrá que inscribirse de nuevo con un PIN nuevo.`)) {
                         void run(() => onRegenerate(guest));
                       }
                     }}
                   >
-                    Regenerar acceso
+                    Restablecer acceso
                   </button>
                   <button
                     type="button"

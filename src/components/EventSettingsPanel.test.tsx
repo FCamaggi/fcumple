@@ -11,7 +11,6 @@ const event: OrganizerEvent = {
   startsAt: null,
   location: 'Casa',
   accessMode: 'list',
-  identifier: 'name',
   cameraUnlock: 'on_identify',
   rsvpEnabled: false,
   photosRevealedAt: null,
@@ -55,8 +54,9 @@ describe('EventSettingsPanel', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos guardar los ajustes');
   });
 
-  it('avisa que la verificación por RUT todavía no está disponible', () => {
+  it('explica que cada invitado elige su PIN y que no se pide RUT, correo ni teléfono', () => {
     render(<EventSettingsPanel event={event} onSave={vi.fn()} />);
-    expect(screen.getByText(/verificación por RUT todavía no está disponible/)).toBeInTheDocument();
+    expect(screen.getByText(/un PIN que elige él mismo/)).toBeInTheDocument();
+    expect(screen.getByText(/No se pide RUT, correo ni teléfono/)).toBeInTheDocument();
   });
 });

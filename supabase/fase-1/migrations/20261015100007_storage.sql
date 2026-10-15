@@ -13,7 +13,7 @@ create or replace function public.guest_folder_exists(p_event text, p_guest text
 returns boolean
 language sql
 security definer
-set search_path = public
+set search_path = public, extensions
 stable
 as $$
   select exists (
@@ -28,7 +28,7 @@ create or replace function public.storage_event_owner(p_event text)
 returns boolean
 language sql
 security definer
-set search_path = public
+set search_path = public, extensions
 stable
 as $$
   select public.is_event_owner(public.safe_uuid(p_event));
@@ -38,7 +38,7 @@ create or replace function public.party_photo_is_revealed(p_path text)
 returns boolean
 language sql
 security definer
-set search_path = public
+set search_path = public, extensions
 stable
 as $$
   select exists (
@@ -55,7 +55,7 @@ create or replace function public.post_image_path_is_public(p_path text)
 returns boolean
 language sql
 security definer
-set search_path = public
+set search_path = public, extensions
 stable
 as $$
   select

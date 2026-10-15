@@ -40,6 +40,11 @@ describe('create_event', () => {
     expect(rows[0].slug).toMatch(/^evento-[a-z2-9]{4}$/);
   });
 
+  it('un evento nuevo es abierto por defecto (se inscribe quien tenga el enlace)', async () => {
+    const { rows } = await asUser(db, owner, () => db.query(`select access_mode from create_event('Fiesta abierta')`));
+    expect(rows[0].access_mode).toBe('open');
+  });
+
   it('anon no puede crear eventos', async () => {
     await expect(anon(() => db.query(`select * from create_event('Colada')`))).rejects.toMatchObject({
       code: '42501',
@@ -54,6 +59,7 @@ describe('get_event_public', () => {
     expect(rows).toHaveLength(1);
     expect(rows[0].id).toBe(ev.id);
     expect(rows[0].access_mode).toBe('open');
+    expect(rows[0]).not.toHaveProperty('identifier');
     expect(rows[0]).not.toHaveProperty('owner_id');
     expect(rows[0].photos_revealed).toBe(false);
   });
@@ -261,14 +267,17 @@ describe('avisos publicados', () => {
 });
 
 describe('regenerate_guest_token', () => {
-  it('cambia el token, cierra la sesion anterior y limpia claimed_at', async () => {
+  it('cambia el token, borra el PIN, cierra la sesion anterior y limpia claimed_at', async () => {
     const ev = await createEvent(db, owner);
     const g = await createGuest(db, ev.id, 'Ana Rojas');
     await db.query('update guests set claimed_at = now(), last_seen_at = now() where id = $1', [g.id]);
+    await db.query(`insert into guest_credentials (guest_id, pin_hash) values ($1, 'x')`, [g.id]);
 
     const { rows } = await asUser(db, owner, () => db.query('select * from regenerate_guest_token($1)', [g.id]));
     expect(rows[0].token).not.toBe(g.token);
     expect(rows[0].claimed_at).toBeNull();
+    const creds = await db.query('select 1 from guest_credentials where guest_id = $1', [g.id]);
+    expect(creds.rows).toHaveLength(0);
 
     const old = await anon(() => db.query('select * from get_guest_by_token($1)', [g.token]));
     expect(old.rows).toHaveLength(0);

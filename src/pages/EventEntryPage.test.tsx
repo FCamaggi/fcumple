@@ -6,8 +6,8 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 vi.mock('../lib/platformApi', () => ({
   getEventPublic: vi.fn(),
   getMyGuest: vi.fn(),
-  identifyByName: vi.fn(),
-  identifyByRut: vi.fn(),
+  registerGuest: vi.fn(),
+  loginGuest: vi.fn(),
   loadGuestSession: vi.fn(),
   saveGuestSession: vi.fn(),
   clearGuestSession: vi.fn(),
@@ -29,7 +29,6 @@ const event: api.EventPublic = {
   location: 'Casa de Fabrizio',
   rsvpDeadline: null,
   accessMode: 'list',
-  identifier: 'name',
   cameraUnlock: 'on_identify',
   rsvpEnabled: false,
   photosRevealed: false,
@@ -50,7 +49,8 @@ function renderPage() {
 beforeEach(() => {
   vi.mocked(api.getEventPublic).mockReset();
   vi.mocked(api.getMyGuest).mockReset();
-  vi.mocked(api.identifyByName).mockReset();
+  vi.mocked(api.registerGuest).mockReset();
+  vi.mocked(api.loginGuest).mockReset();
   vi.mocked(api.loadGuestSession).mockReset().mockReturnValue(null);
   vi.mocked(api.saveGuestSession).mockReset();
   vi.mocked(api.clearGuestSession).mockReset();
@@ -69,9 +69,9 @@ describe('EventEntryPage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos cargar el evento.');
   });
 
-  it('sin sesión pide identificarse y, al lograrlo, guarda la sesión y entra', async () => {
+  it('sin sesión pide inscribirse y, al lograrlo, guarda la sesión y entra', async () => {
     vi.mocked(api.getEventPublic).mockResolvedValueOnce(event);
-    vi.mocked(api.identifyByName).mockResolvedValueOnce({
+    vi.mocked(api.registerGuest).mockResolvedValueOnce({
       outcome: 'ok',
       guestToken: 'tok',
       guestId: 'g1',
@@ -81,7 +81,9 @@ describe('EventEntryPage', () => {
     renderPage();
 
     await userEvent.type(await screen.findByLabelText('Nombre y apellido'), 'Ana Rojas');
-    await userEvent.click(screen.getByRole('button', { name: 'Entrar' }));
+    await userEvent.type(screen.getByLabelText(/Elige un PIN/), '4821');
+    await userEvent.type(screen.getByLabelText('Repite tu PIN'), '4821');
+    await userEvent.click(screen.getByRole('button', { name: 'Inscribirme y entrar' }));
 
     expect(await screen.findByRole('heading', { name: 'Hola, Ana' })).toBeInTheDocument();
     expect(api.saveGuestSession).toHaveBeenCalledWith('fiesta-abcd', { token: 'tok', guestName: 'Ana María Rojas' });
@@ -109,9 +111,23 @@ describe('EventEntryPage', () => {
     await waitFor(() => expect(api.clearGuestSession).toHaveBeenCalledWith('fiesta-abcd'));
   });
 
-  it('un evento con identificación por RUT pide el RUT', async () => {
-    vi.mocked(api.getEventPublic).mockResolvedValueOnce({ ...event, identifier: 'rut_lookup' });
+  it('permite iniciar sesión con nombre y PIN desde otro dispositivo', async () => {
+    vi.mocked(api.getEventPublic).mockResolvedValueOnce(event);
+    vi.mocked(api.loginGuest).mockResolvedValueOnce({
+      outcome: 'ok',
+      guestToken: 'tok2',
+      guestId: 'g1',
+      guestName: 'Ana María Rojas',
+    });
+    vi.mocked(api.getMyGuest).mockResolvedValueOnce(guest);
     renderPage();
-    expect(await screen.findByLabelText('Tu RUT')).toBeInTheDocument();
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Ya me inscribí' }));
+    await userEvent.type(screen.getByLabelText('Nombre y apellido'), 'Ana Rojas');
+    await userEvent.type(screen.getByLabelText('Tu PIN'), '4821');
+    await userEvent.click(screen.getByRole('button', { name: 'Entrar' }));
+
+    expect(await screen.findByRole('heading', { name: 'Hola, Ana' })).toBeInTheDocument();
+    expect(api.saveGuestSession).toHaveBeenCalledWith('fiesta-abcd', { token: 'tok2', guestName: 'Ana María Rojas' });
   });
 });
