@@ -14,10 +14,18 @@ vi.mock('../lib/organizerApi', () => ({
   regenerateGuestToken: vi.fn(),
   updateEvent: vi.fn(),
 }));
+vi.mock('../lib/adminApi', () => ({ checkInGuest: vi.fn() }));
+vi.mock('../components/QrScanner', () => ({
+  default: ({ guests, onClose }: { guests: Array<{ token?: string }>; onClose: () => void }) => (
+    <div data-testid="scanner">escáner con {guests.map((g) => g.token).join(',')}<button type="button" onClick={onClose}>cerrar escáner</button></div>
+  ),
+}));
+vi.mock('../components/PhotosTab', () => ({ default: () => <div data-testid="photos-tab" /> }));
 vi.mock('../lib/auth', () => ({ signOut: vi.fn(), signIn: vi.fn(), useSession: vi.fn() }));
 vi.mock('qrcode', () => ({ default: { toDataURL: vi.fn().mockResolvedValue('data:image/png;base64,QR') } }));
 
 import * as api from '../lib/organizerApi';
+import { checkInGuest } from '../lib/adminApi';
 import OrganizerEventsPage from './OrganizerEventsPage';
 import OrganizerEventPage from './OrganizerEventPage';
 
@@ -41,7 +49,9 @@ const ana: api.OrganizerGuest = {
   fullName: 'Ana Rojas',
   token: 'tok',
   approvalStatus: 'approved',
+  status: 'pending',
   plusOnesAllowed: 0,
+  plusOnesConfirmed: 0,
   photoQuota: 5,
   checkedInAt: null,
   claimedAt: null,
@@ -187,5 +197,50 @@ describe('OrganizerEventPage', () => {
     await waitFor(() =>
       expect(api.updateEvent).toHaveBeenCalledWith('ev-1', expect.objectContaining({ accessMode: 'open' })),
     );
+  });
+
+  it('Puerta: marca la llegada buscando por nombre y la refleja', async () => {
+    vi.mocked(api.getMyEvent).mockResolvedValueOnce(event);
+    vi.mocked(api.listEventGuests).mockResolvedValueOnce([ana]);
+    vi.mocked(checkInGuest).mockResolvedValueOnce({
+      id: 'g1',
+      fullName: 'Ana Rojas',
+      status: 'pending',
+      plusOnesAllowed: 0,
+      plusOnesConfirmed: 0,
+      guestNote: null,
+      respondedAt: null,
+      checkedInAt: '2026-10-15T22:00:00Z',
+    });
+    renderEvent();
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Puerta' }));
+    await userEvent.type(screen.getByLabelText('Buscar por nombre'), 'Ana');
+    await userEvent.click(screen.getByRole('button', { name: 'Marcar llegada' }));
+
+    expect(await screen.findByText('Ya llegó')).toBeInTheDocument();
+    expect(checkInGuest).toHaveBeenCalledWith('tok');
+    expect(screen.getByText('Han llegado: 1 de 1')).toBeInTheDocument();
+  });
+
+  it('Puerta: el escáner recibe a los invitados con su token', async () => {
+    vi.mocked(api.getMyEvent).mockResolvedValueOnce(event);
+    vi.mocked(api.listEventGuests).mockResolvedValueOnce([ana]);
+    renderEvent();
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Puerta' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Abrir escáner' }));
+    expect(screen.getByTestId('scanner')).toHaveTextContent('escáner con tok');
+
+    await userEvent.click(screen.getByRole('button', { name: 'cerrar escáner' }));
+    expect(screen.queryByTestId('scanner')).not.toBeInTheDocument();
+  });
+
+  it('Fotos: muestra la pestaña de moderación', async () => {
+    vi.mocked(api.getMyEvent).mockResolvedValueOnce(event);
+    vi.mocked(api.listEventGuests).mockResolvedValueOnce([]);
+    renderEvent();
+    await userEvent.click(await screen.findByRole('button', { name: 'Fotos' }));
+    expect(screen.getByTestId('photos-tab')).toBeInTheDocument();
   });
 });

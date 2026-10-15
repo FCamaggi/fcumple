@@ -32,6 +32,9 @@ import {
   createEvent,
   getMyEvent,
   listEventGuests,
+  listEventPhotos,
+  moderateEventPhoto,
+  revealEventPhotos,
   listMyEvents,
   regenerateGuestToken,
   removeGuest,
@@ -62,7 +65,9 @@ const guestRow = {
   full_name: 'Ana Rojas',
   token: 'tok',
   approval_status: 'approved',
+  status: 'pending',
   plus_ones_allowed: 0,
+  plus_ones_confirmed: 0,
   photo_quota: 5,
   checked_in_at: null,
   claimed_at: null,
@@ -169,5 +174,49 @@ describe('invitados', () => {
     const guest = await regenerateGuestToken('g1');
     expect(rpc).toHaveBeenCalledWith('regenerate_guest_token', { p_guest_id: 'g1' });
     expect(guest.token).toBe('nuevo');
+  });
+});
+
+describe('fotos del evento', () => {
+  it('listEventPhotos filtra por evento y trae el nombre de quien la tomó', async () => {
+    const q = chain({
+      data: [
+        {
+          id: 'p1',
+          guest_id: 'g1',
+          storage_path: 'ev-1/g1/a.jpg',
+          display_storage_path: null,
+          status: 'pending',
+          created_at: '2026-10-15T00:00:00Z',
+          guests: { full_name: 'Ana Rojas' },
+        },
+      ],
+      error: null,
+    });
+    from.mockReturnValueOnce(q.proxy);
+    const photos = await listEventPhotos('ev-1');
+    expect(q.calls.find(([name]) => name === 'eq')?.[1]).toEqual(['event_id', 'ev-1']);
+    expect(photos[0]).toMatchObject({ id: 'p1', status: 'pending', guestFullName: 'Ana Rojas' });
+  });
+
+  it('moderateEventPhoto actualiza el estado por id', async () => {
+    const q = chain({ data: null, error: null });
+    from.mockReturnValueOnce(q.proxy);
+    await moderateEventPhoto('p1', 'rejected');
+    expect(q.calls.find(([name]) => name === 'update')?.[1][0]).toEqual({ status: 'rejected' });
+    expect(q.calls.find(([name]) => name === 'eq')?.[1]).toEqual(['id', 'p1']);
+  });
+
+  it('revealEventPhotos solo revela si todavía no estaba revelado', async () => {
+    const q = chain({ data: { ...eventRow, photos_revealed_at: '2026-10-16T00:00:00Z' }, error: null });
+    from.mockReturnValueOnce(q.proxy);
+    const ev = await revealEventPhotos('ev-1');
+    expect(q.calls.find(([name]) => name === 'is')?.[1]).toEqual(['photos_revealed_at', null]);
+    expect(ev.photosRevealedAt).toBe('2026-10-16T00:00:00Z');
+  });
+
+  it('revealEventPhotos explica el error si ya estaba revelado', async () => {
+    from.mockReturnValueOnce(chain({ data: null, error: { code: 'PGRST116' } }).proxy);
+    await expect(revealEventPhotos('ev-1')).rejects.toThrow(/ya esté revelado/);
   });
 });

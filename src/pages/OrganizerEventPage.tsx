@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { checkInGuest } from '../lib/adminApi';
+import DoorPanel from '../components/DoorPanel';
 import EventSettingsPanel from '../components/EventSettingsPanel';
 import GuestListPanel from '../components/GuestListPanel';
+import PhotosTab from '../components/PhotosTab';
+import QrScanner from '../components/QrScanner';
 import ShareEventLink from '../components/ShareEventLink';
 import {
   addGuests,
@@ -16,10 +20,12 @@ import {
   type OrganizerGuest,
 } from '../lib/organizerApi';
 
-type Tab = 'invitados' | 'enlace' | 'ajustes';
+type Tab = 'invitados' | 'puerta' | 'fotos' | 'enlace' | 'ajustes';
 
 const TABS: Array<{ id: Tab; label: string }> = [
   { id: 'invitados', label: 'Invitados' },
+  { id: 'puerta', label: 'Puerta' },
+  { id: 'fotos', label: 'Fotos' },
   { id: 'enlace', label: 'Enlace' },
   { id: 'ajustes', label: 'Ajustes' },
 ];
@@ -33,6 +39,7 @@ export default function OrganizerEventPage() {
   const [guests, setGuests] = useState<OrganizerGuest[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>('invitados');
+  const [scanning, setScanning] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -128,9 +135,44 @@ export default function OrganizerEventPage() {
             onRegenerate={async (guest) => replaceGuest(await regenerateGuestToken(guest.id))}
           />
         )}
+        {tab === 'puerta' && (
+          <DoorPanel
+            guests={guests}
+            onOpenScanner={() => setScanning(true)}
+            onCheckIn={async (guest) => {
+              const checked = await checkInGuest(guest.token);
+              replaceGuest({ ...guest, checkedInAt: checked.checkedInAt });
+            }}
+          />
+        )}
+        {tab === 'fotos' && <PhotosTab event={event} onEventChange={setEvent} />}
         {tab === 'enlace' && <ShareEventLink event={event} />}
         {tab === 'ajustes' && <EventSettingsPanel event={event} onSave={handleSave} />}
       </div>
+
+      {scanning && (
+        <QrScanner
+          // El escáner de la Fase 0 espera invitados con token y llegada;
+          // se le pasa lo mínimo que usa.
+          guests={guests.map((g) => ({
+            id: g.id,
+            token: g.token,
+            fullName: g.fullName,
+            status: g.status,
+            plusOnesAllowed: g.plusOnesAllowed,
+            plusOnesConfirmed: g.plusOnesConfirmed,
+            guestNote: null,
+            respondedAt: null,
+            checkedInAt: g.checkedInAt,
+          }))}
+          onCheckedIn={(checked) =>
+            setGuests((current) =>
+              current.map((g) => (g.id === checked.id ? { ...g, checkedInAt: checked.checkedInAt } : g)),
+            )
+          }
+          onClose={() => setScanning(false)}
+        />
+      )}
     </div>
   );
 }

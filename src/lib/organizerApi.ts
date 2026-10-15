@@ -1,5 +1,7 @@
 import { supabase } from './supabaseClient';
 import type { AccessMode, Identifier } from './platformApi';
+import type { ModerationPhoto } from './photosApi';
+import type { Photo } from '../types';
 
 /**
  * Capa de acceso del organizador (Fase 1). Todo pasa por las políticas RLS de
@@ -29,7 +31,9 @@ export interface OrganizerGuest {
   fullName: string;
   token: string;
   approvalStatus: ApprovalStatus;
+  status: 'pending' | 'confirmed' | 'declined';
   plusOnesAllowed: number;
+  plusOnesConfirmed: number;
   photoQuota: number;
   checkedInAt: string | null;
   claimedAt: string | null;
@@ -56,7 +60,9 @@ interface GuestRow {
   full_name: string;
   token: string;
   approval_status: ApprovalStatus;
+  status: 'pending' | 'confirmed' | 'declined';
   plus_ones_allowed: number;
+  plus_ones_confirmed: number;
   photo_quota: number;
   checked_in_at: string | null;
   claimed_at: string | null;
@@ -86,7 +92,9 @@ function mapGuest(row: GuestRow): OrganizerGuest {
     fullName: row.full_name,
     token: row.token,
     approvalStatus: row.approval_status,
+    status: row.status,
     plusOnesAllowed: row.plus_ones_allowed,
+    plusOnesConfirmed: row.plus_ones_confirmed,
     photoQuota: row.photo_quota,
     checkedInAt: row.checked_in_at,
     claimedAt: row.claimed_at,
@@ -231,4 +239,53 @@ export async function regenerateGuestToken(guestId: string): Promise<OrganizerGu
   const row = (data as GuestRow[] | null)?.[0];
   if (!row) throw new Error('No pudimos regenerar el acceso de esa persona.');
   return mapGuest(row);
+}
+
+// --- Fotos del evento (moderación y revelado) -------------------------------
+
+interface EventPhotoRow {
+  id: string;
+  guest_id: string;
+  storage_path: string;
+  display_storage_path: string | null;
+  status: Photo['status'];
+  created_at: string;
+  guests: { full_name: string } | null;
+}
+
+/** Fotos de UN evento del organizador (la RLS ya limita a los suyos). */
+export async function listEventPhotos(eventId: string): Promise<ModerationPhoto[]> {
+  const { data, error } = await supabase
+    .from('photos')
+    .select('id, guest_id, storage_path, display_storage_path, status, created_at, guests!photos_guest_same_event(full_name)')
+    .eq('event_id', eventId)
+    .order('created_at', { ascending: false });
+  if (error) throw new Error('No pudimos cargar las fotos del evento.');
+  return ((data ?? []) as unknown as EventPhotoRow[]).map((row) => ({
+    id: row.id,
+    guestId: row.guest_id,
+    storagePath: row.storage_path,
+    displayStoragePath: row.display_storage_path ?? null,
+    status: row.status,
+    createdAt: row.created_at,
+    guestFullName: row.guests?.full_name ?? 'Invitado desconocido',
+  }));
+}
+
+export async function moderateEventPhoto(photoId: string, status: 'approved' | 'rejected'): Promise<void> {
+  const { error } = await supabase.from('photos').update({ status }).eq('id', photoId);
+  if (error) throw new Error('No pudimos actualizar la foto.');
+}
+
+/** Revela el rollo del evento (ahora). No se puede deshacer desde la app. */
+export async function revealEventPhotos(eventId: string): Promise<OrganizerEvent> {
+  const { data, error } = await supabase
+    .from('events')
+    .update({ photos_revealed_at: new Date().toISOString() })
+    .eq('id', eventId)
+    .is('photos_revealed_at', null)
+    .select('*')
+    .single();
+  if (error) throw new Error('No pudimos revelar el rollo. Puede que ya esté revelado.');
+  return mapEvent(data as EventRow);
 }

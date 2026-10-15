@@ -34,9 +34,13 @@ Hecho (tercera rebanada: hub del invitado en `/e/:slug`, `GuestHub`):
 - [x] `camera_unlock = on_checkin`: la cámara queda bloqueada hasta que el organizador marque la llegada; el invitado muestra su código (QR con el token) y puede refrescar con "Ya me escanearon".
 - [x] `CameraSection` extraído de `GuestPage` y compartido.
 
+Hecho (cuarta rebanada: puerta y fotos en el panel del organizador):
+- [x] Pestaña **Puerta** (`DoorPanel`): buscar por nombre sin tildes ni orden y marcar la llegada; escáner de QR (`QrScanner`, `check_in_guest`, que solo ejecuta el dueño).
+- [x] Pestaña **Fotos** (`PhotosTab`): resumen por estado, moderación y **revelado del rollo** con `PhotoModerationPanel`, que ahora acepta una fuente de datos inyectada (la Fase 0 no cambia). `reveal` solo funciona si el rollo aún no estaba revelado.
+
 Pendiente:
 - [ ] Del hub: cuenta regresiva, "cómo llegar" por evento y RSVP (si `rsvp_enabled`). `GuestPage` y `EventHubPage` siguen con las RPC de la Fase 0.
-- [ ] Panel del organizador, lo que falta: importación CSV, moderación de fotos y revelado del rollo, avisos, escáner de puerta / `check_in_guest` y registro de cuentas de organizador. "Mi QR" del invitado para la puerta.
+- [ ] Panel del organizador, lo que falta: importación CSV, avisos (crear, publicar, imágenes) y registro de cuentas de organizador.
 - [ ] Datos de "cómo llegar" por evento en vez de constantes en `routes.ts`.
 - [ ] Retirar `/i/:token`, `SendInviteButton`, `WristbandCard` y `guests.phone` de la UI al hacer el corte.
 

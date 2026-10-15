@@ -76,3 +76,25 @@ No se construyó el adaptador en esta sesión: el entorno de ejecución bloqueó
 7. Verificarlo primero desde un despliegue de prueba en Vercel antes de depender de él.
 
 D19: no se integra el formulario en esta etapa. Queda como opción a cargo del usuario, con los requisitos de arriba, y sin recomendación para un producto de pago.
+
+## Adenda 2 (2026-10-15): "¿y si es solo una búsqueda, o un iframe, y no guardamos nada?"
+
+Pregunta del usuario: si la consulta es como buscar en Google (o un iframe), solo para cruzar RUT → nombre contra el nombre de la lista, sin guardar nada y solo la primera vez, ¿cuál es el problema?
+
+**1. Un iframe no puede hacer el cruce.** Un iframe de otro dominio se puede mostrar, pero la página que lo contiene **no puede leer su contenido** (política de mismo origen): no hay forma de que nuestra app obtenga el nombre para compararlo. El invitado solo vería el resultado y tendría que escribirlo a mano, es decir, volveríamos a pedirle el nombre. Además, la respuesta de ese sitio que se observó incluía `X-Frame-Options: SAMEORIGIN`, que impide incrustarlo desde otro dominio (visto en la página de desafío; no verificado en la de resultados).
+
+**2. El iframe trae publicidad y analítica de terceros a nuestros invitados.** La página de resultados incluye `adsbygoogle` y `gtag` (se ve en la respuesta pegada). Incrustada, cargaría esos rastreadores en el navegador del invitado, dentro de nuestra app.
+
+**3. Mostraría dirección y sexo de quien se consulte.** Cualquiera puede escribir el RUT de otra persona; el resultado que ve incluye su dirección. Es incorporar un buscador de personas a nuestro producto.
+
+**4. "No guardar" no es la única obligación.** Las leyes de datos personales (Ley 19.628 hoy; Ley 21.719 cuando entre en vigencia) regulan el *tratamiento*, que incluye recolectar, consultar y **comunicar** datos, no solo almacenarlos. Enviar el RUT de cada invitado a un tercero es una comunicación aunque no la guardemos. Una búsqueda hecha por el propio invitado en su navegador es otra cosa (sería como Google), pero entonces nosotros no recibimos el resultado y no sirve para cruzar nada. No soy abogado: conviene consultarlo antes de cobrar.
+
+**5. El cruce RUT → nombre no aporta seguridad y empeora la coincidencia.**
+- El RUT es público, así que quien lo conozca se identifica igual que con el nombre (lo dijo el propio usuario).
+- El sitio devuelve el **nombre legal completo** ("Soto Rojas Ana María"), pero el organizador suele anotar apodos o nombres cortos ("Anita Soto", "Fabri Camaggi"). Con el nombre legal, "Fabri" no coincide con "Fabrizio" y el invitado queda fuera aunque esté en la lista. Con el nombre que escribe el propio invitado, la coincidencia es más tolerante.
+- Lo único que el RUT aportaría es distinguir homónimos; eso se resuelve más barato pidiendo el segundo apellido (ya implementado: `ambiguous`).
+
+**6. "Solo la primera vez"** ya es así en el diseño actual (el token queda guardado en el dispositivo), pero esa primera vez ocurre una vez por invitado por evento (unas 80 consultas a un tercero por evento) y se repite cada vez que el navegador pierde su almacenamiento o el invitado cambia de teléfono.
+
+**Qué problema real sí vale la pena resolver:** que alguien se haga pasar por otro invitado. La solución con el mejor costo-beneficio no es el RUT sino una **clave personal** que el invitado elige la primera vez que entra (propuesta, por confirmar con el usuario): después, el nombre solo no basta y nadie más puede reclamar esa identidad.
+
