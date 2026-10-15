@@ -1,4 +1,6 @@
 import { readFileSync } from 'node:fs';
+// @ts-expect-error -- script .mjs sin tipos
+import { OUTPUT_FILE, buildSetupSql } from '../../scripts/build-setup-sql.mjs';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Client } from 'pg';
 import {
@@ -148,5 +150,58 @@ describe('Fase 1 sobre el proyecto podado', () => {
         db.query(`insert into storage.objects (bucket_id, name) values ('party-photos', $1)`, [`${legacyToken}/b.jpg`]),
       ),
     ).rejects.toMatchObject({ code: '42501' });
+  });
+});
+
+describe('setup-fase-1.sql (poda + migraciones en un solo archivo)', () => {
+  it('esta al dia con las migraciones (si falla: npm run build:setup-sql)', () => {
+    expect(readFileSync(OUTPUT_FILE, 'utf-8')).toBe(buildSetupSql());
+  });
+
+  it('sobre una copia fiel de la Fase 0 deja la Fase 1 lista, aislada y registrada en el historial', async () => {
+    // Reproduce la Fase 0 desde cero (incluido el historial) y ejecuta SOLO el archivo unico.
+    await resetPublicSchema(db);
+    await applyLegacyMigrations(db);
+    await db.query(`insert into storage.objects (bucket_id, name) values ('party-photos', $1)`, [`${legacyToken}/a.jpg`]);
+    await db.query(`
+      drop schema if exists supabase_migrations cascade;
+      create schema supabase_migrations;
+      create table supabase_migrations.schema_migrations (version text primary key);
+      insert into supabase_migrations.schema_migrations (version) values ('20260911120001'), ('20260922100001');
+    `);
+
+    await db.query(readFileSync(OUTPUT_FILE, 'utf-8'));
+
+    const tables = await db.query(`select table_name from information_schema.tables where table_schema = 'public' order by 1`);
+    expect(tables.rows.map((r) => r.table_name)).toEqual(
+      expect.arrayContaining(['events', 'guests', 'guest_credentials', 'photos', 'event_frames', 'event_stickers']),
+    );
+    expect(tables.rows.map((r) => r.table_name)).not.toContain('event_config');
+
+    const history = await db.query(`select version from supabase_migrations.schema_migrations order by 1`);
+    expect(history.rows.map((r) => r.version)).toEqual([
+      '20261015100001', '20261015100002', '20261015100003', '20261015100004', '20261015100005',
+      '20261015100006', '20261015100007', '20261015100008', '20261015100009',
+    ]);
+
+    // La trampa de Storage quedo cerrada y un organizador ya puede crear eventos.
+    const other = await db.query<{ id: string }>(`insert into auth.users (email) values ('nueva@example.com') returning id`);
+    const visible = await asUser(db, other.rows[0].id, () => db.query(`select name from storage.objects`));
+    expect(visible.rows).toEqual([]);
+    const created = await asUser(db, other.rows[0].id, () => db.query(`select * from create_event('Primer evento')`));
+    expect(created.rows[0].owner_id).toBe(other.rows[0].id);
+  });
+
+  it('es atomico: si una migracion falla, no queda nada aplicado ni podado', async () => {
+    await resetPublicSchema(db);
+    await applyLegacyMigrations(db);
+    const sql = readFileSync(OUTPUT_FILE, 'utf-8').replace('create table public.events (', 'create table public.events (ESTO_ROMPE ');
+
+    await expect(db.query(sql)).rejects.toThrow();
+    await db.query('rollback').catch(() => {});
+
+    // La Fase 0 sigue intacta.
+    const legacy = await db.query(`select to_regclass('public.event_config') as t`);
+    expect(legacy.rows[0].t).not.toBeNull();
   });
 });

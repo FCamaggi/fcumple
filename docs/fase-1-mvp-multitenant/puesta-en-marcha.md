@@ -4,7 +4,7 @@ Cómo dejar el **proyecto Supabase actual** listo para la Fase 1 (borrando lo de
 
 La Fase 0 ya no se usa, así que no hace falta un proyecto nuevo: se **poda** el actual. (Se había propuesto uno nuevo solo para proteger la producción mientras la Fase 0 estuviera en uso.)
 
-> **Orden importante:** la poda y el `db push` (pasos 2 y 4) se hacen **antes** de hacer merge a `main`. Desde el momento de la poda, la app vieja (`/i/:token`, `/admin`, `/evento`) deja de funcionar; es lo esperado.
+> **Orden importante:** el paso 1 (SQL) se hacen **antes** de hacer merge a `main`. Desde el momento de la poda, la app vieja (`/i/:token`, `/admin`, `/evento`) deja de funcionar; es lo esperado.
 
 ## 0. Antes de empezar
 
@@ -12,17 +12,34 @@ La Fase 0 ya no se usa, así que no hace falta un proyecto nuevo: se **poda** el
 - Si quieres conservar las **fotos** del evento anterior, descárgalas desde *Storage → party-photos*.
 - Ten a mano: el *project ref* de Supabase, la contraseña de la base y la [CLI de Supabase](https://supabase.com/docs/guides/cli).
 
-## 1. Podar la Fase 0
+## 1. Podar la Fase 0 y aplicar la Fase 1 (un solo archivo)
 
-1. Abre el *SQL Editor* de Supabase y ejecuta el contenido de [`supabase/legacy-fase-0/prune-fase-0.sql`](../../supabase/legacy-fase-0/prune-fase-0.sql) (o `psql "$DATABASE_URL" -f ...`). Corre en una transacción: si algo falla, no se aplica nada.
-2. En *Storage*, **vacía** los buckets `party-photos` y `post-images` (Supabase no permite borrar archivos con SQL). Los buckets en sí se reutilizan.
+Abre el *SQL Editor* de Supabase, pega **completo** el contenido de [`supabase/setup-fase-1.sql`](../../supabase/setup-fase-1.sql) y ejecútalo **una vez**. Hace, en una sola transacción (si algo falla no se aplica nada):
 
-Qué hace el script y por qué es seguro (un test lo reproduce contra una copia fiel de la Fase 0):
+1. **Poda** la Fase 0 (tablas, funciones, políticas y el historial de migraciones).
+2. Aplica las **9 migraciones** de la Fase 1, en orden (tablas, RPC, políticas, marcos/stickers y los buckets).
+3. Las **registra** en el historial, para que el `supabase db push` del deploy sea un no-op.
+
+Después, en *Storage*, **vacía** los buckets `party-photos` y `post-images` (Supabase no permite borrar archivos con SQL).
+
+Qué hace la poda y por qué es seguro (un test la reproduce contra una copia fiel de la Fase 0):
 
 - Borra **todas** las políticas de `storage.objects`. Es el paso crítico: un simple `drop schema public cascade` deja viva la política `authenticated_full_access` de la Fase 0, que le daría a **cualquier organizador acceso a todas las fotos**. El test falla si ese paso se omite.
 - Recrea `public` vacío con los privilegios por defecto de Supabase.
-- Vacía el historial de migraciones para que `supabase db push` aplique la Fase 1 desde cero.
 - **Conserva** los usuarios de Auth: la cuenta de admin de la Fase 0 sirve como primer organizador.
+
+`setup-fase-1.sql` es un archivo **generado**: si cambia una migración se regenera con `npm run build:setup-sql` (un test falla si quedó desactualizado).
+
+### Alternativa con la CLI
+
+Si prefieres la CLI: ejecuta solo [`supabase/legacy-fase-0/prune-fase-0.sql`](../../supabase/legacy-fase-0/prune-fase-0.sql) en el SQL Editor y luego, desde esta rama:
+
+```bash
+supabase link --project-ref <ref>
+supabase db push --password "<password de la base>"
+```
+
+(No uses las dos opciones a la vez: si pegaste `setup-fase-1.sql`, ya está todo aplicado y registrado.)
 
 ## 2. Configurar Auth
 
@@ -31,16 +48,14 @@ En el panel de Supabase:
 1. *Authentication → Providers → Email*: activa el registro (`Enable sign ups`), contraseña mínima de **8** y deja activada la **confirmación de correo**. Equivale a [`supabase/config.toml`](../../supabase/config.toml).
 2. *Authentication → URL Configuration*: *Site URL* = la URL donde vas a probar (la del preview de Vercel, o la de producción), y agrega esa URL a *Redirect URLs* para que el enlace de confirmación vuelva a la app.
 
-## 3. Aplicar la Fase 1
+## 3. Verificar
 
-Desde esta rama:
+En el SQL Editor, esta consulta debe devolver 9 filas y los nombres de las tablas de la Fase 1:
 
-```bash
-supabase link --project-ref <ref>
-supabase db push --password "<password de la base>"
+```sql
+select version from supabase_migrations.schema_migrations order by 1;
+select table_name from information_schema.tables where table_schema = 'public' order by 1;
 ```
-
-Aplica las 8 migraciones de `supabase/migrations/` (tablas, RPC, políticas y buckets) y las **registra** en el historial, de modo que el `db push` del deploy sea un no-op. No hay datos que migrar.
 
 ## 4. Probar en un preview de Vercel
 

@@ -11,7 +11,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:db": "vitest run -c supabase/vitest.config.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build:setup-sql": "node scripts/build-setup-sql.mjs"
   },
   "engines": {
     "node": ">=18.17"

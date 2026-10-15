@@ -15,6 +15,7 @@ Esquema de la plataforma multi-tenant. `supabase db push` (en `deploy.yml`) apli
 | `…100006_rpc_guest` | RPC del invitado y del hub público, `check_in_guest` (solo dueño), `create_event`. |
 | `…100007_storage` | Buckets `party-photos` y `post-images` con rutas por `event_id` y políticas por dueño / carpeta del invitado. |
 | `…100008_rpc_organizer` | `regenerate_guest_token`: restablece el acceso (token y PIN); solo dueño del evento. |
+| `…100009_camera_assets` | `event_frames` (marcos paramétricos validados en la base), `event_stickers` (emoji o imagen), topes por evento, `list_event_camera_assets`, ejemplos al crear un evento, bucket `event-assets`. |
 
 No hay ninguna columna que guarde un RUT, correo, teléfono o PIN en claro (un test lo verifica). pgcrypto se instala en el esquema `extensions`, como en Supabase, y todas las funciones con `search_path` fijo lo incluyen.
 
