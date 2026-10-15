@@ -145,3 +145,7 @@ Al crear un evento se siembran 2–3 marcos de ejemplo (editables) y un puñado 
 ## Fuera de alcance (Fase 2)
 
 Variables por invitado, marcos PNG propios, editor libre de composición, conjunto de emojis abierto y consistente entre dispositivos, packs temáticos de la plataforma, guardar el original sin stickers.
+
+## Estado de implementación (Etapa 3)
+
+Implementado: migración `20261015100009_camera_assets` (tablas `event_frames` y `event_stickers`, límites de 20 marcos / 40 stickers por evento, validación SQL de parámetros espejo de `validateFrameParams`, interruptores globales `frames_enabled` / `stickers_enabled` y `default_frame_id` en `events`, bucket `event-assets`, RPC `list_event_camera_assets(token)` que solo entrega lo activo del evento del invitado); 6 plantillas (border, polaroid, film, viewfinder, banner, glow); editor con vista previa en la pestaña «Cámara» del organizador; bandeja de stickers con arrastre y pellizco en la cámara del invitado; orden de dibujo foto → stickers → marco. Pendiente: probar emojis y CORS del canvas en dispositivos reales.

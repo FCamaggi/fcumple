@@ -9,6 +9,7 @@ vi.mock('../lib/platformGuestApi', () => ({
   uploadGuestPhoto: vi.fn(),
 }));
 vi.mock('../lib/photosApi', () => ({ getPhotoQuota: vi.fn() }));
+vi.mock('../hooks/useCameraAssets', () => ({ useCameraAssets: vi.fn() }));
 vi.mock('../lib/platformApi', () => ({ getMyGuest: vi.fn() }));
 vi.mock('qrcode', () => ({ default: { toDataURL: vi.fn().mockResolvedValue('data:image/png;base64,QR') } }));
 vi.mock('./AnnouncementFeed', () => ({
@@ -20,8 +21,26 @@ vi.mock('./RevealedRoll', () => ({
   default: ({ photos }: { photos: unknown[] }) => <div data-testid="roll">{photos.length}</div>,
 }));
 vi.mock('./CameraCapture', () => ({
-  default: ({ onClose, upload }: { onClose: () => void; upload?: unknown }) => (
-    <div data-testid="camera" data-has-upload={String(typeof upload === 'function')}>
+  default: ({
+    onClose,
+    upload,
+    frames,
+    stickers,
+    initialFrameId,
+  }: {
+    onClose: () => void;
+    upload?: unknown;
+    frames?: unknown[];
+    stickers?: unknown[];
+    initialFrameId?: string | null;
+  }) => (
+    <div
+      data-testid="camera"
+      data-has-upload={String(typeof upload === 'function')}
+      data-frames={frames?.length}
+      data-stickers={stickers?.length}
+      data-initial-frame={initialFrameId ?? ''}
+    >
       <button type="button" onClick={onClose}>
         cerrar cámara
       </button>
@@ -31,6 +50,7 @@ vi.mock('./CameraCapture', () => ({
 
 import QRCode from 'qrcode';
 import { getPhotoQuota } from '../lib/photosApi';
+import { useCameraAssets } from '../hooks/useCameraAssets';
 import { getMyGuest, type EventPublic, type MyGuest } from '../lib/platformApi';
 import { getPublicHeadcount, listPublishedPosts, listRevealedPhotosForGuest } from '../lib/platformGuestApi';
 import GuestHub from './GuestHub';
@@ -63,7 +83,15 @@ function setup(overrides: { event?: Partial<EventPublic>; guest?: Partial<MyGues
   return { onGuestChange };
 }
 
+const readyAssets = {
+  status: 'ready' as const,
+  frames: [{ id: 'f1', label: 'Borde', draw: null }],
+  stickers: [{ id: 's1', label: '🎉', asset: { kind: 'emoji' as const, emoji: '🎉' } }],
+  initialFrameId: 'f1',
+};
+
 beforeEach(() => {
+  vi.mocked(useCameraAssets).mockReset().mockReturnValue(readyAssets);
   vi.mocked(listPublishedPosts).mockReset().mockResolvedValue([]);
   vi.mocked(getPublicHeadcount).mockReset().mockResolvedValue(0);
   vi.mocked(listRevealedPhotosForGuest).mockReset().mockResolvedValue([]);
@@ -86,7 +114,12 @@ describe('GuestHub', () => {
     expect(getPhotoQuota).toHaveBeenCalledWith('tok');
 
     await userEvent.click(screen.getByRole('button', { name: 'Abrir cámara' }));
-    expect(screen.getByTestId('camera')).toHaveAttribute('data-has-upload', 'true');
+    const camera = screen.getByTestId('camera');
+    expect(camera).toHaveAttribute('data-has-upload', 'true');
+    // La cámara abre con los marcos y stickers del evento y su marco por defecto.
+    expect(camera).toHaveAttribute('data-frames', '1');
+    expect(camera).toHaveAttribute('data-stickers', '1');
+    expect(camera).toHaveAttribute('data-initial-frame', 'f1');
 
     await userEvent.click(screen.getByRole('button', { name: 'cerrar cámara' }));
     expect(screen.queryByTestId('camera')).not.toBeInTheDocument();
@@ -145,5 +178,24 @@ describe('GuestHub', () => {
     vi.mocked(getPublicHeadcount).mockResolvedValue(12);
     setup();
     expect(await screen.findByText('Aforo // 12 confirmados')).toBeInTheDocument();
+  });
+
+  it('no ofrece la cámara hasta que los marcos y stickers terminaron de cargar', async () => {
+    vi.mocked(useCameraAssets).mockReturnValue({ status: 'loading', frames: [], stickers: [], initialFrameId: null });
+    setup();
+    await waitFor(() => expect(getPhotoQuota).toHaveBeenCalled());
+    expect(screen.queryByRole('button', { name: 'Abrir cámara' })).not.toBeInTheDocument();
+  });
+
+  it('si fallan los marcos y stickers, la cámara se ofrece igual (sin ellos)', async () => {
+    vi.mocked(useCameraAssets).mockReturnValue({ status: 'error', frames: [], stickers: [], initialFrameId: null });
+    setup();
+    expect(await screen.findByRole('button', { name: 'Abrir cámara' })).toBeInTheDocument();
+  });
+
+  it('solo carga los marcos y stickers cuando la cámara está desbloqueada', async () => {
+    setup({ event: { cameraUnlock: 'on_checkin' } });
+    await screen.findByText(/aún bloqueada/);
+    expect(useCameraAssets).toHaveBeenCalledWith('tok', false);
   });
 });

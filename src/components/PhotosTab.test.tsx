@@ -46,6 +46,9 @@ const event: api.OrganizerEvent = {
   accessMode: 'list',
   cameraUnlock: 'on_identify',
   rsvpEnabled: false,
+  framesEnabled: true,
+  stickersEnabled: true,
+  defaultFrameId: null,
   photosRevealedAt: null,
   createdAt: '2026-10-15T00:00:00Z',
 };

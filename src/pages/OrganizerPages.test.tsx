@@ -21,6 +21,7 @@ vi.mock('../components/QrScanner', () => ({
   ),
 }));
 vi.mock('../components/PhotosTab', () => ({ default: () => <div data-testid="photos-tab" /> }));
+vi.mock('../components/studio/CameraStudio', () => ({ default: () => <div data-testid="camera-studio" /> }));
 vi.mock('../lib/auth', () => ({ signOut: vi.fn(), signIn: vi.fn(), useSession: vi.fn() }));
 vi.mock('qrcode', () => ({ default: { toDataURL: vi.fn().mockResolvedValue('data:image/png;base64,QR') } }));
 
@@ -38,6 +39,9 @@ const event: api.OrganizerEvent = {
   accessMode: 'list',
   cameraUnlock: 'on_identify',
   rsvpEnabled: false,
+  framesEnabled: true,
+  stickersEnabled: true,
+  defaultFrameId: null,
   photosRevealedAt: null,
   createdAt: '2026-10-15T00:00:00Z',
 };
@@ -241,5 +245,13 @@ describe('OrganizerEventPage', () => {
     renderEvent();
     await userEvent.click(await screen.findByRole('button', { name: 'Fotos' }));
     expect(screen.getByTestId('photos-tab')).toBeInTheDocument();
+  });
+
+  it('Cámara: muestra el estudio de marcos y stickers', async () => {
+    vi.mocked(api.getMyEvent).mockResolvedValueOnce(event);
+    vi.mocked(api.listEventGuests).mockResolvedValueOnce([]);
+    renderEvent();
+    await userEvent.click(await screen.findByRole('button', { name: 'Cámara' }));
+    expect(screen.getByTestId('camera-studio')).toBeInTheDocument();
   });
 });

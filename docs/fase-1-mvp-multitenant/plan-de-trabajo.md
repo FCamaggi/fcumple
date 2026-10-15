@@ -46,14 +46,14 @@ Pendiente:
 
 > Hasta que se pode y se aplique la Fase 1 al proyecto Supabase, las rutas de la Fase 0 (`/i/:token`, `/evento`, `/admin`) y las nuevas (`/e/:slug`, `/panel`) hablan con esquemas distintos: cada una solo funciona contra la base que le corresponde. Después de la poda, las de la Fase 0 dejan de funcionar y se retiran cuando se haya portado lo que falta del hub.
 
-## Etapa 3 — Marcos y stickers por evento (2–3 sem)
+## Etapa 3 — Marcos y stickers por evento (implementada; falta probar en iPhone/Android reales)
 
-- [ ] Tablas `event_frames` / `event_stickers`, bucket `event-assets`, RPC `list_event_camera_assets`.
-- [ ] `renderFrame` con las 6 plantillas, tipografías autoalojadas y ajuste de texto; validación de `FrameParams`.
-- [ ] Panel del organizador: editor de marcos con vista previa, selector de emojis, subida y procesamiento de imágenes, toggles por recurso y globales, orden, marco por defecto.
-- [ ] Cámara del invitado: carrusel desde datos del evento + bandeja y gestos de stickers + composición foto → stickers → marco en canvas.
-- [ ] Retirar `public/marcos/*.png` (archivados en `assets/marcos/`).
-- [ ] Tests de componentes y de DB (incluye: un invitado nunca ve recursos desactivados ni de otro evento).
+- [x] Tablas `event_frames` / `event_stickers`, bucket `event-assets`, RPC `list_event_camera_assets`.
+- [x] `renderFrame` con las 6 plantillas, tipografías autoalojadas y ajuste de texto; validación de `FrameParams`.
+- [x] Panel del organizador: editor de marcos con vista previa, selector de emojis, subida y procesamiento de imágenes, toggles por recurso y globales, orden, marco por defecto.
+- [x] Cámara del invitado: carrusel desde datos del evento + bandeja y gestos de stickers + composición foto → stickers → marco en canvas.
+- [ ] Retirar `public/marcos/*.png` (pendiente: se borran junto con el código de la Fase 0).
+- [x] Tests de componentes y de DB (incluye: un invitado nunca ve recursos desactivados ni de otro evento).
 
 ## Etapa 4 — Moderación por lotes (1 sem)
 

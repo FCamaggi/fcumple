@@ -54,6 +54,9 @@ const eventRow = {
   access_mode: 'list',
   camera_unlock: 'on_identify',
   rsvp_enabled: false,
+  frames_enabled: true,
+  stickers_enabled: true,
+  default_frame_id: null,
   photos_revealed_at: null,
   created_at: '2026-10-15T00:00:00Z',
 };
@@ -107,6 +110,17 @@ describe('eventos', () => {
   it('createEvent explica el tope de eventos por cuenta', async () => {
     rpc.mockResolvedValueOnce({ data: null, error: { code: '53400', message: 'event limit reached' } });
     await expect(createEvent({ name: 'Uno más' })).rejects.toThrow(/máximo de eventos/);
+  });
+
+  it('updateEvent envía los ajustes de cámara en snake_case', async () => {
+    const q = chain({ data: eventRow, error: null });
+    from.mockReturnValueOnce(q.proxy);
+    await updateEvent('ev-1', { framesEnabled: false, stickersEnabled: true, defaultFrameId: 'f1' });
+    expect(q.calls.find(([name]) => name === 'update')?.[1][0]).toEqual({
+      frames_enabled: false,
+      stickers_enabled: true,
+      default_frame_id: 'f1',
+    });
   });
 
   it('updateEvent envía solo los campos indicados, en snake_case', async () => {

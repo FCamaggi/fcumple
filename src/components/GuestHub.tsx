@@ -5,6 +5,7 @@ import CameraCapture from './CameraCapture';
 import CameraSection from './CameraSection';
 import RevealedRoll, { type RawRevealedPhoto } from './RevealedRoll';
 import { getPhotoQuota } from '../lib/photosApi';
+import { useCameraAssets } from '../hooks/useCameraAssets';
 import {
   getPublicHeadcount,
   listPublishedPosts,
@@ -38,6 +39,9 @@ export default function GuestHub({ slug, token, event, guest, onGuestChange }: G
   const [refreshing, setRefreshing] = useState(false);
 
   const cameraUnlocked = event.cameraUnlock === 'on_identify' || guest.checkedInAt !== null;
+  // Marcos y stickers del evento: se cargan antes de ofrecer la cámara para que abra con todo listo.
+  const cameraAssets = useCameraAssets(token, cameraUnlocked);
+  const cameraReady = cameraAssets.status === 'ready' || cameraAssets.status === 'error';
 
   useEffect(() => {
     let active = true;
@@ -106,7 +110,7 @@ export default function GuestHub({ slug, token, event, guest, onGuestChange }: G
         </p>
       )}
 
-      {cameraUnlocked && quota && <CameraSection quota={quota} onOpen={() => setShowCamera(true)} />}
+      {cameraUnlocked && quota && cameraReady && <CameraSection quota={quota} onOpen={() => setShowCamera(true)} />}
 
       {!cameraUnlocked && (
         <section className="flex flex-col gap-3 bg-ink-900 p-4 shadow-2xl" aria-label="Cámara bloqueada">
@@ -147,6 +151,9 @@ export default function GuestHub({ slug, token, event, guest, onGuestChange }: G
           onQuotaChange={setQuota}
           onClose={() => setShowCamera(false)}
           upload={upload}
+          frames={cameraAssets.frames}
+          stickers={cameraAssets.stickers}
+          initialFrameId={cameraAssets.initialFrameId}
         />
       )}
 

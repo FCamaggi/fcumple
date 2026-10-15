@@ -20,6 +20,9 @@ export interface OrganizerEvent {
   accessMode: AccessMode;
   cameraUnlock: CameraUnlock;
   rsvpEnabled: boolean;
+  framesEnabled: boolean;
+  stickersEnabled: boolean;
+  defaultFrameId: string | null;
   photosRevealedAt: string | null;
   createdAt: string;
 }
@@ -48,6 +51,9 @@ interface EventRow {
   access_mode: AccessMode;
   camera_unlock: CameraUnlock;
   rsvp_enabled: boolean;
+  frames_enabled: boolean;
+  stickers_enabled: boolean;
+  default_frame_id: string | null;
   photos_revealed_at: string | null;
   created_at: string;
 }
@@ -77,6 +83,9 @@ function mapEvent(row: EventRow): OrganizerEvent {
     accessMode: row.access_mode,
     cameraUnlock: row.camera_unlock,
     rsvpEnabled: row.rsvp_enabled,
+    framesEnabled: row.frames_enabled,
+    stickersEnabled: row.stickers_enabled,
+    defaultFrameId: row.default_frame_id,
     photosRevealedAt: row.photos_revealed_at,
     createdAt: row.created_at,
   };
@@ -162,6 +171,9 @@ export interface EventSettingsPatch {
   accessMode?: AccessMode;
   cameraUnlock?: CameraUnlock;
   rsvpEnabled?: boolean;
+  framesEnabled?: boolean;
+  stickersEnabled?: boolean;
+  defaultFrameId?: string | null;
 }
 
 export async function updateEvent(eventId: string, patch: EventSettingsPatch): Promise<OrganizerEvent> {
@@ -172,6 +184,9 @@ export async function updateEvent(eventId: string, patch: EventSettingsPatch): P
   if (patch.accessMode !== undefined) row.access_mode = patch.accessMode;
   if (patch.cameraUnlock !== undefined) row.camera_unlock = patch.cameraUnlock;
   if (patch.rsvpEnabled !== undefined) row.rsvp_enabled = patch.rsvpEnabled;
+  if (patch.framesEnabled !== undefined) row.frames_enabled = patch.framesEnabled;
+  if (patch.stickersEnabled !== undefined) row.stickers_enabled = patch.stickersEnabled;
+  if (patch.defaultFrameId !== undefined) row.default_frame_id = patch.defaultFrameId;
 
   const { data, error } = await supabase.from('events').update(row).eq('id', eventId).select('*').single();
   if (error) throw new Error('No pudimos guardar los ajustes del evento.');

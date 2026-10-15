@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { checkInGuest } from '../lib/adminApi';
+import CameraStudio from '../components/studio/CameraStudio';
 import DoorPanel from '../components/DoorPanel';
 import EventSettingsPanel from '../components/EventSettingsPanel';
 import GuestListPanel from '../components/GuestListPanel';
@@ -20,11 +21,12 @@ import {
   type OrganizerGuest,
 } from '../lib/organizerApi';
 
-type Tab = 'invitados' | 'puerta' | 'fotos' | 'enlace' | 'ajustes';
+type Tab = 'invitados' | 'puerta' | 'camara' | 'fotos' | 'enlace' | 'ajustes';
 
 const TABS: Array<{ id: Tab; label: string }> = [
   { id: 'invitados', label: 'Invitados' },
   { id: 'puerta', label: 'Puerta' },
+  { id: 'camara', label: 'Cámara' },
   { id: 'fotos', label: 'Fotos' },
   { id: 'enlace', label: 'Enlace' },
   { id: 'ajustes', label: 'Ajustes' },
@@ -145,6 +147,7 @@ export default function OrganizerEventPage() {
             }}
           />
         )}
+        {tab === 'camara' && <CameraStudio event={event} onEventChange={setEvent} />}
         {tab === 'fotos' && <PhotosTab event={event} onEventChange={setEvent} />}
         {tab === 'enlace' && <ShareEventLink event={event} />}
         {tab === 'ajustes' && <EventSettingsPanel event={event} onSave={handleSave} />}

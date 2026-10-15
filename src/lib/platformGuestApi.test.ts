@@ -1,12 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const upload = vi.fn();
+const createSignedUrl = vi.fn();
 vi.mock('./supabaseClient', () => ({
-  supabase: { rpc: vi.fn(), storage: { from: vi.fn(() => ({ upload })) } },
+  supabase: { rpc: vi.fn(), storage: { from: vi.fn(() => ({ upload, createSignedUrl })) } },
 }));
 
 import { supabase } from './supabaseClient';
 import {
+  getStickerImageUrl,
+  listCameraAssets,
   getPublicHeadcount,
   listPublishedPosts,
   listRevealedPhotosForGuest,
@@ -118,5 +121,52 @@ describe('uploadGuestPhoto', () => {
   ])('traduce el código %s al registrar', async (code, message) => {
     rpc.mockResolvedValueOnce({ data: null, error: { code } });
     await expect(uploadGuestPhoto(identity, blob)).rejects.toThrow(message);
+  });
+});
+
+describe('listCameraAssets', () => {
+  it('separa marcos y stickers, limpia los parámetros y marca el marco por defecto', async () => {
+    rpc.mockResolvedValueOnce({
+      data: [
+        { asset_type: 'frame', id: 'f1', label: 'Borde', template: 'border', params: { primaryColor: '#112233', hack: 1 }, emoji: null, storage_path: null, is_default: true },
+        { asset_type: 'sticker', id: 's1', label: null, template: null, params: null, emoji: '🎉', storage_path: null, is_default: false },
+        { asset_type: 'sticker', id: 's2', label: null, template: null, params: null, emoji: null, storage_path: 'ev/stickers/a.webp', is_default: false },
+      ],
+      error: null,
+    });
+
+    const assets = await listCameraAssets('tok');
+
+    expect(rpc).toHaveBeenCalledWith('list_event_camera_assets', { p_token: 'tok' });
+    expect(assets.frames).toEqual([
+      { id: 'f1', label: 'Borde', template: 'border', params: { primaryColor: '#112233' }, isDefault: true },
+    ]);
+    expect(assets.stickers).toEqual([
+      { id: 's1', kind: 'emoji', emoji: '🎉', storagePath: null },
+      { id: 's2', kind: 'image', emoji: null, storagePath: 'ev/stickers/a.webp' },
+    ]);
+  });
+
+  it('devuelve listas vacías cuando el evento no tiene nada activo', async () => {
+    rpc.mockResolvedValueOnce({ data: [], error: null });
+    expect(await listCameraAssets('tok')).toEqual({ frames: [], stickers: [] });
+  });
+
+  it('lanza un mensaje legible si falla', async () => {
+    rpc.mockResolvedValueOnce({ data: null, error: { message: 'boom' } });
+    await expect(listCameraAssets('tok')).rejects.toThrow(/marcos y stickers/);
+  });
+});
+
+describe('getStickerImageUrl', () => {
+  it('firma la ruta en el bucket event-assets', async () => {
+    createSignedUrl.mockResolvedValueOnce({ data: { signedUrl: 'https://x/s' }, error: null });
+    expect(await getStickerImageUrl('ev/stickers/a.webp')).toBe('https://x/s');
+    expect(createSignedUrl).toHaveBeenCalledWith('ev/stickers/a.webp', 3600);
+  });
+
+  it('falla con un mensaje legible', async () => {
+    createSignedUrl.mockResolvedValueOnce({ data: null, error: { message: 'x' } });
+    await expect(getStickerImageUrl('p')).rejects.toThrow(/sticker/);
   });
 });

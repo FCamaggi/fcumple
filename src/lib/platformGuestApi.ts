@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient';
 import type { Photo, Post } from '../types';
+import { sanitizeFrameParams, type FrameParams, type FrameTemplate } from './cameraAssets/frames';
 
 /**
  * Lecturas y subidas del invitado en la Fase 1. A diferencia de la Fase 0:
@@ -129,4 +130,66 @@ export async function uploadGuestPhoto(identity: GuestIdentity, blob: Blob, disp
     status: row.status,
     createdAt: row.created_at,
   };
+}
+
+// --- Marcos y stickers del evento ---------------------------------------------
+
+export interface GuestFrame {
+  id: string;
+  label: string;
+  template: FrameTemplate;
+  params: FrameParams;
+  isDefault: boolean;
+}
+
+export interface GuestSticker {
+  id: string;
+  kind: 'emoji' | 'image';
+  emoji: string | null;
+  storagePath: string | null;
+}
+
+interface CameraAssetRow {
+  asset_type: 'frame' | 'sticker';
+  id: string;
+  label: string | null;
+  template: FrameTemplate | null;
+  params: unknown;
+  emoji: string | null;
+  storage_path: string | null;
+  is_default: boolean;
+}
+
+/** Solo lo ACTIVO del evento del invitado, ya filtrado por los interruptores globales. */
+export async function listCameraAssets(token: string): Promise<{ frames: GuestFrame[]; stickers: GuestSticker[] }> {
+  const { data, error } = await supabase.rpc('list_event_camera_assets', { p_token: token });
+  if (error) throw new Error('No pudimos cargar los marcos y stickers.');
+
+  const rows = (data ?? []) as CameraAssetRow[];
+  return {
+    frames: rows
+      .filter((r) => r.asset_type === 'frame' && r.template)
+      .map((r) => ({
+        id: r.id,
+        label: r.label ?? '',
+        template: r.template as FrameTemplate,
+        params: sanitizeFrameParams(r.params),
+        isDefault: r.is_default,
+      })),
+    stickers: rows
+      .filter((r) => r.asset_type === 'sticker')
+      .map((r) => ({
+        id: r.id,
+        kind: r.storage_path ? ('image' as const) : ('emoji' as const),
+        emoji: r.emoji,
+        storagePath: r.storage_path,
+      })),
+  };
+}
+
+/** URL firmada de la imagen de un sticker (el bucket es privado). */
+export async function getStickerImageUrl(storagePath: string): Promise<string> {
+  const { data, error } = await supabase.storage.from('event-assets').createSignedUrl(storagePath, 60 * 60);
+  if (error || !data) throw new Error('No pudimos cargar un sticker.');
+  return data.signedUrl;
 }
