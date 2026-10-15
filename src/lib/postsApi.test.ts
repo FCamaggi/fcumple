@@ -338,7 +338,7 @@ describe('deletePostImage', () => {
 });
 
 describe('getPostImageUrl', () => {
-  // El bucket post-images es privado (ver supabase/migrations/
+  // El bucket post-images es privado (ver supabase/legacy-fase-0/migrations/
   // 20260913100001_storage_post_images.sql) -- getPublicUrl() resuelve la
   // URL sin mirar RLS para nada, así que sirve el archivo solo si el
   // bucket tiene public=true en storage.buckets. Con un bucket privado esa

@@ -11,8 +11,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:db": "vitest run -c supabase/vitest.config.ts",
-    "typecheck": "tsc --noEmit",
-    "test:db:fase1": "vitest run -c supabase/fase-1/vitest.config.ts"
+    "typecheck": "tsc --noEmit"
   },
   "engines": {
     "node": ">=18.17"

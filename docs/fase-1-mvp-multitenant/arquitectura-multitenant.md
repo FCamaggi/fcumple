@@ -6,7 +6,7 @@ Punto de partida real (Fase 0): `event_config` es una fila única (PK booleana f
 
 El informe proponía `tenant_id` + `event_id`. Con un solo desarrollador y pocos clientes, **el tenant es el organizador** (`auth.users`). Una tabla `organizations` se difiere hasta que haya equipos con varios miembros (Fase 2). Esto simplifica las políticas: un evento pertenece a un `owner_id`.
 
-## Tablas (implementadas en `supabase/fase-1/migrations/`)
+## Tablas (implementadas en `supabase/migrations/`)
 
 ```
 events         id, owner_id → auth.users, slug (único), name, starts_at, location,
@@ -59,17 +59,14 @@ No existe ninguna columna de RUT, correo, teléfono ni PIN en claro. Las opcione
 
 `routes.ts` (rutas de "cómo llegar" codificadas) pasa a datos por evento (columnas de `events` o tabla propia).
 
-## Despliegue: proyecto Supabase nuevo, sin tocar la Fase 0
+## Despliegue: se reutiliza el proyecto Supabase y se poda la Fase 0
 
-`deploy.yml` ejecuta `supabase db push` contra el proyecto de producción cada vez que CI pasa en `main`. Para que la Fase 1 **no se aplique por accidente** sobre la base de la Fase 0, el esquema nuevo vive en `supabase/fase-1/migrations/` (el CLI no lo ve) con su propia suite de tests.
+La Fase 0 ya no se usa, así que no hace falta un proyecto nuevo: se **poda** el actual y se le aplica la Fase 1. El repositorio ya está reorganizado:
 
-Plan de corte (pasos detallados y checklist de prueba en [`puesta-en-marcha.md`](./puesta-en-marcha.md)):
+- `supabase/migrations/` y `supabase/tests/`: la Fase 1 (lo que aplica `deploy.yml` con `supabase db push`).
+- `supabase/legacy-fase-0/`: las 27 migraciones de la Fase 0 (registro histórico; las usa el test de poda) y [`prune-fase-0.sql`](../../supabase/legacy-fase-0/prune-fase-0.sql).
 
-1. Crear un **proyecto Supabase nuevo** (el plan gratuito permite dos) y aplicarle `supabase/fase-1/migrations/`.
-2. Mover `supabase/migrations/` a `supabase/legacy/fase-0/` y `supabase/fase-1/migrations/` a `supabase/migrations/`; apuntar los secrets `SUPABASE_*` al proyecto nuevo.
-3. Dejar el proyecto viejo como archivo (o pausarlo). No hay migración de datos: el evento de la Fase 0 ya ocurrió. Si se quiere conservar algo, `pg_dump` del proyecto viejo antes de pausarlo.
-
-Esto evita cualquier operación destructiva sobre producción.
+La poda borra `public` y las **políticas de `storage.objects`** (la política `authenticated_full_access` de la Fase 0 sobrevive a un `drop schema public cascade` y le abriría `party-photos` a cualquier organizador; un test lo demuestra y vigila), vacía el historial de migraciones y conserva Auth. Los archivos de Storage no se pueden borrar con SQL: se vacían los buckets a mano. Pasos, respaldo y checklist en [`puesta-en-marcha.md`](./puesta-en-marcha.md).
 
 ## Tests
 

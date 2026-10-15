@@ -383,7 +383,7 @@ describe('GuestPage', () => {
     // confirmar su RSVP desde el link. La cámara se gatea por checkedInAt,
     // nunca por status. El bug real de "invitación + cámara mostrándose
     // juntas por un status revertido" se resuelve en la base de datos: el
-    // trigger de supabase/migrations/20260914090000_reset_checked_in_at_on_status_change.sql
+    // trigger de supabase/legacy-fase-0/migrations/20260914090000_reset_checked_in_at_on_status_change.sql
     // limpia checked_in_at atómicamente en cuanto status deja de ser
     // 'confirmed', así que ese estado inconsistente ya no puede llegar al
     // cliente -- no hace falta (ni corresponde) bloquearlo también en la UI.

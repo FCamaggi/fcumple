@@ -3,7 +3,7 @@ import { supabase } from './supabaseClient';
 /**
  * Capa de acceso de la Fase 1 (plataforma multi-tenant): evento público e
  * inscripción / inicio de sesión del invitado con el enlace único `/e/:slug`.
- * Habla con las RPC de supabase/fase-1/ (no con las de la Fase 0).
+ * Habla con las RPC de supabase/ (no con las de la Fase 0).
  *
  * El invitado se inscribe con su nombre y apellido y un PIN que elige él
  * mismo. No se pide ni se guarda ningún otro dato personal.

@@ -2,7 +2,7 @@ export type RsvpStatus = 'pending' | 'confirmed' | 'declined';
 
 /**
  * Mirrors the single-row `event_config` table (see
- * supabase/migrations/20260911120005_create_event_config.sql). Every
+ * supabase/legacy-fase-0/migrations/20260911120005_create_event_config.sql). Every
  * column besides `id` is nullable: the row may not exist yet, or the
  * admin may have only filled in some fields.
  */
@@ -36,7 +36,7 @@ export interface EventInfo {
  */
 /**
  * Mirrors `public.posts` (see
- * supabase/migrations/20260912090000_create_posts.sql, extended in Etapa 5
+ * supabase/legacy-fase-0/migrations/20260912090000_create_posts.sql, extended in Etapa 5
  * with `subtitle` and `cover_image_path`, both nullable). `publishedAt` is
  * `null` for a draft; a non-null value in the past or present means the
  * post is live for guests, and a future value schedules it.
@@ -81,7 +81,7 @@ export interface PhotoQuota {
 
 /**
  * Mirrors `public.photos` (see
- * supabase/migrations/20260912100002_create_photos.sql). The actual file
+ * supabase/legacy-fase-0/migrations/20260912100002_create_photos.sql). The actual file
  * bytes live in the `party-photos` Storage bucket at `storagePath`.
  */
 export interface Photo {

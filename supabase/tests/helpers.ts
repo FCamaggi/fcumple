@@ -2,11 +2,81 @@ import { readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Client } from 'pg';
-import { createStorageSchema, createSupabaseRoles } from '../../tests/apply-migrations';
 import { DATABASE_URL } from './db-config';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const MIGRATIONS_DIR = path.join(__dirname, '..', 'migrations');
+
+// Roles que Supabase crea solos en un proyecto hosted (anon, authenticated,
+// service_role). Andamiaje de prueba: nunca forma parte de las migraciones.
+async function createSupabaseRoles(client: Client): Promise<void> {
+  await client.query(`
+    do $$
+    begin
+      if not exists (select 1 from pg_roles where rolname = 'anon') then
+        create role anon nologin;
+      end if;
+      if not exists (select 1 from pg_roles where rolname = 'authenticated') then
+        create role authenticated nologin;
+      end if;
+      if not exists (select 1 from pg_roles where rolname = 'service_role') then
+        create role service_role nologin bypassrls;
+      end if;
+    end
+    $$;
+  `);
+}
+
+// Plain postgres:16-alpine has no `storage` schema at all (it's a Supabase
+// extension provisioned on every real hosted project, not part of stock
+// Postgres). To actually exercise the storage.objects RLS policies from
+// the party-photos migration against real Postgres (rather than skip that
+// coverage), this recreates the minimal slice of Supabase's storage schema
+// those policies depend on: storage.buckets, storage.objects, and the
+// storage.foldername() helper used to split an object path into segments.
+// Like createSupabaseRoles, this is test-only scaffolding and never part of
+// the versioned migrations themselves.
+async function createStorageSchema(client: Client): Promise<void> {
+  await client.query(`
+    create schema if not exists storage;
+
+    create table if not exists storage.buckets (
+      id text primary key,
+      name text not null,
+      public boolean not null default false,
+      created_at timestamptz not null default now()
+    );
+
+    create table if not exists storage.objects (
+      id uuid primary key default gen_random_uuid(),
+      bucket_id text references storage.buckets(id),
+      name text,
+      owner uuid,
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now()
+    );
+
+    alter table storage.buckets enable row level security;
+    alter table storage.objects enable row level security;
+
+    create or replace function storage.foldername(name text)
+    returns text[]
+    language plpgsql
+    immutable
+    as $fn$
+    declare
+      _parts text[];
+    begin
+      select string_to_array(name, '/') into _parts;
+      return _parts[1:array_length(_parts, 1) - 1];
+    end;
+    $fn$;
+
+    grant usage on schema storage to anon, authenticated;
+    grant select on storage.buckets to anon, authenticated;
+    grant select, insert, update, delete on storage.objects to anon, authenticated;
+  `);
+}
 
 // Andamiaje de prueba: el esquema `auth` que Supabase provee en un proyecto
 // real (auth.users y auth.uid()). Las migraciones lo referencian, no lo crean.
@@ -47,19 +117,24 @@ async function createExtensionsSchema(client: Client): Promise<void> {
   `);
 }
 
-// Deja la base como un proyecto Supabase recien creado y aplica las
-// migraciones de la Fase 1 desde cero. Imita los privilegios por defecto de
-// Supabase (anon/authenticated/service_role reciben todo en `public`), de modo
-// que un `revoke` olvidado en una migracion SI haga fallar los tests.
-export async function resetAndMigrate(client: Client): Promise<void> {
+const LEGACY_MIGRATIONS_DIR = path.join(__dirname, '..', 'legacy-fase-0', 'migrations');
+export const PRUNE_SCRIPT = path.join(__dirname, '..', 'legacy-fase-0', 'prune-fase-0.sql');
+
+// Roles, esquemas `extensions`, `auth` y `storage` de un proyecto Supabase.
+export async function prepareSupabaseLikeDatabase(client: Client): Promise<void> {
   await createSupabaseRoles(client);
   await createExtensionsSchema(client);
   await createAuthSchema(client);
   await createStorageSchema(client);
+}
 
-  // Las politicas de storage.objects viven fuera de `public`: `drop schema
-  // public cascade` solo se las lleva si dependen de una funcion de ese
-  // esquema, asi que se borran todas explicitamente.
+// Deja `public` vacio y con los privilegios por defecto de Supabase
+// (anon/authenticated/service_role reciben todo), de modo que un `revoke`
+// olvidado en una migracion SI haga fallar los tests. Tambien vacia storage y
+// auth.users. Las politicas de storage.objects viven fuera de `public`:
+// `drop schema public cascade` solo se las lleva si dependen de una funcion de
+// ese esquema, asi que se borran todas explicitamente.
+export async function resetPublicSchema(client: Client): Promise<void> {
   await client.query(`
     do $$
     declare p record;
@@ -84,15 +159,28 @@ export async function resetAndMigrate(client: Client): Promise<void> {
     select set_config('request.headers', '', false);
     select set_config('request.jwt.claim.sub', '', false);
   `);
+}
 
-  const files = readdirSync(MIGRATIONS_DIR).filter((f) => f.endsWith('.sql')).sort();
+export async function applyMigrationsFrom(client: Client, dir: string): Promise<void> {
+  const files = readdirSync(dir).filter((f) => f.endsWith('.sql')).sort();
   for (const file of files) {
     try {
-      await client.query(readFileSync(path.join(MIGRATIONS_DIR, file), 'utf-8'));
+      await client.query(readFileSync(path.join(dir, file), 'utf-8'));
     } catch (err) {
       throw new Error(`Migration ${file} failed: ${(err as Error).message}`);
     }
   }
+}
+
+export const applyPhase1Migrations = (client: Client) => applyMigrationsFrom(client, MIGRATIONS_DIR);
+export const applyLegacyMigrations = (client: Client) => applyMigrationsFrom(client, LEGACY_MIGRATIONS_DIR);
+
+// Deja la base como un proyecto Supabase recien creado y aplica las
+// migraciones desde cero.
+export async function resetAndMigrate(client: Client): Promise<void> {
+  await prepareSupabaseLikeDatabase(client);
+  await resetPublicSchema(client);
+  await applyPhase1Migrations(client);
 }
 
 export async function connect(): Promise<Client> {

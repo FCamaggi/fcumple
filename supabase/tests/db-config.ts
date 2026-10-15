@@ -1,6 +1,4 @@
-// Shared constants for the ephemeral Postgres container used by the DB test suite.
-// Both globalSetup.ts (which starts/stops the container) and the test files
-// (which connect to it) import from here so the connection details never drift.
-export const CONTAINER_NAME = 'fcumple-test-pg';
-export const HOST_PORT = 55432;
+// Contenedor Postgres efimero de la suite de base de datos.
+export const CONTAINER_NAME = 'fcumple-test-pg-fase1';
+export const HOST_PORT = 55433;
 export const DATABASE_URL = `postgres://postgres:test@localhost:${HOST_PORT}/postgres`;

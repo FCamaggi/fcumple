@@ -90,9 +90,6 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
 
-      - name: Run Fase 1 database tests
-        run: npm run test:db:fase1
-
       - name: Skip (no test:db script yet)
         if: steps.check-script.outputs.exists != 'true'
         run: echo "No 'test:db' script found in package.json yet — skipping db-tests."

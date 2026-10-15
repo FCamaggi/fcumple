@@ -5,7 +5,7 @@ import type { Photo } from '../types';
 
 /**
  * Capa de acceso del organizador (Fase 1). Todo pasa por las políticas RLS de
- * supabase/fase-1/: un organizador solo ve y modifica lo de sus eventos.
+ * supabase/: un organizador solo ve y modifica lo de sus eventos.
  */
 
 export type CameraUnlock = 'on_identify' | 'on_checkin';

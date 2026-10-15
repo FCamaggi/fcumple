@@ -7,7 +7,7 @@ Contexto de decisiones: [`../estrategia/decisiones-de-alcance.md`](../estrategia
 ## Dentro del MVP
 
 1. **Multi-tenant en la base:** tabla `events`, `event_id` en todo, RLS por organizador. Ver [`arquitectura-multitenant.md`](./arquitectura-multitenant.md).
-2. **Esquema nuevo en un proyecto Supabase nuevo**, sin migrar ni tocar el evento de la Fase 0 (ya ocurrió).
+2. **Esquema nuevo en el mismo proyecto Supabase**, que se poda antes (la Fase 0 ya no se usa; el evento ya ocurrió y no se migra).
 3. **Rutas por evento** (`/e/:slug/...`) y panel del organizador para crear/gestionar eventos.
 4. **Acceso de invitados solo web con un único enlace/QR por evento**: cada persona se inscribe con nombre y apellido y un PIN que elige (o inicia sesión con los mismos datos). Sin lista previa, RUT, correo ni teléfono. Ver [`acceso-de-invitados.md`](./acceso-de-invitados.md).
 5. **Marcos genéricos (colores y textos editables) y stickers (emojis e imágenes subidas)**, definidos por el organizador, con toggles por recurso y globales. Ver [`marcos-y-stickers.md`](./marcos-y-stickers.md).
@@ -35,9 +35,9 @@ Pagos y planes, Cloudflare R2, muro en vivo, descarga ZIP, marcos dinámicos con
 
 | Documento | Contenido |
 |---|---|
-| [`arquitectura-multitenant.md`](./arquitectura-multitenant.md) | Modelo de datos, RLS, storage, rutas, despliegue en proyecto nuevo. |
+| [`arquitectura-multitenant.md`](./arquitectura-multitenant.md) | Modelo de datos, RLS, storage, rutas, poda y despliegue. |
 | [`acceso-de-invitados.md`](./acceso-de-invitados.md) | Enlace único por evento, inscripción y inicio de sesión con PIN, modos de acceso, seguridad, check-in. |
 | [`marcos-y-stickers.md`](./marcos-y-stickers.md) | Marcos paramétricos, stickers emoji/imagen, toggles, editor del organizador, render en la cámara. |
 | [`moderacion-por-lotes.md`](./moderacion-por-lotes.md) | Agrupación por bloques horarios en el panel de moderación. |
-| [`puesta-en-marcha.md`](./puesta-en-marcha.md) | Crear el proyecto Supabase nuevo, probar en un preview de Vercel sin tocar producción, checklist de punta a punta y pasos del corte. |
+| [`puesta-en-marcha.md`](./puesta-en-marcha.md) | Podar la Fase 0 del proyecto Supabase actual, aplicar la Fase 1, probar en un preview, checklist de punta a punta y merge. |
 | [`plan-de-trabajo.md`](./plan-de-trabajo.md) | Etapas ordenadas, dependencias y riesgos. |

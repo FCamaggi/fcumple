@@ -22,7 +22,13 @@ async function waitForPg(timeoutMs = 30000): Promise<void> {
 }
 
 export default async function setup() {
-  // Clean up any leftover container from a previous crashed run.
+  // FCUMPLE_TEST_PG_EXTERNAL=1: ya hay un Postgres escuchando en HOST_PORT
+  // (entornos sin Docker); no se levanta ni se baja ningun contenedor.
+  if (process.env.FCUMPLE_TEST_PG_EXTERNAL) {
+    await waitForPg();
+    return async () => {};
+  }
+
   spawnSync('docker', ['rm', '-f', CONTAINER_NAME]);
 
   execSync(

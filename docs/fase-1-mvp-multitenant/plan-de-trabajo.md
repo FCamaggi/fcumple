@@ -4,12 +4,13 @@ Sin fechas fijas: un solo desarrollador, y el orden importa más que el calendar
 
 ## Etapa 1 — Esquema multi-tenant (hecha en la base; 76 tests)
 
-- [x] Esquema nuevo en `supabase/fase-1/migrations/`: `events`, `guests` (nombre y apellido obligatorios), `photos`, `posts`, `post_images`, RLS por dueño, buckets con rutas por `event_id`.
+- [x] Esquema nuevo en `supabase/migrations/`: `events`, `guests` (nombre y apellido obligatorios), `photos`, `posts`, `post_images`, RLS por dueño, buckets con rutas por `event_id`.
 - [x] RPC: `register_guest` y `login_guest` (inscripción y sesión con nombre + PIN, hash bcrypt, bloqueo tras 5 PIN equivocados, freno de intentos), `get_event_public`, `get_guest_by_token`, `submit_rsvp`, `get_photo_quota`, `submit_photo`, `check_in_guest` (solo dueño), `list_revealed_photos(token)`, `get_public_headcount(slug)`, `list_published_posts(slug)`, `create_event`, `regenerate_guest_token` (restablece el acceso y borra el PIN).
-- [x] Suite `npm run test:db:fase1` (90 tests): aislamiento entre dos organizadores, privilegios de `anon`, storage, inscripción y sesión con PIN. El arnés replica Supabase (pgcrypto en `extensions`), lo que detectó un `search_path` incorrecto que habría roto `create_event` y las altas en producción.
+- [x] Suite `npm run test:db` (101 tests, incluye la poda de la Fase 0): aislamiento entre dos organizadores, privilegios de `anon`, storage, inscripción y sesión con PIN. El arnés replica Supabase (pgcrypto en `extensions`), lo que detectó un `search_path` incorrecto que habría roto `create_event` y las altas en producción.
 - [x] Paso de CI para la suite nueva.
 - [x] Workflow de keep-alive (`.github/workflows/keepalive.yml`): ping de lectura cada 3 días; se activa con los secrets `SUPABASE_URL` y `SUPABASE_ANON_KEY`.
-- [ ] Crear el proyecto Supabase nuevo y aplicar las migraciones: pasos y checklist de prueba en [`puesta-en-marcha.md`](./puesta-en-marcha.md).
+- [x] Repositorio reorganizado: la Fase 1 es `supabase/migrations/` y `supabase/tests/`; la Fase 0 pasó a `supabase/legacy-fase-0/` (sin sus tests). `prune-fase-0.sql` + test que reproduce el estado de producción de la Fase 0.
+- [ ] **Lo hace el usuario:** respaldo, ejecutar la poda, vaciar los buckets, configurar Auth y `supabase db push`: pasos y checklist de prueba en [`puesta-en-marcha.md`](./puesta-en-marcha.md).
 
 **Salida:** dos eventos de prueba aislados; un invitado se inscribe con el enlace único y usa las RPC.
 
@@ -24,7 +25,7 @@ Hecho (segunda rebanada: panel del organizador, rutas `/panel` y `/panel/e/:even
 - [x] `src/lib/organizerApi.ts`: eventos del organizador, alta con `create_event`, ajustes, invitados (alta masiva por líneas, aprobar/rechazar solicitudes, quitar, regenerar acceso con `regenerate_guest_token`).
 - [x] `OrganizerEventsPage` (lista y alta) y `OrganizerEventPage` con pestañas **Invitados** (`GuestListPanel`), **Enlace** (`ShareEventLink`: copiar, un único mensaje de WhatsApp, QR descargable) y **Ajustes** (`EventSettingsPanel`: quién entra, cuándo se habilita la cámara, RSVP).
 - [x] Migración `…100009_rpc_organizer` (`regenerate_guest_token`, solo dueño).
-- [x] **Registro de organizadores** (`OrganizerLogin`): "Ya tengo cuenta" / "Crear cuenta" con correo y contraseña (mínimo 8, repetida), con aviso de confirmación de correo. `RequireAuth` acepta la pantalla de login a mostrar. `supabase/fase-1/config.toml` activa el registro y la confirmación de correo (en el proyecto hosted se configura en el panel: ver [`puesta-en-marcha.md`](./puesta-en-marcha.md)).
+- [x] **Registro de organizadores** (`OrganizerLogin`): "Ya tengo cuenta" / "Crear cuenta" con correo y contraseña (mínimo 8, repetida), con aviso de confirmación de correo. `RequireAuth` acepta la pantalla de login a mostrar. `supabase/config.toml` activa el registro y la confirmación de correo (en el proyecto hosted se configura en el panel: ver [`puesta-en-marcha.md`](./puesta-en-marcha.md)).
 - [x] Tope de **10 eventos por organizador** en `create_event` (el registro es abierto).
 
 Hecho (tercera rebanada: hub del invitado en `/e/:slug`, `GuestHub`):
@@ -43,7 +44,7 @@ Pendiente:
 - [ ] Datos de "cómo llegar" por evento en vez de constantes en `routes.ts`.
 - [ ] Retirar `/i/:token`, `SendInviteButton`, `WristbandCard` y `guests.phone` de la UI al hacer el corte.
 
-> Mientras no se haga el corte a un proyecto Supabase nuevo, las rutas de la Fase 0 (`/i/:token`, `/evento`, `/admin`) y la ruta nueva `/e/:slug` hablan con esquemas distintos: cada ruta solo funciona contra la base que le corresponde.
+> Hasta que se pode y se aplique la Fase 1 al proyecto Supabase, las rutas de la Fase 0 (`/i/:token`, `/evento`, `/admin`) y las nuevas (`/e/:slug`, `/panel`) hablan con esquemas distintos: cada una solo funciona contra la base que le corresponde. Después de la poda, las de la Fase 0 dejan de funcionar y se retiran cuando se haya portado lo que falta del hub.
 
 ## Etapa 3 — Marcos y stickers por evento (2–3 sem)
 
@@ -73,7 +74,8 @@ Etapa 2 depende de la 1. Las etapas 3 y 4 dependen de la 2 pero son independient
 
 | Riesgo | Mitigación |
 |---|---|
-| Afectar la producción de la Fase 0 al desplegar | El esquema nuevo vive en `supabase/fase-1/` (fuera del `db push`) y se aplica a un proyecto Supabase nuevo. |
+| Borrar datos de la Fase 0 | Respaldo previo (`pg_dump`), el script corre en una transacción y un test lo reproduce contra una copia fiel de la Fase 0. |
+| Política de Storage de la Fase 0 que sobrevive a la poda | El script borra todas las políticas de `storage.objects`; un test falla si ese paso se omite (demostrado). |
 | Suplantación de un invitado | PIN con hash bcrypt, bloqueo de 10 minutos tras 5 PIN equivocados, freno de intentos por IP y evento, "Restablecer acceso" del organizador. |
 | PIN corto (4 dígitos) | Aceptado: solo protege fotos de una fiesta; la tabla de credenciales no tiene permisos y hay bloqueo por intentos. |
 | Canvas contaminado por imágenes de otro origen (stickers) | `crossOrigin="anonymous"` + CORS en el bucket; probar `toBlob` en Safari iOS desde el inicio. |
