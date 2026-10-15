@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import GuestHub from '../components/GuestHub';
 import IdentifyForm from '../components/IdentifyForm';
 import {
   clearGuestSession,
@@ -17,9 +18,9 @@ type State =
   | { phase: 'missing' }
   | { phase: 'error'; message: string }
   | { phase: 'identify'; event: EventPublic }
-  | { phase: 'inside'; event: EventPublic; guest: MyGuest };
+  | { phase: 'inside'; event: EventPublic; guest: MyGuest; token: string };
 
-const shell = 'flex min-h-screen items-center justify-center bg-ink-950 px-4 text-paper-100';
+const centered = 'flex min-h-screen items-center justify-center bg-ink-950 px-4 text-paper-100';
 
 function formatDate(iso: string | null): string | null {
   if (!iso) return null;
@@ -28,10 +29,10 @@ function formatDate(iso: string | null): string | null {
 
 /**
  * `/e/:slug` — el enlace único del evento. Si este dispositivo ya tiene una
- * sesión válida entra directo; si no, pide identificarse.
+ * sesión válida entra directo al hub; si no, pide identificarse.
  *
- * Etapa 2 (en curso): esta pantalla cubre la entrada. El hub del evento
- * (cámara, rollo, avisos) todavía usa las RPC de la Fase 0 y se migra aparte.
+ * Etapa 2 (en curso): el hub cubre avisos, cámara y rollo revelado. Faltan
+ * cómo llegar por evento y la confirmación de asistencia (RSVP).
  */
 export default function EventEntryPage() {
   const { slug = '' } = useParams<{ slug: string }>();
@@ -54,7 +55,7 @@ export default function EventEntryPage() {
           const guest = await getMyGuest(stored.token);
           if (cancelled) return;
           if (guest) {
-            setState({ phase: 'inside', event, guest });
+            setState({ phase: 'inside', event, guest, token: stored.token });
             return;
           }
           // Token vencido o invitado rechazado: se descarta y se pide de nuevo.
@@ -78,7 +79,7 @@ export default function EventEntryPage() {
     saveGuestSession(slug, session);
     const guest = await getMyGuest(session.token);
     if (guest) {
-      setState({ phase: 'inside', event, guest });
+      setState({ phase: 'inside', event, guest, token: session.token });
     } else {
       clearGuestSession(slug);
       setState({ phase: 'error', message: 'No pudimos abrir tu sesión. Intenta de nuevo.' });
@@ -88,13 +89,13 @@ export default function EventEntryPage() {
   switch (state.phase) {
     case 'loading':
       return (
-        <div className={shell}>
+        <div className={centered}>
           <span className="font-mono text-xs uppercase tracking-widest text-acid-400">Cargando...</span>
         </div>
       );
     case 'missing':
       return (
-        <div className={shell}>
+        <div className={centered}>
           <p role="alert" className="max-w-xs text-center font-mono text-xs uppercase tracking-wider">
             Este evento no existe o el enlace está mal escrito.
           </p>
@@ -102,7 +103,7 @@ export default function EventEntryPage() {
       );
     case 'error':
       return (
-        <div className={shell}>
+        <div className={centered}>
           <p role="alert" className="max-w-xs text-center font-mono text-xs uppercase tracking-wider text-flame-500">
             {state.message}
           </p>
@@ -110,21 +111,28 @@ export default function EventEntryPage() {
       );
     case 'identify':
       return (
-        <div className={shell}>
+        <div className={centered}>
           <IdentifyForm slug={slug} event={state.event} onIdentified={(session) => void handleIdentified(state.event, session)} />
         </div>
       );
     case 'inside': {
-      const date = formatDate(state.event.startsAt);
+      const { event, guest, token } = state;
+      const date = formatDate(event.startsAt);
       return (
-        <div className={shell}>
-          <main className="flex w-full max-w-sm flex-col gap-3 border border-smoke-700/40 bg-ink-900 p-6 text-center shadow-2xl">
-            <span className="font-mono text-[11px] uppercase tracking-widest text-laser-500">{state.event.name}</span>
-            <h1 className="font-display text-3xl uppercase tracking-wide">Hola, {state.guest.fullName.split(' ')[0]}</h1>
+        <div className="flex min-h-screen flex-col items-center gap-5 bg-ink-950 px-4 pb-16 pt-8 text-paper-100">
+          <header className="flex w-full max-w-md flex-col gap-1 text-center">
+            <span className="font-mono text-[11px] uppercase tracking-widest text-laser-500">{event.name}</span>
+            <h1 className="font-display text-3xl uppercase tracking-wide">Hola, {guest.fullName.split(' ')[0]}</h1>
             {date && <p className="font-sans text-sm text-paper-100/80">{date}</p>}
-            {state.event.location && <p className="font-sans text-sm text-paper-100/80">{state.event.location}</p>}
-            <p className="font-mono text-[11px] uppercase tracking-wide text-acid-400">Ya estás dentro</p>
-          </main>
+            {event.location && <p className="font-sans text-sm text-paper-100/80">{event.location}</p>}
+          </header>
+          <GuestHub
+            slug={slug}
+            token={token}
+            event={event}
+            guest={guest}
+            onGuestChange={(fresh) => setState({ phase: 'inside', event, guest: fresh, token })}
+          />
         </div>
       );
     }

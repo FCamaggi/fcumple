@@ -49,6 +49,12 @@ export interface Post {
   coverImagePath: string | null;
   publishedAt: string | null;
   createdAt: string;
+  /**
+   * Fase 1: rutas de la galería ya resueltas por `list_published_posts`. Si
+   * está presente, `AnnouncementFeed` no consulta `post_images` (el invitado
+   * no tiene acceso directo a esa tabla).
+   */
+  galleryPaths?: string[];
 }
 
 /**

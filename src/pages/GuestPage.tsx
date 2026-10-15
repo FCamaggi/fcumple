@@ -11,7 +11,7 @@ import FaderToggle from '../components/FaderToggle';
 import RsvpDeadlineStrip from '../components/RsvpDeadlineStrip';
 import SignalToast from '../components/SignalToast';
 import CameraCapture from '../components/CameraCapture';
-import FilmRollCounter from '../components/FilmRollCounter';
+import CameraSection from '../components/CameraSection';
 import type { EventConfig, EventInfo, Guest, PhotoQuota, RsvpStatus } from '../types';
 
 // DevPanel (y la librería de generación de QR que usa) solo le sirven al
@@ -461,37 +461,6 @@ export default function GuestPage() {
 
       <SignalToast message={toast} kind={toastKind} onDismiss={() => setToast(null)} />
     </div>
-  );
-}
-
-// Card liviano dentro del scroll normal de la página -- la cámara en sí
-// (docs/fase-0-evento-unico/04-producto/BACKLOG.md Etapa 8) ahora es una experiencia a pantalla completa
-// que sólo se monta cuando el invitado la abre a propósito, nunca de
-// arranque al cargar /i/:token.
-function CameraSection({ quota, onOpen }: { quota: PhotoQuota; onOpen: () => void }) {
-  const remaining = Math.max(0, quota.quota - quota.used);
-  const outOfShots = remaining <= 0;
-
-  return (
-    <section className="flex flex-col gap-3 bg-ink-900 p-4 shadow-2xl" aria-label="Cámara">
-      <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-hotpink-500">
-        Cámara // modo carrete
-      </span>
-      <FilmRollCounter quota={quota.quota} used={quota.used} />
-      {outOfShots ? (
-        <p className="font-sans text-sm text-paper-100/70">
-          Se acabó tu rollo. Ya diste todos tus disparos para esta noche.
-        </p>
-      ) : (
-        <button
-          type="button"
-          onClick={onOpen}
-          className="tap-target h-14 font-display text-lg uppercase tracking-wider bg-hotpink-500 text-ink-950 shadow-glow-hotpink transition-all active:scale-[0.98]"
-        >
-          Abrir cámara
-        </button>
-      )}
-    </section>
   );
 }
 

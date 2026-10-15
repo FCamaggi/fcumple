@@ -42,17 +42,37 @@ D18: no integrar el raspador. Mantener la identificación por nombre y apellido 
 
 ## Adenda (2026-10-15): usar directamente el formulario web (`POST /rut`)
 
-Segunda propuesta: en vez del script, hacer desde el servidor la misma petición que hace el navegador (`POST https://www.nombrerutyfirma.com/rut`, cuerpo `term=<RUT>`), y leer el nombre de la tabla de resultados.
+Segunda propuesta: en vez del script, hacer desde el servidor la misma petición que hace el navegador (`POST https://www.nombrerutyfirma.com/rut`, cuerpo `term=<RUT>`) y leer el nombre de la tabla de resultados. La respuesta tiene el mismo conjunto de datos de terceros (nombre, RUT, sexo, dirección, comuna) dentro de una página con publicidad y analítica.
 
-**Misma conclusión: no se integra.** Lo que muestra la petición y la respuesta pegadas:
+### Corrección sobre la parte técnica
 
-- La respuesta es una página HTML de consumo (publicidad de Google y analítica incluidas) con una tabla de **nombre, RUT, sexo, dirección y comuna**. Es el mismo conjunto de datos de terceros del raspador; solo cambia el cliente.
-- La petición se hizo desde un **navegador** (`credentials: include`, cabeceras de Chrome): el navegador ya había superado el desafío de Cloudflare y lleva su cookie. Un servidor no la tiene: la raíz del sitio sí respondió **403 con `cf-mitigated: challenge`** a una petición simple desde el entorno de desarrollo. Para que una función serverless obtenga la misma respuesta habría que **reproducir o esquivar ese desafío** (navegador automatizado, cookies reutilizadas, rotación de IP), y eso es evadir un control de acceso del sitio: no lo construyo.
-- No pude confirmar el comportamiento del `POST` desde un servidor: el entorno bloqueó esa consulta de prueba (es una búsqueda de datos personales de una persona) y no se reintentó ni se rodeó.
-- Hacer la petición desde el **navegador del invitado** tampoco sirve: el sitio no tiene CORS para nuestro dominio (no se podría leer la respuesta) y, aunque se pudiera, el cliente podría informar cualquier nombre, así que no demostraría nada.
-- Se mantienen los problemas de fondo: sin contrato ni términos de uso accesibles, envío del RUT de cada invitado a un tercero, riesgo legal al cobrar y ninguna garantía de continuidad.
+En un primer análisis afirmé que la petición solo funcionaba porque el navegador ya había superado el desafío de Cloudflare y llevaba su cookie. **Eso era una inferencia mía (por `credentials: "include"`) y la prueba del usuario la desmiente**: la misma petición hecha desde Postman, sin cookies, funcionó.
 
-Además, la respuesta pegada contiene datos personales reales (nombre y dirección). **No se guardó en el repositorio** ni se usó como dato de prueba.
+Lo que sí se observó: la raíz del sitio respondió **403 con `cf-mitigated: challenge`** a una petición simple desde el entorno de desarrollo (una IP de centro de datos). La conclusión correcta es más matizada:
 
-D19: no integrar el formulario `POST /rut` de nombrerutyfirma.com. La ruta viable sigue siendo un proveedor con contrato (opción B de la tabla).
+- Cloudflare decide por la **reputación de la IP, el origen de red y la huella de la petición**, no solo por cookies. Que funcione desde una IP residencial con Postman **no demuestra** que funcione desde las IPs de Vercel/AWS, y el sitio puede cambiar sus reglas cuando quiera.
+- Una petición simple y honesta (sin cookies, sin Tor, sin rotar IP ni User-Agent) **no es evasión**. Si el sitio la acepta, no hay nada que esquivar; si la bloquea, hay que fallar cerrado y no insistir.
+- La única forma de saber si sirve en producción es probarla desde el despliegue real.
 
+### Lo que sigue en pie (no depende de la parte técnica)
+
+- Sin contrato ni términos de uso accesibles; datos de procedencia desconocida (incluye dirección y sexo, que no necesitamos).
+- El RUT de cada invitado se envía a un tercero que no controlamos.
+- Cobrar agranda la exposición legal (consultar a un abogado antes de cobrar).
+- Sin garantías de continuidad: si el sitio cambia el HTML, agrega un desafío o bloquea, la verificación por RUT cae el día del evento.
+
+### Estado
+
+No se construyó el adaptador en esta sesión: el entorno de ejecución bloqueó escribirlo (es un cliente de búsqueda de datos personales) y no se rodeó ese bloqueo. La interfaz `IdentityProvider`, el registro `PROVIDERS` (`src/server/providers.ts`, vacío), `/api/identify`, el presupuesto de consultas y la base de datos ya están listos para recibirlo.
+
+**Requisitos para cualquier adaptador de este sitio**, si el usuario decide escribirlo y asumir el riesgo:
+
+1. Una sola petición `POST` simple, con tiempo límite; sin cookies, sin Tor, sin rotación de IP o User-Agent, sin reintentos agresivos.
+2. **Falla cerrada**: ante un 403, un desafío (`cf-mitigated`, "Chequeo de Integridad") o una página sin la forma esperada, lanzar un error genérico (`provider_error`, 502) y no insistir.
+3. Leer **solo el nombre**, de la fila cuyo RUT coincide con el consultado; descartar sexo y dirección en el acto.
+4. El RUT no se registra (ni en logs ni en mensajes de error), y la respuesta HTML no se guarda.
+5. Activarse solo con `IDENTITY_PROVIDER=nombrerutyfirma` y estar apagado por defecto.
+6. Probar con HTML sintético (nombres y RUT inventados); nunca con datos reales de personas.
+7. Verificarlo primero desde un despliegue de prueba en Vercel antes de depender de él.
+
+D19: no se integra el formulario en esta etapa. Queda como opción a cargo del usuario, con los requisitos de arriba, y sin recomendación para un producto de pago.

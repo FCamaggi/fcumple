@@ -1,0 +1,150 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+
+vi.mock('../lib/platformGuestApi', () => ({
+  listPublishedPosts: vi.fn(),
+  getPublicHeadcount: vi.fn(),
+  listRevealedPhotosForGuest: vi.fn(),
+  uploadGuestPhoto: vi.fn(),
+}));
+vi.mock('../lib/photosApi', () => ({ getPhotoQuota: vi.fn() }));
+vi.mock('../lib/platformApi', () => ({ getMyGuest: vi.fn() }));
+vi.mock('qrcode', () => ({ default: { toDataURL: vi.fn().mockResolvedValue('data:image/png;base64,QR') } }));
+vi.mock('./AnnouncementFeed', () => ({
+  default: ({ posts }: { posts: Array<{ title: string }> }) => (
+    <div data-testid="feed">{posts.map((p) => p.title).join(',')}</div>
+  ),
+}));
+vi.mock('./RevealedRoll', () => ({
+  default: ({ photos }: { photos: unknown[] }) => <div data-testid="roll">{photos.length}</div>,
+}));
+vi.mock('./CameraCapture', () => ({
+  default: ({ onClose, upload }: { onClose: () => void; upload?: unknown }) => (
+    <div data-testid="camera" data-has-upload={String(typeof upload === 'function')}>
+      <button type="button" onClick={onClose}>
+        cerrar cámara
+      </button>
+    </div>
+  ),
+}));
+
+import QRCode from 'qrcode';
+import { getPhotoQuota } from '../lib/photosApi';
+import { getMyGuest, type EventPublic, type MyGuest } from '../lib/platformApi';
+import { getPublicHeadcount, listPublishedPosts, listRevealedPhotosForGuest } from '../lib/platformGuestApi';
+import GuestHub from './GuestHub';
+
+const event: EventPublic = {
+  id: 'ev-1',
+  name: 'Cumple',
+  startsAt: null,
+  location: null,
+  rsvpDeadline: null,
+  accessMode: 'list',
+  identifier: 'name',
+  cameraUnlock: 'on_identify',
+  rsvpEnabled: false,
+  photosRevealed: false,
+};
+
+const guest: MyGuest = { id: 'g1', eventId: 'ev-1', fullName: 'Ana Rojas', checkedInAt: null, photoQuota: 5 };
+
+function setup(overrides: { event?: Partial<EventPublic>; guest?: Partial<MyGuest> } = {}) {
+  const onGuestChange = vi.fn();
+  render(
+    <GuestHub
+      slug="fiesta-abcd"
+      token="tok"
+      event={{ ...event, ...overrides.event }}
+      guest={{ ...guest, ...overrides.guest }}
+      onGuestChange={onGuestChange}
+    />,
+  );
+  return { onGuestChange };
+}
+
+beforeEach(() => {
+  vi.mocked(listPublishedPosts).mockReset().mockResolvedValue([]);
+  vi.mocked(getPublicHeadcount).mockReset().mockResolvedValue(0);
+  vi.mocked(listRevealedPhotosForGuest).mockReset().mockResolvedValue([]);
+  vi.mocked(getPhotoQuota).mockReset().mockResolvedValue({ quota: 5, used: 1 });
+  vi.mocked(getMyGuest).mockReset();
+  vi.mocked(QRCode.toDataURL).mockClear();
+});
+
+describe('GuestHub', () => {
+  it('carga los avisos del evento por slug', async () => {
+    vi.mocked(listPublishedPosts).mockResolvedValue([{ id: 'a', title: 'Aviso 1' } as never]);
+    setup();
+    await waitFor(() => expect(screen.getByTestId('feed')).toHaveTextContent('Aviso 1'));
+    expect(listPublishedPosts).toHaveBeenCalledWith('fiesta-abcd');
+  });
+
+  it('con camera_unlock = on_identify muestra la cámara con el cupo y abre la cámara con la subida de la Fase 1', async () => {
+    setup();
+    expect(await screen.findByRole('button', { name: 'Abrir cámara' })).toBeInTheDocument();
+    expect(getPhotoQuota).toHaveBeenCalledWith('tok');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Abrir cámara' }));
+    expect(screen.getByTestId('camera')).toHaveAttribute('data-has-upload', 'true');
+
+    await userEvent.click(screen.getByRole('button', { name: 'cerrar cámara' }));
+    expect(screen.queryByTestId('camera')).not.toBeInTheDocument();
+  });
+
+  it('con on_checkin y sin llegada marcada bloquea la cámara y no pide el cupo', async () => {
+    setup({ event: { cameraUnlock: 'on_checkin' } });
+    expect(await screen.findByText(/aún bloqueada/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Abrir cámara' })).not.toBeInTheDocument();
+    expect(getPhotoQuota).not.toHaveBeenCalled();
+  });
+
+  it('muestra el código de puerta con el token y se puede cerrar', async () => {
+    setup({ event: { cameraUnlock: 'on_checkin' } });
+    await userEvent.click(await screen.findByRole('button', { name: 'Mostrar mi código' }));
+
+    expect(await screen.findByAltText('Código QR para la puerta')).toBeInTheDocument();
+    expect(QRCode.toDataURL).toHaveBeenCalledWith('tok', expect.anything());
+
+    await userEvent.click(screen.getByRole('button', { name: 'Listo' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('"Ya me escanearon" vuelve a consultar al invitado y avisa el cambio', async () => {
+    const checkedIn = { ...guest, checkedInAt: '2026-10-15T22:00:00Z' };
+    vi.mocked(getMyGuest).mockResolvedValueOnce(checkedIn);
+    const { onGuestChange } = setup({ event: { cameraUnlock: 'on_checkin' } });
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Ya me escanearon' }));
+
+    await waitFor(() => expect(onGuestChange).toHaveBeenCalledWith(checkedIn));
+    expect(getMyGuest).toHaveBeenCalledWith('tok');
+  });
+
+  it('con on_checkin y la llegada ya marcada habilita la cámara', async () => {
+    setup({ event: { cameraUnlock: 'on_checkin' }, guest: { checkedInAt: '2026-10-15T22:00:00Z' } });
+    expect(await screen.findByRole('button', { name: 'Abrir cámara' })).toBeInTheDocument();
+  });
+
+  it('solo pide el rollo cuando el evento ya lo reveló', async () => {
+    setup();
+    await waitFor(() => expect(listPublishedPosts).toHaveBeenCalled());
+    expect(listRevealedPhotosForGuest).not.toHaveBeenCalled();
+  });
+
+  it('con el rollo revelado lo pide con el token y lo muestra', async () => {
+    vi.mocked(listRevealedPhotosForGuest).mockResolvedValue([
+      { storagePath: 'ev/g/a.jpg', displayStoragePath: null, createdAt: '2026-10-15T01:00:00Z' },
+    ]);
+    setup({ event: { photosRevealed: true } });
+    await waitFor(() => expect(screen.getByTestId('roll')).toHaveTextContent('1'));
+    expect(listRevealedPhotosForGuest).toHaveBeenCalledWith('tok');
+  });
+
+  it('muestra el aforo cuando hay confirmados', async () => {
+    vi.mocked(getPublicHeadcount).mockResolvedValue(12);
+    setup();
+    expect(await screen.findByText('Aforo // 12 confirmados')).toBeInTheDocument();
+  });
+});

@@ -115,4 +115,16 @@ describe('AnnouncementFeed', () => {
     expect(images).toHaveLength(2);
     expect(images[0]).toHaveAttribute('src', 'https://cdn.example/p1/gal-a.jpg');
   });
+
+  it('con galleryPaths (Fase 1) usa esas rutas y no consulta post_images', async () => {
+    const post: Post = { ...withoutCover, galleryPaths: ['ev/a.jpg', 'ev/b.jpg'] };
+    render(<AnnouncementFeed posts={[post]} />);
+
+    const images = await screen.findAllByAltText('Foto de galería');
+    expect(images.map((img) => img.getAttribute('src'))).toEqual([
+      'https://cdn.example/ev/a.jpg',
+      'https://cdn.example/ev/b.jpg',
+    ]);
+    expect(listPostImages).not.toHaveBeenCalled();
+  });
 });

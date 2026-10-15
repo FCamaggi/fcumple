@@ -13,6 +13,12 @@ vi.mock('../lib/platformApi', () => ({
   clearGuestSession: vi.fn(),
 }));
 
+vi.mock('../components/GuestHub', () => ({
+  default: ({ guest, token }: { guest: { fullName: string }; token: string }) => (
+    <div data-testid="hub">hub de {guest.fullName} con {token}</div>
+  ),
+}));
+
 import * as api from '../lib/platformApi';
 import EventEntryPage from './EventEntryPage';
 
@@ -80,6 +86,7 @@ describe('EventEntryPage', () => {
     expect(await screen.findByRole('heading', { name: 'Hola, Ana' })).toBeInTheDocument();
     expect(api.saveGuestSession).toHaveBeenCalledWith('fiesta-abcd', { token: 'tok', guestName: 'Ana María Rojas' });
     expect(screen.getByText('Casa de Fabrizio')).toBeInTheDocument();
+    expect(screen.getByTestId('hub')).toHaveTextContent('hub de Ana María Rojas con tok');
   });
 
   it('con una sesión válida entra directo, sin pedir nada', async () => {

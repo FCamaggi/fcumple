@@ -109,4 +109,26 @@ describe('usePhotoCapture', () => {
     });
     expect(result.current.state).toEqual({ phase: 'idle' });
   });
+
+  it('usa el uploader inyectado (Fase 1) en vez de photosApi.uploadPhoto', async () => {
+    const upload = vi.fn().mockResolvedValue({
+      id: 'p1',
+      guestId: 'g1',
+      storagePath: 'ev/g1/a.jpg',
+      displayStoragePath: null,
+      status: 'approved',
+      createdAt: '2026-06-01T00:00:00Z',
+    });
+    const onQuotaChange = vi.fn();
+    const { result } = renderHook(() => usePhotoCapture('tok123', { quota: 5, used: 2 }, onQuotaChange, upload));
+
+    act(() => {
+      result.current.capture(blob, displayBlob);
+    });
+
+    await waitFor(() => expect(result.current.state).toEqual({ phase: 'success', status: 'approved' }));
+    expect(upload).toHaveBeenCalledWith(blob, displayBlob);
+    expect(uploadPhotoMock).not.toHaveBeenCalled();
+    expect(onQuotaChange).toHaveBeenCalledWith({ quota: 5, used: 3 });
+  });
 });

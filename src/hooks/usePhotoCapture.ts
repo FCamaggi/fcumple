@@ -20,14 +20,26 @@ export type PhotoCaptureState =
  * `uploadPhoto` resuelve, y traduce cualquier falla (Storage o
  * submit_photo) en un mensaje legible en vez de dejar el estado colgado.
  */
-export function usePhotoCapture(token: string, quota: PhotoQuota, onQuotaChange?: (quota: PhotoQuota) => void) {
+export type PhotoUploader = (blob: Blob, displayBlob?: Blob | null) => Promise<Photo>;
+
+/**
+ * `upload` es opcional: por defecto sube a `{token}/…` como en la Fase 0. La
+ * Fase 1 pasa su propio uploader, que usa rutas `{event_id}/{guest_id}/…`
+ * (el token nunca va en una ruta de Storage).
+ */
+export function usePhotoCapture(
+  token: string,
+  quota: PhotoQuota,
+  onQuotaChange?: (quota: PhotoQuota) => void,
+  upload?: PhotoUploader,
+) {
   const [state, setState] = useState<PhotoCaptureState>({ phase: 'idle' });
 
   const capture = useCallback(
     async (blob: Blob, displayBlob?: Blob | null) => {
       setState({ phase: 'uploading' });
       try {
-        const photo = await uploadPhoto(token, blob, displayBlob);
+        const photo = await (upload ? upload(blob, displayBlob) : uploadPhoto(token, blob, displayBlob));
         const next = { quota: quota.quota, used: quota.used + 1 };
         onQuotaChange?.(next);
         setState({ phase: 'success', status: photo.status });
@@ -35,7 +47,7 @@ export function usePhotoCapture(token: string, quota: PhotoQuota, onQuotaChange?
         setState({ phase: 'error', message: err instanceof Error ? err.message : 'No pudimos subir la foto.' });
       }
     },
-    [token, quota, onQuotaChange],
+    [token, quota, onQuotaChange, upload],
   );
 
   const reset = useCallback(() => setState({ phase: 'idle' }), []);

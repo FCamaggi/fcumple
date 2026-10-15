@@ -28,8 +28,14 @@ Hecho (segunda rebanada: panel del organizador, rutas `/panel` y `/panel/e/:even
 - [x] Migración `…100009_rpc_organizer` (`regenerate_guest_token`, solo dueño).
 - Requisito de despliegue: en el proyecto Supabase nuevo hay que **habilitar el registro de usuarios** (`enable_signup`) para que los organizadores puedan crear su cuenta; `supabase/config.toml` de la Fase 0 lo tiene apagado porque había un solo admin. El alta de cuentas de organizador (pantalla de registro) queda pendiente.
 
+Hecho (tercera rebanada: hub del invitado en `/e/:slug`, `GuestHub`):
+- [x] Avisos del evento (`list_published_posts`, con la galería incluida), aforo (`get_public_headcount(slug)`), cámara y rollo revelado (`list_revealed_photos(token)`), reutilizando `AnnouncementFeed`, `CameraCapture` y `RevealedRoll`.
+- [x] Subida de fotos a `{event_id}/{guest_id}/…` (`uploadGuestPhoto`); el token nunca va en una ruta. `CameraCapture` y `usePhotoCapture` aceptan una subida inyectada (la Fase 0 sigue igual).
+- [x] `camera_unlock = on_checkin`: la cámara queda bloqueada hasta que el organizador marque la llegada; el invitado muestra su código (QR con el token) y puede refrescar con "Ya me escanearon".
+- [x] `CameraSection` extraído de `GuestPage` y compartido.
+
 Pendiente:
-- [ ] Hub del invitado en `/e/:slug` (avisos, cámara, rollo, cuenta regresiva, cómo llegar) migrado a las RPC de la Fase 1: `list_published_posts`, `get_public_headcount(slug)`, `list_revealed_photos(token)`, rutas de Storage `{event_id}/{guest_id}/…`. Hoy `GuestPage` y `EventHubPage` siguen usando las RPC de la Fase 0.
+- [ ] Del hub: cuenta regresiva, "cómo llegar" por evento y RSVP (si `rsvp_enabled`). `GuestPage` y `EventHubPage` siguen con las RPC de la Fase 0.
 - [ ] Panel del organizador, lo que falta: importación CSV, moderación de fotos y revelado del rollo, avisos, escáner de puerta / `check_in_guest` y registro de cuentas de organizador. "Mi QR" del invitado para la puerta.
 - [ ] Datos de "cómo llegar" por evento en vez de constantes en `routes.ts`.
 - [ ] Retirar `/i/:token`, `SendInviteButton`, `WristbandCard` y `guests.phone` de la UI al hacer el corte.

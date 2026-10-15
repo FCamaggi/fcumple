@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { motion, AnimatePresence, useReducedMotion, type PanInfo } from 'framer-motion';
-import { usePhotoCapture } from '../hooks/usePhotoCapture';
+import { usePhotoCapture, type PhotoUploader } from '../hooks/usePhotoCapture';
 import { useOrientation } from '../hooks/useOrientation';
 import { useFrameImages } from '../hooks/useFrameImages';
 import {
@@ -25,6 +25,8 @@ interface CameraCaptureProps {
   quota: PhotoQuota;
   onQuotaChange?: (quota: PhotoQuota) => void;
   onClose: () => void;
+  /** Subida alternativa (Fase 1: rutas por evento). Por defecto, la de la Fase 0. */
+  upload?: PhotoUploader;
 }
 
 const MAX_DIMENSION = 1600;
@@ -106,10 +108,10 @@ const SWIPE_THRESHOLD = 48;
  * en jsdom, así que el flujo Repetir/Enviar sobre un blob mockeado se
  * prueba de punta a punta.
  */
-export default function CameraCapture({ token, quota, onQuotaChange, onClose }: CameraCaptureProps) {
+export default function CameraCapture({ token, quota, onQuotaChange, onClose, upload }: CameraCaptureProps) {
   const reduceMotion = useReducedMotion() ?? false;
   const orientation = useOrientation();
-  const { state, capture, reset } = usePhotoCapture(token, quota, onQuotaChange);
+  const { state, capture, reset } = usePhotoCapture(token, quota, onQuotaChange, upload);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const trackRef = useRef<MediaStreamTrack | null>(null);
