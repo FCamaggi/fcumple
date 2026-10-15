@@ -259,3 +259,38 @@ describe('avisos publicados', () => {
     expect(rows[0].images).toEqual(['a.jpg', 'b.jpg']);
   });
 });
+
+describe('regenerate_guest_token', () => {
+  it('cambia el token, cierra la sesion anterior y limpia claimed_at', async () => {
+    const ev = await createEvent(db, owner);
+    const g = await createGuest(db, ev.id, 'Ana Rojas');
+    await db.query('update guests set claimed_at = now(), last_seen_at = now() where id = $1', [g.id]);
+
+    const { rows } = await asUser(db, owner, () => db.query('select * from regenerate_guest_token($1)', [g.id]));
+    expect(rows[0].token).not.toBe(g.token);
+    expect(rows[0].claimed_at).toBeNull();
+
+    const old = await anon(() => db.query('select * from get_guest_by_token($1)', [g.token]));
+    expect(old.rows).toHaveLength(0);
+    const fresh = await anon(() => db.query('select * from get_guest_by_token($1)', [rows[0].token]));
+    expect(fresh.rows).toHaveLength(1);
+  });
+
+  it('solo el dueno del evento; anon no puede', async () => {
+    const ev = await createEvent(db, owner);
+    const g = await createGuest(db, ev.id, 'Ana Rojas');
+    const stranger = await createUser(db, 'otro@example.com');
+
+    await expect(
+      asUser(db, stranger, () => db.query('select * from regenerate_guest_token($1)', [g.id])),
+    ).rejects.toMatchObject({ code: '42501' });
+    await expect(anon(() => db.query('select * from regenerate_guest_token($1)', [g.id]))).rejects.toMatchObject({
+      code: '42501',
+    });
+    await expect(
+      asUser(db, owner, () =>
+        db.query('select * from regenerate_guest_token($1)', ['00000000-0000-0000-0000-000000000000']),
+      ),
+    ).rejects.toMatchObject({ code: 'P0002' });
+  });
+});

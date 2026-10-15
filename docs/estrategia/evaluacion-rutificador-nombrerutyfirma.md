@@ -39,3 +39,20 @@ No guardar el dato resuelve **una** parte (la nuestra), pero los problemas está
 ## Decisión
 
 D18: no integrar el raspador. Mantener la identificación por nombre y apellido como camino por defecto; dejar el contrato `rut_lookup` listo para enchufar un proveedor con contrato cuando haya ingresos que lo justifiquen.
+
+## Adenda (2026-10-15): usar directamente el formulario web (`POST /rut`)
+
+Segunda propuesta: en vez del script, hacer desde el servidor la misma petición que hace el navegador (`POST https://www.nombrerutyfirma.com/rut`, cuerpo `term=<RUT>`), y leer el nombre de la tabla de resultados.
+
+**Misma conclusión: no se integra.** Lo que muestra la petición y la respuesta pegadas:
+
+- La respuesta es una página HTML de consumo (publicidad de Google y analítica incluidas) con una tabla de **nombre, RUT, sexo, dirección y comuna**. Es el mismo conjunto de datos de terceros del raspador; solo cambia el cliente.
+- La petición se hizo desde un **navegador** (`credentials: include`, cabeceras de Chrome): el navegador ya había superado el desafío de Cloudflare y lleva su cookie. Un servidor no la tiene: la raíz del sitio sí respondió **403 con `cf-mitigated: challenge`** a una petición simple desde el entorno de desarrollo. Para que una función serverless obtenga la misma respuesta habría que **reproducir o esquivar ese desafío** (navegador automatizado, cookies reutilizadas, rotación de IP), y eso es evadir un control de acceso del sitio: no lo construyo.
+- No pude confirmar el comportamiento del `POST` desde un servidor: el entorno bloqueó esa consulta de prueba (es una búsqueda de datos personales de una persona) y no se reintentó ni se rodeó.
+- Hacer la petición desde el **navegador del invitado** tampoco sirve: el sitio no tiene CORS para nuestro dominio (no se podría leer la respuesta) y, aunque se pudiera, el cliente podría informar cualquier nombre, así que no demostraría nada.
+- Se mantienen los problemas de fondo: sin contrato ni términos de uso accesibles, envío del RUT de cada invitado a un tercero, riesgo legal al cobrar y ninguna garantía de continuidad.
+
+Además, la respuesta pegada contiene datos personales reales (nombre y dirección). **No se guardó en el repositorio** ni se usó como dato de prueba.
+
+D19: no integrar el formulario `POST /rut` de nombrerutyfirma.com. La ruta viable sigue siendo un proveedor con contrato (opción B de la tabla).
+

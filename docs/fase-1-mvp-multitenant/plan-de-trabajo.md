@@ -22,10 +22,15 @@ Hecho (primera rebanada: entrada del invitado):
 - [x] `src/lib/rut.ts`: formato y dígito verificador.
 - [x] `POST /api/identify` (`api/identify.ts` + `src/server/identifyHandler.ts`): resuelve RUT → nombre con un proveedor inyectado y llama a `identify_guest_verified`. Consume el presupuesto de consultas (`register_verified_lookup`) antes de gastar una llamada al proveedor. **Sin proveedor configurado responde 501**: no hay ninguno registrado.
 
+Hecho (segunda rebanada: panel del organizador, rutas `/panel` y `/panel/e/:eventId`):
+- [x] `src/lib/organizerApi.ts`: eventos del organizador, alta con `create_event`, ajustes, invitados (alta masiva por líneas, aprobar/rechazar solicitudes, quitar, regenerar acceso con `regenerate_guest_token`).
+- [x] `OrganizerEventsPage` (lista y alta) y `OrganizerEventPage` con pestañas **Invitados** (`GuestListPanel`), **Enlace** (`ShareEventLink`: copiar, un único mensaje de WhatsApp, QR descargable) y **Ajustes** (`EventSettingsPanel`: quién entra, cuándo se habilita la cámara, RSVP).
+- [x] Migración `…100009_rpc_organizer` (`regenerate_guest_token`, solo dueño).
+- Requisito de despliegue: en el proyecto Supabase nuevo hay que **habilitar el registro de usuarios** (`enable_signup`) para que los organizadores puedan crear su cuenta; `supabase/config.toml` de la Fase 0 lo tiene apagado porque había un solo admin. El alta de cuentas de organizador (pantalla de registro) queda pendiente.
+
 Pendiente:
 - [ ] Hub del invitado en `/e/:slug` (avisos, cámara, rollo, cuenta regresiva, cómo llegar) migrado a las RPC de la Fase 1: `list_published_posts`, `get_public_headcount(slug)`, `list_revealed_photos(token)`, rutas de Storage `{event_id}/{guest_id}/…`. Hoy `GuestPage` y `EventHubPage` siguen usando las RPC de la Fase 0.
-- [ ] Panel del organizador: `/admin` con lista de eventos, `create_event`, `/admin/e/:eventId/...` (invitados con importación CSV, solicitudes pendientes, fotos, avisos, ajustes de acceso).
-- [ ] `ShareEventLink` (copiar enlace, descargar QR, mensaje único para WhatsApp) y "mi QR" para la puerta.
+- [ ] Panel del organizador, lo que falta: importación CSV, moderación de fotos y revelado del rollo, avisos, escáner de puerta / `check_in_guest` y registro de cuentas de organizador. "Mi QR" del invitado para la puerta.
 - [ ] Datos de "cómo llegar" por evento en vez de constantes en `routes.ts`.
 - [ ] Retirar `/i/:token`, `SendInviteButton`, `WristbandCard` y `guests.phone` de la UI al hacer el corte.
 
