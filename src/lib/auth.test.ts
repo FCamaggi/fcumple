@@ -5,6 +5,7 @@ vi.mock('./supabaseClient', () => ({
   supabase: {
     auth: {
       signInWithPassword: vi.fn(),
+      signUp: vi.fn(),
       signOut: vi.fn(),
       getSession: vi.fn(),
       onAuthStateChange: vi.fn(),
@@ -13,11 +14,12 @@ vi.mock('./supabaseClient', () => ({
 }));
 
 import { supabase } from './supabaseClient';
-import { signIn, signOut, useSession } from './auth';
+import { signIn, signOut, signUp, useSession } from './auth';
 
 beforeEach(() => {
   vi.mocked(supabase.auth.signInWithPassword).mockReset();
   vi.mocked(supabase.auth.signOut).mockReset();
+  vi.mocked(supabase.auth.signUp).mockReset();
 });
 
 describe('signIn', () => {
@@ -43,6 +45,30 @@ describe('signIn', () => {
     await expect(signIn('admin@fcumple.com', 'incorrecta')).rejects.toThrow(
       /invalid login credentials|credenciales/i,
     );
+  });
+});
+
+describe('signUp', () => {
+  it('crea la cuenta y avisa que no hace falta confirmar cuando ya hay sesión', async () => {
+    vi.mocked(supabase.auth.signUp).mockResolvedValueOnce({ data: { user: {}, session: {} }, error: null } as never);
+    await expect(signUp('ana@example.com', 'contraseña-larga')).resolves.toEqual({ needsConfirmation: false });
+    expect(supabase.auth.signUp).toHaveBeenCalledWith({ email: 'ana@example.com', password: 'contraseña-larga' });
+  });
+
+  it('avisa que hay que confirmar el correo cuando no se crea sesión', async () => {
+    vi.mocked(supabase.auth.signUp).mockResolvedValueOnce({ data: { user: {}, session: null }, error: null } as never);
+    await expect(signUp('ana@example.com', 'contraseña-larga')).resolves.toEqual({ needsConfirmation: true });
+  });
+
+  it.each([
+    ['User already registered', /Ya existe una cuenta/],
+    ['Password should be at least 8 characters', /al menos 8 caracteres/],
+    ['Email rate limit exceeded', /Demasiados intentos/],
+    ['Unable to validate email address: invalid format', /correo esté bien escrito/],
+    ['algo raro', /No pudimos crear tu cuenta/],
+  ])('traduce el error %j', async (message, expected) => {
+    vi.mocked(supabase.auth.signUp).mockResolvedValueOnce({ data: { user: null, session: null }, error: { message } } as never);
+    await expect(signUp('ana@example.com', 'x')).rejects.toThrow(expected);
   });
 });
 

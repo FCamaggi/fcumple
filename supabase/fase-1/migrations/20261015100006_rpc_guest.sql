@@ -341,6 +341,12 @@ begin
     raise exception 'authentication required' using errcode = '42501';
   end if;
 
+  -- El registro de organizadores es abierto: tope por cuenta para frenar el
+  -- abuso (se puede subir mas adelante con los planes de la Fase 2).
+  if (select count(*) from public.events e where e.owner_id = auth.uid()) >= 10 then
+    raise exception 'event limit reached' using errcode = '53400';
+  end if;
+
   v_base := left(public.slugify(p_name), 40);
   if v_base is null or v_base = '' then
     v_base := 'evento';

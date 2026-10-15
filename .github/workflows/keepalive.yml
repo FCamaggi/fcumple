@@ -1,0 +1,33 @@
+name: Supabase keep-alive
+
+# El plan gratuito de Supabase pausa el proyecto tras 7 dias sin actividad en la
+# API. Este ping de lectura cada 3 dias lo evita. Solo corre si los secrets del
+# proyecto de la Fase 1 estan configurados (SUPABASE_URL y SUPABASE_ANON_KEY);
+# si no, termina sin error.
+on:
+  schedule:
+    - cron: '17 12 */3 * *'
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    name: Ping de lectura
+    runs-on: ubuntu-latest
+    steps:
+      - name: Llamar a get_event_public
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "Secrets SUPABASE_URL / SUPABASE_ANON_KEY no configurados: nada que hacer."
+            exit 0
+          fi
+          # Un slug que no existe devuelve [] con HTTP 200: basta para contar como actividad.
+          curl --fail --silent --show-error --max-time 30 \
+            -X POST "$SUPABASE_URL/rest/v1/rpc/get_event_public" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{"p_slug":"keepalive-ping"}'
+          echo

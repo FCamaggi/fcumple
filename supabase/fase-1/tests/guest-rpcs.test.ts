@@ -45,6 +45,21 @@ describe('create_event', () => {
     expect(rows[0].access_mode).toBe('open');
   });
 
+  it('cada organizador puede tener hasta 10 eventos', async () => {
+    const busy = await createUser(db, 'ocupado@example.com');
+    for (let i = 0; i < 10; i++) {
+      await asUser(db, busy, () => db.query(`select * from create_event('Evento ${i}')`));
+    }
+    await expect(
+      asUser(db, busy, () => db.query(`select * from create_event('Uno de mas')`)),
+    ).rejects.toMatchObject({ code: '53400' });
+
+    // El tope es por cuenta: otro organizador no se ve afectado.
+    await expect(
+      asUser(db, owner, () => db.query(`select * from create_event('Otro organizador')`)),
+    ).resolves.toBeDefined();
+  });
+
   it('anon no puede crear eventos', async () => {
     await expect(anon(() => db.query(`select * from create_event('Colada')`))).rejects.toMatchObject({
       code: '42501',

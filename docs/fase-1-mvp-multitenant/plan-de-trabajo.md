@@ -8,8 +8,8 @@ Sin fechas fijas: un solo desarrollador, y el orden importa más que el calendar
 - [x] RPC: `register_guest` y `login_guest` (inscripción y sesión con nombre + PIN, hash bcrypt, bloqueo tras 5 PIN equivocados, freno de intentos), `get_event_public`, `get_guest_by_token`, `submit_rsvp`, `get_photo_quota`, `submit_photo`, `check_in_guest` (solo dueño), `list_revealed_photos(token)`, `get_public_headcount(slug)`, `list_published_posts(slug)`, `create_event`, `regenerate_guest_token` (restablece el acceso y borra el PIN).
 - [x] Suite `npm run test:db:fase1` (90 tests): aislamiento entre dos organizadores, privilegios de `anon`, storage, inscripción y sesión con PIN. El arnés replica Supabase (pgcrypto en `extensions`), lo que detectó un `search_path` incorrecto que habría roto `create_event` y las altas en producción.
 - [x] Paso de CI para la suite nueva.
-- [ ] Workflow de keep-alive para el Supabase gratuito (se pausa a los 7 días sin actividad).
-- [ ] Crear el proyecto Supabase nuevo y aplicar las migraciones (ver plan de corte en `arquitectura-multitenant.md`).
+- [x] Workflow de keep-alive (`.github/workflows/keepalive.yml`): ping de lectura cada 3 días; se activa con los secrets `SUPABASE_URL` y `SUPABASE_ANON_KEY`.
+- [ ] Crear el proyecto Supabase nuevo y aplicar las migraciones: pasos y checklist de prueba en [`puesta-en-marcha.md`](./puesta-en-marcha.md).
 
 **Salida:** dos eventos de prueba aislados; un invitado se inscribe con el enlace único y usa las RPC.
 
@@ -24,7 +24,8 @@ Hecho (segunda rebanada: panel del organizador, rutas `/panel` y `/panel/e/:even
 - [x] `src/lib/organizerApi.ts`: eventos del organizador, alta con `create_event`, ajustes, invitados (alta masiva por líneas, aprobar/rechazar solicitudes, quitar, regenerar acceso con `regenerate_guest_token`).
 - [x] `OrganizerEventsPage` (lista y alta) y `OrganizerEventPage` con pestañas **Invitados** (`GuestListPanel`), **Enlace** (`ShareEventLink`: copiar, un único mensaje de WhatsApp, QR descargable) y **Ajustes** (`EventSettingsPanel`: quién entra, cuándo se habilita la cámara, RSVP).
 - [x] Migración `…100009_rpc_organizer` (`regenerate_guest_token`, solo dueño).
-- Requisito de despliegue: en el proyecto Supabase nuevo hay que **habilitar el registro de usuarios** (`enable_signup`) para que los organizadores puedan crear su cuenta; `supabase/config.toml` de la Fase 0 lo tiene apagado porque había un solo admin. El alta de cuentas de organizador (pantalla de registro) queda pendiente.
+- [x] **Registro de organizadores** (`OrganizerLogin`): "Ya tengo cuenta" / "Crear cuenta" con correo y contraseña (mínimo 8, repetida), con aviso de confirmación de correo. `RequireAuth` acepta la pantalla de login a mostrar. `supabase/fase-1/config.toml` activa el registro y la confirmación de correo (en el proyecto hosted se configura en el panel: ver [`puesta-en-marcha.md`](./puesta-en-marcha.md)).
+- [x] Tope de **10 eventos por organizador** en `create_event` (el registro es abierto).
 
 Hecho (tercera rebanada: hub del invitado en `/e/:slug`, `GuestHub`):
 - [x] Avisos del evento (`list_published_posts`, con la galería incluida), aforo (`get_public_headcount(slug)`), cámara y rollo revelado (`list_revealed_photos(token)`), reutilizando `AnnouncementFeed`, `CameraCapture` y `RevealedRoll`.
@@ -38,7 +39,7 @@ Hecho (cuarta rebanada: puerta y fotos en el panel del organizador):
 
 Pendiente:
 - [ ] Del hub: cuenta regresiva, "cómo llegar" por evento y RSVP (si `rsvp_enabled`). `GuestPage` y `EventHubPage` siguen con las RPC de la Fase 0.
-- [ ] Panel del organizador, lo que falta: importación CSV, avisos (crear, publicar, imágenes) y registro de cuentas de organizador.
+- [ ] Panel del organizador, lo que falta: avisos (crear, publicar, imágenes) e importación CSV (poco necesaria ahora que los invitados se inscriben solos).
 - [ ] Datos de "cómo llegar" por evento en vez de constantes en `routes.ts`.
 - [ ] Retirar `/i/:token`, `SendInviteButton`, `WristbandCard` y `guests.phone` de la UI al hacer el corte.
 

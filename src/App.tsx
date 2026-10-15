@@ -5,6 +5,7 @@ import EventHubPage from './pages/EventHubPage';
 import HowToGetTherePage from './pages/HowToGetTherePage';
 import EventEntryPage from './pages/EventEntryPage';
 import RequireAuth from './components/RequireAuth';
+import OrganizerLogin from './components/OrganizerLogin';
 
 // /admin (y todo lo que solo se usa desde ahí: DoorList, GuestEditModal,
 // CreateGuestModal, adminApi) queda en un chunk aparte — la ruta pública
@@ -44,7 +45,7 @@ export default function App() {
         <Route
           path="/panel"
           element={
-            <RequireAuth>
+            <RequireAuth login={<OrganizerLogin />}>
               <Suspense fallback={<AdminFallback />}>
                 <OrganizerEventsPage />
               </Suspense>
@@ -54,7 +55,7 @@ export default function App() {
         <Route
           path="/panel/e/:eventId"
           element={
-            <RequireAuth>
+            <RequireAuth login={<OrganizerLogin />}>
               <Suspense fallback={<AdminFallback />}>
                 <OrganizerEventPage />
               </Suspense>

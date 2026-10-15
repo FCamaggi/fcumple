@@ -63,7 +63,7 @@ No existe ninguna columna de RUT, correo, teléfono ni PIN en claro. Las opcione
 
 `deploy.yml` ejecuta `supabase db push` contra el proyecto de producción cada vez que CI pasa en `main`. Para que la Fase 1 **no se aplique por accidente** sobre la base de la Fase 0, el esquema nuevo vive en `supabase/fase-1/migrations/` (el CLI no lo ve) con su propia suite de tests.
 
-Plan de corte (cuando el frontend de la Etapa 2 esté listo):
+Plan de corte (pasos detallados y checklist de prueba en [`puesta-en-marcha.md`](./puesta-en-marcha.md)):
 
 1. Crear un **proyecto Supabase nuevo** (el plan gratuito permite dos) y aplicarle `supabase/fase-1/migrations/`.
 2. Mover `supabase/migrations/` a `supabase/legacy/fase-0/` y `supabase/fase-1/migrations/` a `supabase/migrations/`; apuntar los secrets `SUPABASE_*` al proyecto nuevo.

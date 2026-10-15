@@ -39,4 +39,5 @@ Pagos y planes, Cloudflare R2, muro en vivo, descarga ZIP, marcos dinámicos con
 | [`acceso-de-invitados.md`](./acceso-de-invitados.md) | Enlace único por evento, inscripción y inicio de sesión con PIN, modos de acceso, seguridad, check-in. |
 | [`marcos-y-stickers.md`](./marcos-y-stickers.md) | Marcos paramétricos, stickers emoji/imagen, toggles, editor del organizador, render en la cámara. |
 | [`moderacion-por-lotes.md`](./moderacion-por-lotes.md) | Agrupación por bloques horarios en el panel de moderación. |
+| [`puesta-en-marcha.md`](./puesta-en-marcha.md) | Crear el proyecto Supabase nuevo, probar en un preview de Vercel sin tocar producción, checklist de punta a punta y pasos del corte. |
 | [`plan-de-trabajo.md`](./plan-de-trabajo.md) | Etapas ordenadas, dependencias y riesgos. |

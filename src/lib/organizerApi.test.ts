@@ -104,6 +104,11 @@ describe('eventos', () => {
     await expect(createEvent({ name: '' })).rejects.toThrow(/nombre/);
   });
 
+  it('createEvent explica el tope de eventos por cuenta', async () => {
+    rpc.mockResolvedValueOnce({ data: null, error: { code: '53400', message: 'event limit reached' } });
+    await expect(createEvent({ name: 'Uno más' })).rejects.toThrow(/máximo de eventos/);
+  });
+
   it('updateEvent envía solo los campos indicados, en snake_case', async () => {
     const q = chain({ data: eventRow, error: null });
     from.mockReturnValueOnce(q.proxy);

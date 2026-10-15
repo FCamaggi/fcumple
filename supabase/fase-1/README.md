@@ -16,6 +16,8 @@ Esquema nuevo, **separado a propósito** de `supabase/migrations/` (Fase 0). El 
 
 No hay ninguna columna que guarde un RUT, correo, teléfono o PIN en claro (un test lo verifica). pgcrypto se instala en el esquema `extensions`, como en Supabase, y todas las funciones con `search_path` fijo lo incluyen.
 
+`config.toml` (en esta carpeta) es la configuración de Auth de la Fase 1: registro de organizadores abierto y confirmación de correo. Los invitados no usan Supabase Auth.
+
 ## Tests
 
 ```bash

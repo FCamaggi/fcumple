@@ -143,7 +143,11 @@ export async function createEvent(input: CreateEventInput): Promise<OrganizerEve
   });
   if (error) {
     throw new Error(
-      error.code === '23514' ? 'Ponle un nombre al evento.' : 'No pudimos crear el evento. Intenta de nuevo.',
+      error.code === '23514'
+        ? 'Ponle un nombre al evento.'
+        : error.code === '53400'
+          ? 'Llegaste al máximo de eventos por cuenta (10).'
+          : 'No pudimos crear el evento. Intenta de nuevo.',
     );
   }
   const row = (data as EventRow[] | null)?.[0];

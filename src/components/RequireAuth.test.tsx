@@ -47,4 +47,18 @@ describe('RequireAuth', () => {
 
     expect(screen.getByText('Panel')).toBeInTheDocument();
   });
+
+  it('muestra la pantalla de login indicada en vez de la del admin', () => {
+    vi.mocked(useSession).mockReturnValue({ session: null, loading: false });
+
+    render(
+      <RequireAuth login={<div>Login del organizador</div>}>
+        <div>Panel</div>
+      </RequireAuth>,
+    );
+
+    expect(screen.getByText('Login del organizador')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /entrar/i })).not.toBeInTheDocument();
+    expect(screen.queryByText('Panel')).not.toBeInTheDocument();
+  });
 });
