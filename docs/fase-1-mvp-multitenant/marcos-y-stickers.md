@@ -80,10 +80,10 @@ Fuera de alcance: variables por invitado (`{{guest_name}}`), marcos propios en P
 
 Dos niveles:
 
-- **Global** (en `events.settings.camera`): `frames_enabled` y `stickers_enabled`. Apagar marcos deja solo "Sin marco"; apagar stickers oculta la bandeja.
+- **Global** (columnas de `events`): `frames_enabled` y `stickers_enabled`. Apagar marcos deja solo "Sin marco"; apagar stickers oculta la bandeja.
 - **Por recurso**: cada marco y cada sticker tiene `enabled`. Desactivado = no aparece en la cámara, pero se conserva para reactivarlo. El borrado real elimina también el objeto de Storage (si es imagen).
 
-También: orden manual (`sort_order`) y marco por defecto (`events.settings.camera.default_frame_id`).
+También: orden manual (`sort_order`) y marco por defecto (`events.default_frame_id`).
 
 ## Modelo de datos
 

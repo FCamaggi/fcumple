@@ -6,39 +6,43 @@ Punto de partida real (Fase 0): `event_config` es una fila única (PK booleana f
 
 El informe proponía `tenant_id` + `event_id`. Con un solo desarrollador y pocos clientes, **el tenant es el organizador** (`auth.users`). Una tabla `organizations` se difiere hasta que haya equipos con varios miembros (Fase 2). Esto simplifica las políticas: un evento pertenece a un `owner_id`.
 
-## Tablas
+## Tablas (implementadas en `supabase/fase-1/migrations/`)
 
 ```
-events
-  id uuid pk
-  owner_id uuid not null references auth.users   -- organizador
-  slug text unique not null                       -- /e/:slug
-  name text, starts_at timestamptz, location text, rsvp_deadline timestamptz
-  settings jsonb not null default '{}'            -- cuotas, reveal, etc.
-  created_at, updated_at
-
-guests      + event_id uuid not null references events on delete cascade
-photos      + event_id uuid not null references events on delete cascade
-posts       + event_id uuid not null references events on delete cascade
-post_images + (hereda event_id vía posts)
-
-event_frames    (ver marcos-y-stickers.md)
-event_stickers  (ver marcos-y-stickers.md)
+events         id, owner_id → auth.users, slug (único), name, starts_at, location,
+               rsvp_deadline, photos_revealed_at,
+               access_mode ('list'|'list_requests'|'open'),
+               identifier ('name'|'rut_lookup'),
+               camera_unlock ('on_identify'|'on_checkin'),
+               rsvp_enabled
+guests         id, event_id, full_name, name_tokens text[] (la mantiene un trigger),
+               token (secreto de sesión), status, plus_ones_*, photo_quota,
+               auto_approve_photos, checked_in_at,
+               approval_status ('approved'|'pending'|'rejected'),
+               claimed_at, last_seen_at
+               — mínimo 2 palabras en el nombre; único por (event_id, name_tokens)
+photos         id, event_id, guest_id, storage_path, display_storage_path, status
+               — FK compuesta (guest_id, event_id): no puede colgar de otro evento
+posts          id, event_id, title, subtitle, body, cover_image_path, published_at
+post_images    id, event_id, post_id, storage_path, position  (FK compuesta con posts)
+identify_attempts  event_id, client_key, attempted_at  (freno de intentos; sin acceso externo)
 ```
 
-Índices: `(event_id)` en cada tabla hija y `unique (event_id, token)` donde corresponda. `guests.token` sigue siendo único globalmente y resuelve el evento. `guests` gana `rut text` (normalizado, `unique (event_id, rut)` cuando no es nulo), `claimed_at`, `last_seen_at` y `approval_status` ('approved' | 'pending' | 'rejected'). `events.settings.access` define el modo de acceso.
+No existe ninguna columna de RUT. Las opciones de cámara (`frames_enabled`, `stickers_enabled`, marco por defecto) y las tablas `event_frames` / `event_stickers` llegan en la Etapa 3 como **columnas** de `events` (no un `jsonb`), por el mismo motivo que arriba: tipado y RLS más simples.
 
 ## Seguridad (RLS)
 
 **Organizador** (autenticado): política por tabla con `event_id in (select id from events where owner_id = auth.uid())`. Se reemplazan todas las `authenticated_full_access using (true)`.
 
-**Invitado** (anónimo, sin JWT): se mantiene el modelo de la Fase 0. Ninguna política para `anon`; todo acceso por RPC `SECURITY DEFINER` que resuelve `guest → event_id` desde el token y filtra por ese `event_id`. La diferencia es de dónde sale el token: ya no lo envía el organizador por invitado, lo entrega la RPC nueva `identify_guest(p_slug, p_rut)` (ver [`acceso-de-invitados.md`](./acceso-de-invitados.md)). Las RPC existentes (`get_guest_by_token`, `submit_rsvp`, `submit_photo`, `get_photo_quota`, `check_in_guest`, `list_revealed_photos`, `get_public_headcount`, …) cambian así:
+**Invitado** (anónimo, sin JWT): se mantiene el modelo de la Fase 0. Ninguna política para `anon`; todo acceso por RPC `SECURITY DEFINER` que resuelve `guest → event_id` desde el token y filtra por ese `event_id`. La diferencia es de dónde sale el token: ya no lo envía el organizador por invitado, lo entrega la RPC nueva `identify_guest(p_slug, p_rut)` (ver [`acceso-de-invitados.md`](./acceso-de-invitados.md)). Las RPC cambian así:
 
 - Las que reciben token: derivan `event_id` del invitado; ya no asumen "el único evento".
 - Las que hoy son globales (`get_public_headcount`, info del evento, avisos): reciben `p_slug` y filtran por evento.
-- Nuevas: `identify_guest`, `request_access` (modo con solicitudes), `list_event_camera_assets(p_token)`.
+- Nuevas: `identify_guest`, `identify_guest_verified` (solo `service_role`), `get_event_public`, `list_published_posts`, `create_event`; `list_event_camera_assets(p_token)` llega en la Etapa 3.
+- Endurecidas respecto a la Fase 0: `check_in_guest` solo para el dueño del evento; `list_revealed_photos(p_token)` exige un invitado identificado (antes era público y sin token).
+- Las tablas no tienen ningún privilegio para `anon`; todo pasa por RPC. Las funciones internas (`_identify_core`, `_approved_guest`) están revocadas para `anon` y `authenticated`.
 
-**Storage:** el bucket privado `party-photos` se mantiene, con rutas `"{event_id}/{guest_id}/{uuid}.jpg"`. Las políticas de storage (`token_matches_guest` y similares) validan que el prefijo `event_id` coincida con el del invitado. Un bucket nuevo (o prefijo) `event-assets` para marcos/stickers del organizador (ver spec).
+**Storage:** buckets privados `party-photos` (rutas `{event_id}/{guest_id}/{archivo}`) y `post-images` (`{event_id}/{archivo}`). El invitado solo puede subir dentro de su propia carpeta; el organizador, solo en las de sus eventos. **Nunca el token en la ruta**: en la Fase 0 las rutas empezaban con el token del fotógrafo y `list_revealed_photos()` (pública, sin token) las devolvía, de modo que cualquiera con la clave anónima podía leer los tokens de quienes subieron fotos tras el revelado. El bucket `event-assets` para stickers llega en la Etapa 3.
 
 **Por qué no JWT con claims:** el informe proponía sesión anónima con claims. Exigiría reescribir el flujo completo de invitados y no aporta aislamiento adicional mientras las RPC filtren por evento. Se difiere (junto con sesiones por dispositivo) a la Fase 2.
 
@@ -52,18 +56,19 @@ event_stickers  (ver marcos-y-stickers.md)
 | `/admin` | `/admin` (lista de eventos del organizador) y `/admin/e/:eventId/{invitados,fotos,avisos,camara,ajustes}` |
 | `/` redirige a `/i/invalido` | landing mínima o login de organizador |
 
-`routes.ts` (rutas de "cómo llegar" codificadas) pasa a datos por evento (`events.settings` o tabla propia).
+`routes.ts` (rutas de "cómo llegar" codificadas) pasa a datos por evento (columnas de `events` o tabla propia).
 
-## Reinicio del esquema (sin migración del evento anterior)
+## Despliegue: proyecto Supabase nuevo, sin tocar la Fase 0
 
-El evento de la Fase 0 ya ocurrió y no se conserva. Por eso **no hay migración de datos ni compatibilidad con los tokens/enlaces viejos**:
+`deploy.yml` ejecuta `supabase db push` contra el proyecto de producción cada vez que CI pasa en `main`. Para que la Fase 1 **no se aplique por accidente** sobre la base de la Fase 0, el esquema nuevo vive en `supabase/fase-1/migrations/` (el CLI no lo ve) con su propia suite de tests.
 
-1. Respaldo previo: `pg_dump` del proyecto y descarga de lo que se quiera guardar del bucket `party-photos` (archivo personal).
-2. Nuevas migraciones que eliminan los objetos de la Fase 0 (`event_config`, `guests`, `photos`, `posts`, `post_images` y sus RPC) y crean el esquema multi-tenant desde cero. El historial de migraciones viejo se deja intacto.
-3. Vaciar el bucket `party-photos` y crear los buckets nuevos con prefijo `event_id`.
-4. Adaptar los tests de `supabase/tests` al esquema nuevo.
+Plan de corte (cuando el frontend de la Etapa 2 esté listo):
 
-> Confirmar con el usuario antes de ejecutar el borrado en producción (acción irreversible sin el respaldo).
+1. Crear un **proyecto Supabase nuevo** (el plan gratuito permite dos) y aplicarle `supabase/fase-1/migrations/`.
+2. Mover `supabase/migrations/` a `supabase/legacy/fase-0/` y `supabase/fase-1/migrations/` a `supabase/migrations/`; apuntar los secrets `SUPABASE_*` al proyecto nuevo.
+3. Dejar el proyecto viejo como archivo (o pausarlo). No hay migración de datos: el evento de la Fase 0 ya ocurrió. Si se quiere conservar algo, `pg_dump` del proyecto viejo antes de pausarlo.
+
+Esto evita cualquier operación destructiva sobre producción.
 
 ## Tests
 

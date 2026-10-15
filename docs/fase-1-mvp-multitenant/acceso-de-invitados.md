@@ -4,67 +4,106 @@
 
 En la Fase 0 cada invitado tenía **su propio enlace** `/i/:token`, que el organizador debía mandar uno por uno (`SendInviteButton`, `wa.me` con el teléfono de cada uno). No escala y es incómodo.
 
-En la Fase 1 hay **un solo enlace y un solo QR por evento**: `https://…/e/{slug}`. Se manda el mismo mensaje a todos (grupo de WhatsApp, impreso, proyectado). Cada invitado se identifica al entrar, con su **RUT**.
+En la Fase 1 hay **un solo enlace y un solo QR por evento**: `https://…/e/{slug}`. Se manda el mismo mensaje a todos (grupo de WhatsApp, impreso, proyectado). Cada invitado se identifica al entrar.
 
-> La Fase 0 solo tuvo un evento y ya pasó, así que **no se conserva compatibilidad con los enlaces `/i/:token` antiguos** y no hay migración de datos (ver [`arquitectura-multitenant.md`](./arquitectura-multitenant.md)).
+> La Fase 0 solo tuvo un evento y ya pasó: **no se conserva compatibilidad con `/i/:token` ni se migran datos**.
 
-## Flujo
+## Principio: no guardamos el RUT
 
-1. El organizador crea el evento. La app le entrega el enlace y un QR descargable/imprimible. El `slug` lleva un sufijo aleatorio (`cumple-fabri-k3x9`) para que no sea adivinable.
-2. El invitado abre el enlace y ve "¿Quién eres?": escribe su RUT (con formato automático y validación del dígito verificador en el cliente).
-3. El cliente llama a la RPC `identify_guest(p_slug, p_rut)`.
-4. Si hay coincidencia, la RPC devuelve el **token del invitado**, que el cliente guarda en `localStorage`. A partir de ahí el resto de las RPC siguen funcionando igual que en la Fase 0 (`p_token`), solo que el token ya no lo manda el organizador: lo entrega `identify_guest`.
-5. Si el navegador pierde el almacenamiento (Safari limpia datos de sitios sin uso), el invitado vuelve a ingresar su RUT y recupera su sesión. No hay nada que recordar.
+**La plataforma no almacena RUT en ninguna tabla, log ni ruta.** El invitado queda registrado únicamente por su **nombre y apellido** (mínimo dos palabras, lo exige la base con una restricción). Un test de la suite de base de datos falla si alguna columna del esquema público parece guardar un RUT.
+
+Hay dos formas de identificarse; el organizador elige cuál usa su evento (`events.identifier`):
+
+| `identifier` | Qué escribe el invitado | Quién resuelve el nombre | Estado |
+|---|---|---|---|
+| `name` (por defecto) | Su nombre y apellido | La base: `identify_guest(slug, nombre)` | **Implementado** (Etapa 1) |
+| `rut_lookup` | Su RUT | Un servicio externo de identidad, desde una función serverless | **Contrato listo; falta elegir proveedor** |
+
+### Identificación por nombre (`name`)
+
+1. El invitado abre `/e/:slug` y escribe su nombre y apellido.
+2. La base normaliza lo escrito (minúsculas, sin tildes, sin signos ni partículas como "de", "la") y busca en la lista del evento a quien contenga esas palabras: "Juan Pérez" encuentra a "Juan Carlos Pérez González", y el orden da igual.
+3. Resultados posibles (`outcome`):
+   - `ok` → devuelve el token del invitado, que el cliente guarda en `localStorage`.
+   - `ambiguous` → varias personas coinciden; se le pide escribir más palabras (p. ej. el segundo apellido).
+   - `not_found` → no está en la lista.
+   - `pending_approval` → modo con solicitudes: quedó pendiente de aprobación.
+4. Si el navegador pierde el almacenamiento, vuelve a escribir su nombre y recupera la sesión.
+
+Dos invitados con las mismas palabras en un mismo evento no pueden convivir (índice único); el organizador los diferencia al cargar la lista.
+
+### Identificación por RUT con un servicio externo (`rut_lookup`)
+
+El RUT solo **transita** por memoria de una función serverless; nunca se persiste:
+
+```
+navegador ──RUT──▶ POST /api/identify (Vercel, sin logs del cuerpo)
+                     1. valida formato y dígito verificador (módulo 11)
+                     2. consulta al proveedor de identidad → nombre legal
+                     3. llama identify_guest_verified(event_id, nombre) con la service_role
+                        (la base compara el nombre contra la lista; NO recibe el RUT)
+                     4. responde { outcome, token } y descarta el RUT
+```
+
+- `identify_guest_verified` solo la puede ejecutar `service_role`; `anon` y `authenticated` reciben error de permisos (cubierto por tests).
+- En este camino la coincidencia es la **inversa**: las palabras del invitado de la lista deben estar contenidas en el nombre legal ("Juan Pérez" ⊂ "JUAN CARLOS PÉREZ GONZÁLEZ").
+- Los eventos con `identifier = 'rut_lookup'` rechazan `identify_guest` (el camino por nombre queda cerrado).
+
+#### Lo que se sabe del proveedor (investigado 2026-10-15)
+
+- **No existe una API pública y gratuita del Estado** para obtener el nombre a partir de un RUT. Las consultas de nombre por RUT que circulan (sitios "rutificadores") son bases no oficiales o raspado de terceros: no son aptas para producción.
+- Sí hay proveedores comerciales de verificación de identidad que validan contra el Registro Civil (por ejemplo Verifik y Didit; Didit publica ~US$0,20 por consulta concluyente). **No está confirmado que permitan resolver un nombre solo con el RUT**; muchos piden además datos de la cédula.
+- Costo de referencia: un evento de 80 invitados rondaría **US$16** solo en verificaciones, lo que choca con el objetivo de MVP a costo cero.
+- ClaveÚnica está pensada para servicios del Estado; no está claro que un privado pueda integrarla (por revisar).
+
+**Decisión pendiente (del usuario):** elegir proveedor (o decidir que el MVP se queda con `name`). Hasta entonces el modo por nombre es el único activo y la función `/api/identify` no se construye.
 
 ## Modos de acceso (por evento)
 
-El organizador elige uno en los ajustes del evento (`events.settings.access.mode`):
+`events.access_mode`:
 
-| Modo | Cómo funciona | Para qué sirve |
-|---|---|---|
-| **Lista cerrada** (recomendado) | El organizador carga la lista (nombre + RUT). Solo quien está en la lista entra. | Cumpleaños, bodas, eventos con invitados conocidos. |
-| **Lista + solicitudes** | Igual, pero quien no está en la lista puede enviar nombre + RUT como solicitud; el organizador la aprueba o rechaza. | Cuando se cuelan invitados de último minuto. |
-| **Abierto** | Cualquiera con el enlace entra escribiendo su nombre. El RUT es opcional. | Eventos masivos o informales. |
+| Modo | Cómo funciona |
+|---|---|
+| `list` (por defecto) | Solo entra quien está en la lista que cargó el organizador. |
+| `list_requests` | Igual, pero quien no está puede dejar una solicitud (nombre y apellido) que el organizador aprueba o rechaza. Tope de 50 pendientes. |
+| `open` | Cualquiera con el enlace entra escribiendo nombre y apellido; se reutiliza al invitado solo con coincidencia exacta de palabras. |
 
-En cualquier modo el organizador puede agregar, editar o quitar invitados a mano o por CSV (ya existe `ImportGuestsModal`; se le agrega la columna `rut`).
+El organizador puede agregar, editar o quitar invitados a mano o por CSV (`ImportGuestsModal`; la columna de teléfono deja de ser relevante).
 
-## RUT: qué es y qué no es
+## Seguridad y límites
 
-El RUT sirve para **identificar**, no para **autenticar**: es un dato semipúblico, así que quien conozca el RUT de otro podría hacerse pasar por esa persona. Para una app de fotos de una fiesta el riesgo es bajo (lo peor: fotos atribuidas a otro invitado), y se acota así:
-
-- El organizador ve en la lista cuándo se identificó cada invitado (`claimed_at`, `last_seen_at`) y puede **regenerar el token** de alguien, lo que cierra su sesión.
-- El enlace del evento no es adivinable y solo `identify_guest` acepta RUT.
-- **Límite de intentos** por evento y por IP (la IP llega a Postgres en `request.headers` de PostgREST) para frenar que alguien pruebe RUTs hasta descubrir quiénes están en la lista. Es un freno de mejor esfuerzo, no un WAF.
-- Mensaje de error genérico en modo cerrado ("No te encontramos en la lista").
-
-## Datos personales
-
-- Se pide el RUT **solo** si el evento usa un modo con RUT, y la pantalla de ingreso dice para qué se usa.
-- Se normaliza a `12345678-5` (sin puntos, `K` mayúscula) y se valida con módulo 11. Es único por evento (`unique (event_id, rut)`).
-- Solo el organizador dueño del evento puede leerlo (RLS). **Nunca** se devuelve a otros invitados, ni va en URLs, QR, rutas de Storage o logs.
-- Se borra junto con el evento / al terminar la retención.
-- La nueva ley chilena de protección de datos personales (Ley 21.719) entra en vigencia a fines de 2026 (verificar la fecha exacta): conviene tener un aviso de privacidad corto antes de abrir la plataforma a terceros (Fase 2).
+- **El nombre identifica, no autentica.** Quien conozca el nombre de otro invitado podría hacerse pasar por él. Para una app de fotos de una fiesta el riesgo es bajo (lo peor: fotos atribuidas a otro). El organizador ve `claimed_at` y `last_seen_at` y puede regenerar el token de alguien.
+- **Freno de intentos:** 10 fallos por IP y 60 por evento cada 10 minutos (la IP sale de `x-forwarded-for` en `request.headers`); luego la RPC responde con el código `53400`. Un acierto no consume intentos. Es un freno de mejor esfuerzo, no un WAF.
+- El enlace del evento no es adivinable (el `slug` lleva un sufijo aleatorio).
+- Los tokens **nunca** viajan en rutas de Storage. (En la Fase 0 sí: `list_revealed_photos()` era público y devolvía rutas que empezaban con el token del fotógrafo; ver [`arquitectura-multitenant.md`](./arquitectura-multitenant.md).)
 
 ## Check-in y puerta
 
-- La lista de invitados del organizador (`DoorList`) busca por nombre o RUT y marca la llegada con un toque.
-- El invitado ya identificado puede mostrar **su QR personal** en pantalla (codifica su token, igual que la pulsera de la Fase 0); el escáner existente (`QrScanner`, `useQrCheckIn`, `check_in_guest`) funciona sin cambios.
-- Ajuste por evento `camera_unlock`: `on_identify` (por defecto: la cámara se habilita al identificarse) o `on_checkin` (como en la Fase 0: solo después de que el organizador marca la llegada).
+- El organizador busca por nombre en la lista y marca la llegada. `check_in_guest` **solo lo puede ejecutar el dueño del evento** (en la Fase 0 cualquiera con un token podía marcarse a sí mismo).
+- El invitado identificado puede mostrar **su QR personal** (codifica su token); el escáner existente funciona sin cambios.
+- Ajuste por evento `camera_unlock`: `on_identify` (por defecto) o `on_checkin`. Con `on_checkin`, `submit_photo` rechaza fotos hasta que el organizador marque la llegada.
 
 ## RSVP
 
-La confirmación de asistencia con acompañantes de la Fase 0 pasa a ser **opcional por evento** (`rsvp_enabled`). Si está activa, el invitado la ve después de identificarse.
+Opcional por evento (`rsvp_enabled`, apagado por defecto). Si está apagado, `submit_rsvp` responde con error de permisos.
+
+## Datos personales
+
+- Lo único personal que se guarda del invitado es su **nombre**, que el organizador ya conoce por su propia lista.
+- Si se usa `rut_lookup`, el proveedor externo y la función serverless **tratan** el RUT aunque no lo almacenen: hay que revisar el contrato del proveedor, evitar cualquier log o analítica con el cuerpo de la petición y dejar un aviso en pantalla.
+- La Ley 21.719 de protección de datos personales fija su entrada en vigencia el 1 de diciembre de 2026, pero hay un proyecto del Ejecutivo para postergarla al 1 de diciembre de 2027 (estado no confirmado al 2026-10-15). Verificar antes de abrir la plataforma a terceros.
 
 ## Qué pasa con las piezas de la Fase 0
 
 | Pieza | Destino |
 |---|---|
-| `SendInviteButton` + `guests.phone` | Se retiran del MVP. Los reemplaza `ShareEventLink`: copiar enlace, descargar QR y un único mensaje de WhatsApp genérico para pegar en el grupo. |
-| `WristbandCard` (pulsera con enlace personal) | Se reduce a "mi QR" para la puerta, mostrado tras identificarse. |
+| `SendInviteButton` + `guests.phone` | Se retiran del MVP. Los reemplaza `ShareEventLink`: copiar enlace, descargar QR y un único mensaje de WhatsApp genérico. |
+| `WristbandCard` | Se reduce a "mi QR" para la puerta, mostrado tras identificarse. |
 | `/i/:token` | Desaparece; lo reemplaza `/e/:slug`. |
-| `get_guest_by_token`, `submit_rsvp`, `submit_photo`, `get_photo_quota`, `check_in_guest` | Se mantienen (reciben el token que entrega `identify_guest`). |
-| `ImportGuestsModal` / `csv.ts` | Se mantienen; columna `rut` nueva, `phone` deja de ser relevante. |
+| `get_guest_by_token`, `submit_rsvp`, `submit_photo`, `get_photo_quota` | Se mantienen (reciben el token que entrega la identificación). |
+| `check_in_guest` | Solo organizador dueño. |
+| `list_revealed_photos()` | Ahora `list_revealed_photos(p_token)`: solo invitados identificados, solo su evento. |
 
 ## Fuera de alcance (Fase 2)
 
-Correo electrónico o código por SMS como identificador/segundo factor, tabla de sesiones por dispositivo con revocación individual, inicio de sesión con Google/Apple, avisos de privacidad y términos completos.
+Proveedor de RUT en producción, correo o código por SMS como segundo factor, sesiones por dispositivo con revocación individual, inicio de sesión con Google/Apple, aviso de privacidad y términos completos.

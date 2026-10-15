@@ -2,16 +2,17 @@
 
 Sin fechas fijas: un solo desarrollador, y el orden importa más que el calendario. Estimación gruesa: **8–12 semanas**.
 
-## Etapa 1 — Esquema multi-tenant y migración (3–5 sem)
+## Etapa 1 — Esquema multi-tenant (hecha en la base; 76 tests)
 
-- [ ] Respaldo (`pg_dump`) y migraciones que reemplazan el esquema de la Fase 0 por `events` + `event_id` en `guests`, `photos`, `posts`, `post_images` (sin migrar datos).
-- [ ] RPC `identify_guest` (RUT normalizado y validado, límite de intentos), `request_access`, modos de acceso.
-- [ ] Reescribir políticas RLS por `owner_id` y adaptar las RPC de invitado (derivan `event_id` del token; las globales reciben slug).
-- [ ] Mover/adaptar rutas de Storage con prefijo `event_id`.
-- [ ] Adaptar `supabase/tests/*` y agregar test de aislamiento entre dos organizadores.
-- [ ] Workflow de keep-alive para Supabase free.
+- [x] Esquema nuevo en `supabase/fase-1/migrations/`: `events`, `guests` (nombre y apellido obligatorios), `photos`, `posts`, `post_images`, RLS por dueño, buckets con rutas por `event_id`.
+- [x] RPC: `identify_guest` (3 modos de acceso, freno de intentos), `identify_guest_verified` (solo `service_role`, no recibe RUT), `get_event_public`, `get_guest_by_token`, `submit_rsvp`, `get_photo_quota`, `submit_photo`, `check_in_guest` (solo dueño), `list_revealed_photos(token)`, `get_public_headcount(slug)`, `list_published_posts(slug)`, `create_event`.
+- [x] Suite `npm run test:db:fase1`: aislamiento entre dos organizadores, privilegios de `anon`, storage, identificación.
+- [x] Paso de CI para la suite nueva.
+- [ ] Workflow de keep-alive para el Supabase gratuito (se pausa a los 7 días sin actividad).
+- [ ] Crear el proyecto Supabase nuevo y aplicar las migraciones (ver plan de corte en `arquitectura-multitenant.md`).
+- [ ] **Decisión pendiente:** proveedor de identidad para `rut_lookup` (hasta entonces, solo `name`).
 
-**Salida:** dos eventos de prueba aislados; un invitado se identifica por RUT con el enlace único y usa las RPC existentes.
+**Salida:** dos eventos de prueba aislados; un invitado se identifica con el enlace único y usa las RPC.
 
 ## Etapa 2 — Frontend por evento y panel del organizador (2–3 sem)
 
@@ -19,7 +20,7 @@ Sin fechas fijas: un solo desarrollador, y el orden importa más que el calendar
 - [ ] Crear/listar/editar eventos (nombre, fecha, lugar, slug).
 - [ ] Datos de "cómo llegar" y hub por evento en vez de constantes en `routes.ts`.
 - [ ] Adaptar capa `lib/*Api.ts` para pasar `eventId`/`slug`.
-- [ ] Pantalla "¿Quién eres?" con RUT, `ShareEventLink` (enlace + QR + mensaje único), importación CSV con `rut`, búsqueda por nombre/RUT en la lista de puerta, "mi QR" para el check-in.
+- [ ] Pantalla "¿Quién eres?" (nombre y apellido; ramas `ambiguous` / `pending_approval`), `ShareEventLink` (enlace + QR + mensaje único), importación CSV (sin teléfono), búsqueda por nombre en la lista de puerta, "mi QR" para el check-in.
 - [ ] Retirar `/i/:token`, `SendInviteButton` y `guests.phone` de la UI.
 
 ## Etapa 3 — Marcos y stickers por evento (2–3 sem)
@@ -50,9 +51,9 @@ Etapa 2 depende de la 1. Las etapas 3 y 4 dependen de la 2 pero son independient
 
 | Riesgo | Mitigación |
 |---|---|
-| Borrar datos de producción al reiniciar el esquema | Respaldo `pg_dump` y confirmación explícita antes de ejecutar. |
-| Suplantación o prueba masiva de RUT | Enlace no adivinable, límite de intentos por IP y evento, mensajes genéricos, regeneración de token por el organizador. |
-| RUT es dato personal | Pedirlo solo en modos que lo necesitan, solo visible al organizador, borrado con el evento, aviso en pantalla. |
+| Afectar la producción de la Fase 0 al desplegar | El esquema nuevo vive en `supabase/fase-1/` (fuera del `db push`) y se aplica a un proyecto Supabase nuevo. |
+| Suplantación o prueba masiva de nombres | Enlace no adivinable, límite de intentos por IP y evento, regeneración de token por el organizador. |
+| Verificación por RUT con costo y requisitos legales | Opcional y desactivada: el MVP corre solo con `name`; si se activa, el RUT no se persiste y el proveedor se revisa contractualmente. |
 | Canvas contaminado por imágenes de otro origen (stickers) | `crossOrigin="anonymous"` + CORS en el bucket; probar `toBlob` en Safari iOS desde el inicio. |
 | Emojis distintos según dispositivo | Aceptado en el MVP (fuente nativa); conjunto abierto en la Fase 2 si molesta. |
 | Fuga entre eventos por una RPC olvidada | Lista de verificación de todas las RPC y test de aislamiento. |

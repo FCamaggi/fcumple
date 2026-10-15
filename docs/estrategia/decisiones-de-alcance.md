@@ -28,15 +28,17 @@ Spec: [`../fase-1-mvp-multitenant/marcos-y-stickers.md`](../fase-1-mvp-multitena
 |---|---|---|---|
 | D10 | Enlaces `/i/:token` por invitado | **Se eliminan.** Hubo un solo evento y ya pasó; no se conserva compatibilidad ni se migran datos. | [`acceso-de-invitados.md`](../fase-1-mvp-multitenant/acceso-de-invitados.md) |
 | D11 | Cómo se entrega el acceso | **Un solo enlace/QR por evento**, el mismo para todos. Mandar un link a cada invitado (con su teléfono) es incómodo. | idem |
-| D12 | Identificación del invitado | **Por RUT** (dato semipúblico: identifica, no autentica). Correo queda como alternativa futura. | idem; segundo factor en Fase 2 |
+| D12 | Identificación del invitado | Se pensó por RUT; ver D16, que lo reemplaza. | idem |
 | D13 | Marcos actuales | **Se retiran.** Tienen texto incrustado y el contenido cambia por evento. | [`marcos-y-stickers.md`](../fase-1-mvp-multitenant/marcos-y-stickers.md) |
 | D14 | Marcos nuevos | **Genéricos y paramétricos**: colores y textos editables por el organizador. | idem |
 | D15 | Stickers | **Emojis** (estilo iPhone mediante la fuente del dispositivo) **e imágenes subidas** por el organizador. | idem |
+| D16 | RUT | **No se guarda.** La búsqueda por RUT se haría con un servicio externo de identidad que devuelve el nombre; el invitado queda registrado solo por **nombre y apellido** (mínimo dos palabras). Mientras no haya proveedor, el MVP identifica por nombre y apellido. | [`acceso-de-invitados.md`](../fase-1-mvp-multitenant/acceso-de-invitados.md) |
+| D17 | Despliegue | El esquema de la Fase 1 va a un **proyecto Supabase nuevo**; la Fase 0 no se toca. | [`arquitectura-multitenant.md`](../fase-1-mvp-multitenant/arquitectura-multitenant.md) |
 
 Nota sobre D15: los emojis de Apple no son redistribuibles, así que "estilo iPhone" se logra dibujando con la fuente nativa del dispositivo; en Android o PC se verán con el estilo de ese sistema. Un conjunto abierto consistente queda en la Fase 2.
 
 ## Supuestos derivados
 
 - Un solo desarrollador, un solo cliente real al inicio (el propio usuario) → se prioriza que el evento siga funcionando sobre generalidad.
-- **No se migra el evento de la Fase 0**: se conserva un respaldo y el esquema se reinicia.
-- Dentro del sistema, el token del invitado se mantiene como secreto de sesión (así se reutilizan las RPC existentes), pero ya no se envía por invitado: lo entrega la identificación por RUT.
+- **No se migra el evento de la Fase 0**: el esquema nuevo va a un proyecto Supabase nuevo y la Fase 0 no se toca.
+- Dentro del sistema, el token del invitado se mantiene como secreto de sesión (así se reutilizan las RPC existentes), pero ya no se envía por invitado: lo entrega la identificación (por nombre y apellido; por RUT vía servicio externo sin guardarlo).
