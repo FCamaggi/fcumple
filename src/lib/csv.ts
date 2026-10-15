@@ -4,7 +4,7 @@ const EXPORT_HEADER = ['token', 'full_name', 'status', 'plus_ones_allowed', 'plu
 // `token` es la clave de upsert al importar: una fila con token existente
 // actualiza a ese invitado en vez de crear uno nuevo. `phone`, `status`,
 // `plus_ones_confirmed` y `guest_note` son opcionales al importar
-// (docs/05-comunicacion/sistema-de-mensajes.md): un CSV sin esas columnas
+// (docs/fase-0-evento-unico/05-comunicacion/sistema-de-mensajes.md): un CSV sin esas columnas
 // sigue funcionando exactamente igual que antes (solo crea invitados).
 const IMPORT_HEADER = ['token', 'full_name', 'status', 'plus_ones_allowed', 'plus_ones_confirmed', 'guest_note', 'phone'];
 

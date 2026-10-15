@@ -11,7 +11,7 @@ import FaderToggle from '../components/FaderToggle';
 import RsvpDeadlineStrip from '../components/RsvpDeadlineStrip';
 import SignalToast from '../components/SignalToast';
 import CameraCapture from '../components/CameraCapture';
-import FilmRollCounter from '../components/FilmRollCounter';
+import CameraSection from '../components/CameraSection';
 import type { EventConfig, EventInfo, Guest, PhotoQuota, RsvpStatus } from '../types';
 
 // DevPanel (y la librería de generación de QR que usa) solo le sirven al
@@ -436,7 +436,7 @@ export default function GuestPage() {
         {!loading && guest && !(guest.status === 'confirmed' && !editing) && <><EventHubChip /><HowToGetThereLink /></>}
 
         {/* Solo para DEV_GUEST_TOKEN, y ADEMÁS de la experiencia real de
-            invitado, no en su lugar -- ver docs/BACKLOG.md Etapa 5, Parte B. */}
+            invitado, no en su lugar -- ver docs/fase-0-evento-unico/04-producto/BACKLOG.md Etapa 5, Parte B. */}
         {!loading && guest && guest.token === DEV_GUEST_TOKEN && (
           <Suspense fallback={null}>
             <DevPanel guest={guest} token={guest.token} onGuestChange={handleDevGuestChange} />
@@ -464,38 +464,7 @@ export default function GuestPage() {
   );
 }
 
-// Card liviano dentro del scroll normal de la página -- la cámara en sí
-// (docs/BACKLOG.md Etapa 8) ahora es una experiencia a pantalla completa
-// que sólo se monta cuando el invitado la abre a propósito, nunca de
-// arranque al cargar /i/:token.
-function CameraSection({ quota, onOpen }: { quota: PhotoQuota; onOpen: () => void }) {
-  const remaining = Math.max(0, quota.quota - quota.used);
-  const outOfShots = remaining <= 0;
-
-  return (
-    <section className="flex flex-col gap-3 bg-ink-900 p-4 shadow-2xl" aria-label="Cámara">
-      <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-hotpink-500">
-        Cámara // modo carrete
-      </span>
-      <FilmRollCounter quota={quota.quota} used={quota.used} />
-      {outOfShots ? (
-        <p className="font-sans text-sm text-paper-100/70">
-          Se acabó tu rollo. Ya diste todos tus disparos para esta noche.
-        </p>
-      ) : (
-        <button
-          type="button"
-          onClick={onOpen}
-          className="tap-target h-14 font-display text-lg uppercase tracking-wider bg-hotpink-500 text-ink-950 shadow-glow-hotpink transition-all active:scale-[0.98]"
-        >
-          Abrir cámara
-        </button>
-      )}
-    </section>
-  );
-}
-
-// El link visible hacia el hub compartido (docs/BACKLOG.md, Decisión 4.3):
+// El link visible hacia el hub compartido (docs/fase-0-evento-unico/04-producto/BACKLOG.md, Decisión 4.3):
 // avisos, cuenta atrás y rollo revelado ya no viven embebidos acá, este
 // chip es cómo se llega a esa vista común.
 function EventHubChip() {

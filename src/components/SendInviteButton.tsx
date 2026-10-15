@@ -56,7 +56,7 @@ function firstName(fullName: string): string {
 
 /**
  * Arma el mensaje exacto de
- * docs/05-comunicacion/sistema-de-mensajes.md § "Plantilla del mensaje",
+ * docs/fase-0-evento-unico/05-comunicacion/sistema-de-mensajes.md § "Plantilla del mensaje",
  * interpolando los datos reales de `event_config` y el link personal del
  * invitado. Si el evento todavía no tiene fecha/lugar cargados, degrada a
  * "por confirmar" en vez de mostrar un hueco o un `null` crudo.
@@ -103,7 +103,7 @@ interface SendInviteButtonProps {
 
 /**
  * SendInviteButton — el asistente de envío por WhatsApp
- * (docs/05-comunicacion/sistema-de-mensajes.md). Abre `wa.me` con el
+ * (docs/fase-0-evento-unico/05-comunicacion/sistema-de-mensajes.md). Abre `wa.me` con el
  * mensaje precargado; con teléfono cargado, apunta directo a ese contacto,
  * y sin teléfono, sin destinatario fijo para que el admin lo elija a mano.
  */

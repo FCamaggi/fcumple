@@ -23,7 +23,7 @@ const guest: Guest = {
 };
 
 /**
- * What's covered here (per docs/BACKLOG.md Etapa 3): the pure "what to do
+ * What's covered here (per docs/fase-0-evento-unico/04-producto/BACKLOG.md Etapa 3): the pure "what to do
  * with a detected token" logic (src/hooks/useQrCheckIn.test.ts), the token
  * parsing (src/lib/qrToken.test.ts), and the presentational welcome
  * overlay/error overlay rendered from that state (below).

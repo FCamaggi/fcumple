@@ -3,7 +3,7 @@ import { signIn } from '../lib/auth';
 
 /**
  * AdminLogin — puerta de acceso a /admin.
- * No está en el catálogo de componentes con nombre propio de docs/DESIGN.md;
+ * No está en el catálogo de componentes con nombre propio de docs/fase-0-evento-unico/03-diseno/DESIGN.md;
  * reusa la paleta y tipografía del resto del sistema (ink-950, mono/display).
  */
 export default function AdminLogin() {

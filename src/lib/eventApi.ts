@@ -64,7 +64,7 @@ export function revealPhotos(): Promise<EventConfig> {
 
 // El hub público (/evento) solo puede mostrar un número, nunca nombres --
 // get_public_headcount() es un RPC de solo lectura sin RLS de por medio que
-// devuelve exactamente eso (ver supabase/migrations).
+// devuelve exactamente eso (ver supabase/legacy-fase-0/migrations).
 export async function getPublicHeadcount(): Promise<number> {
   const { data, error } = await supabase.rpc('get_public_headcount');
 

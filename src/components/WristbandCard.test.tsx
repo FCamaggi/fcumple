@@ -28,7 +28,7 @@ const event: EventInfo = {
 };
 
 describe('WristbandCard', () => {
-  // docs/BACKLOG.md §5.1: no hay ningún generador de QR real en el
+  // docs/fase-0-evento-unico/04-producto/BACKLOG.md §5.1: no hay ningún generador de QR real en el
   // proyecto -- el cuadrado "QR" era puramente decorativo y nunca
   // representó nada escaneable.
   it('does not show a fake "QR" square', () => {

@@ -1,11 +1,31 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, type PanInfo } from 'framer-motion';
 import { listAllPhotosForModeration, moderatePhoto, getSignedPhotoUrl, type ModerationPhoto } from '../lib/photosApi';
 import { revealPhotos } from '../lib/eventApi';
 import { sortPhotosForTriage, getModerationDecisionFromSwipe, type ModerationDecision } from '../lib/photoModerationQueue';
 
+/**
+ * De dónde salen y adónde van las decisiones. Por defecto, las funciones de
+ * la Fase 0 (un solo evento); la Fase 1 pasa las suyas, que trabajan sobre un
+ * evento concreto del organizador.
+ */
+export interface ModerationSource {
+  list: () => Promise<ModerationPhoto[]>;
+  moderate: (id: string, status: ModerationDecision) => Promise<unknown>;
+  reveal: () => Promise<unknown>;
+}
+
+const PHASE_0_SOURCE: ModerationSource = {
+  list: listAllPhotosForModeration,
+  moderate: moderatePhoto,
+  reveal: revealPhotos,
+};
+
 interface PhotoModerationPanelProps {
   onClose: () => void;
+  source?: ModerationSource;
+  /** El rollo ya estaba revelado al abrir el panel. */
+  initiallyRevealed?: boolean;
 }
 
 // Mismo umbral que el swipe de marcos de CameraCapture.tsx -- un arrastre
@@ -40,11 +60,14 @@ const SWIPE_THRESHOLD = 48;
  * en sí no es testable en jsdom, ver PhotoModerationPanel.test.tsx para el
  * detalle de qué sí/no está cubierto.
  */
-export default function PhotoModerationPanel({ onClose }: PhotoModerationPanelProps) {
+export default function PhotoModerationPanel({ onClose, source, initiallyRevealed = false }: PhotoModerationPanelProps) {
+  // Se fija al montar: un padre que recrea el objeto en cada render no debe
+  // volver a disparar la carga de la cola.
+  const sourceRef = useRef(source ?? PHASE_0_SOURCE);
   const [queue, setQueue] = useState<ModerationPhoto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [revealed, setRevealed] = useState(false);
+  const [revealed, setRevealed] = useState(initiallyRevealed);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   // Guarda contra un doble-tap/doble-click rápido en el mismo disparo de
   // moderatePhoto: sin esto, dos llamadas para el mismo id llegan antes de
@@ -56,7 +79,8 @@ export default function PhotoModerationPanel({ onClose }: PhotoModerationPanelPr
 
   useEffect(() => {
     let active = true;
-    listAllPhotosForModeration()
+    sourceRef.current
+      .list()
       .then((all) => {
         if (!active) return;
         setQueue(sortPhotosForTriage(all.filter((p) => p.status === 'pending')));
@@ -96,7 +120,7 @@ export default function PhotoModerationPanel({ onClose }: PhotoModerationPanelPr
     setError(null);
     setPending(true);
     try {
-      await moderatePhoto(current.id, status);
+      await sourceRef.current.moderate(current.id, status);
       setQueue((prev) => prev.slice(1));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No pudimos actualizar la foto.');
@@ -118,7 +142,7 @@ export default function PhotoModerationPanel({ onClose }: PhotoModerationPanelPr
     if (!window.confirm(message)) return;
     setError(null);
     try {
-      await revealPhotos();
+      await sourceRef.current.reveal();
       setRevealed(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No pudimos revelar el rollo.');

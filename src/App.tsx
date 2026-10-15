@@ -3,12 +3,17 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import GuestPage from './pages/GuestPage';
 import EventHubPage from './pages/EventHubPage';
 import HowToGetTherePage from './pages/HowToGetTherePage';
+import EventEntryPage from './pages/EventEntryPage';
 import RequireAuth from './components/RequireAuth';
+import OrganizerLogin from './components/OrganizerLogin';
 
 // /admin (y todo lo que solo se usa desde ahí: DoorList, GuestEditModal,
 // CreateGuestModal, adminApi) queda en un chunk aparte — la ruta pública
 // /i/:token, la que la mayoría abre desde el celular, no debe pagar ese peso.
 const AdminPage = lazy(() => import('./pages/AdminPage'));
+// Panel del organizador de la Fase 1 (multi-tenant): también en su propio chunk.
+const OrganizerEventsPage = lazy(() => import('./pages/OrganizerEventsPage'));
+const OrganizerEventPage = lazy(() => import('./pages/OrganizerEventPage'));
 
 function AdminFallback() {
   return (
@@ -24,6 +29,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Navigate to="/i/invalido" replace />} />
         <Route path="/i/:token" element={<GuestPage />} />
+        <Route path="/e/:slug" element={<EventEntryPage />} />
         <Route path="/evento" element={<EventHubPage />} />
         <Route path="/como-llegar" element={<HowToGetTherePage />} />
         <Route
@@ -32,6 +38,26 @@ export default function App() {
             <RequireAuth>
               <Suspense fallback={<AdminFallback />}>
                 <AdminPage />
+              </Suspense>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/panel"
+          element={
+            <RequireAuth login={<OrganizerLogin />}>
+              <Suspense fallback={<AdminFallback />}>
+                <OrganizerEventsPage />
+              </Suspense>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/panel/e/:eventId"
+          element={
+            <RequireAuth login={<OrganizerLogin />}>
+              <Suspense fallback={<AdminFallback />}>
+                <OrganizerEventPage />
               </Suspense>
             </RequireAuth>
           }

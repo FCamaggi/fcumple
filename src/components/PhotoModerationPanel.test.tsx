@@ -233,4 +233,33 @@ describe('PhotoModerationPanel', () => {
 
     expect(onClose).toHaveBeenCalled();
   });
+
+  describe('con una fuente inyectada (Fase 1)', () => {
+    it('lista, modera y revela con las funciones recibidas, sin tocar las de la Fase 0', async () => {
+      const source = {
+        list: vi.fn().mockResolvedValue([older]),
+        moderate: vi.fn().mockResolvedValue(undefined),
+        reveal: vi.fn().mockResolvedValue(undefined),
+      };
+      vi.spyOn(window, 'confirm').mockReturnValue(true);
+      render(<PhotoModerationPanel onClose={vi.fn()} source={source} />);
+
+      await userEvent.click(await screen.findByRole('button', { name: /aprobar/i }));
+      await waitFor(() => expect(source.moderate).toHaveBeenCalledWith('p1', 'approved'));
+
+      await userEvent.click(screen.getByRole('button', { name: 'Revelar el rollo' }));
+      await waitFor(() => expect(source.reveal).toHaveBeenCalled());
+      expect(await screen.findByRole('button', { name: 'Rollo revelado' })).toBeDisabled();
+
+      expect(listAllPhotosForModeration).not.toHaveBeenCalled();
+      expect(moderatePhoto).not.toHaveBeenCalled();
+      expect(revealPhotos).not.toHaveBeenCalled();
+    });
+
+    it('arranca con el rollo revelado cuando initiallyRevealed es verdadero', async () => {
+      const source = { list: vi.fn().mockResolvedValue([]), moderate: vi.fn(), reveal: vi.fn() };
+      render(<PhotoModerationPanel onClose={vi.fn()} source={source} initiallyRevealed />);
+      expect(await screen.findByRole('button', { name: 'Rollo revelado' })).toBeDisabled();
+    });
+  });
 });

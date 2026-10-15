@@ -17,7 +17,7 @@ interface DoorListProps {
   loading?: boolean;
   onEditGuest: (guest: Guest) => void;
   onCreateGuest?: () => void;
-  /** Modo puerta (docs/BACKLOG.md, hotfix post-Etapa 5): la tabla de 7
+  /** Modo puerta (docs/fase-0-evento-unico/04-producto/BACKLOG.md, hotfix post-Etapa 5): la tabla de 7
    * columnas necesita scroll horizontal en un celular y queda ilegible --
    * en compact se reemplaza por una lista de tarjetas apiladas con solo lo
    * esencial (nombre, estado, +N, check-in), sin perder la posibilidad de
@@ -26,7 +26,7 @@ interface DoorListProps {
   compact?: boolean;
   /**
    * Config del evento para armar el mensaje de "Enviar invitación"
-   * (docs/05-comunicacion/sistema-de-mensajes.md). Solo se usa en la vista
+   * (docs/fase-0-evento-unico/05-comunicacion/sistema-de-mensajes.md). Solo se usa en la vista
    * completa (compact=false) -- el modo puerta no lo necesita.
    */
   eventConfig?: EventConfig | null;

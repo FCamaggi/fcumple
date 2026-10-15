@@ -4,13 +4,15 @@ import AdminLogin from './AdminLogin';
 
 interface RequireAuthProps {
   children: ReactNode;
+  /** Pantalla a mostrar sin sesión. Por defecto, el login del admin de la Fase 0. */
+  login?: ReactNode;
 }
 
 /**
  * Guards /admin: no session -> AdminLogin, resolving -> simple loading
  * state, session present -> renders the panel.
  */
-export default function RequireAuth({ children }: RequireAuthProps) {
+export default function RequireAuth({ children, login }: RequireAuthProps) {
   const { session, loading } = useSession();
 
   if (loading) {
@@ -22,7 +24,7 @@ export default function RequireAuth({ children }: RequireAuthProps) {
   }
 
   if (!session) {
-    return <AdminLogin />;
+    return <>{login ?? <AdminLogin />}</>;
   }
 
   return <>{children}</>;

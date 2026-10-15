@@ -54,6 +54,19 @@ function AnnouncementCard({ post }: { post: Post }) {
   const [galleryUrls, setGalleryUrls] = useState<Record<string, string>>({});
 
   useEffect(() => {
+    // Fase 1: list_published_posts ya trae las rutas de la galería junto con
+    // el aviso (los invitados no pueden leer post_images directamente).
+    if (post.galleryPaths) {
+      setGalleryImages(
+        post.galleryPaths.map((storagePath, position) => ({
+          id: storagePath,
+          postId: post.id,
+          storagePath,
+          position,
+        })),
+      );
+      return;
+    }
     let active = true;
     listPostImages(post.id)
       .then((images) => {
@@ -65,7 +78,7 @@ function AnnouncementCard({ post }: { post: Post }) {
     return () => {
       active = false;
     };
-  }, [post.id]);
+  }, [post.id, post.galleryPaths]);
 
   // getPostImageUrl es async (createSignedUrl contra el bucket privado
   // post-images) -- no se puede usar directo como `src` de un <img>.

@@ -88,7 +88,7 @@ describe('listGuests', () => {
     expect(guest.phone).toBeNull();
   });
 
-  // docs/BACKLOG.md Etapa 5, Parte B: el invitado semilla de dev
+  // docs/fase-0-evento-unico/04-producto/BACKLOG.md Etapa 5, Parte B: el invitado semilla de dev
   // (guests.is_dev = true) tiene que poder distinguirse desde el admin
   // para excluirlo de los conteos reales de logística.
   it('maps is_dev to isDev', async () => {

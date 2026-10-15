@@ -161,7 +161,7 @@ export async function uploadPostImage(file: File, postId: string): Promise<strin
   return path;
 }
 
-// El bucket post-images es privado (ver supabase/migrations/
+// El bucket post-images es privado (ver supabase/legacy-fase-0/migrations/
 // 20260913100001_storage_post_images.sql, bucket público=false + policy
 // vía la función puente post_image_path_is_public). getPublicUrl() ignora
 // RLS por completo y solo sirve el archivo si el bucket tiene public=true

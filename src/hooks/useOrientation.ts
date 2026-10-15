@@ -7,7 +7,7 @@ const QUERY = '(orientation: portrait)';
 /**
  * useOrientation -- mismo criterio que useIsMobile: detección real vía
  * `matchMedia`, suscrita a los cambios en vez de medir una sola vez al
- * montar. La cámara dedicada (docs/BACKLOG.md Etapa 8) la usa para ajustar
+ * montar. La cámara dedicada (docs/fase-0-evento-unico/04-producto/BACKLOG.md Etapa 8) la usa para ajustar
  * sus marcos de encuadre cuando el invitado gira el teléfono con la
  * cámara ya abierta.
  */

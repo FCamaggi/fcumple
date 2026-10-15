@@ -164,7 +164,7 @@ export async function getSignedPhotoDownloadUrl(storagePath: string): Promise<st
 // `anon` no tiene ningún grant sobre `public.photos` (revoke all, sin
 // ninguna policy para ese rol -- ver supabase/README.md), así que la única
 // vía de lectura es la RPC `list_revealed_photos()` (SECURITY DEFINER,
-// supabase/migrations/20260912100008_rpc_list_revealed_photos.sql, con
+// supabase/legacy-fase-0/migrations/20260912100008_rpc_list_revealed_photos.sql, con
 // `created_at` sumado en 20260914100000_rpc_list_revealed_photos_created_at.sql).
 // No expone `guest_id` ni `status` -- solo lo necesario para armar la URL
 // firmada y agrupar por franja horaria (RevealedRoll / photoTimeline.ts).

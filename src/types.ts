@@ -2,7 +2,7 @@ export type RsvpStatus = 'pending' | 'confirmed' | 'declined';
 
 /**
  * Mirrors the single-row `event_config` table (see
- * supabase/migrations/20260911120005_create_event_config.sql). Every
+ * supabase/legacy-fase-0/migrations/20260911120005_create_event_config.sql). Every
  * column besides `id` is nullable: the row may not exist yet, or the
  * admin may have only filled in some fields.
  */
@@ -36,7 +36,7 @@ export interface EventInfo {
  */
 /**
  * Mirrors `public.posts` (see
- * supabase/migrations/20260912090000_create_posts.sql, extended in Etapa 5
+ * supabase/legacy-fase-0/migrations/20260912090000_create_posts.sql, extended in Etapa 5
  * with `subtitle` and `cover_image_path`, both nullable). `publishedAt` is
  * `null` for a draft; a non-null value in the past or present means the
  * post is live for guests, and a future value schedules it.
@@ -49,6 +49,12 @@ export interface Post {
   coverImagePath: string | null;
   publishedAt: string | null;
   createdAt: string;
+  /**
+   * Fase 1: rutas de la galería ya resueltas por `list_published_posts`. Si
+   * está presente, `AnnouncementFeed` no consulta `post_images` (el invitado
+   * no tiene acceso directo a esa tabla).
+   */
+  galleryPaths?: string[];
 }
 
 /**
@@ -75,7 +81,7 @@ export interface PhotoQuota {
 
 /**
  * Mirrors `public.photos` (see
- * supabase/migrations/20260912100002_create_photos.sql). The actual file
+ * supabase/legacy-fase-0/migrations/20260912100002_create_photos.sql). The actual file
  * bytes live in the `party-photos` Storage bucket at `storagePath`.
  */
 export interface Photo {
@@ -126,7 +132,7 @@ export interface Guest {
   /**
    * Teléfono de WhatsApp del invitado (columna `guests.phone`, opcional,
    * cargada a mano por el admin) -- ver
-   * docs/05-comunicacion/sistema-de-mensajes.md. Solo lo usa SendInviteButton
+   * docs/fase-0-evento-unico/05-comunicacion/sistema-de-mensajes.md. Solo lo usa SendInviteButton
    * para armar un link `wa.me/<numero>` directo; es un dato sensible, nunca
    * expuesto por las RPCs guest-facing ni mostrado fuera del formulario de
    * edición del admin.

@@ -57,7 +57,7 @@ export default function AdminPage() {
   const [showScanner, setShowScanner] = useState(false);
   const [showPhotos, setShowPhotos] = useState(false);
   const [eventConfig, setEventConfig] = useState<EventConfig | null>(null);
-  // Modo puerta (docs/BACKLOG.md, Decisión 4.1): en mobile la consola se
+  // Modo puerta (docs/fase-0-evento-unico/04-producto/BACKLOG.md, Decisión 4.1): en mobile la consola se
   // reduce a Escáner + DoorList + HeadcountMeter -- lo que de verdad se usa
   // parado en la puerta con el teléfono en la mano. `fullConsoleOnMobile`
   // es el escape manual hacia la consola completa sin salir de la página;

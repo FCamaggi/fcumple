@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { motion, AnimatePresence, useReducedMotion, type PanInfo } from 'framer-motion';
-import { usePhotoCapture } from '../hooks/usePhotoCapture';
+import { usePhotoCapture, type PhotoUploader } from '../hooks/usePhotoCapture';
 import { useOrientation } from '../hooks/useOrientation';
 import { useFrameImages } from '../hooks/useFrameImages';
 import {
@@ -17,6 +17,16 @@ import {
   getFrameIndexAfterSwipe,
   type FrameId,
 } from '../lib/cameraFrames';
+import {
+  drawStickers,
+  newPlacement,
+  rotateBy,
+  scaleBy,
+  type StickerPlacement,
+} from '../lib/cameraAssets/stickers';
+import ComposerStage from './camera/ComposerStage';
+import StickerTray from './camera/StickerTray';
+import type { CameraFrameOption, CameraStickerOption } from './camera/types';
 import FilmRollCounter from './FilmRollCounter';
 import type { Photo, PhotoQuota } from '../types';
 
@@ -25,7 +35,21 @@ interface CameraCaptureProps {
   quota: PhotoQuota;
   onQuotaChange?: (quota: PhotoQuota) => void;
   onClose: () => void;
+  /** Subida alternativa (Fase 1: rutas por evento). Por defecto, la de la Fase 0. */
+  upload?: PhotoUploader;
+  /**
+   * Modo compositor (Fase 1): si se pasa `frames` o `stickers`, la cámara usa los
+   * marcos paramétricos y los stickers del evento en vez de los PNG de la Fase 0.
+   * El escenario tiene exactamente la proporción de la foto final.
+   */
+  frames?: CameraFrameOption[];
+  stickers?: CameraStickerOption[];
+  /** Marco con el que arranca el carrusel (el marco por defecto del evento). */
+  initialFrameId?: string | null;
 }
+
+const NO_FRAME: CameraFrameOption = { id: 'none', label: 'Sin marco', draw: null };
+let placementCounter = 0;
 
 const MAX_DIMENSION = 1600;
 const JPEG_QUALITY = 0.8;
@@ -46,18 +70,18 @@ const SWIPE_THRESHOLD = 48;
 
 /**
  * CameraCapture -- cámara dedicada del invitado, a pantalla completa
- * (docs/BACKLOG.md Etapa 8; reemplaza el bloque embebido de la Etapa 2).
+ * (docs/fase-0-evento-unico/04-producto/BACKLOG.md Etapa 8; reemplaza el bloque embebido de la Etapa 2).
  * Mismo patrón de overlay full-screen que QrScanner.tsx: se abre bajo
  * demanda desde GuestPage (no se monta automáticamente), con `onClose`
  * obligatorio. Dispara sobre un <canvas> oculto, redimensiona a un máximo
  * de MAX_DIMENSION px en el lado más largo y comprime a JPEG antes de
- * subir (ver docs/02-arquitectura/02-arquitectura-tecnica.md §8.3).
+ * subir (ver docs/fase-0-evento-unico/02-arquitectura/02-arquitectura-tecnica.md §8.3).
  *
  * El enfoque manual queda explícitamente fuera de alcance de esta etapa
  * (no hay una API web estable y ampliamente soportada para eso -- a
  * diferencia del torch, que sí es una capability real aunque no estándar).
  *
- * Etapa 9, Frente 1 (docs/BACKLOG.md) sumó tres cosas sobre esa base:
+ * Etapa 9, Frente 1 (docs/fase-0-evento-unico/04-producto/BACKLOG.md) sumó tres cosas sobre esa base:
  *  1. Espejo real en cámara frontal (`facingMode: 'user'`), tanto en el
  *     preview (`<video>` con `scaleX(-1)` vía CSS) como en la foto final
  *     (mismo `scaleX(-1)` aplicado al compositar sobre el `<canvas>` antes
@@ -80,7 +104,7 @@ const SWIPE_THRESHOLD = 48;
  *     `ZoomChips`/el campo `zoom` de `CameraControlsAvailability`): lo que
  *     el navegador expone como "zoom" es zoom digital de la lente activa,
  *     no una selección de lentes físicas, y la mayoría de los dispositivos
- *     no reporta nada por debajo de 1x -- ver docs/04-producto/BACKLOG.md,
+ *     no reporta nada por debajo de 1x -- ver docs/fase-0-evento-unico/04-producto/BACKLOG.md,
  *     Etapa 11, punto 3. El torch/flash no se tocó, sigue condicional a
  *     `capabilities.torch`.
  *  5. Pantalla de revisión antes de subir: `handleShoot` sigue componiendo
@@ -106,10 +130,19 @@ const SWIPE_THRESHOLD = 48;
  * en jsdom, así que el flujo Repetir/Enviar sobre un blob mockeado se
  * prueba de punta a punta.
  */
-export default function CameraCapture({ token, quota, onQuotaChange, onClose }: CameraCaptureProps) {
+export default function CameraCapture({
+  token,
+  quota,
+  onQuotaChange,
+  onClose,
+  upload,
+  frames,
+  stickers,
+  initialFrameId,
+}: CameraCaptureProps) {
   const reduceMotion = useReducedMotion() ?? false;
   const orientation = useOrientation();
-  const { state, capture, reset } = usePhotoCapture(token, quota, onQuotaChange);
+  const { state, capture, reset } = usePhotoCapture(token, quota, onQuotaChange, upload);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const trackRef = useRef<MediaStreamTrack | null>(null);
@@ -118,9 +151,25 @@ export default function CameraCapture({ token, quota, onQuotaChange, onClose }: 
   const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
   const [controls, setControls] = useState<CameraControlsAvailability>(NO_CONTROLS);
   const [torchOn, setTorchOn] = useState(false);
-  const [frameIndex, setFrameIndex] = useState(0);
-  const frameId = FRAME_IDS[frameIndex];
+  const composer = frames !== undefined || stickers !== undefined;
+  const frameOptions = useMemo(() => [NO_FRAME, ...(frames ?? [])], [frames]);
+  const [frameIndex, setFrameIndex] = useState(() => {
+    if (!composer || !initialFrameId) return 0;
+    const index = frameOptions.findIndex((f) => f.id === initialFrameId);
+    return index >= 0 ? index : 0;
+  });
+  const frameCount = composer ? frameOptions.length : FRAME_IDS.length;
+  const frameId = FRAME_IDS[frameIndex] ?? 'none';
+  const currentFrame = composer ? (frameOptions[frameIndex] ?? NO_FRAME) : null;
   const frameImages = useFrameImages();
+
+  // Stickers sobre la foto (modo compositor).
+  const stickerOptions = useMemo(() => stickers ?? [], [stickers]);
+  const optionMap = useMemo(() => new Map(stickerOptions.map((o) => [o.id, o])), [stickerOptions]);
+  const assetMap = useMemo(() => new Map(stickerOptions.map((o) => [o.id, o.asset])), [stickerOptions]);
+  const [placements, setPlacements] = useState<StickerPlacement[]>([]);
+  const [selectedUid, setSelectedUid] = useState<string | null>(null);
+  const [aspect, setAspect] = useState(3 / 4);
   // Foto recién sacada, pendiente de "Repetir"/"Enviar" (Etapa 11, punto 4)
   // -- `capture(blob)` (la única llamada que de verdad sube y gasta un
   // disparo del rollo) sólo se dispara desde "Enviar", ver handleSend.
@@ -217,8 +266,12 @@ export default function CameraCapture({ token, quota, onQuotaChange, onClose }: 
     }
   }
 
+  function updateSelected(change: (p: StickerPlacement) => StickerPlacement) {
+    setPlacements((current) => current.map((p) => (p.uid === selectedUid ? change(p) : p)));
+  }
+
   function handleSwipeFrame(direction: 'left' | 'right') {
-    setFrameIndex((i) => getFrameIndexAfterSwipe(i, direction, FRAME_IDS.length));
+    setFrameIndex((i) => getFrameIndexAfterSwipe(i, direction, frameCount));
   }
 
   function handlePanEnd(_event: PointerEvent | MouseEvent | TouchEvent, info: PanInfo) {
@@ -250,7 +303,13 @@ export default function CameraCapture({ token, quota, onQuotaChange, onClose }: 
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     ctx.restore();
 
-    drawFrame(ctx, frameId === 'none' ? null : (frameImages[frameId] ?? null), canvas.width, canvas.height);
+    if (composer) {
+      // Orden: foto → stickers → marco (el marco queda siempre encima).
+      drawStickers(ctx, canvas.width, canvas.height, placements, assetMap);
+      currentFrame?.draw?.(ctx, canvas.width, canvas.height);
+    } else {
+      drawFrame(ctx, frameId === 'none' ? null : (frameImages[frameId] ?? null), canvas.width, canvas.height);
+    }
 
     canvas.toBlob(
       (blob) => {
@@ -297,6 +356,9 @@ export default function CameraCapture({ token, quota, onQuotaChange, onClose }: 
   function handleSend() {
     if (!reviewBlob) return;
     capture(reviewBlob, reviewDisplayBlob);
+    // La próxima foto parte sin stickers.
+    setPlacements([]);
+    setSelectedUid(null);
     setReviewBlob(null);
     setReviewUrl(null);
     setReviewDisplayBlob(null);
@@ -336,6 +398,31 @@ export default function CameraCapture({ token, quota, onQuotaChange, onClose }: 
             <span className="font-mono text-[11px] uppercase tracking-widest text-flame-500">Cámara no disponible</span>
             <p className="font-sans text-sm text-paper-100/80">{cameraError}</p>
           </div>
+        ) : composer ? (
+          <ComposerStage
+            aspect={aspect}
+            frame={currentFrame}
+            placements={placements}
+            options={optionMap}
+            selectedUid={selectedUid}
+            onSelect={setSelectedUid}
+            onChange={(next) => setPlacements((current) => current.map((p) => (p.uid === next.uid ? next : p)))}
+          >
+            {/* eslint-disable-next-line jsx-a11y/media-has-caption -- live camera preview, no captionable content */}
+            <video
+              ref={videoRef}
+              className="absolute inset-0 h-full w-full object-cover"
+              style={facingMode === 'user' ? { transform: 'scaleX(-1)' } : undefined}
+              muted
+              playsInline
+              aria-hidden
+              onLoadedMetadata={(e) => {
+                const v = e.currentTarget;
+                if (v.videoWidth > 0 && v.videoHeight > 0) setAspect(v.videoWidth / v.videoHeight);
+              }}
+            />
+            <canvas ref={canvasRef} className="hidden" aria-hidden />
+          </ComposerStage>
         ) : (
           <motion.div
             className="relative flex-1 touch-pan-y overflow-hidden bg-ink-950"
@@ -384,6 +471,27 @@ export default function CameraCapture({ token, quota, onQuotaChange, onClose }: 
             ) : null}
           </AnimatePresence>
 
+          {composer && (
+            <StickerTray
+              options={stickerOptions}
+              count={placements.length}
+              hasSelection={selectedUid !== null}
+              onAdd={(option) => {
+                placementCounter += 1;
+                const uid = `p${placementCounter}`;
+                setPlacements((current) => [...current, newPlacement(option.id, uid)]);
+                setSelectedUid(uid);
+              }}
+              onBigger={() => updateSelected((p) => scaleBy(p, 1.25))}
+              onSmaller={() => updateSelected((p) => scaleBy(p, 0.8))}
+              onRotate={() => updateSelected((p) => rotateBy(p, Math.PI / 12))}
+              onRemove={() => {
+                setPlacements((current) => current.filter((p) => p.uid !== selectedUid));
+                setSelectedUid(null);
+              }}
+            />
+          )}
+
           <div className="flex items-center justify-center gap-4">
             <button
               type="button"
@@ -410,7 +518,7 @@ export default function CameraCapture({ token, quota, onQuotaChange, onClose }: 
             </button>
           </div>
           <span className="text-center font-mono text-[10px] uppercase tracking-widest text-paper-100/60">
-            Marco // {FRAME_LABELS[frameId]}
+            Marco // {currentFrame ? currentFrame.label : FRAME_LABELS[frameId]}
           </span>
         </div>
       </div>

@@ -10,7 +10,7 @@ import RevealedRoll, { type RawRevealedPhoto } from '../components/RevealedRoll'
 import type { EventConfig, Photo, Post } from '../types';
 
 /**
- * `/evento` — el hub público (docs/BACKLOG.md, Decisión 4.3). Es la
+ * `/evento` — el hub público (docs/fase-0-evento-unico/04-producto/BACKLOG.md, Decisión 4.3). Es la
  * cartelera del club: cuenta atrás para la fiesta, los avisos, y el rollo
  * revelado, todo sin token ni login -- 100% abierto, coherente con el tono
  * ya establecido para el QR de puerta. El único dato de "quién va" que se

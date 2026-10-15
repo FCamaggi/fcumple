@@ -57,7 +57,7 @@ export default function FaderToggle({ value, onChange }: FaderToggleProps) {
   }
 
   // First mount: jump straight to the right position (no animation, no
-  // race). docs/BACKLOG.md §5.3 -- `x` used to start at 0 (left edge) and
+  // race). docs/fase-0-evento-unico/04-producto/BACKLOG.md §5.3 -- `x` used to start at 0 (left edge) and
   // only reach the center via an async `animate()` inside a plain
   // `useEffect`; a drag/tap before that animation settled read a stale `x`
   // still near 0 and rounded it down to "no". `useLayoutEffect` + a
