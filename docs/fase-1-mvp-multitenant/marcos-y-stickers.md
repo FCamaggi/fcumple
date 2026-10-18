@@ -163,4 +163,11 @@ Qué hay hoy (paso 1 y 2 del plan):
 - **Paridad cliente-base:** `supabase/tests/frame-layers.test.ts` corre la misma tabla de casos contra `validateLayers` y contra la base. Si una regla cambia en un lado y no en el otro, falla.
 - **Imágenes:** `renderFrame` es síncrona. `prepareFrameAssets` descarga las imágenes antes (con `crossOrigin="anonymous"`) y `renderFrame` las recibe como último parámetro. Una imagen que falla se omite y el resto del marco se dibuja.
 
-Pendiente: el editor visual (arrastrar, escalar, rotar y panel de propiedades), cablear `prepareFrameAssets` en `useCameraAssets` y `FramePreview`, subir imágenes a `frames/` desde el panel, probar el CORS del canvas en Safari iOS real, cachear el `Path2D` y el saneado por cuadro, y acotar el emoji a un solo grafema. Mientras no exista el editor, `CameraStudio` no ofrece `capas` en el selector de plantillas.
+Editor visual (paso 3):
+
+- **Dónde:** al elegir «Capas» en «Nuevo marco», `FrameEditor` monta `LayerEditor` en lugar del formulario de plantilla. Lienzo de 270 × 360 con la capa seleccionada rodeada de asas (arrastrar mueve, el cuadrado de la esquina escala, el círculo de arriba gira, con imán cada 15°), lista de capas (la primera queda al fondo) con subir, bajar, duplicar y borrar, y panel de propiedades por tipo. Con teclado: flechas mueven (Shift, más), Suprimir borra, Escape suelta la selección.
+- **Lógica pura:** `src/lib/cameraAssets/layerOps.ts` (crear, ordenar, mover, escalar, rotar, seleccionar por punto). Nunca produce una capa que la validación rechace.
+- **Tipografías:** además de las seis del sistema, las capas de texto ofrecen Anton, Playfair Display, Pacifico, Permanent Marker y Special Elite (`@fontsource`, OFL y Apache 2.0). Se descargan solo si un marco las usa y el canvas espera `document.fonts.load` antes de dibujar.
+- **Imágenes:** el panel sube a `{event_id}/frames/` (hasta 1600 px y 1 MB, WebP o PNG) con `uploadFrameImage`; el lienzo, las miniaturas y la cámara las muestran con URL firmada (`useLayerAssets`, `useCameraAssets`). Un archivo subido que luego no se guarda en el marco queda huérfano en Storage (son pocos KB; la limpieza queda pendiente).
+
+Pendiente: probar el CORS del canvas con imágenes de Storage en Safari iOS real, cachear el `Path2D` y el saneado por cuadro en la cámara, acotar el emoji a un solo grafema, borrar los archivos huérfanos de `frames/`, y que la sombra no se duplique con el contorno del texto.
