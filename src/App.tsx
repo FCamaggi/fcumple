@@ -14,6 +14,8 @@ const AdminPage = lazy(() => import('./pages/AdminPage'));
 // Panel del organizador de la Fase 1 (multi-tenant): también en su propio chunk.
 const OrganizerEventsPage = lazy(() => import('./pages/OrganizerEventsPage'));
 const OrganizerEventPage = lazy(() => import('./pages/OrganizerEventPage'));
+// Formulario de opciones para el cliente de un cumpleaños: nadie más lo abre.
+const ClientBriefPage = lazy(() => import('./pages/ClientBriefPage'));
 
 function AdminFallback() {
   return (
@@ -30,6 +32,14 @@ export default function App() {
         <Route path="/" element={<Navigate to="/i/invalido" replace />} />
         <Route path="/i/:token" element={<GuestPage />} />
         <Route path="/e/:slug" element={<EventEntryPage />} />
+        <Route
+          path="/brief/:slug"
+          element={
+            <Suspense fallback={null}>
+              <ClientBriefPage />
+            </Suspense>
+          }
+        />
         <Route path="/evento" element={<EventHubPage />} />
         <Route path="/como-llegar" element={<HowToGetTherePage />} />
         <Route
