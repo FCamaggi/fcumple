@@ -55,7 +55,7 @@ interface FrameParams {
 - **Colores**: selector con paletas sugeridas y color libre. El editor avisa si el texto queda con poco contraste sobre su fondo.
 - **Validación** compartida entre el editor y la base (esquema en TypeScript + `check` de tamaño en el `jsonb`). Un marco nunca puede referirse a un recurso externo, así que no hay subida de archivos para marcos.
 
-Fuera de alcance: variables por invitado (`{{guest_name}}`), marcos propios en PNG y editor libre (Fase 2).
+Fuera de alcance: variables por invitado (`{{guest_name}}`) (Fase 2). Los marcos propios en PNG y el editor libre los cubre en parte la plantilla `capas` (ver «Plantilla `capas`» al final).
 
 ## 2. Stickers
 
@@ -144,8 +144,23 @@ Al crear un evento se siembran 2–3 marcos de ejemplo (editables) y un puñado 
 
 ## Fuera de alcance (Fase 2)
 
-Variables por invitado, marcos PNG propios, editor libre de composición, conjunto de emojis abierto y consistente entre dispositivos, packs temáticos de la plataforma, guardar el original sin stickers.
+Variables por invitado, marcos PNG propios y editor libre de composición (la plantilla `capas` los cubre en parte),  conjunto de emojis abierto y consistente entre dispositivos, packs temáticos de la plataforma, guardar el original sin stickers.
 
 ## Estado de implementación (Etapa 3)
 
 Implementado: migración `20261015100009_camera_assets` (tablas `event_frames` y `event_stickers`, límites de 20 marcos / 40 stickers por evento, validación SQL de parámetros espejo de `validateFrameParams`, interruptores globales `frames_enabled` / `stickers_enabled` y `default_frame_id` en `events`, bucket `event-assets`, RPC `list_event_camera_assets(token)` que solo entrega lo activo del evento del invitado); 6 plantillas (border, polaroid, film, viewfinder, banner, glow); editor con vista previa en la pestaña «Cámara» del organizador; bandeja de stickers con arrastre y pellizco en la cámara del invitado; orden de dibujo foto → stickers → marco. Pendiente: probar emojis y CORS del canvas en dispositivos reales.
+
+## Plantilla `capas` (marcos por capas)
+
+Una séptima plantilla para marcos libres, estilo Canva, sin una plantilla fija por cada diseño. Un marco `capas` es una lista de capas apiladas (la primera queda al fondo) que dibuja la misma `renderFrame`, así que vista previa, cámara y foto final siguen sin desalinearse.
+
+Qué hay hoy (paso 1 y 2 del plan):
+
+- **Código:** `src/lib/cameraAssets/layers.ts` (modelo, validación, saneado, dibujo y carga de imágenes) y `text.ts` (tipografías y texto de una línea, compartidos con las demás plantillas). Los tests están junto a ellos.
+- **Capas:** `text`, `shape` (`rect`, `ellipse`, `line`, `path`), `image` y `emoji`. La posición (`x`, `y`) es una fracción del ancho y del alto del lienzo; tamaños, bordes y sombras son relativos al lado menor; la rotación va en grados; el ancla (`center`, `tl`, `tr`, `bl`, `br`) dice qué punto de la capa cae sobre la posición. Una imagen con `full: true` cubre todo el lienzo (marcos hechos en Canva, exportados con transparencia).
+- **Límites:** 40 capas, textos de 60 caracteres, colores `#RRGGBB`, tipografías de la lista cerrada, trazos `path` de hasta 600 caracteres con solo `M`, `L`, `C`, `Z`, números y espacios (sin arcos ni notación científica). Con capas el JSON de `params` puede llegar a 16384 caracteres; el resto de las plantillas conserva 2048.
+- **Migración `20261018100011_frame_layers`:** acepta la plantilla `capas`, replica la validación en SQL (`valid_frame_layer`, `valid_frame_layers`), restringe `layers` a esa plantilla, exige que las imágenes estén en `{event_id}/frames/` del propio evento y deja a los invitados leer la imagen de un marco activo (`event_asset_is_public`). La base mide `jsonb::text` en bytes, con espacios, por lo que su tope con capas es de 32768 para que el cliente rechace siempre antes.
+- **Paridad cliente-base:** `supabase/tests/frame-layers.test.ts` corre la misma tabla de casos contra `validateLayers` y contra la base. Si una regla cambia en un lado y no en el otro, falla.
+- **Imágenes:** `renderFrame` es síncrona. `prepareFrameAssets` descarga las imágenes antes (con `crossOrigin="anonymous"`) y `renderFrame` las recibe como último parámetro. Una imagen que falla se omite y el resto del marco se dibuja.
+
+Pendiente: el editor visual (arrastrar, escalar, rotar y panel de propiedades), cablear `prepareFrameAssets` en `useCameraAssets` y `FramePreview`, subir imágenes a `frames/` desde el panel, probar el CORS del canvas en Safari iOS real, cachear el `Path2D` y el saneado por cuadro, y acotar el emoji a un solo grafema. Mientras no exista el editor, `CameraStudio` no ofrece `capas` en el selector de plantillas.
