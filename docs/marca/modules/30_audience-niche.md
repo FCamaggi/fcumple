@@ -58,7 +58,7 @@ Entrevista de marca de un solo participante (el dueño del producto), 2026-10-18
 3. Personas cercanas que prefieren una cámara de fiesta hecha y ajustada a mano, con el estilo de su evento.
 
 **Tensiones y preguntas abiertas:**
-- **"Cualquier tipo de evento" vs. la anti-persona:** el módulo 2 decidió alcance de cualquier evento, pero aquí se excluyen los formales y masivos. La formulación más fiel parece ser "eventos festivos e informales" y no "cualquier evento". Falta confirmarla.
+- ~~"Cualquier tipo de evento" vs. la anti-persona~~ Resuelta en el módulo 7 el 2026-10-18: el alcance es **eventos festivos e informales**.
 - **Cuota emocional vs. escala:** lo que hoy atrae (es de alguien que conocen) desaparece al volverse servicio. Se retoma en el módulo 7 (marca fundadora vs. marca de estudio).
 - **Precio:** solo se sabe que será más bajo al inicio; no hay cifras. El contexto de marketing sigue con "sin cobro por ahora".
 - **Matrimonios:** entran solo si terminan en carrete.
