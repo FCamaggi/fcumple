@@ -91,7 +91,7 @@ const francisca: BriefDefinition = {
     {
       id: 'marcos',
       title: '¿Qué marcos para las fotos?',
-      help: 'Marcamos los dos que conversamos primero; abajo hay otros ejemplos. Se ven con tu paleta, tus letras y tus textos.',
+      help: 'Son solo referencias para que veas el estilo: el diseño de cada marco se hace después. Marcamos los dos que conversamos primero; abajo hay otros ejemplos. Se ven con tu paleta, tus letras y tus textos.',
       selection: 'multi',
       visual: 'frame',
       options: [
