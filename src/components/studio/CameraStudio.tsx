@@ -263,7 +263,8 @@ export default function CameraStudio({ event, onEventChange }: CameraStudioProps
           <div className="flex flex-col gap-2" role="group" aria-label="Elige una plantilla">
             <p className="font-sans text-sm text-paper-100/80">Elige una plantilla:</p>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {FRAME_TEMPLATES.map((template) => (
+              {/* `capas` queda fuera hasta tener migración y editor visual (pasos 2 y 3 del plan de marcos por capas). */}
+              {FRAME_TEMPLATES.filter((template) => template !== 'capas').map((template) => (
                 <button
                   key={template}
                   type="button"

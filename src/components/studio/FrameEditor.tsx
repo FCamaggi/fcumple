@@ -35,6 +35,7 @@ const FIELD_LABELS: Record<FrameField, string> = {
   thickness: 'Grosor',
   radius: 'Redondeo',
   position: 'Posición',
+  layers: 'Capas',
 };
 
 const inputClass = 'bg-ink-950 px-3 py-2 font-sans text-sm text-paper-100 outline-none';
@@ -199,6 +200,9 @@ export default function FrameEditor({ template, initialLabel, initialParams, sav
             </select>
           </div>
         );
+      case 'layers':
+        // Las capas se editan con el editor visual (paso 3 del plan de marcos por capas).
+        return null;
     }
   }
 

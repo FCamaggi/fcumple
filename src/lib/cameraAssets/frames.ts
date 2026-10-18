@@ -12,13 +12,22 @@
  * sincronizados.
  */
 
+import {
+  MAX_LAYERS_PARAMS_LENGTH,
+  drawLayers,
+  roundedRectPath,
+  sanitizeLayers,
+  validateLayers,
+  type FrameAssets,
+  type FrameLayer,
+} from './layers';
 import { FONT_LABELS, FONT_STACKS, FRAME_FONTS, drawFittedText } from './text';
 import type { FrameFont, TextOptions } from './text';
 
 export { FONT_LABELS, FONT_STACKS, FRAME_FONTS, drawFittedText };
 export type { FrameFont, TextOptions };
 
-export const FRAME_TEMPLATES = ['border', 'polaroid', 'film', 'viewfinder', 'banner', 'glow'] as const;
+export const FRAME_TEMPLATES = ['border', 'polaroid', 'film', 'viewfinder', 'banner', 'glow', 'capas'] as const;
 export type FrameTemplate = (typeof FRAME_TEMPLATES)[number];
 
 export interface FrameParams {
@@ -34,6 +43,8 @@ export interface FrameParams {
   /** 0 a 1, relativo al lado menor. */
   radius?: number;
   position?: 'top' | 'bottom';
+  /** Solo la plantilla `capas`: ver `layers.ts`. */
+  layers?: FrameLayer[];
 }
 
 export type FrameField = keyof FrameParams;
@@ -47,6 +58,7 @@ export const TEMPLATE_LABELS: Record<FrameTemplate, string> = {
   viewfinder: 'Visor',
   banner: 'Banner',
   glow: 'Destello',
+  capas: 'Capas',
 };
 
 export const TEMPLATE_DESCRIPTIONS: Record<FrameTemplate, string> = {
@@ -56,6 +68,7 @@ export const TEMPLATE_DESCRIPTIONS: Record<FrameTemplate, string> = {
   viewfinder: 'Esquinas de visor y marca REC con un texto abajo.',
   banner: 'Banda con título y subtítulo, arriba o abajo.',
   glow: 'Degradé de color en los bordes.',
+  capas: 'Diseño libre: texto, formas, imágenes y emojis apilados en capas.',
 };
 
 /** Qué controles muestra el editor para cada plantilla. */
@@ -66,6 +79,7 @@ export const TEMPLATE_FIELDS: Record<FrameTemplate, FrameField[]> = {
   viewfinder: ['primaryColor', 'textColor', 'title', 'font', 'thickness'],
   banner: ['primaryColor', 'textColor', 'title', 'subtitle', 'font', 'position'],
   glow: ['primaryColor', 'secondaryColor', 'thickness'],
+  capas: ['layers'],
 };
 
 const COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
@@ -83,6 +97,7 @@ const KNOWN_KEYS = new Set<string>([
   'thickness',
   'radius',
   'position',
+  'layers',
 ]);
 
 /** Misma regla que `valid_frame_params` en la base de datos. */
@@ -92,7 +107,9 @@ export function validateFrameParams(params: unknown): ValidationResult {
   }
   const p = params as Record<string, unknown>;
 
-  if (JSON.stringify(p).length > 2048) return { ok: false, error: 'El marco tiene demasiados datos.' };
+  // Con capas el tope sube (ver `MAX_LAYERS_PARAMS_LENGTH`); el resto de las plantillas conserva 2 KB.
+  const maxLength = 'layers' in p ? MAX_LAYERS_PARAMS_LENGTH : 2048;
+  if (JSON.stringify(p).length > maxLength) return { ok: false, error: 'El marco tiene demasiados datos.' };
 
   for (const key of Object.keys(p)) {
     if (!KNOWN_KEYS.has(key)) return { ok: false, error: `Campo desconocido: ${key}.` };
@@ -119,6 +136,7 @@ export function validateFrameParams(params: unknown): ValidationResult {
   if ('position' in p && p.position !== 'top' && p.position !== 'bottom') {
     return { ok: false, error: 'La posición debe ser arriba o abajo.' };
   }
+  if ('layers' in p) return validateLayers(p.layers);
   return { ok: true };
 }
 
@@ -132,7 +150,11 @@ export function sanitizeFrameParams(raw: unknown): FrameParams {
   const out: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
     if (!KNOWN_KEYS.has(key)) continue;
-    if (validateFrameParams({ [key]: value }).ok) out[key] = value;
+    if (key === 'layers') {
+      if (Array.isArray(value)) out.layers = sanitizeLayers(value);
+    } else if (validateFrameParams({ [key]: value }).ok) {
+      out[key] = value;
+    }
   }
   return out as FrameParams;
 }
@@ -169,6 +191,12 @@ export function defaultFrameParams(template: FrameTemplate, ctx: FrameDefaultsCo
       };
     case 'glow':
       return { primaryColor: '#ff4fa3', secondaryColor: '#4fc3ff', thickness: 0.18 };
+    case 'capas':
+      return {
+        layers: name
+          ? [{ type: 'text', text: name, x: 0.5, y: 0.92, size: 0.08, w: 1.6, font: 'display', color: '#ffffff', weight: 'bold' }]
+          : [],
+      };
   }
 }
 
@@ -181,21 +209,6 @@ type Ctx = CanvasRenderingContext2D;
 function hexToRgba(hex: string, alpha: number): string {
   const n = parseInt(hex.slice(1), 16);
   return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
-}
-
-/** Rectángulo redondeado a mano: `ctx.roundRect` no existe en Safari antiguo ni en jsdom. */
-function roundedRectPath(ctx: Ctx, x: number, y: number, w: number, h: number, r: number): void {
-  const radius = Math.max(0, Math.min(r, w / 2, h / 2));
-  ctx.moveTo(x + radius, y);
-  ctx.lineTo(x + w - radius, y);
-  ctx.arcTo(x + w, y, x + w, y + radius, radius);
-  ctx.lineTo(x + w, y + h - radius);
-  ctx.arcTo(x + w, y + h, x + w - radius, y + h, radius);
-  ctx.lineTo(x + radius, y + h);
-  ctx.arcTo(x, y + h, x, y + h - radius, radius);
-  ctx.lineTo(x, y + radius);
-  ctx.arcTo(x, y, x + radius, y, radius);
-  ctx.closePath();
 }
 
 function drawBorder(ctx: Ctx, w: number, h: number, unit: number, p: FrameParams): void {
@@ -334,24 +347,40 @@ function drawGlow(ctx: Ctx, w: number, h: number, unit: number, p: FrameParams):
   edge(w, 0, w - size, 0, b, w - size, 0, size, h); // derecha
 }
 
-const DRAWERS: Record<FrameTemplate, (ctx: Ctx, w: number, h: number, unit: number, p: FrameParams) => void> = {
+function drawCapas(ctx: Ctx, w: number, h: number, unit: number, p: FrameParams, assets?: FrameAssets): void {
+  drawLayers(ctx, w, h, unit, p.layers ?? [], assets);
+}
+
+const DRAWERS: Record<
+  FrameTemplate,
+  (ctx: Ctx, w: number, h: number, unit: number, p: FrameParams, assets?: FrameAssets) => void
+> = {
   border: drawBorder,
   polaroid: drawPolaroid,
   film: drawFilm,
   viewfinder: drawViewfinder,
   banner: drawBanner,
   glow: drawGlow,
+  capas: drawCapas,
 };
 
 /**
  * Dibuja el marco sobre el canvas (que ya tiene la foto o el video debajo). No
  * limpia el canvas: solo agrega el marco. Si la plantilla es desconocida no
- * dibuja nada.
+ * dibuja nada. `assets` trae las imágenes ya cargadas de la plantilla `capas`
+ * (ver `prepareFrameAssets`); el resto de las plantillas no las usa.
  */
-export function renderFrame(ctx: Ctx, width: number, height: number, template: string, rawParams: unknown): void {
+export function renderFrame(
+  ctx: Ctx,
+  width: number,
+  height: number,
+  template: string,
+  rawParams: unknown,
+  assets?: FrameAssets,
+): void {
   const draw = DRAWERS[template as FrameTemplate];
   if (!draw || width <= 0 || height <= 0) return;
   ctx.save();
-  draw(ctx, width, height, Math.min(width, height), sanitizeFrameParams(rawParams));
+  draw(ctx, width, height, Math.min(width, height), sanitizeFrameParams(rawParams), assets);
   ctx.restore();
 }
