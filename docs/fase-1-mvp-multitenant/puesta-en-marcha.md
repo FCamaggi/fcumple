@@ -17,7 +17,7 @@ La Fase 0 ya no se usa, así que no hace falta un proyecto nuevo: se **poda** el
 Abre el *SQL Editor* de Supabase, pega **completo** el contenido de [`supabase/setup-fase-1.sql`](../../supabase/setup-fase-1.sql) y ejecútalo **una vez**. Hace, en una sola transacción (si algo falla no se aplica nada):
 
 1. **Poda** la Fase 0 (tablas, funciones, políticas y el historial de migraciones).
-2. Aplica las **9 migraciones** de la Fase 1, en orden (tablas, RPC, políticas, marcos/stickers y los buckets).
+2. Aplica las **10 migraciones** de la Fase 1, en orden (tablas, RPC, políticas, marcos/stickers, los buckets y los formularios de cliente).
 3. Las **registra** en el historial, para que el `supabase db push` del deploy sea un no-op.
 
 Después, en *Storage*, **vacía** los buckets `party-photos` y `post-images` (Supabase no permite borrar archivos con SQL).
@@ -50,7 +50,7 @@ En el panel de Supabase:
 
 ## 3. Verificar
 
-En el SQL Editor, esta consulta debe devolver 9 filas y los nombres de las tablas de la Fase 1:
+En el SQL Editor, esta consulta debe devolver 10 filas y los nombres de las tablas de la Fase 1:
 
 ```sql
 select version from supabase_migrations.schema_migrations order by 1;
