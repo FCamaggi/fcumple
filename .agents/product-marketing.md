@@ -1,6 +1,6 @@
 # Product Marketing Context
 
-**Document version:** v2
+**Document version:** v3
 **Last updated:** 2026-10-18
 
 ## Product Overview
@@ -11,7 +11,7 @@
 **Business model:** Sin cobro por ahora. Los planes del informe original (USD 0 / 19 / 49 / 99) son propuestas que quedaron fuera del MVP (Fase 2), no precios vigentes.
 
 ## Target Audience
-**Target companies:** No aplica (B2C). Personas que organizan su propio cumpleaños.
+**Target companies:** No aplica (B2C). Personas de 20 a 27 años que organizan su propio cumpleaños al estilo del carrete chileno, con 20 a 100 invitados, que llegan por contacto personal (conocidos y amigos de conocidos). Matrimonios que terminan en carrete podrían sumarse.
 **Decision-makers:** La persona que cumple años u organiza la fiesta.
 **Primary use case:** Que los invitados saquen fotos de la fiesta con identidad propia del evento, sin app y sin que una galería abierta se llene de fotos sin criterio.
 **Jobs to be done:**
@@ -57,7 +57,7 @@ Fuente: tabla del informe original (`docs/estrategia/informe-original-burn-camer
 |-----------|----------|
 | Por confirmar | Por confirmar |
 
-**Anti-persona:** Por confirmar. Hoy el producto está pensado para eventos de hasta ~80 invitados.
+**Anti-persona:** Eventos formales, eventos masivos y funerales. Las empresas de eventos tienen sus propios sistemas; una alianza queda para una fase profesional.
 
 ## Switching Dynamics
 **Push:** Por confirmar.
@@ -66,7 +66,13 @@ Fuente: tabla del informe original (`docs/estrategia/informe-original-burn-camer
 **Anxiety:** Por confirmar.
 
 ## Customer Language
-Todavía no hay frases verbatim de clientes. Frases del dueño del producto:
+Frases de quienes vieron la app en el primer evento, relatadas por el dueño (no son citas directas de ellos):
+- "Causó furor."
+- "Se capturaron escenas bacanes, momentos que después se habían olvidado."
+- "Es distinto de subirlo a Instagram y que lo vea mucha gente, es más privado del evento en sí."
+- Lo que preguntaron: cómo se hizo, cuánto costó, si la hizo él y si podían usarla en su fiesta.
+
+Frases del dueño del producto:
 - "Burn camera, hay que elegir bien qué sacar y cuándo."
 - "Un carrete de disfraces", "fiesta adulta, +18, sin Halloween clásico."
 - Sobre el boleto: "parecía boleto de avión" (debe leerse como entrada de evento).
@@ -100,7 +106,7 @@ Basado en el texto real de la interfaz:
 
 ## Proof Points
 **Metrics:** Ninguna todavía.
-**Customers:** Ninguno todavía; el primer evento real está pendiente.
+**Customers:** Ninguno que pague todavía. Primer evento real: el cumpleaños del dueño, donde "causó furor". Una prima (evento de unas 80 personas) quiere usarla y otras personas han consultado. Por ahora son pruebas, con trabajo uno a uno y tarifas más bajas a futuro.
 **Testimonials:** Ninguno.
 **Value themes:**
 | Theme | Proof |
@@ -121,5 +127,6 @@ Basado en el texto real de la interfaz:
 
 ## Changelog
 *Newest first. One line per revision: what changed and why.*
+- v3 (2026-10-18) — Audiencia, anti-persona, evidencia y lenguaje de clientes actualizados tras el módulo 3 de la entrevista de marca: cliente de 20 a 27 años, carrete chileno, 20 a 100 invitados; se excluyen eventos formales, masivos y funerales.
 - v2 (2026-10-18) — Ampliado el alcance de cumpleaños a cualquier tipo de evento y ajustado el one-liner tras los módulos 1 y 2 de la entrevista de marca (`docs/marca/`); se anota que ver las fotos durante el evento aún no está construido.
 - v1 (2026-10-18) — Initial context, auto-borrador desde el repositorio y confirmado con el dueño (cliente B2C, sin cobro por ahora, competencia del informe marcada como no verificada).
