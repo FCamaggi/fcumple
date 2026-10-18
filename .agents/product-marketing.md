@@ -1,10 +1,10 @@
 # Product Marketing Context
 
-**Document version:** v1
+**Document version:** v2
 **Last updated:** 2026-10-18
 
 ## Product Overview
-**One-liner:** Una cámara desechable digital para cumpleaños: cada invitado tiene un cupo de fotos, y la fiesta se revela después.
+**One-liner:** Una cámara desechable digital para eventos: cada invitado tiene un cupo de fotos, y todos acceden a las fotos de todos.
 **What it does:** Quien organiza el cumpleaños manda un enlace; los invitados crean su usuario, confirman asistencia y, el día de la fiesta, activan la cámara con un QR. Sacan fotos con los marcos y stickers que eligió el organizador, dentro de un cupo limitado. El organizador modera las fotos y las revela.
 **Product category:** Cámara de fotos para eventos / cámara desechable digital (por confirmar cómo lo buscaría un cliente).
 **Product type:** Aplicación web (sin instalar), multi-evento.
@@ -20,7 +20,7 @@
 - Que los invitados participen sin instalar nada y con los mínimos datos personales.
 **Use cases:**
 - Fiesta de disfraces (el primer cliente es el cumpleaños de Francisca, Halloween adulto).
-- Cualquier cumpleaños: el producto es genérico y cada evento se configura aparte.
+- Cualquier tipo de evento (decisión 2026-10-18): el producto es genérico y cada evento se configura aparte.
 
 ## Personas
 B2C, no aplica. Dos roles dentro del producto:
@@ -121,4 +121,5 @@ Basado en el texto real de la interfaz:
 
 ## Changelog
 *Newest first. One line per revision: what changed and why.*
+- v2 (2026-10-18) — Ampliado el alcance de cumpleaños a cualquier tipo de evento y ajustado el one-liner tras los módulos 1 y 2 de la entrevista de marca (`docs/marca/`); se anota que ver las fotos durante el evento aún no está construido.
 - v1 (2026-10-18) — Initial context, auto-borrador desde el repositorio y confirmado con el dueño (cliente B2C, sin cobro por ahora, competencia del informe marcada como no verificada).

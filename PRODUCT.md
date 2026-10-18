@@ -14,7 +14,7 @@ web
 
 ## Product Purpose
 
-Una cámara de fotos para cumpleaños al estilo cámara desechable ("burn camera"). Cada invitado tiene un cupo de fotos, así que importa qué fotografiar y cuándo. Las fotos no se publican al instante: el organizador las modera y las revela. Éxito: los invitados llegan a la cámara sin fricción el día de la fiesta, y el organizador obtiene un rollo moderado, con la identidad visual de su cumpleaños.
+Una cámara de fotos para eventos al estilo cámara desechable ("burn camera"); el primer cliente es un cumpleaños. Cada invitado tiene un cupo de fotos, así que importa qué fotografiar y cuándo. Las fotos no se publican al instante: el organizador las modera y las revela. Éxito: los invitados llegan a la cámara sin fricción el día de la fiesta, y el organizador obtiene un rollo moderado, con la identidad visual de su cumpleaños.
 
 ## Positioning
 
@@ -40,6 +40,7 @@ Restricciones vigentes:
 - Sin pagos ni planes por ahora (Fase 2).
 - Supabase (Postgres, Auth, Storage, RLS) sin backend propio; SPA estática en Vercel.
 - Identificación del invitado: se mantiene **nombre y apellido con PIN** (decisión de 2026-10-18, sobre las alternativas de correo opcional o enlace personal). Si alguien olvida el PIN, el organizador restablece su acceso. Cualquier cambio exige antes revisar el test que prohíbe guardar correo o teléfono.
+- Alcance (decisión de 2026-10-18, entrevista de marca en `docs/marca/`): el producto es para **cualquier tipo de evento**, no solo cumpleaños. Las fotos de todos deben verse **durante el evento y también tras el revelado**. Hoy solo existe lo segundo; verlas durante el evento necesita el muro en vivo (Fase 3, ítem 3.1) o un revelado por bloques.
 - El enlace `/i/:token` es legado de la Fase 0, pendiente de retirar según la decisión D10 (`docs/estrategia/decisiones-de-alcance.md`).
 
 Planeado, sin decidir (no es capacidad actual):
