@@ -181,7 +181,7 @@ describe('setup-fase-1.sql (poda + migraciones en un solo archivo)', () => {
     const history = await db.query(`select version from supabase_migrations.schema_migrations order by 1`);
     expect(history.rows.map((r) => r.version)).toEqual([
       '20261015100001', '20261015100002', '20261015100003', '20261015100004', '20261015100005',
-      '20261015100006', '20261015100007', '20261015100008', '20261015100009',
+      '20261015100006', '20261015100007', '20261015100008', '20261015100009', '20261018100010',
     ]);
 
     // La trampa de Storage quedo cerrada y un organizador ya puede crear eventos.
