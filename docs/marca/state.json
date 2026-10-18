@@ -1,9 +1,9 @@
 {
   "session": "sin-nombre-brand-2026-10",
   "outputPath": "/home/fabrizio/code/fcumple/docs/marca",
-  "completedModules": ["10_purpose-why.md"],
-  "inProgressModule": "20_positioning.md",
-  "nextModule": "30_audience-niche.md",
+  "completedModules": ["10_purpose-why.md", "20_positioning.md"],
+  "inProgressModule": "30_audience-niche.md",
+  "nextModule": "40_personality-archetype.md",
   "participants": ["founder-a"],
   "lastUpdated": "2026-10-18"
 }

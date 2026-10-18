@@ -46,8 +46,8 @@ Citas textuales de las respuestas.
 
 **Preguntas abiertas:**
 - "Todos ven las fotos de todos" convive con la moderación y el revelado del organizador. ¿Cuándo y cuánto se muestra, y a quién?
-- ¿"Comunitario" incluye ver fotos durante la fiesta (muro en vivo, Fase 3) o solo después del revelado?
-- El producto se llama a sí mismo para cumpleaños, pero el vocabulario ("celebrado") podría servir para otros eventos. ¿Se queda en cumpleaños?
+- ~~¿"Comunitario" incluye ver fotos durante la fiesta o solo después del revelado?~~ Resuelta el 2026-10-18: **ambas**. Ver la brecha con lo construido en el módulo 2.
+- ~~¿Se queda en cumpleaños?~~ Resuelta el 2026-10-18: **cualquier tipo de evento**.
 - No hay peer admirado ni modelo a evitar: el contraste competitivo queda sin evidencia y habrá que cubrirlo en el módulo de posicionamiento.
 
 **Tensiones:** el deseo de no perder momentos choca, en apariencia, con el cupo limitado. Se resuelve así: no se trata de capturar todo, sino de que lo capturado sea mejor y esté al alcance de todos.
