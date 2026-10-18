@@ -5,6 +5,8 @@ export interface BriefAnswer {
   pregunta: string;
   elegidas: string[];
   nota: string;
+  /** Textos cortos de las preguntas de campos (nombre, fecha...). */
+  campos?: Record<string, string>;
 }
 
 export type BriefAnswers = Record<string, BriefAnswer>;

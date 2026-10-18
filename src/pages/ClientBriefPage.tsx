@@ -1,16 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { getBrief } from '../briefs/registry';
-import type { BriefDefinition } from '../briefs/types';
+import type { BriefDefinition, BriefQuestion } from '../briefs/types';
+import { DEFAULT_FONT, DEFAULT_PALETTE, OptionVisual, type BriefContext } from '../briefs/visuals';
 import { submitClientBrief, type BriefAnswers } from '../lib/briefApi';
 
 interface Draft {
   respondent: string;
   selected: Record<string, string[]>;
   notes: Record<string, string>;
+  fields: Record<string, Record<string, string>>;
 }
 
-const emptyDraft: Draft = { respondent: '', selected: {}, notes: {} };
+const emptyDraft: Draft = { respondent: '', selected: {}, notes: {}, fields: {} };
 
 function loadDraft(slug: string): Draft {
   try {
@@ -29,16 +31,40 @@ function saveDraft(slug: string, draft: Draft) {
   }
 }
 
+/** Paleta, letras y textos ya elegidos: alimentan las vistas previas de todas las preguntas. */
+function buildContext(brief: BriefDefinition, draft: Draft): BriefContext {
+  const chosen = (visual: BriefQuestion['visual']) => {
+    const q = brief.questions.find((item) => item.visual === visual);
+    const id = q ? draft.selected[q.id]?.[0] : undefined;
+    return q?.options.find((o) => o.id === id);
+  };
+  const fieldsQuestion = brief.questions.find((q) => q.fields);
+  const texts = (fieldsQuestion && draft.fields[fieldsQuestion.id]) || {};
+  return {
+    palette: chosen('palette')?.palette ?? DEFAULT_PALETTE,
+    font: chosen('font')?.font ?? DEFAULT_FONT,
+    name: (texts.nombre ?? '').trim(),
+    date: (texts.fecha ?? '').trim(),
+  };
+}
+
 function buildAnswers(brief: BriefDefinition, draft: Draft): BriefAnswers {
   const answers: BriefAnswers = {};
   for (const q of brief.questions) {
     const ids = draft.selected[q.id] ?? [];
     const note = (draft.notes[q.id] ?? '').trim();
-    if (ids.length === 0 && !note) continue;
+    const campos = Object.fromEntries(
+      Object.entries(draft.fields[q.id] ?? {})
+        .map(([key, value]) => [key, value.trim()] as const)
+        .filter(([, value]) => value),
+    );
+    const hasCampos = Object.keys(campos).length > 0;
+    if (ids.length === 0 && !note && !hasCampos) continue;
     answers[q.id] = {
       pregunta: q.title,
       elegidas: q.options.filter((o) => ids.includes(o.id)).map((o) => o.label),
       nota: note,
+      ...(hasCampos ? { campos } : {}),
     };
   }
   return answers;
@@ -49,6 +75,9 @@ function answersAsText(brief: BriefDefinition, respondent: string, answers: Brie
   for (const a of Object.values(answers)) {
     lines.push(a.pregunta);
     if (a.elegidas.length) lines.push(`  Elegí: ${a.elegidas.join(', ')}`);
+    if (a.campos) {
+      for (const [key, value] of Object.entries(a.campos)) lines.push(`  ${key}: ${value}`);
+    }
     if (a.nota) lines.push(`  Nota: ${a.nota}`);
     lines.push('');
   }
@@ -58,8 +87,9 @@ function answersAsText(brief: BriefDefinition, respondent: string, answers: Brie
 /**
  * ClientBriefPage — formulario de opciones para el cliente de un cumpleaños
  * (/brief/:slug). El motor es genérico; las preguntas salen de
- * src/briefs/<slug>.ts. Cada pregunta mezcla opciones y nota libre. Si el
- * envío falla, se puede copiar la respuesta para mandarla por mensaje.
+ * src/briefs/<slug>.ts. Cada pregunta mezcla opciones (con vista previa) y nota
+ * libre, y lo elegido antes (paleta, letras, textos) se aplica en las vistas
+ * siguientes. Si el envío falla, se puede copiar la respuesta para mandarla.
  */
 export default function ClientBriefPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -88,17 +118,24 @@ export default function ClientBriefPage() {
     if (brief) saveDraft(brief.slug, next);
   }
 
-  function toggle(questionId: string, optionId: string, selection: 'single' | 'multi') {
-    const current = draft.selected[questionId] ?? [];
+  function toggle(q: BriefQuestion, optionId: string) {
+    const option = q.options.find((o) => o.id === optionId);
+    const current = draft.selected[q.id] ?? [];
     let next: string[];
-    if (selection === 'single') {
-      next = current.includes(optionId) ? [] : [optionId];
+    if (current.includes(optionId)) {
+      next = current.filter((id) => id !== optionId);
+    } else if (q.selection === 'single' || option?.exclusive) {
+      next = [optionId];
     } else {
-      next = current.includes(optionId) ? current.filter((id) => id !== optionId) : [...current, optionId];
+      // Una opción normal suelta las exclusivas (p. ej. "lo conversamos en privado").
+      const kept = current.filter((id) => !q.options.find((o) => o.id === id)?.exclusive);
+      next = [...kept, optionId];
+      if (q.max && next.length > q.max) next = next.slice(next.length - q.max);
     }
-    update({ ...draft, selected: { ...draft.selected, [questionId]: next } });
+    update({ ...draft, selected: { ...draft.selected, [q.id]: next } });
   }
 
+  const ctx = buildContext(brief, draft);
   const answers = buildAnswers(brief, draft);
   const answered = Object.keys(answers).length;
 
@@ -141,11 +178,12 @@ export default function ClientBriefPage() {
   }
 
   const labelClass = 'font-mono text-[11px] uppercase tracking-wider text-paper-100/70';
-  const fieldClass = 'bg-ink-950 px-3 py-2 font-sans text-sm text-paper-100 outline-none focus-visible:ring-2 focus-visible:ring-paper-100';
+  const fieldClass =
+    'border border-smoke-700/60 bg-ink-900 px-3 py-2 font-sans text-sm text-paper-100 outline-none placeholder:text-paper-100/40 focus-visible:border-paper-100 focus-visible:ring-1 focus-visible:ring-paper-100';
 
   return (
     <main className="min-h-screen bg-ink-950 px-4 py-10 text-paper-100">
-      <form onSubmit={handleSubmit} className="mx-auto flex w-full max-w-2xl flex-col gap-8">
+      <form onSubmit={handleSubmit} className="mx-auto flex w-full max-w-2xl flex-col gap-10">
         <header className="flex flex-col gap-3">
           <span className="font-mono text-[11px] uppercase tracking-widest text-paper-100/70">
             Formulario de estilo
@@ -181,8 +219,36 @@ export default function ClientBriefPage() {
                 {q.help && <span className="font-sans text-sm text-paper-100/70">{q.help}</span>}
               </legend>
 
+              {q.fields && (
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {q.fields.map((f) => {
+                    const fieldId = `brief-field-${q.id}-${f.id}`;
+                    return (
+                      <div key={f.id} className="flex flex-col gap-1">
+                        <label htmlFor={fieldId} className={labelClass}>
+                          {f.label}
+                        </label>
+                        <input
+                          id={fieldId}
+                          maxLength={60}
+                          placeholder={f.placeholder}
+                          value={draft.fields[q.id]?.[f.id] ?? ''}
+                          onChange={(e) =>
+                            update({
+                              ...draft,
+                              fields: { ...draft.fields, [q.id]: { ...draft.fields[q.id], [f.id]: e.target.value } },
+                            })
+                          }
+                          className={fieldClass}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
               {q.options.length > 0 && (
-                <div className="grid gap-2 sm:grid-cols-2">
+                <div className="grid grid-cols-2 gap-2">
                   {q.options.map((o) => {
                     const on = chosen.includes(o.id);
                     return (
@@ -190,22 +256,22 @@ export default function ClientBriefPage() {
                         key={o.id}
                         type="button"
                         aria-pressed={on}
-                        onClick={() => toggle(q.id, o.id, q.selection)}
-                        className={`flex min-h-[44px] flex-col items-start gap-1 border px-3 py-2 text-left transition-colors focus-visible:ring-2 focus-visible:ring-paper-100 ${
-                          on
-                            ? 'border-paper-100 bg-paper-100 text-ink-950'
-                            : 'border-smoke-700/60 bg-ink-900 text-paper-100'
+                        onClick={() => toggle(q, o.id)}
+                        className={`relative flex min-h-[44px] flex-col items-start gap-2 border-2 p-2 text-left transition-colors focus-visible:ring-2 focus-visible:ring-paper-100 ${
+                          on ? 'border-paper-100 bg-ink-900' : 'border-smoke-700/50 bg-ink-900/60'
                         }`}
                       >
-                        {o.swatches && (
-                          <span className="flex gap-1" aria-hidden>
-                            {o.swatches.map((c) => (
-                              <span key={c} className="h-4 w-4 border border-paper-100/30" style={{ backgroundColor: c }} />
-                            ))}
+                        {on && (
+                          <span
+                            className="absolute bottom-1 right-1 z-10 flex h-5 w-5 items-center justify-center bg-paper-100 font-mono text-xs font-bold text-ink-950"
+                            aria-hidden
+                          >
+                            ✓
                           </span>
                         )}
+                        <OptionVisual question={q} option={o} ctx={ctx} />
                         <span className="font-sans text-sm font-semibold">{o.label}</span>
-                        {o.hint && <span className="font-sans text-xs opacity-70">{o.hint}</span>}
+                        {o.hint && <span className="font-sans text-xs text-paper-100/70">{o.hint}</span>}
                       </button>
                     );
                   })}
@@ -213,11 +279,11 @@ export default function ClientBriefPage() {
               )}
 
               <label htmlFor={noteId} className={labelClass}>
-                {q.options.length > 0 ? 'Algo más (opcional)' : 'Tu respuesta'}
+                {q.options.length > 0 || q.fields ? 'Algo más (opcional)' : 'Tu respuesta'}
               </label>
               <textarea
                 id={noteId}
-                rows={q.options.length > 0 ? 2 : 3}
+                rows={q.options.length > 0 || q.fields ? 2 : 3}
                 maxLength={1000}
                 placeholder={q.notePlaceholder}
                 value={draft.notes[q.id] ?? ''}
