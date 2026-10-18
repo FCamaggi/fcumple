@@ -1762,7 +1762,9 @@ as $$
         and char_length(btrim(x ->> 'text')) >= 1
         and char_length(x ->> 'text') <= 60
         and public._frame_num(x, 'size', 0.005, 1)
-        and (not (x ? 'font') or (x ->> 'font') in ('sans', 'serif', 'mono', 'display', 'hand', 'typewriter'))
+        -- Las del sistema y las web de las capas (ver LAYER_FONTS en src/lib/cameraAssets/text.ts).
+        and (not (x ? 'font') or (x ->> 'font') in ('sans', 'serif', 'mono', 'display', 'hand', 'typewriter',
+                                                    'anton', 'playfair', 'pacifico', 'marker', 'elite'))
         and public._frame_color(x, 'color')
         and (not (x ? 'weight') or (x ->> 'weight') in ('normal', 'bold'))
         and public._frame_num(x, 'w', 0.05, 4)

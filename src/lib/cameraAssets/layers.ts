@@ -15,7 +15,7 @@
  */
 
 import type { ValidationResult } from './frames';
-import { FRAME_FONTS, drawFittedText, type FrameFont } from './text';
+import { LAYER_FONTS, drawFittedText, loadLayerFonts, type LayerFont } from './text';
 
 type Ctx = CanvasRenderingContext2D;
 
@@ -55,7 +55,7 @@ export interface TextLayer extends LayerBase {
   text: string;
   /** Alto del texto, relativo al lado menor. */
   size?: number;
-  font?: FrameFont;
+  font?: LayerFont;
   color?: string;
   weight?: 'normal' | 'bold';
   /** Ancho máximo, relativo al lado menor: el texto se achica o se trunca para caber. */
@@ -161,7 +161,7 @@ function validateLayer(raw: unknown): ValidationResult {
         return fail(`Los textos pueden tener hasta ${MAX_LAYER_TEXT_LENGTH} caracteres.`);
       }
       if ('size' in l && !isNumberIn(l.size, 0.005, 1)) return fail('El tamaño del texto está fuera de rango.');
-      if ('font' in l && !FRAME_FONTS.includes(l.font as FrameFont)) return fail('Tipografía no disponible.');
+      if ('font' in l && !LAYER_FONTS.includes(l.font as LayerFont)) return fail('Tipografía no disponible.');
       if ('color' in l && !isColor(l.color)) return fail('Los colores deben ser como #RRGGBB.');
       if ('weight' in l && l.weight !== 'normal' && l.weight !== 'bold') return fail('El grosor de letra no es válido.');
       if ('w' in l && !isNumberIn(l.w, 0.05, 4)) return fail('El ancho del texto está fuera de rango.');
@@ -233,6 +233,17 @@ export function sanitizeLayers(raw: unknown): FrameLayer[] {
 // Imágenes
 // ---------------------------------------------------------------------------
 
+/** Tipografías de las capas de texto, sin repetir (las que no declaran una usan `sans`). */
+export function collectLayerFonts(layers: readonly FrameLayer[]): LayerFont[] {
+  const fonts: LayerFont[] = [];
+  for (const layer of layers) {
+    if (layer.type !== 'text') continue;
+    const font = layer.font ?? 'sans';
+    if (!fonts.includes(font)) fonts.push(font);
+  }
+  return fonts;
+}
+
 /** Rutas de las imágenes que usan las capas, sin repetir y en orden de aparición. */
 export function collectImagePaths(layers: readonly FrameLayer[]): string[] {
   const paths: string[] = [];
@@ -254,17 +265,21 @@ function loadImage(url: string): Promise<CanvasImageSource> {
 }
 
 /**
- * Descarga las imágenes de las capas antes de dibujar (`renderFrame` es
- * síncrona). `resolveUrl` convierte la ruta de Storage en una URL; una imagen
+ * Descarga las imágenes y las tipografías web de las capas antes de dibujar
+ * (`renderFrame` es síncrona). `resolveUrl` convierte la ruta de Storage en una URL; una imagen
  * que falla se deja fuera y el resto del marco se dibuja igual.
  */
 export async function prepareFrameAssets(
   layers: readonly FrameLayer[],
   resolveUrl: (path: string) => string,
   load: (url: string) => Promise<CanvasImageSource> = loadImage,
+  loadFonts: (fonts: readonly string[]) => Promise<void> = loadLayerFonts,
 ): Promise<FrameAssets> {
   const paths = collectImagePaths(layers);
-  const results = await Promise.allSettled(paths.map((path) => load(resolveUrl(path))));
+  const [results] = await Promise.all([
+    Promise.allSettled(paths.map((path) => load(resolveUrl(path)))),
+    loadFonts(collectLayerFonts(layers)),
+  ]);
   const images = new Map<string, CanvasImageSource>();
   results.forEach((result, i) => {
     if (result.status === 'fulfilled') images.set(paths[i], result.value);

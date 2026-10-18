@@ -3,6 +3,7 @@ import { createMockCtx } from '../../test/mockCanvas';
 import {
   MAX_LAYERS,
   collectImagePaths,
+  collectLayerFonts,
   drawLayers,
   prepareFrameAssets,
   sanitizeLayers,
@@ -29,6 +30,7 @@ describe('validateLayers', () => {
         { type: 'image', src: IMAGE_PATH, w: 0.5, h: 0.5 },
         { type: 'image', src: IMAGE_PATH, full: true },
         { type: 'emoji', emoji: '🦇', size: 0.1, rotation: -15, opacity: 0.8, anchor: 'tl' },
+        { ...text, font: 'pacifico' },
         { ...rect, shadow: { color: '#000000', blur: 0.02, x: 0.01, y: 0.01 } },
       ]),
     ).toEqual({ ok: true });
@@ -45,6 +47,7 @@ describe('validateLayers', () => {
     ['texto vacío', [{ ...text, text: '' }]],
     ['texto de 61 caracteres', [{ ...text, text: 'a'.repeat(61) }]],
     ['tipografía fuera de la lista', [{ ...text, font: 'comic-sans' }]],
+    ['tipografía en mayúsculas', [{ ...text, font: 'Anton' }]],
     ['tamaño de texto fuera de rango', [{ ...text, size: 5 }]],
     ['posición que no es número', [{ ...rect, x: '0.5' }]],
     ['posición NaN', [{ ...rect, x: Number.NaN }]],
@@ -85,6 +88,20 @@ describe('sanitizeLayers', () => {
     expect(sanitizeLayers(Array.from({ length: MAX_LAYERS + 10 }, () => rect))).toHaveLength(MAX_LAYERS);
     expect(sanitizeLayers(null)).toEqual([]);
     expect(sanitizeLayers({ 0: rect })).toEqual([]);
+  });
+});
+
+describe('collectLayerFonts', () => {
+  it('devuelve las tipografías de las capas de texto, sin repetir', () => {
+    expect(
+      collectLayerFonts([
+        { ...text, font: 'anton' },
+        rect,
+        { ...text, font: 'pacifico' },
+        { ...text, font: 'anton' },
+        { type: 'text', text: 'sin fuente' },
+      ]),
+    ).toEqual(['anton', 'pacifico', 'sans']);
   });
 });
 
@@ -220,6 +237,12 @@ describe('drawLayers', () => {
 });
 
 describe('prepareFrameAssets', () => {
+  it('también carga las tipografías web de las capas de texto', async () => {
+    const loadFonts = vi.fn().mockResolvedValue(undefined);
+    await prepareFrameAssets([{ ...text, font: 'anton' }, rect], (p) => p, vi.fn(), loadFonts);
+    expect(loadFonts).toHaveBeenCalledWith(['anton']);
+  });
+
   it('carga cada imagen una vez con la URL que resuelve el llamador', async () => {
     const img = {} as CanvasImageSource;
     const load = vi.fn().mockResolvedValue(img);
