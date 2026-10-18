@@ -308,8 +308,24 @@ export function roundedRectPath(ctx: Ctx, x: number, y: number, w: number, h: nu
 
 const EMOJI_STACK = '"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif';
 
+/** Ancho y alto de la caja de la capa en píxeles (`unit` es el lado menor del lienzo). */
+export function layerSize(layer: FrameLayer, unit: number): [number, number] {
+  switch (layer.type) {
+    case 'text':
+      return [(layer.w ?? 2) * unit, (layer.size ?? 0.06) * unit];
+    case 'emoji': {
+      const side = (layer.size ?? 0.1) * unit;
+      return [side, side];
+    }
+    case 'shape':
+      return [(layer.w ?? 0.2) * unit, layer.shape === 'line' ? 0 : (layer.h ?? 0.2) * unit];
+    case 'image':
+      return [(layer.w ?? 0) * unit, (layer.h ?? 0) * unit];
+  }
+}
+
 /** Esquina superior izquierda de la caja respecto del punto de anclaje. */
-function anchorOffset(anchor: LayerAnchor, bw: number, bh: number): [number, number] {
+export function anchorOffset(anchor: LayerAnchor, bw: number, bh: number): [number, number] {
   switch (anchor) {
     case 'tl':
       return [0, 0];
@@ -395,25 +411,7 @@ function drawLayer(ctx: Ctx, w: number, h: number, unit: number, layer: FrameLay
   ctx.translate((layer.x ?? 0.5) * w, (layer.y ?? 0.5) * h);
   if (layer.rotation) ctx.rotate((layer.rotation * Math.PI) / 180);
 
-  let bw: number;
-  let bh: number;
-  switch (layer.type) {
-    case 'text':
-      bw = (layer.w ?? 2) * unit;
-      bh = (layer.size ?? 0.06) * unit;
-      break;
-    case 'emoji':
-      bw = bh = (layer.size ?? 0.1) * unit;
-      break;
-    case 'shape':
-      bw = (layer.w ?? 0.2) * unit;
-      bh = layer.shape === 'line' ? 0 : (layer.h ?? 0.2) * unit;
-      break;
-    case 'image':
-      bw = (layer.w ?? 0) * unit;
-      bh = (layer.h ?? 0) * unit;
-      break;
-  }
+  const [bw, bh] = layerSize(layer, unit);
   const [ox, oy] = anchorOffset(layer.anchor ?? 'center', bw, bh);
 
   switch (layer.type) {
