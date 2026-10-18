@@ -39,13 +39,13 @@ Restricciones vigentes:
 - Hoy ninguna columna guarda RUT, correo, teléfono ni PIN en claro, y un test lo verifica; el PIN va con hash bcrypt. Cambiarlo exige modificar ese test y documentarlo en `docs/fase-1-mvp-multitenant/`.
 - Sin pagos ni planes por ahora (Fase 2).
 - Supabase (Postgres, Auth, Storage, RLS) sin backend propio; SPA estática en Vercel.
+- Identificación del invitado: se mantiene **nombre y apellido con PIN** (decisión de 2026-10-18, sobre las alternativas de correo opcional o enlace personal). Si alguien olvida el PIN, el organizador restablece su acceso. Cualquier cambio exige antes revisar el test que prohíbe guardar correo o teléfono.
 - El enlace `/i/:token` es legado de la Fase 0, pendiente de retirar según la decisión D10 (`docs/estrategia/decisiones-de-alcance.md`).
 
 Planeado, sin decidir (no es capacidad actual):
 - Likes por foto: cada usuario puede dar uno.
 - Carrusel de fotos en la sección de anuncios, estilo Instagram: máximo 10 fotos, carga diferida (lazy).
 - Mejora de la calidad de las fotos que se descargan; la calidad de la vista previa importa menos.
-- Cómo se identifica y recupera el invitado para no quedar bloqueado en la fiesta. Opciones en estudio: correo (opcional, solo para recuperar), enlace personal de invitación, o mantener nombre y PIN. Sin decisión.
 - Nombre del producto: se está dejando de usar "fcumple" porque el producto será para cualquier cumpleaños. Nombre nuevo por decidir.
 - Este producto es genérico; cada cumpleaños concreto vive en su propia rama (la primera es `francisca`) y no debe acoplarse al producto.
 
