@@ -17,7 +17,7 @@ vi.mock('./cameraAssets/stickers', async (importOriginal) => ({
 }));
 
 import { supabase } from './supabaseClient';
-import { processStickerImage } from './cameraAssets/stickers';
+import { FRAME_IMAGE_LIMITS, processStickerImage } from './cameraAssets/stickers';
 import {
   addEmojiSticker,
   addImageSticker,
@@ -30,6 +30,7 @@ import {
   reorderFrames,
   setStickerEnabled,
   updateFrame,
+  uploadFrameImage,
 } from './cameraStudioApi';
 
 const from = supabase.from as unknown as ReturnType<typeof vi.fn>;
@@ -174,6 +175,26 @@ describe('stickers', () => {
     expect(path).toMatch(/^ev-1\/stickers\/[0-9a-f-]{36}\.webp$/);
     expect(options).toEqual({ contentType: 'image/webp' });
     expect(q.call('insert')![0]).toMatchObject({ event_id: 'ev-1', kind: 'image', storage_path: path });
+  });
+
+  it('uploadFrameImage procesa con los límites de marcos y sube a {event_id}/frames/ sin crear filas', async () => {
+    vi.mocked(processStickerImage).mockResolvedValue(new Blob(['x'], { type: 'image/webp' }));
+
+    const path = await uploadFrameImage('ev-1', new File(['x'], 'a.png', { type: 'image/png' }));
+
+    expect(path).toMatch(/^ev-1\/frames\/[0-9a-f-]{36}\.webp$/);
+    expect(storageUpload).toHaveBeenCalledWith(path, expect.any(Blob), { contentType: 'image/webp' });
+    expect(vi.mocked(processStickerImage).mock.calls[0][1]).toEqual(FRAME_IMAGE_LIMITS);
+    expect(from).not.toHaveBeenCalled();
+  });
+
+  it('uploadFrameImage falla con un mensaje claro si la subida falla o la imagen no sirve', async () => {
+    vi.mocked(processStickerImage).mockResolvedValue(new Blob(['x'], { type: 'image/png' }));
+    storageUpload.mockResolvedValue({ error: { message: 'x' } });
+    await expect(uploadFrameImage('ev-1', new File(['x'], 'a.png', { type: 'image/png' }))).rejects.toThrow(/No pudimos subir/);
+
+    vi.mocked(processStickerImage).mockRejectedValue(new Error('Usa una imagen PNG, WebP o JPG.'));
+    await expect(uploadFrameImage('ev-1', new File(['x'], 'a.svg', { type: 'image/svg+xml' }))).rejects.toThrow(/PNG, WebP/);
   });
 
   it('addImageSticker no sube nada si la imagen no se puede procesar', async () => {

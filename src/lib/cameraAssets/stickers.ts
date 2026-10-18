@@ -156,6 +156,15 @@ export function computeTargetSize(width: number, height: number, max = STICKER_M
   return { width: Math.max(1, Math.round(width * scale)), height: Math.max(1, Math.round(height * scale)) };
 }
 
+export interface ImageLimits {
+  maxDimension: number;
+  maxBytes: number;
+}
+
+/** Los stickers son chicos; las imágenes de las capas de un marco pueden cubrir toda la foto. */
+export const STICKER_IMAGE_LIMITS: ImageLimits = { maxDimension: STICKER_MAX_DIMENSION, maxBytes: STICKER_MAX_BYTES };
+export const FRAME_IMAGE_LIMITS: ImageLimits = { maxDimension: 1600, maxBytes: 1024 * 1024 };
+
 export class StickerImageError extends Error {}
 
 function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality?: number): Promise<Blob | null> {
@@ -164,11 +173,11 @@ function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality?: number)
 
 /**
  * Prepara la imagen del organizador antes de subirla: solo PNG/WebP/JPEG (no
- * SVG), reducida a 512 px y convertida a WebP (conserva transparencia), bajando
- * la calidad hasta pesar menos de ~300 KB. El re-dibujado en un canvas
- * descarta los metadatos EXIF.
+ * SVG), reducida al máximo de `limits` (512 px y ~300 KB para un sticker) y
+ * convertida a WebP (conserva transparencia), bajando la calidad hasta que
+ * quepa. El re-dibujado en un canvas descarta los metadatos EXIF.
  */
-export async function processStickerImage(file: File): Promise<Blob> {
+export async function processStickerImage(file: File, limits: ImageLimits = STICKER_IMAGE_LIMITS): Promise<Blob> {
   if (!STICKER_ACCEPTED_TYPES.includes(file.type)) {
     throw new StickerImageError('Usa una imagen PNG, WebP o JPG.');
   }
@@ -180,7 +189,7 @@ export async function processStickerImage(file: File): Promise<Blob> {
     throw new StickerImageError('No pudimos leer esa imagen.');
   }
 
-  const { width, height } = computeTargetSize(bitmap.width, bitmap.height);
+  const { width, height } = computeTargetSize(bitmap.width, bitmap.height, limits.maxDimension);
   const canvas = document.createElement('canvas');
   canvas.width = width;
   canvas.height = height;
@@ -191,10 +200,10 @@ export async function processStickerImage(file: File): Promise<Blob> {
 
   for (const quality of [0.9, 0.75, 0.6, 0.45]) {
     const blob = await canvasToBlob(canvas, 'image/webp', quality);
-    if (blob && blob.type === 'image/webp' && blob.size <= STICKER_MAX_BYTES) return blob;
+    if (blob && blob.type === 'image/webp' && blob.size <= limits.maxBytes) return blob;
     // Safari antiguo no exporta WebP: cae a PNG, que conserva la transparencia.
     if (blob && blob.type !== 'image/webp') {
-      if (blob.size <= STICKER_MAX_BYTES) return blob;
+      if (blob.size <= limits.maxBytes) return blob;
       break;
     }
   }

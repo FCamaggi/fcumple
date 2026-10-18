@@ -13,6 +13,7 @@ import {
   isSingleEmoji,
   moveBy,
   newPlacement,
+  FRAME_IMAGE_LIMITS,
   processStickerImage,
   rotateBy,
   scaleBy,
@@ -186,6 +187,17 @@ describe('processStickerImage', () => {
     vi.stubGlobal('createImageBitmap', vi.fn().mockResolvedValue({ width: 10, height: 10 }));
     stubCanvas([999_999]);
     await expect(processStickerImage(file('image/png'))).rejects.toThrow(/muy pesada/);
+  });
+
+  it('con los límites de las imágenes de marcos conserva hasta 1600 px y acepta hasta 1 MB', async () => {
+    vi.stubGlobal('createImageBitmap', vi.fn().mockResolvedValue({ width: 4000, height: 2000, close: vi.fn() }));
+    const { ctx } = stubCanvas([900_000]);
+
+    const blob = await processStickerImage(file('image/png'), FRAME_IMAGE_LIMITS);
+
+    expect(blob.size).toBe(900_000);
+    expect(ctx.drawImage).toHaveBeenCalledWith(expect.anything(), 0, 0, 1600, 800);
+    expect(FRAME_IMAGE_LIMITS).toEqual({ maxDimension: 1600, maxBytes: 1024 * 1024 });
   });
 
   it('en navegadores sin WebP cae a PNG si cabe', async () => {

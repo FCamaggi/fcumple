@@ -259,6 +259,31 @@ describe('prepareFrameAssets', () => {
     expect(assets.images.get(IMAGE_PATH)).toBe(img);
   });
 
+  it('acepta un resolveUrl asíncrono (las URL firmadas de Storage lo son)', async () => {
+    const img = {} as CanvasImageSource;
+    const load = vi.fn().mockResolvedValue(img);
+    const assets = await prepareFrameAssets(
+      [{ type: 'image', src: IMAGE_PATH, full: true }],
+      async (path) => `https://signed.example/${path}?token=abc`,
+      load,
+      vi.fn().mockResolvedValue(undefined),
+    );
+    expect(load).toHaveBeenCalledWith(`https://signed.example/${IMAGE_PATH}?token=abc`);
+    expect(assets.images.get(IMAGE_PATH)).toBe(img);
+  });
+
+  it('si resolver la URL falla, esa imagen queda fuera y el resto sigue', async () => {
+    const other = `${EVENT}/frames/otra.png`;
+    const img = {} as CanvasImageSource;
+    const assets = await prepareFrameAssets(
+      [{ type: 'image', src: IMAGE_PATH, full: true }, { type: 'image', src: other, full: true }],
+      (path) => (path === IMAGE_PATH ? Promise.reject(new Error('sin permiso')) : Promise.resolve(path)),
+      vi.fn().mockResolvedValue(img),
+      vi.fn().mockResolvedValue(undefined),
+    );
+    expect([...assets.images.keys()]).toEqual([other]);
+  });
+
   it('si una imagen falla, sigue con las demás y deja esa fuera', async () => {
     const other = `${EVENT}/frames/otra.png`;
     const img = {} as CanvasImageSource;

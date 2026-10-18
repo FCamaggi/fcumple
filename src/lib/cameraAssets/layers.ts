@@ -271,13 +271,13 @@ function loadImage(url: string): Promise<CanvasImageSource> {
  */
 export async function prepareFrameAssets(
   layers: readonly FrameLayer[],
-  resolveUrl: (path: string) => string,
+  resolveUrl: (path: string) => string | Promise<string>,
   load: (url: string) => Promise<CanvasImageSource> = loadImage,
   loadFonts: (fonts: readonly string[]) => Promise<void> = loadLayerFonts,
 ): Promise<FrameAssets> {
   const paths = collectImagePaths(layers);
   const [results] = await Promise.all([
-    Promise.allSettled(paths.map((path) => load(resolveUrl(path)))),
+    Promise.allSettled(paths.map(async (path) => load(await resolveUrl(path)))),
     loadFonts(collectLayerFonts(layers)),
   ]);
   const images = new Map<string, CanvasImageSource>();
