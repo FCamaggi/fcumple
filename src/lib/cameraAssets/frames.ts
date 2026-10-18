@@ -12,11 +12,14 @@
  * sincronizados.
  */
 
+import { FONT_LABELS, FONT_STACKS, FRAME_FONTS, drawFittedText } from './text';
+import type { FrameFont, TextOptions } from './text';
+
+export { FONT_LABELS, FONT_STACKS, FRAME_FONTS, drawFittedText };
+export type { FrameFont, TextOptions };
+
 export const FRAME_TEMPLATES = ['border', 'polaroid', 'film', 'viewfinder', 'banner', 'glow'] as const;
 export type FrameTemplate = (typeof FRAME_TEMPLATES)[number];
-
-export const FRAME_FONTS = ['sans', 'serif', 'mono', 'display', 'hand', 'typewriter'] as const;
-export type FrameFont = (typeof FRAME_FONTS)[number];
 
 export interface FrameParams {
   primaryColor?: string;
@@ -63,25 +66,6 @@ export const TEMPLATE_FIELDS: Record<FrameTemplate, FrameField[]> = {
   viewfinder: ['primaryColor', 'textColor', 'title', 'font', 'thickness'],
   banner: ['primaryColor', 'textColor', 'title', 'subtitle', 'font', 'position'],
   glow: ['primaryColor', 'secondaryColor', 'thickness'],
-};
-
-export const FONT_LABELS: Record<FrameFont, string> = {
-  sans: 'Moderna',
-  serif: 'Clásica',
-  mono: 'Técnica',
-  display: 'Titular',
-  hand: 'Manuscrita',
-  typewriter: 'Máquina de escribir',
-};
-
-/** Pilas de fuentes del sistema: sin descargas, y el canvas las resuelve igual que el DOM. */
-export const FONT_STACKS: Record<FrameFont, string> = {
-  sans: '"Helvetica Neue", Helvetica, Arial, sans-serif',
-  serif: 'Georgia, "Times New Roman", serif',
-  mono: 'ui-monospace, "SF Mono", Menlo, Consolas, monospace',
-  display: 'Impact, "Arial Narrow Bold", "Arial Black", sans-serif',
-  hand: '"Bradley Hand", "Segoe Print", "Comic Sans MS", cursive',
-  typewriter: '"American Typewriter", "Courier New", Courier, monospace',
 };
 
 const COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
@@ -212,54 +196,6 @@ function roundedRectPath(ctx: Ctx, x: number, y: number, w: number, h: number, r
   ctx.lineTo(x, y + radius);
   ctx.arcTo(x, y, x + radius, y, radius);
   ctx.closePath();
-}
-
-export interface TextOptions {
-  font: FrameFont;
-  color: string;
-  weight?: 'normal' | 'bold';
-  align?: CanvasTextAlign;
-}
-
-/**
- * Dibuja un texto en una sola línea que SIEMPRE cabe en `maxWidth`: primero
- * reduce el tamaño (hasta `minSize`) y, si aun así no cabe, lo trunca con "…".
- */
-export function drawFittedText(
-  ctx: Ctx,
-  text: string,
-  x: number,
-  y: number,
-  maxWidth: number,
-  maxSize: number,
-  options: TextOptions,
-): void {
-  const trimmed = text.trim();
-  if (!trimmed || maxWidth <= 0 || maxSize <= 0) return;
-
-  const weight = options.weight ?? 'normal';
-  const minSize = Math.max(6, maxSize * 0.35);
-  const family = FONT_STACKS[options.font];
-  const setFont = (size: number) => {
-    ctx.font = `${weight} ${Math.round(size)}px ${family}`;
-  };
-
-  let size = maxSize;
-  setFont(size);
-  while (ctx.measureText(trimmed).width > maxWidth && size > minSize) {
-    size *= 0.92;
-    setFont(size);
-  }
-
-  let shown = trimmed;
-  while (shown.length > 1 && ctx.measureText(shown).width > maxWidth) {
-    shown = `${shown.slice(0, -2).trimEnd()}…`;
-  }
-
-  ctx.fillStyle = options.color;
-  ctx.textAlign = options.align ?? 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(shown, x, y);
 }
 
 function drawBorder(ctx: Ctx, w: number, h: number, unit: number, p: FrameParams): void {
