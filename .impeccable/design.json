@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-17T23:30:00-03:00",
+  "title": "Design System: Cámara de cumpleaños",
+  "extensions": {
+    "colorMeta": {
+      "ink-950": { "role": "neutral", "displayName": "Tinta profunda", "canonical": "oklch(16% 0.015 298)", "tonalRamp": ["#0c0a11", "#2f2c35", "#4e4b54", "#6f6d77", "#93909a", "#b8b5c0", "#d8d6e0", "#efedf8"] },
+      "ink-900": { "role": "neutral", "displayName": "Tinta de superficie", "canonical": "oklch(19% 0.023 301)", "tonalRamp": ["#0d0913", "#302b38", "#4f4a58", "#716c7a", "#948f9e", "#bab4c4", "#dad4e4", "#f1ebfc"] },
+      "smoke-700": { "role": "neutral", "displayName": "Humo", "canonical": "oklch(33% 0.033 305)", "tonalRamp": ["#0e0716", "#322a3b", "#51495c", "#736a7e", "#978da3", "#bcb2c9", "#dcd2e9", "#f3e9ff"] },
+      "paper-100": { "role": "neutral", "displayName": "Papel", "canonical": "oklch(95% 0.016 314)", "tonalRamp": ["#0e0910", "#312b34", "#504b54", "#726c76", "#968f99", "#bbb4bf", "#dbd4df", "#f2ebf6"] },
+      "hotpink-500": { "role": "secondary", "displayName": "Rosa fuerte", "canonical": "oklch(67% 0.247 358)", "tonalRamp": ["#42000a", "#79002c", "#a4004b", "#d0006d", "#fd2c90", "#ff5eb5", "#ff83d5", "#ff9bec"] },
+      "acid-400": { "role": "primary", "displayName": "Ácido", "canonical": "oklch(93% 0.215 125)", "tonalRamp": ["#001100", "#163900", "#345b00", "#538000", "#75a600", "#99cd00", "#b8ee1e", "#cfff47"] },
+      "laser-500": { "role": "secondary", "displayName": "Láser", "canonical": "oklch(83% 0.145 187)", "tonalRamp": ["#001815", "#00413a", "#00635a", "#00887d", "#00ada1", "#00d4c7", "#34f6e7", "#59ffff"] },
+      "flame-500": { "role": "tertiary", "displayName": "Llama", "canonical": "oklch(68% 0.211 38)", "tonalRamp": ["#410000", "#760000", "#a00000", "#cb2200", "#f75212", "#ff7b46", "#ff9d69", "#ffb580"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Títulos de pantalla y botones primarios, en mayúsculas." },
+      "body": { "displayName": "Body", "purpose": "Texto de campos y párrafos cortos." },
+      "label": { "displayName": "Label", "purpose": "Datos de sistema: etiquetas, estados y cupos, en mayúsculas." }
+    },
+    "shadows": [
+      { "name": "card", "value": "0 25px 50px -12px rgb(0 0 0 / 0.25)", "purpose": "Tarjetas y paneles sobre el fondo." },
+      { "name": "inset", "value": "inset 0 2px 4px 0 rgb(0 0 0 / 0.05)", "purpose": "Contador de rollo hundido." },
+      { "name": "glow-accent", "value": "0 0 24px -2px rgba(200, 255, 61, 0.45)", "purpose": "Brillo del botón primario en la piel actual; pertenece a la piel, no al sistema." }
+    ],
+    "motion": [
+      { "name": "counter-tick", "value": "180ms linear", "purpose": "El dígito del contador baja al sacar una foto." },
+      { "name": "press", "value": "scale(0.98)", "purpose": "Respuesta al pulsar el botón primario." },
+      { "name": "reduced-motion", "value": "0.001ms", "purpose": "Con prefers-reduced-motion toda animación y transición se reduce a un instante." }
+    ],
+    "breakpoints": []
+  },
+  "components": [
+    {
+      "name": "Botón primario",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Acción principal de cada pantalla; un solo botón así por pantalla.",
+      "html": "<button class=\"ds-btn-primary\">Inscribirme y entrar</button>",
+      "css": ".ds-btn-primary { height: 44px; padding: 0 24px; background: #c8ff3d; color: #0d0b12; border: none; border-radius: 0; font-family: Anton, Impact, sans-serif; font-size: 14px; letter-spacing: 0.05em; text-transform: uppercase; box-shadow: 0 0 24px -2px rgba(200,255,61,0.45); transition: transform 0.15s; cursor: pointer; } .ds-btn-primary:active { transform: scale(0.98); } .ds-btn-primary:focus-visible { outline: 2px solid #f3ecf7; outline-offset: 2px; } .ds-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }"
+    },
+    {
+      "name": "Selector de modo",
+      "kind": "chip",
+      "refersTo": "button-toggle-off",
+      "description": "Dos opciones excluyentes, la activa llena de acento.",
+      "html": "<div class=\"ds-toggle\"><button class=\"ds-toggle-on\">Inscribirme</button><button class=\"ds-toggle-off\">Ya me inscribí</button></div>",
+      "css": ".ds-toggle { display: flex; gap: 8px; } .ds-toggle button { flex: 1; height: 36px; border-radius: 0; font-family: 'Space Mono', ui-monospace, monospace; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; cursor: pointer; } .ds-toggle-on { background: #c8ff3d; color: #0d0b12; border: none; } .ds-toggle-off { background: transparent; color: #f3ecf7; border: 1px solid rgba(58,50,68,0.6); } .ds-toggle button:focus-visible { outline: 2px solid #f3ecf7; outline-offset: 2px; }"
+    },
+    {
+      "name": "Campo de texto",
+      "kind": "input",
+      "refersTo": "input-field",
+      "description": "Campo sobre tarjeta, con etiqueta mono encima.",
+      "html": "<label class=\"ds-label\">Nombre y apellido<input class=\"ds-input\" placeholder=\"Ana Rojas\"></label>",
+      "css": ".ds-label { display: flex; flex-direction: column; gap: 4px; font-family: 'Space Mono', ui-monospace, monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(243,236,247,0.7); } .ds-input { background: #0d0b12; color: #f3ecf7; border: none; border-radius: 0; padding: 8px 12px; font-family: 'Space Grotesk', system-ui, sans-serif; font-size: 14px; } .ds-input:focus-visible { outline: 2px solid #00e6d8; outline-offset: 0; }"
+    },
+    {
+      "name": "Tarjeta de formulario",
+      "kind": "card",
+      "refersTo": "card-form",
+      "description": "Contenedor de pantalla de entrada con etiqueta de evento y título.",
+      "html": "<div class=\"ds-card\"><span class=\"ds-event\">Cumpleaños</span><h1 class=\"ds-title\">Inscríbete</h1></div>",
+      "css": ".ds-card { max-width: 384px; padding: 24px; background: #16121d; border: 1px solid rgba(58,50,68,0.4); box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25); display: flex; flex-direction: column; gap: 4px; } .ds-event { font-family: 'Space Mono', ui-monospace, monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #00e6d8; } .ds-title { margin: 0; font-family: Anton, Impact, sans-serif; font-size: 24px; letter-spacing: 0.025em; text-transform: uppercase; color: #f3ecf7; }"
+    },
+    {
+      "name": "Contador de rollo",
+      "kind": "custom",
+      "refersTo": "",
+      "description": "Disparos restantes en una ventanita mono; pasa a llama al agotarse.",
+      "html": "<div class=\"ds-roll\"><div class=\"ds-roll-window\">3</div><div class=\"ds-roll-text\"><span class=\"ds-roll-title\">Rollo // disparos</span><span class=\"ds-roll-sub\">de 5 en total</span></div></div>",
+      "css": ".ds-roll { display: flex; align-items: center; gap: 12px; padding: 12px; background: #0d0b12; box-shadow: inset 0 2px 4px 0 rgb(0 0 0 / 0.05); } .ds-roll-window { width: 64px; height: 48px; display: flex; align-items: center; justify-content: center; border: 2px solid rgba(58,50,68,0.6); background: #16121d; font-family: 'Space Mono', ui-monospace, monospace; font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; color: #c8ff3d; } .ds-roll-text { display: flex; flex-direction: column; font-family: 'Space Mono', ui-monospace, monospace; text-transform: uppercase; color: rgba(243,236,247,0.7); } .ds-roll-title { font-size: 10px; font-weight: 700; letter-spacing: 0.05em; } .ds-roll-sub { font-size: 11px; letter-spacing: 0.025em; }"
+    },
+    {
+      "name": "Perforación del boleto",
+      "kind": "custom",
+      "refersTo": "",
+      "description": "Línea punteada con muescas de la entrada del evento.",
+      "html": "<div class=\"ds-ticket\"><div class=\"ds-perforation\"></div></div>",
+      "css": ".ds-ticket { position: relative; width: 320px; height: 24px; background: #0d0b12; } .ds-perforation { position: absolute; inset: 0; background-image: repeating-linear-gradient(to right, #3a3244 0, #3a3244 6px, transparent 6px, transparent 14px); background-size: 100% 2px; background-repeat: no-repeat; background-position: center; } .ds-ticket::before, .ds-ticket::after { content: ''; position: absolute; top: 50%; width: 16px; height: 16px; border-radius: 9999px; background: #16121d; transform: translateY(-50%); } .ds-ticket::before { left: -8px; } .ds-ticket::after { right: -8px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "La entrada y el rollo",
+    "overview": "El sistema se apoya en dos objetos: la entrada de un evento y el rollo de una cámara desechable. Cada invitado recibe un boleto que lo identifica y un cupo limitado de disparos que se descuenta con cada foto. La interfaz tiene que dejar claro, sin explicarlo, que esto es para una fiesta concreta, con fecha y lugar, y que cada foto cuenta.\n\nEl tono es nocturno y directo: fondo oscuro, texto corto en mayúsculas, etiquetas de máquina y formas rectas. Es adulto, de fiesta, sin infantilismo. No depende del neón. Los colores de acento de hoy pertenecen a la piel del cumpleaños anterior; lo que se mantiene entre eventos es la estructura.",
+    "keyCharacteristics": [
+      "Un boleto de evento y un contador de rollo como piezas con identidad propia.",
+      "Tres voces tipográficas con roles fijos: titular, texto y etiqueta de máquina.",
+      "Esquinas rectas, bordes finos y fondos por capas de tono en vez de sombras negras.",
+      "Un único acento fuerte por pantalla; el resto, contraste de tinta y papel.",
+      "Solo modo oscuro."
+    ],
+    "rules": [
+      { "name": "La Piel Es de la Rama", "body": "Los cuatro acentos son la piel del cumpleaños anterior, no la identidad del producto. Cada rama de cumpleaños define sus propios acentos; los neutros y los roles se conservan.", "section": "colors" },
+      { "name": "La Regla de Una Voz", "body": "En una pantalla hay un solo acento fuerte para la acción principal. Los demás acentos nombran estados o etiquetas y nunca compiten con ella.", "section": "colors" },
+      { "name": "La Regla de Máquina", "body": "Todo lo que parece dato de sistema va en Space Mono y en mayúsculas. Los titulares van en Anton. No se mezclan los roles.", "section": "typography" },
+      { "name": "La Regla del Foco en la Foto", "body": "La interfaz nunca tapa ni procesa la foto: el rollo es un concepto de cupo, no un filtro.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do mantener un único acento fuerte por pantalla para la acción principal.",
+      "Do poner datos de sistema (etiquetas, estados, cupos) en Space Mono y en mayúsculas.",
+      "Do que el boleto muestre claramente que es la entrada a un evento: nombre, fecha y lugar de ese cumpleaños.",
+      "Do respetar prefers-reduced-motion: el sistema ya reduce todas las animaciones a un instante.",
+      "Do definir los acentos en cada rama de cumpleaños y conservar los neutros y los roles."
+    ],
+    "donts": [
+      "Don't aplicar grano, viraje ni filtro a las fotos: el rollo es el cupo, no un efecto.",
+      "Don't hacer que el boleto parezca un pase de abordar de avión.",
+      "Don't tratar los acentos neón actuales como la identidad del producto.",
+      "Don't usar esquinas redondeadas en botones, campos o tarjetas.",
+      "Don't usar Anton para datos de sistema, ni Space Mono para titulares."
+    ]
+  }
+}
