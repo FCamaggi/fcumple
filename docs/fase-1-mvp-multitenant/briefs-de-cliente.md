@@ -7,7 +7,10 @@ Antes de armar el evento de un cumpleaños hay que saber qué estilo quiere quie
 - Ruta pública: `/brief/:slug` (por ejemplo `/brief/francisca`). No requiere cuenta.
 - El motor está en `src/pages/ClientBriefPage.tsx`; carga su propio chunk, así que quien entra como invitado no lo descarga.
 - Las preguntas de cada cliente están en `src/briefs/<slug>.ts` (un `export default` con la forma de `BriefDefinition`, en `src/briefs/types.ts`). El registro (`src/briefs/registry.ts`) los descubre solo: no hay que registrar nada.
-- Cada pregunta tiene opciones (una o varias, según `selection`) y una nota libre. Las preguntas sin opciones son solo texto libre.
+- Cada pregunta tiene opciones (una o varias, según `selection`; `max` limita cuántas) y una nota libre. Las preguntas sin opciones son solo texto libre. Una opción con `exclusive` (por ejemplo "lo conversamos en privado") desmarca las demás.
+- **Vistas previas:** cada opción se dibuja según el `visual` de su pregunta: `palette` (muestras de color), `font` (el nombre con la tipografía real), `ambiente` (escena mínima con la paleta), `frame` (marco de ejemplo), `emoji` (stickers) y `roll` (disparos como fotogramas).
+- **Lo elegido antes se aplica después.** La paleta, la tipografía y los textos (una pregunta con `fields`: nombre y fecha) alimentan las vistas siguientes, así que el orden de las preguntas importa: primero paleta, letras y textos; después ambiente y marcos.
+- Los marcos de ejemplo usan el **mismo renderizador de la cámara** (`FramePreview`, plantillas de `src/lib/cameraAssets/frames.ts`) y sus tipografías son las seis de sistema de la cámara, que dependen del dispositivo de quien las vea. La excepción es el marco `conejita`, una propuesta ilustrada "a medida": no existe como plantilla de la cámara (marcos PNG propios y editor libre están en la Fase 3 del backlog).
 - El avance se guarda en el navegador de quien responde (`localStorage`, clave `brief-draft:<slug>`), y se puede volver a entrar y enviar de nuevo.
 - Si el envío falla, **Copiar mis respuestas** deja el texto en el portapapeles para mandarlo por mensaje.
 
