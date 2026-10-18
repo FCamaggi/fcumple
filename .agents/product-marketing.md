@@ -1,10 +1,10 @@
 # Product Marketing Context
 
-**Document version:** v4
+**Document version:** v5
 **Last updated:** 2026-10-18
 
 ## Product Overview
-**One-liner:** Una cámara desechable digital para eventos: cada invitado tiene un cupo de fotos, y todos acceden a las fotos de todos.
+**One-liner:** Una cámara desechable digital para eventos festivos: cada invitado tiene un cupo de fotos, y todos acceden a las fotos de todos.
 **What it does:** Quien organiza el cumpleaños manda un enlace; los invitados crean su usuario, confirman asistencia y, el día de la fiesta, activan la cámara con un QR. Sacan fotos con los marcos y stickers que eligió el organizador, dentro de un cupo limitado. El organizador modera las fotos y las revela.
 **Product category:** Cámara de fotos para eventos / cámara desechable digital (por confirmar cómo lo buscaría un cliente).
 **Product type:** Aplicación web (sin instalar), multi-evento.
@@ -20,7 +20,7 @@
 - Que los invitados participen sin instalar nada y con los mínimos datos personales.
 **Use cases:**
 - Fiesta de disfraces (el primer cliente es el cumpleaños de Francisca, Halloween adulto).
-- Cualquier tipo de evento (decisión 2026-10-18): el producto es genérico y cada evento se configura aparte.
+- Eventos festivos e informales (decisión 2026-10-18): cumpleaños, carretes y matrimonios que terminan en carrete; el producto es genérico y cada evento se configura aparte.
 
 ## Personas
 B2C, no aplica. Dos roles dentro del producto:
@@ -128,6 +128,7 @@ Basado en el texto real de la interfaz:
 
 ## Changelog
 *Newest first. One line per revision: what changed and why.*
+- v5 (2026-10-18) — Alcance acotado de "cualquier evento" a eventos festivos e informales tras el módulo 7 de la entrevista de marca; la marca es de estudio, con identidad propia, no del fundador.
 - v4 (2026-10-18) — Voz y tono por contexto (previa, carrete, errores, after) y regla de jerga, tras el módulo 5 de la entrevista de marca; palabras a evitar propuestas ("usuario", "plataforma").
 - v3 (2026-10-18) — Audiencia, anti-persona, evidencia y lenguaje de clientes actualizados tras el módulo 3 de la entrevista de marca: cliente de 20 a 27 años, carrete chileno, 20 a 100 invitados; se excluyen eventos formales, masivos y funerales.
 - v2 (2026-10-18) — Ampliado el alcance de cumpleaños a cualquier tipo de evento y ajustado el one-liner tras los módulos 1 y 2 de la entrevista de marca (`docs/marca/`); se anota que ver las fotos durante el evento aún no está construido.
