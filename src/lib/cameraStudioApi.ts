@@ -1,6 +1,6 @@
 import { supabase } from './supabaseClient';
 import { sanitizeFrameParams, validateFrameParams, type FrameParams, type FrameTemplate } from './cameraAssets/frames';
-import { isSingleEmoji, processStickerImage } from './cameraAssets/stickers';
+import { FRAME_IMAGE_LIMITS, isSingleEmoji, processStickerImage } from './cameraAssets/stickers';
 
 /**
  * Capa de datos del "estudio de cámara" del organizador: marcos paramétricos y
@@ -176,6 +176,21 @@ export async function addEmojiSticker(eventId: string, emoji: string, sortOrder 
     .single();
   if (error) throw assetError(error, 'sticker');
   return mapSticker(data as StickerRow);
+}
+
+/**
+ * Procesa la imagen de una capa (hasta 1600 px, WebP, < 1 MB) y la sube a
+ * `{event_id}/frames/`. Devuelve la ruta que va en la capa `image`; no crea filas:
+ * el archivo queda referenciado cuando el organizador guarda el marco.
+ */
+export async function uploadFrameImage(eventId: string, file: File): Promise<string> {
+  const blob = await processStickerImage(file, FRAME_IMAGE_LIMITS);
+  const extension = blob.type === 'image/webp' ? 'webp' : 'png';
+  const path = `${eventId}/frames/${crypto.randomUUID()}.${extension}`;
+
+  const { error } = await supabase.storage.from(BUCKET).upload(path, blob, { contentType: blob.type });
+  if (error) throw new Error('No pudimos subir la imagen. Intenta de nuevo.');
+  return path;
 }
 
 /** Procesa la imagen (512 px, WebP, < 300 KB), la sube a `{event_id}/stickers/` y crea el sticker. */

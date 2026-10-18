@@ -197,6 +197,8 @@ function frameParams(frame: Exclude<BriefFrame, 'conejita'>, ctx: BriefContext):
       return { primaryColor: palette.accent, secondaryColor: palette.soft, thickness: 0.18 };
     case 'border':
       return { primaryColor: palette.accent, thickness: 0.04, radius: 0.05 };
+    case 'capas':
+      return { layers: [] };
   }
 }
 

@@ -12,6 +12,7 @@ import {
   type FrameTemplate,
 } from '../../lib/cameraAssets/frames';
 import FramePreview from './FramePreview';
+import LayerEditor from './LayerEditor';
 
 interface FrameEditorProps {
   template: FrameTemplate;
@@ -20,6 +21,10 @@ interface FrameEditorProps {
   saving?: boolean;
   onSave: (label: string, params: FrameParams) => void;
   onCancel: () => void;
+  /** Solo la plantilla `capas`: sube una imagen y devuelve su ruta en Storage. */
+  uploadImage?: (file: File) => Promise<string>;
+  /** Solo la plantilla `capas`: firma la ruta de una imagen para mostrarla. */
+  resolveImageUrl?: (path: string) => Promise<string>;
 }
 
 const SWATCHES = ['#ff4fa3', '#ff7a45', '#f5d36b', '#3ddc97', '#4fc3ff', '#9b6bff', '#ffffff', '#111111'];
@@ -35,6 +40,7 @@ const FIELD_LABELS: Record<FrameField, string> = {
   thickness: 'Grosor',
   radius: 'Redondeo',
   position: 'Posición',
+  layers: 'Capas',
 };
 
 const inputClass = 'bg-ink-950 px-3 py-2 font-sans text-sm text-paper-100 outline-none';
@@ -47,7 +53,16 @@ const SLIDER_MAX: Partial<Record<FrameField, number>> = { thickness: 0.3, radius
  * FrameEditor — edita los colores, textos y tipografía de un marco con vista
  * previa en vivo. Solo muestra los controles que la plantilla usa.
  */
-export default function FrameEditor({ template, initialLabel, initialParams, saving, onSave, onCancel }: FrameEditorProps) {
+export default function FrameEditor({
+  template,
+  initialLabel,
+  initialParams,
+  saving,
+  onSave,
+  onCancel,
+  uploadImage,
+  resolveImageUrl,
+}: FrameEditorProps) {
   const [label, setLabel] = useState(initialLabel);
   const [params, setParams] = useState<FrameParams>(initialParams);
   const [error, setError] = useState<string | null>(null);
@@ -199,13 +214,24 @@ export default function FrameEditor({ template, initialLabel, initialParams, sav
             </select>
           </div>
         );
+      case 'layers':
+        return (
+          <LayerEditor
+            key={field}
+            layers={params.layers ?? []}
+            onChange={(layers) => set('layers', layers)}
+            uploadImage={uploadImage}
+            resolveImageUrl={resolveImageUrl}
+          />
+        );
     }
   }
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4" aria-label={`Editar marco ${TEMPLATE_LABELS[template]}`}>
       <div className="flex flex-wrap gap-4">
-        <FramePreview template={template} params={cleaned} width={180} height={240} />
+        {/* Las capas traen su propio lienzo de edición, que ya es la vista previa. */}
+        {template !== 'capas' && <FramePreview template={template} params={cleaned} width={180} height={240} />}
 
         <div className="flex min-w-[220px] flex-1 flex-col gap-3">
           <div className="flex flex-col gap-1">

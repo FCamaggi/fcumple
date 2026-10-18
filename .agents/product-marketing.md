@@ -1,17 +1,17 @@
 # Product Marketing Context
 
-**Document version:** v1
+**Document version:** v5
 **Last updated:** 2026-10-18
 
 ## Product Overview
-**One-liner:** Una cámara desechable digital para cumpleaños: cada invitado tiene un cupo de fotos, y la fiesta se revela después.
+**One-liner:** Una cámara desechable digital para eventos festivos: cada invitado tiene un cupo de fotos, y todos acceden a las fotos de todos.
 **What it does:** Quien organiza el cumpleaños manda un enlace; los invitados crean su usuario, confirman asistencia y, el día de la fiesta, activan la cámara con un QR. Sacan fotos con los marcos y stickers que eligió el organizador, dentro de un cupo limitado. El organizador modera las fotos y las revela.
 **Product category:** Cámara de fotos para eventos / cámara desechable digital (por confirmar cómo lo buscaría un cliente).
 **Product type:** Aplicación web (sin instalar), multi-evento.
 **Business model:** Sin cobro por ahora. Los planes del informe original (USD 0 / 19 / 49 / 99) son propuestas que quedaron fuera del MVP (Fase 2), no precios vigentes.
 
 ## Target Audience
-**Target companies:** No aplica (B2C). Personas que organizan su propio cumpleaños.
+**Target companies:** No aplica (B2C). Personas de 20 a 27 años que organizan su propio cumpleaños al estilo del carrete chileno, con 20 a 100 invitados, que llegan por contacto personal (conocidos y amigos de conocidos). Matrimonios que terminan en carrete podrían sumarse.
 **Decision-makers:** La persona que cumple años u organiza la fiesta.
 **Primary use case:** Que los invitados saquen fotos de la fiesta con identidad propia del evento, sin app y sin que una galería abierta se llene de fotos sin criterio.
 **Jobs to be done:**
@@ -20,7 +20,7 @@
 - Que los invitados participen sin instalar nada y con los mínimos datos personales.
 **Use cases:**
 - Fiesta de disfraces (el primer cliente es el cumpleaños de Francisca, Halloween adulto).
-- Cualquier cumpleaños: el producto es genérico y cada evento se configura aparte.
+- Eventos festivos e informales (decisión 2026-10-18): cumpleaños, carretes y matrimonios que terminan en carrete; el producto es genérico y cada evento se configura aparte.
 
 ## Personas
 B2C, no aplica. Dos roles dentro del producto:
@@ -57,7 +57,7 @@ Fuente: tabla del informe original (`docs/estrategia/informe-original-burn-camer
 |-----------|----------|
 | Por confirmar | Por confirmar |
 
-**Anti-persona:** Por confirmar. Hoy el producto está pensado para eventos de hasta ~80 invitados.
+**Anti-persona:** Eventos formales, eventos masivos y funerales. Las empresas de eventos tienen sus propios sistemas; una alianza queda para una fase profesional.
 
 ## Switching Dynamics
 **Push:** Por confirmar.
@@ -66,14 +66,20 @@ Fuente: tabla del informe original (`docs/estrategia/informe-original-burn-camer
 **Anxiety:** Por confirmar.
 
 ## Customer Language
-Todavía no hay frases verbatim de clientes. Frases del dueño del producto:
+Frases de quienes vieron la app en el primer evento, relatadas por el dueño (no son citas directas de ellos):
+- "Causó furor."
+- "Se capturaron escenas bacanes, momentos que después se habían olvidado."
+- "Es distinto de subirlo a Instagram y que lo vea mucha gente, es más privado del evento en sí."
+- Lo que preguntaron: cómo se hizo, cuánto costó, si la hizo él y si podían usarla en su fiesta.
+
+Frases del dueño del producto:
 - "Burn camera, hay que elegir bien qué sacar y cuándo."
 - "Un carrete de disfraces", "fiesta adulta, +18, sin Halloween clásico."
 - Sobre el boleto: "parecía boleto de avión" (debe leerse como entrada de evento).
 **How they describe the problem:** Por confirmar.
 **How they describe us:** Por confirmar.
 **Words to use:** carrete, rollo, disparos, entrada, revelado, cupo.
-**Words to avoid:** Por confirmar.
+**Words to avoid:** "usuario" y "plataforma" (propuesta aceptada con un "creo"; reconfirmar).
 **Glossary:**
 | Term | Meaning |
 |------|---------|
@@ -90,17 +96,18 @@ Basado en el texto real de la interfaz:
 | Nocturno / de fiesta | Adulto, con actitud | Cursi o clásico de Halloween | "Inscribirme y entrar" |
 
 **Tone by context:**
-- Support: por confirmar
-- Launch: por confirmar
-- Errors: por confirmar
-- Sales: por confirmar
-- Social: por confirmar
+- Support / la previa (organizar con el cliente): cálido y explicativo. "Hola, qué bueno que quieras usarla. Te ayudo a dejarla lista para tu evento y, si tienes dudas, me avisas."
+- In-app durante el carrete: juguetón y directo. "¡Ups! se acabaron :("
+- Errors de acceso (PIN, no admitido): neutral, sin pistas.
+- Reveal / el after: nostálgico. "Así fue la fiesta, revisa los recuerdos."
+- Launch, Sales, Social: por confirmar
+- Regla de jerga: nada de jerga poco profesional; todo vale mientras no falte el respeto.
 **Terms we own:** rollo, cupo, revelado.
 **Never use (and why):** el nombre actual "fcumple": el producto pasa a ser para cualquier cumpleaños y el nombre nuevo está por decidir.
 
 ## Proof Points
 **Metrics:** Ninguna todavía.
-**Customers:** Ninguno todavía; el primer evento real está pendiente.
+**Customers:** Ninguno que pague todavía. Primer evento real: el cumpleaños del dueño, donde "causó furor". Una prima (evento de unas 80 personas) quiere usarla y otras personas han consultado. Por ahora son pruebas, con trabajo uno a uno y tarifas más bajas a futuro.
 **Testimonials:** Ninguno.
 **Value themes:**
 | Theme | Proof |
@@ -121,4 +128,8 @@ Basado en el texto real de la interfaz:
 
 ## Changelog
 *Newest first. One line per revision: what changed and why.*
+- v5 (2026-10-18) — Alcance acotado de "cualquier evento" a eventos festivos e informales tras el módulo 7 de la entrevista de marca; la marca es de estudio, con identidad propia, no del fundador.
+- v4 (2026-10-18) — Voz y tono por contexto (previa, carrete, errores, after) y regla de jerga, tras el módulo 5 de la entrevista de marca; palabras a evitar propuestas ("usuario", "plataforma").
+- v3 (2026-10-18) — Audiencia, anti-persona, evidencia y lenguaje de clientes actualizados tras el módulo 3 de la entrevista de marca: cliente de 20 a 27 años, carrete chileno, 20 a 100 invitados; se excluyen eventos formales, masivos y funerales.
+- v2 (2026-10-18) — Ampliado el alcance de cumpleaños a cualquier tipo de evento y ajustado el one-liner tras los módulos 1 y 2 de la entrevista de marca (`docs/marca/`); se anota que ver las fotos durante el evento aún no está construido.
 - v1 (2026-10-18) — Initial context, auto-borrador desde el repositorio y confirmado con el dueño (cliente B2C, sin cobro por ahora, competencia del informe marcada como no verificada).

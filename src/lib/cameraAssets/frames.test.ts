@@ -4,13 +4,16 @@ import {
   FRAME_FONTS,
   FRAME_TEMPLATES,
   MAX_TEXT_LENGTH,
+  TEMPLATE_DESCRIPTIONS,
   TEMPLATE_FIELDS,
+  TEMPLATE_LABELS,
   defaultFrameParams,
   drawFittedText,
   renderFrame,
   sanitizeFrameParams,
   validateFrameParams,
 } from './frames';
+import { MAX_LAYERS, MAX_LAYERS_PARAMS_LENGTH } from './layers';
 
 describe('validateFrameParams (misma regla que la base de datos)', () => {
   it('acepta {} y parámetros completos válidos', () => {
@@ -78,6 +81,7 @@ describe('plantillas', () => {
       thickness: 0.1,
       radius: 0.1,
       position: 'top',
+      layers: [],
     };
     for (const template of FRAME_TEMPLATES) {
       expect(TEMPLATE_FIELDS[template].length).toBeGreaterThan(0);
@@ -103,8 +107,83 @@ describe('plantillas', () => {
   });
 });
 
+describe('plantilla capas', () => {
+  const layer = { type: 'shape', shape: 'rect', w: 0.5, h: 0.2, fill: '#112233' } as const;
+  const textLayer = { type: 'text', text: 'Cumpleaños Fran', font: 'display', color: '#ff4fa3' } as const;
+
+  it('está registrada con etiqueta, descripción y el campo layers', () => {
+    expect(FRAME_TEMPLATES).toContain('capas');
+    expect(TEMPLATE_LABELS.capas).toBeTruthy();
+    expect(TEMPLATE_DESCRIPTIONS.capas).toBeTruthy();
+    expect(TEMPLATE_FIELDS.capas).toEqual(['layers']);
+  });
+
+  it('valida la lista de capas dentro de params', () => {
+    expect(validateFrameParams({ layers: [layer, textLayer] })).toEqual({ ok: true });
+    expect(validateFrameParams({ layers: [{ ...layer, fill: 'red' }] }).ok).toBe(false);
+    expect(validateFrameParams({ layers: 'x' }).ok).toBe(false);
+    expect(validateFrameParams({ layers: Array.from({ length: MAX_LAYERS + 1 }, () => layer) }).ok).toBe(false);
+  });
+
+  it('con capas el tope del JSON sube a 16 KB; sin capas sigue en 2 KB', () => {
+    const path = { type: 'shape', shape: 'path', w: 0.3, h: 0.3, d: `M0 0${' L10 10'.repeat(80)}`, fill: '#000000' };
+    const big = { layers: Array.from({ length: 24 }, () => path) };
+    expect(JSON.stringify(big).length).toBeGreaterThan(2048);
+    expect(JSON.stringify(big).length).toBeLessThanOrEqual(MAX_LAYERS_PARAMS_LENGTH);
+    expect(validateFrameParams(big)).toEqual({ ok: true });
+    expect(validateFrameParams({ title: 'a'.repeat(60), layers: Array.from({ length: 40 }, () => path) }).ok).toBe(false);
+    // Sin capas, aunque quepa en 16 KB, 2 KB es el tope: lo llena un `layers` ausente más claves válidas.
+    const heavy = { layers: [] as unknown[], title: 'a'.repeat(60) };
+    expect(validateFrameParams(heavy)).toEqual({ ok: true });
+    const overTwoKb = { title: 'a'.repeat(60), subtitle: 'b'.repeat(60), caption: 'c'.repeat(60), primaryColor: '#112233' };
+    expect(JSON.stringify(overTwoKb).length).toBeLessThan(2048);
+    expect(validateFrameParams({ ...overTwoKb, font: 'x'.repeat(2100) }).ok).toBe(false);
+  });
+
+  it('sanitize conserva las capas válidas y descarta las inválidas', () => {
+    expect(sanitizeFrameParams({ layers: [layer, { type: 'script' }, textLayer], hack: 1 })).toEqual({
+      layers: [layer, textLayer],
+    });
+    expect(sanitizeFrameParams({ layers: 'x' })).toEqual({});
+  });
+
+  it('los parámetros por defecto son válidos y llevan el nombre del evento', () => {
+    expect(validateFrameParams(defaultFrameParams('capas'))).toEqual({ ok: true });
+    expect(defaultFrameParams('capas').layers).toEqual([]);
+    const withName = defaultFrameParams('capas', { eventName: 'Cumpleaños Fran' });
+    expect(validateFrameParams(withName)).toEqual({ ok: true });
+    expect(withName.layers?.[0]).toMatchObject({ type: 'text', text: 'Cumpleaños Fran' });
+  });
+
+  it('renderFrame dibuja las capas, y sin capas no dibuja nada más que el save/restore', () => {
+    const empty = createMockCtx();
+    renderFrame(empty.ctx, 600, 800, 'capas', { layers: [] });
+    expect(empty.calls.map((c) => c.name)).toEqual(['save', 'restore']);
+
+    const m = createMockCtx();
+    renderFrame(m.ctx, 600, 800, 'capas', { layers: [layer, textLayer] });
+    expect(m.fills()).toContain('#112233');
+    expect(m.texts()).toEqual(['Cumpleaños Fran']);
+  });
+
+  it('renderFrame ignora capas inválidas y pasa las imágenes cargadas', () => {
+    const src = '123e4567-e89b-42d3-a456-426614174000/frames/overlay.png';
+    const img = {} as CanvasImageSource;
+    const m = createMockCtx();
+    renderFrame(
+      m.ctx,
+      600,
+      800,
+      'capas',
+      { layers: [{ type: 'script' }, { type: 'image', src, full: true }] },
+      { images: new Map([[src, img]]) },
+    );
+    expect(m.calls.find((c) => c.name === 'drawImage')?.args).toEqual([img, 0, 0, 600, 800]);
+  });
+});
+
 describe('renderFrame', () => {
-  it.each(FRAME_TEMPLATES)('%s dibuja algo con parámetros por defecto y no deja el contexto sucio', (template) => {
+  it.each(FRAME_TEMPLATES.filter((t) => t !== 'capas'))('%s dibuja algo con parámetros por defecto y no deja el contexto sucio', (template) => {
     const m = createMockCtx();
     renderFrame(m.ctx, 600, 800, template, defaultFrameParams(template, { eventName: 'Cumple de Ana', eventDate: '05/12/2026' }));
 

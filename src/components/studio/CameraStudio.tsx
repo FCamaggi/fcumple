@@ -13,11 +13,13 @@ import {
   createFrame,
   deleteFrame,
   deleteSticker,
+  getStickerPreviewUrl,
   listFrames,
   listStickers,
   reorderFrames,
   setStickerEnabled,
   updateFrame,
+  uploadFrameImage,
   type EventFrame,
   type EventSticker,
 } from '../../lib/cameraStudioApi';
@@ -35,6 +37,13 @@ type Editing = { kind: 'new'; template: FrameTemplate } | { kind: 'edit'; frame:
 
 const smallButton =
   'h-8 border border-smoke-700/60 px-3 font-mono text-[11px] uppercase tracking-wider text-paper-100 disabled:opacity-40';
+
+/** URL firmada para mostrar la imagen de una capa; si no se puede firmar, esa imagen se omite. */
+async function resolveFrameImage(path: string): Promise<string> {
+  const url = await getStickerPreviewUrl(path);
+  if (!url) throw new Error('No pudimos cargar la imagen.');
+  return url;
+}
 
 function formatDate(iso: string | null): string | undefined {
   return iso ? new Intl.DateTimeFormat('es-CL').format(new Date(iso)) : undefined;
@@ -143,6 +152,8 @@ export default function CameraStudio({ event, onEventChange }: CameraStudioProps
               : editing.frame.params
           }
           saving={saving}
+          uploadImage={(file) => uploadFrameImage(event.id, file)}
+          resolveImageUrl={resolveFrameImage}
           onSave={(label, params) => void handleSave(label, params)}
           onCancel={() => {
             setEditing(null);
@@ -184,7 +195,14 @@ export default function CameraStudio({ event, onEventChange }: CameraStudioProps
             const isDefault = event.defaultFrameId === frame.id;
             return (
               <li key={frame.id} className="flex flex-wrap items-center gap-3 bg-ink-900 p-2">
-                <FramePreview template={frame.template} params={frame.params} width={54} height={72} label={`Vista previa de ${frame.label}`} />
+                <FramePreview
+                  template={frame.template}
+                  params={frame.params}
+                  width={54}
+                  height={72}
+                  label={`Vista previa de ${frame.label}`}
+                  resolveImageUrl={resolveFrameImage}
+                />
                 <div className="flex min-w-[140px] flex-1 flex-col gap-1">
                   <span className="font-sans text-sm text-paper-100">{frame.label}</span>
                   <span className="font-mono text-[10px] uppercase tracking-wide text-paper-100/50">

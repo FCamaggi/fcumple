@@ -56,6 +56,60 @@ describe('useCameraAssets', () => {
     expect(m.texts()).toEqual(['Hola']);
   });
 
+  it('un marco de capas carga sus imágenes con URL firmada y las dibuja; el resto de las capas también', async () => {
+    const src = '123e4567-e89b-42d3-a456-426614174000/frames/overlay.png';
+    vi.mocked(listCameraAssets).mockResolvedValue({
+      frames: [
+        {
+          id: 'f3',
+          label: 'Fran',
+          template: 'capas' as const,
+          isDefault: false,
+          params: {
+            layers: [
+              { type: 'image', src, full: true },
+              { type: 'text', text: 'Cumpleaños Fran', font: 'sans' },
+            ],
+          },
+        },
+      ],
+      stickers: [],
+    });
+    const { result } = renderHook(() => useCameraAssets('tok', true));
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+
+    expect(getStickerImageUrl).toHaveBeenCalledWith(src);
+    const m = createMockCtx();
+    result.current.frames[0].draw!(m.ctx, 600, 800);
+    expect(m.count('drawImage')).toBe(1);
+    expect(m.texts()).toEqual(['Cumpleaños Fran']);
+  });
+
+  it('si la imagen de una capa no carga, el marco se dibuja igual sin ella', async () => {
+    const src = '123e4567-e89b-42d3-a456-426614174000/frames/rota.png';
+    vi.mocked(listCameraAssets).mockResolvedValue({
+      frames: [
+        {
+          id: 'f3',
+          label: 'Fran',
+          template: 'capas' as const,
+          isDefault: false,
+          params: { layers: [{ type: 'image', src, full: true }, { type: 'text', text: 'Hola', font: 'sans' }] },
+        },
+      ],
+      stickers: [],
+    });
+    vi.mocked(getStickerImageUrl).mockImplementation(async (path) => `https://cdn/roto/${path}`);
+
+    const { result } = renderHook(() => useCameraAssets('tok', true));
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+
+    const m = createMockCtx();
+    result.current.frames[0].draw!(m.ctx, 600, 800);
+    expect(m.count('drawImage')).toBe(0);
+    expect(m.texts()).toEqual(['Hola']);
+  });
+
   it('emojis quedan listos y las imágenes se cargan con crossOrigin anónimo', async () => {
     vi.mocked(listCameraAssets).mockResolvedValue({
       frames: [],

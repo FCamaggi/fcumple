@@ -15,6 +15,7 @@ vi.mock('../../lib/cameraStudioApi', () => ({
   setStickerEnabled: vi.fn(),
   deleteSticker: vi.fn(),
   getStickerPreviewUrl: vi.fn(),
+  uploadFrameImage: vi.fn(),
 }));
 vi.mock('../../lib/organizerApi', () => ({ updateEvent: vi.fn() }));
 
@@ -138,6 +139,43 @@ describe('CameraStudio: marcos', () => {
     expect(input).toMatchObject({ template: 'banner', label: 'Banner', params: { title: 'Cumple de Ana' } });
     expect(order).toBe(0);
     expect((await screen.findAllByText('Banner')).length).toBeGreaterThan(0);
+  });
+
+  it('ofrece la plantilla Capas: abre el editor visual y guarda las capas', async () => {
+    vi.mocked(studio.createFrame).mockResolvedValue(frame('f9', 'Capas', { template: 'capas' }));
+    await load([]);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Nuevo marco' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Plantilla Capas' }));
+
+    expect(screen.getByLabelText('Lienzo del marco')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Agregar emoji' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar marco' }));
+
+    await waitFor(() => expect(studio.createFrame).toHaveBeenCalledTimes(1));
+    const [, input] = vi.mocked(studio.createFrame).mock.calls[0];
+    expect(input).toMatchObject({ template: 'capas', label: 'Capas' });
+    expect(input.params.layers).toHaveLength(2); // el nombre del evento y el emoji
+    expect(input.params.layers?.[0]).toMatchObject({ type: 'text', text: 'Cumple de Ana' });
+  });
+
+  it('sube la imagen de una capa a la carpeta del evento y la guarda en el marco', async () => {
+    const src = '123e4567-e89b-42d3-a456-426614174000/frames/abc.webp';
+    vi.mocked(studio.uploadFrameImage).mockResolvedValue(src);
+    vi.mocked(studio.createFrame).mockResolvedValue(frame('f9', 'Capas', { template: 'capas' }));
+    await load([]);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Nuevo marco' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Plantilla Capas' }));
+    const file = new File(['x'], 'overlay.png', { type: 'image/png' });
+    await userEvent.upload(screen.getByLabelText('Elegir imagen'), file);
+
+    await waitFor(() => expect(studio.uploadFrameImage).toHaveBeenCalledWith('ev-1', file));
+    await userEvent.click(await screen.findByRole('button', { name: 'Guardar marco' }));
+
+    await waitFor(() => expect(studio.createFrame).toHaveBeenCalledTimes(1));
+    const [, input] = vi.mocked(studio.createFrame).mock.calls[0];
+    expect(input.params.layers).toContainEqual(expect.objectContaining({ type: 'image', src }));
   });
 
   it('edita un marco existente', async () => {

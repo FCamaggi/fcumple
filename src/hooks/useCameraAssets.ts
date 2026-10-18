@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { renderFrame } from '../lib/cameraAssets/frames';
+import { prepareFrameAssets, sanitizeLayers } from '../lib/cameraAssets/layers';
 import { getStickerImageUrl, listCameraAssets } from '../lib/platformGuestApi';
 import type { CameraFrameOption, CameraStickerOption } from '../components/camera/types';
 
@@ -50,11 +51,19 @@ export function useCameraAssets(token: string, enabled: boolean): CameraAssets {
       try {
         const { frames, stickers } = await listCameraAssets(token);
 
-        const frameOptions: CameraFrameOption[] = frames.map((f) => ({
-          id: f.id,
-          label: f.label,
-          draw: (ctx, width, height) => renderFrame(ctx, width, height, f.template, f.params),
-        }));
+        // Un marco de capas necesita sus imágenes y tipografías ya cargadas: renderFrame es síncrona.
+        // prepareFrameAssets nunca rechaza; lo que no carga se omite y el resto del marco se dibuja.
+        const frameOptions: CameraFrameOption[] = await Promise.all(
+          frames.map(async (f): Promise<CameraFrameOption> => {
+            const assets =
+              f.template === 'capas' ? await prepareFrameAssets(sanitizeLayers(f.params.layers), getStickerImageUrl) : undefined;
+            return {
+              id: f.id,
+              label: f.label,
+              draw: (ctx, width, height) => renderFrame(ctx, width, height, f.template, f.params, assets),
+            };
+          }),
+        );
 
         const stickerOptions = (
           await Promise.all(
