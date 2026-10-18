@@ -1,6 +1,6 @@
 # Product Marketing Context
 
-**Document version:** v3
+**Document version:** v4
 **Last updated:** 2026-10-18
 
 ## Product Overview
@@ -79,7 +79,7 @@ Frases del dueño del producto:
 **How they describe the problem:** Por confirmar.
 **How they describe us:** Por confirmar.
 **Words to use:** carrete, rollo, disparos, entrada, revelado, cupo.
-**Words to avoid:** Por confirmar.
+**Words to avoid:** "usuario" y "plataforma" (propuesta aceptada con un "creo"; reconfirmar).
 **Glossary:**
 | Term | Meaning |
 |------|---------|
@@ -96,11 +96,12 @@ Basado en el texto real de la interfaz:
 | Nocturno / de fiesta | Adulto, con actitud | Cursi o clásico de Halloween | "Inscribirme y entrar" |
 
 **Tone by context:**
-- Support: por confirmar
-- Launch: por confirmar
-- Errors: por confirmar
-- Sales: por confirmar
-- Social: por confirmar
+- Support / la previa (organizar con el cliente): cálido y explicativo. "Hola, qué bueno que quieras usarla. Te ayudo a dejarla lista para tu evento y, si tienes dudas, me avisas."
+- In-app durante el carrete: juguetón y directo. "¡Ups! se acabaron :("
+- Errors de acceso (PIN, no admitido): neutral, sin pistas.
+- Reveal / el after: nostálgico. "Así fue la fiesta, revisa los recuerdos."
+- Launch, Sales, Social: por confirmar
+- Regla de jerga: nada de jerga poco profesional; todo vale mientras no falte el respeto.
 **Terms we own:** rollo, cupo, revelado.
 **Never use (and why):** el nombre actual "fcumple": el producto pasa a ser para cualquier cumpleaños y el nombre nuevo está por decidir.
 
@@ -127,6 +128,7 @@ Basado en el texto real de la interfaz:
 
 ## Changelog
 *Newest first. One line per revision: what changed and why.*
+- v4 (2026-10-18) — Voz y tono por contexto (previa, carrete, errores, after) y regla de jerga, tras el módulo 5 de la entrevista de marca; palabras a evitar propuestas ("usuario", "plataforma").
 - v3 (2026-10-18) — Audiencia, anti-persona, evidencia y lenguaje de clientes actualizados tras el módulo 3 de la entrevista de marca: cliente de 20 a 27 años, carrete chileno, 20 a 100 invitados; se excluyen eventos formales, masivos y funerales.
 - v2 (2026-10-18) — Ampliado el alcance de cumpleaños a cualquier tipo de evento y ajustado el one-liner tras los módulos 1 y 2 de la entrevista de marca (`docs/marca/`); se anota que ver las fotos durante el evento aún no está construido.
 - v1 (2026-10-18) — Initial context, auto-borrador desde el repositorio y confirmado con el dueño (cliente B2C, sin cobro por ahora, competencia del informe marcada como no verificada).
