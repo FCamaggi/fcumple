@@ -1,0 +1,661 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>fcumple — Estás en la lista</title>
+    <script src="assets/gsap.min.js"></script>
+    <style>
+      @font-face {
+        font-family: "Anton";
+        src: url("assets/fonts/anton-400.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #0d0b12;
+      }
+      #root {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #0d0b12;
+        font-family: "Space Mono", monospace;
+        color: #f3ecf7;
+      }
+
+      .clip {
+        overflow: hidden;
+      }
+
+      .display {
+        font-family: Anton, "Space Mono", sans-serif;
+        font-weight: 400;
+        letter-spacing: -0.01em;
+        text-transform: uppercase;
+      }
+
+      .center {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      /* ---------- global overlays (untimed, always mounted) ---------- */
+
+      #grain {
+        position: absolute;
+        inset: 0;
+        z-index: 50;
+        pointer-events: none;
+        opacity: 0.22;
+        mix-blend-mode: overlay;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E");
+      }
+
+      #flash {
+        position: absolute;
+        inset: 0;
+        z-index: 60;
+        pointer-events: none;
+        background: #f3ecf7;
+        opacity: 0;
+      }
+
+      #vignette {
+        position: absolute;
+        inset: 0;
+        z-index: 40;
+        pointer-events: none;
+        background: radial-gradient(ellipse at center, transparent 45%, rgba(0, 0, 0, 0.55) 100%);
+      }
+
+      /* ---------- scene 1: hook ---------- */
+
+      #scene-hook {
+        background: #0d0b12;
+      }
+
+      .hook-word {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 220px;
+        line-height: 1;
+        color: #f3ecf7;
+        text-shadow:
+          0 0 40px rgba(255, 47, 146, 0.85),
+          0 0 90px rgba(255, 47, 146, 0.5);
+        opacity: 0;
+      }
+
+      #word-lista {
+        font-size: 150px;
+      }
+
+      /* ---------- scene 2/3/4: the ticket ---------- */
+
+      #scene-ticket {
+        background: #0d0b12;
+      }
+
+      .ticket-wrap {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .ticket-glow {
+        position: absolute;
+        width: 780px;
+        height: 780px;
+        border-radius: 9999px;
+        background: radial-gradient(circle, rgba(255, 47, 146, 0.35) 0%, transparent 70%);
+        filter: blur(10px);
+      }
+
+      .ticket {
+        position: relative;
+        width: 720px;
+        background: #16121d;
+        border: 2px solid #3a3244;
+        border-radius: 6px;
+        box-shadow: 0 0 48px -6px rgba(255, 47, 146, 0.45);
+        padding: 36px 44px 40px;
+        overflow: hidden;
+      }
+
+      .ticket-stub {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        font-size: 20px;
+        letter-spacing: 0.12em;
+        color: #c8ff3d;
+        padding-bottom: 22px;
+      }
+
+      .perforation-row {
+        position: relative;
+        height: 2px;
+        margin: 0 -44px 28px;
+        background-image: repeating-linear-gradient(
+          to right,
+          #3a3244 0,
+          #3a3244 8px,
+          transparent 8px,
+          transparent 18px
+        );
+      }
+
+      .notch {
+        position: absolute;
+        top: -9px;
+        width: 18px;
+        height: 18px;
+        border-radius: 9999px;
+        background: #0d0b12;
+      }
+      .notch-l {
+        left: -9px;
+      }
+      .notch-r {
+        right: -9px;
+      }
+
+      .ticket-name {
+        font-size: 96px;
+        line-height: 1;
+        color: #f3ecf7;
+        text-shadow: 0 0 26px rgba(255, 47, 146, 0.55);
+      }
+
+      .ticket-meta {
+        margin-top: 18px;
+        font-size: 22px;
+        letter-spacing: 0.06em;
+        color: #b9aecb;
+      }
+
+      .fader-row {
+        margin-top: 46px;
+        display: flex;
+        align-items: center;
+        gap: 24px;
+        opacity: 0;
+      }
+
+      .fader-track {
+        position: relative;
+        flex: 1;
+        height: 54px;
+        border-radius: 4px;
+        background: #0d0b12;
+        border: 2px solid #3a3244;
+        overflow: hidden;
+      }
+
+      .fader-labels {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 20px;
+        font-size: 20px;
+        letter-spacing: 0.1em;
+        color: #a89bc4;
+      }
+
+      .fader-handle {
+        position: absolute;
+        top: 4px;
+        left: 4px;
+        width: 46px;
+        height: 46px;
+        border-radius: 3px;
+        background: #3a3244;
+      }
+
+      .plusone {
+        width: 96px;
+        height: 54px;
+        border: 2px solid #3a3244;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        color: #f3ecf7;
+        background: #0d0b12;
+      }
+
+      .stamp {
+        position: absolute;
+        right: 16px;
+        bottom: 14px;
+        font-family: Anton, "Space Mono", sans-serif;
+        font-size: 40px;
+        letter-spacing: 0.04em;
+        color: #ff2f92;
+        background: rgba(22, 18, 29, 0.94);
+        border: 5px solid #ff2f92;
+        padding: 8px 18px;
+        border-radius: 6px;
+        opacity: 0;
+        text-shadow: 0 0 18px rgba(255, 47, 146, 0.8);
+      }
+
+      .qr-panel {
+        position: absolute;
+        inset: 0;
+        background: #16121d;
+        border-radius: 6px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 26px;
+        opacity: 0;
+      }
+
+      .qr-box {
+        position: relative;
+        width: 260px;
+        height: 260px;
+        background: #f3ecf7;
+        padding: 16px;
+        border-radius: 4px;
+        display: grid;
+        grid-template-columns: repeat(8, 1fr);
+        grid-template-rows: repeat(8, 1fr);
+        gap: 4px;
+        overflow: hidden;
+      }
+
+      .qr-box div.on {
+        background: #0d0b12;
+      }
+
+      .qr-scan {
+        position: absolute;
+        left: 8px;
+        right: 8px;
+        height: 10px;
+        top: 0;
+        background: #00e6d8;
+        box-shadow: 0 0 24px 4px rgba(0, 230, 216, 0.85);
+        opacity: 0;
+      }
+
+      .qr-label {
+        font-size: 22px;
+        letter-spacing: 0.14em;
+        color: #00e6d8;
+        text-shadow: 0 0 16px rgba(0, 230, 216, 0.6);
+      }
+
+      /* ---------- scene 5: admin console ---------- */
+
+      #scene-admin {
+        background: #0d0b12;
+      }
+
+      .console-wrap {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .console-panel {
+        width: 760px;
+        background: #16121d;
+        border: 2px solid #3a3244;
+        border-radius: 6px;
+        padding: 40px 48px;
+        opacity: 0;
+      }
+
+      .console-label {
+        font-size: 20px;
+        letter-spacing: 0.16em;
+        color: #a89bc4;
+      }
+
+      .console-count {
+        margin-top: 10px;
+        font-family: Anton, "Space Mono", sans-serif;
+        font-size: 140px;
+        line-height: 1;
+        color: #c8ff3d;
+        text-shadow: 0 0 30px rgba(200, 255, 61, 0.55);
+      }
+
+      .console-row {
+        margin-top: 26px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 24px;
+        color: #f3ecf7;
+        border-top: 1px solid #3a3244;
+        padding-top: 22px;
+      }
+
+      .badge {
+        font-size: 18px;
+        letter-spacing: 0.1em;
+        color: #c8ff3d;
+        border: 2px solid #c8ff3d;
+        border-radius: 3px;
+        padding: 4px 10px;
+      }
+
+      /* ---------- scene 6: film roll ---------- */
+
+      #scene-film {
+        background: #0d0b12;
+      }
+
+      .film-wrap {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 30px;
+        opacity: 0;
+      }
+
+      .film-reel {
+        width: 90px;
+        height: 90px;
+        border-radius: 9999px;
+        border: 10px solid #ff5a1f;
+        box-shadow: 0 0 24px -2px rgba(255, 90, 31, 0.55);
+      }
+
+      .film-count {
+        font-family: Anton, "Space Mono", sans-serif;
+        font-size: 120px;
+        color: #ff5a1f;
+        text-shadow: 0 0 24px rgba(255, 90, 31, 0.55);
+      }
+
+      .film-caption {
+        font-size: 24px;
+        letter-spacing: 0.12em;
+        color: #d6cee2;
+        align-self: flex-end;
+        margin-bottom: 14px;
+      }
+
+      /* ---------- scene 7: outro ---------- */
+
+      #scene-outro {
+        background: #0d0b12;
+      }
+
+      .outro-wrap {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .outro-mark {
+        font-size: 190px;
+        color: #f3ecf7;
+        text-transform: none;
+        text-shadow:
+          0 0 40px rgba(255, 47, 146, 0.75),
+          0 0 90px rgba(255, 47, 146, 0.4);
+        opacity: 0;
+      }
+
+      .outro-tag {
+        margin-top: 20px;
+        font-size: 30px;
+        letter-spacing: 0.1em;
+        color: #b9aecb;
+        opacity: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-width="1920" data-height="1080" data-duration="18">
+      <!-- SCENE 1: hook -->
+      <section id="scene-hook" class="clip" data-start="0" data-duration="2">
+        <h1 id="word-estas" class="hook-word display">ESTÁS</h1>
+        <h1 id="word-lista" class="hook-word display">EN LA LISTA.</h1>
+      </section>
+
+      <!-- SCENE 2/3/4: the ticket (reveal -> fader -> stamp -> QR) -->
+      <section id="scene-ticket" class="clip" data-start="2" data-duration="9.5">
+        <div class="ticket-wrap">
+          <div class="ticket-glow" id="ticket-glow"></div>
+          <div class="ticket" id="ticket">
+            <div class="ticket-stub" data-layout-allow-occlusion="true">
+              <span data-layout-allow-occlusion="true">TICKET DE ACCESO</span>
+              <span data-layout-allow-occlusion="true">#FC-0417</span>
+            </div>
+            <div class="perforation-row">
+              <span class="notch notch-l"></span>
+              <span class="notch notch-r"></span>
+            </div>
+            <div class="ticket-name display" id="ticket-name" data-layout-allow-occlusion="true">FABRIZIO</div>
+            <div class="ticket-meta" data-layout-allow-occlusion="true">VIERNES 9 OCT &middot; 22:00 &middot; INDEPENDENCIA</div>
+
+            <div class="fader-row" id="fader-row">
+              <div class="fader-track">
+                <div class="fader-labels" data-layout-allow-overlap="true" data-layout-allow-occlusion="true">
+                  <span data-layout-allow-overlap="true" data-layout-allow-occlusion="true">NO</span>
+                  <span data-layout-allow-overlap="true" data-layout-allow-occlusion="true">SÍ</span>
+                </div>
+                <div class="fader-handle" id="fader-handle"></div>
+              </div>
+              <div class="plusone" id="plusone" data-layout-allow-overlap="true" data-layout-allow-occlusion="true">+1&nbsp;·&nbsp;<span id="plusone-count" data-layout-allow-overlap="true" data-layout-allow-occlusion="true">0</span></div>
+            </div>
+
+            <div class="stamp display" id="stamp" data-layout-allow-occlusion="true">CONFIRMADO</div>
+
+            <div class="qr-panel" id="qr-panel" data-layout-allow-occlusion="true">
+              <div class="qr-box" id="qr-box">
+                <div class="qr-scan" id="qr-scan"></div>
+              </div>
+              <div class="qr-label">MOSTRAR EN LA PUERTA</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SCENE 5: admin console -->
+      <section id="scene-admin" class="clip" data-start="11.5" data-duration="2">
+        <div class="console-wrap">
+          <div class="console-panel" id="console-panel">
+            <div class="console-label">CONFIRMADOS</div>
+            <div class="console-count" id="console-count">21</div>
+            <div class="console-row">
+              <span>FABRIZIO &middot; +1</span>
+              <span class="badge">CONFIRMADO</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SCENE 6: film roll -->
+      <section id="scene-film" class="clip" data-start="13.5" data-duration="1.5">
+        <div class="film-wrap" id="film-wrap">
+          <div class="film-reel"></div>
+          <div class="film-count display" id="film-count">08</div>
+          <div class="film-caption">QUEDAN</div>
+        </div>
+      </section>
+
+      <!-- SCENE 7: outro -->
+      <section id="scene-outro" class="clip" data-start="15" data-duration="3">
+        <div class="outro-wrap">
+          <div class="outro-mark display" id="outro-mark">fcumple</div>
+          <div class="outro-tag" id="outro-tag">Estás en la lista.</div>
+        </div>
+      </section>
+
+      <div id="vignette"></div>
+      <div id="grain"></div>
+      <div id="flash"></div>
+
+      <!-- audio -->
+      <audio
+        id="bg-music"
+        src="assets/music/happy-beats-business-moves-vol-10-by-ende-dot-app.mp3"
+        data-start="0"
+        data-duration="18"
+        data-track-index="10"
+        data-automation='{"version":1,"lanes":[{"target":"volume","points":[{"t":0,"v":0.35},{"t":7.4,"v":0.35},{"t":7.5,"v":0.15},{"t":7.9,"v":0.15},{"t":8.0,"v":0.35},{"t":17.3,"v":0.35},{"t":18,"v":0}]}]}'
+      ></audio>
+
+      <audio id="sfx-hook" src="assets/sfx/interface/error_006.ogg" data-start="0" data-duration="0.5" data-track-index="11" data-volume="0.7"></audio>
+      <audio id="sfx-tear" src="assets/sfx/casino/card-slide-3.ogg" data-start="2.15" data-duration="0.6" data-track-index="12" data-volume="0.75"></audio>
+      <audio id="sfx-fader" src="assets/sfx/interface/switch_004.ogg" data-start="6.9" data-duration="0.5" data-track-index="13" data-volume="0.8"></audio>
+      <audio id="sfx-count" src="assets/sfx/casino/chips-stack-2.ogg" data-start="7.15" data-duration="0.17" data-track-index="14" data-volume="0.7"></audio>
+      <audio id="sfx-stamp" src="assets/sfx/impact/impactBell_heavy_003.ogg" data-start="7.5" data-duration="0.65" data-track-index="15" data-volume="0.85"></audio>
+      <audio id="sfx-scan" src="assets/sfx/interface/error_005.ogg" data-start="9.4" data-duration="0.5" data-track-index="16" data-volume="0.5"></audio>
+      <audio id="sfx-tick" src="assets/sfx/casino/chips-stack-2.ogg" data-start="11.9" data-duration="0.17" data-track-index="17" data-volume="0.6"></audio>
+      <audio id="sfx-shutter" src="assets/sfx/interface/switch_004.ogg" data-start="13.8" data-duration="0.4" data-track-index="18" data-volume="0.55"></audio>
+      <audio id="sfx-outro" src="assets/sfx/impact/impactPunch_heavy_002.ogg" data-start="15.15" data-duration="0.46" data-track-index="19" data-volume="0.9"></audio>
+    </div>
+
+    <script>
+      (function () {
+        const tl = gsap.timeline({ paused: true });
+
+        // ---- deterministic fake-QR pattern (fixed seed, not random) ----
+        const qrPattern = [
+          1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1,
+          0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1,
+        ];
+        const qrBox = document.getElementById("qr-box");
+        qrPattern.forEach((on) => {
+          const d = document.createElement("div");
+          if (on) d.className = "on";
+          qrBox.insertBefore(d, document.getElementById("qr-scan"));
+        });
+
+        // ================= SCENE 1: hook (0 - 2s) =================
+        gsap.set("#word-estas", { opacity: 0 });
+        gsap.set("#word-lista", { opacity: 0, scale: 1.15 });
+
+        // neon flicker-on, matching the app's own flicker rhythm
+        tl.to("#word-estas", { opacity: 1, duration: 0.06 }, 0.0)
+          .to("#word-estas", { opacity: 0.25, duration: 0.05 }, 0.16)
+          .to("#word-estas", { opacity: 1, duration: 0.05 }, 0.28)
+          .to("#word-estas", { opacity: 0.3, duration: 0.05 }, 0.46)
+          .to("#word-estas", { opacity: 1, duration: 0.05 }, 0.62);
+
+        // hard flash-cut to "EN LA LISTA."
+        tl.to("#flash", { opacity: 0.55, duration: 0.04 }, 0.92)
+          .to("#flash", { opacity: 0, duration: 0.14 }, 0.97)
+          .set("#word-estas", { opacity: 0 }, 0.94)
+          .to("#word-lista", { opacity: 1, scale: 1, duration: 0.22, ease: "power3.out" }, 0.94);
+
+        // ================= SCENE 2: ticket reveal (2 - 5s) =================
+        gsap.set("#ticket", { opacity: 0, x: -420, rotate: -7 });
+        gsap.set("#ticket-glow", { opacity: 0 });
+        gsap.set("#ticket-name", { opacity: 0, x: -30 });
+
+        tl.to("#flash", { opacity: 0.4, duration: 0.03 }, 2.0)
+          .to("#flash", { opacity: 0, duration: 0.12 }, 2.03)
+          .to("#ticket-glow", { opacity: 1, duration: 0.3 }, 2.02)
+          .to(
+            "#ticket",
+            { opacity: 1, x: 0, rotate: -2, duration: 0.5, ease: "power4.out" },
+            2.05,
+          )
+          .to("#ticket", { rotate: 0, duration: 0.25, ease: "power2.out" }, 2.55)
+          .to("#ticket-name", { opacity: 1, x: 0, duration: 0.3, ease: "power3.out" }, 2.5);
+
+        // ================= SCENE 3: fader flip + stamp (5 - 9.5s w/in ticket scene) =================
+        gsap.set("#fader-handle", { x: 0 });
+        gsap.set("#stamp", { opacity: 0, scale: 1.5, rotate: 4 });
+
+        tl.to("#fader-row", { opacity: 1, duration: 0.3 }, 6.4)
+          .to("#fader-handle", { x: 372, backgroundColor: "#c8ff3d", boxShadow: "0 0 22px 2px rgba(200,255,61,0.75)", duration: 0.28, ease: "power2.inOut" }, 6.9)
+          .to({ v: 0 }, {
+            v: 1,
+            duration: 0.35,
+            ease: "none",
+            onUpdate: function () {
+              document.getElementById("plusone-count").textContent = Math.round(this.targets()[0].v);
+            },
+          }, 7.15)
+          .to("#stamp", { opacity: 1, scale: 1, rotate: -8, duration: 0.22, ease: "back.out(2.4)" }, 7.5)
+          .to("#fader-row", { opacity: 0.32, duration: 0.22 }, 7.5)
+          .to("#stamp", { rotate: -6, duration: 0.4, ease: "elastic.out(1, 0.4)" }, 7.72);
+
+        // ================= SCENE 4: QR door pass (9.5 - 11.5 w/in ticket scene) =================
+        gsap.set("#qr-panel", { opacity: 0 });
+        gsap.set("#qr-scan", { opacity: 0, y: 0 });
+
+        tl.to("#ticket", { scaleX: 0, duration: 0.18, ease: "power2.in" }, 9.4)
+          .set("#qr-panel", { opacity: 1 }, 9.58)
+          .to("#ticket", { scaleX: 1, duration: 0.2, ease: "power2.out" }, 9.58)
+          .to("#qr-scan", { opacity: 1, duration: 0.05 }, 9.8)
+          .to("#qr-scan", { y: 218, duration: 0.7, ease: "power1.inOut" }, 9.85)
+          .to("#qr-scan", { opacity: 0, duration: 0.2 }, 10.55);
+
+        // ================= SCENE 5: admin console (11.5 - 13.5s) =================
+        gsap.set("#console-panel", { opacity: 0, y: 30 });
+
+        tl.to("#flash", { opacity: 0.4, duration: 0.03 }, 11.5)
+          .to("#flash", { opacity: 0, duration: 0.12 }, 11.53)
+          .to("#console-panel", { opacity: 1, y: 0, duration: 0.3, ease: "power3.out" }, 11.55)
+          .to({ v: 21 }, {
+            v: 24,
+            duration: 0.4,
+            ease: "none",
+            onUpdate: function () {
+              document.getElementById("console-count").textContent = Math.round(this.targets()[0].v);
+            },
+          }, 11.85);
+
+        // ================= SCENE 6: film roll (13.5 - 15s) =================
+        gsap.set("#film-wrap", { opacity: 0 });
+
+        tl.to("#flash", { opacity: 0.35, duration: 0.03 }, 13.5)
+          .to("#flash", { opacity: 0, duration: 0.1 }, 13.53)
+          .to("#film-wrap", { opacity: 1, duration: 0.25 }, 13.55)
+          .set("#film-count", { textContent: "07" }, 13.8);
+
+        // ================= SCENE 7: outro (15 - 18s) =================
+        gsap.set("#outro-mark", { opacity: 0, scale: 1.4 });
+        gsap.set("#outro-tag", { opacity: 0, y: 16 });
+
+        tl.to("#flash", { opacity: 0.6, duration: 0.04 }, 15.0)
+          .to("#flash", { opacity: 0, duration: 0.16 }, 15.04)
+          .to("#outro-mark", { opacity: 1, scale: 1, duration: 0.22, ease: "back.out(2)" }, 15.05)
+          .to("#outro-tag", { opacity: 1, y: 0, duration: 0.3, ease: "power2.out" }, 15.45);
+
+        window.__timelines["main"] = tl;
+        window.__hfForceTimelineRebind && window.__hfForceTimelineRebind();
+      })();
+    </script>
+  </body>
+</html>
