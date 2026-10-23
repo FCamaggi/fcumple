@@ -14,6 +14,7 @@ const AdminPage = lazy(() => import('./pages/AdminPage'));
 // Panel del organizador de la Fase 1 (multi-tenant): también en su propio chunk.
 const OrganizerEventsPage = lazy(() => import('./pages/OrganizerEventsPage'));
 const OrganizerEventPage = lazy(() => import('./pages/OrganizerEventPage'));
+const OrganizerAccountPage = lazy(() => import('./pages/OrganizerAccountPage'));
 // Formulario de opciones para el cliente de un cumpleaños: nadie más lo abre.
 const ClientBriefPage = lazy(() => import('./pages/ClientBriefPage'));
 
@@ -68,6 +69,16 @@ export default function App() {
             <RequireAuth login={<OrganizerLogin />}>
               <Suspense fallback={<AdminFallback />}>
                 <OrganizerEventPage />
+              </Suspense>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/panel/cuenta"
+          element={
+            <RequireAuth login={<OrganizerLogin />}>
+              <Suspense fallback={<AdminFallback />}>
+                <OrganizerAccountPage />
               </Suspense>
             </RequireAuth>
           }

@@ -7,6 +7,7 @@ vi.mock('./supabaseClient', () => ({
       signInWithPassword: vi.fn(),
       signUp: vi.fn(),
       signOut: vi.fn(),
+      updateUser: vi.fn(),
       getSession: vi.fn(),
       onAuthStateChange: vi.fn(),
     },
@@ -14,12 +15,13 @@ vi.mock('./supabaseClient', () => ({
 }));
 
 import { supabase } from './supabaseClient';
-import { signIn, signOut, signUp, useSession } from './auth';
+import { changePassword, signIn, signOut, signUp, useSession } from './auth';
 
 beforeEach(() => {
   vi.mocked(supabase.auth.signInWithPassword).mockReset();
   vi.mocked(supabase.auth.signOut).mockReset();
   vi.mocked(supabase.auth.signUp).mockReset();
+  vi.mocked(supabase.auth.updateUser).mockReset();
 });
 
 describe('signIn', () => {
@@ -102,5 +104,44 @@ describe('useSession', () => {
 
     unmount();
     expect(unsubscribe).toHaveBeenCalled();
+  });
+});
+
+describe('changePassword', () => {
+  const ok = { data: { user: {}, session: {} }, error: null } as never;
+
+  it('comprueba la contraseña actual y luego guarda la nueva', async () => {
+    vi.mocked(supabase.auth.signInWithPassword).mockResolvedValueOnce(ok);
+    vi.mocked(supabase.auth.updateUser).mockResolvedValueOnce({ data: { user: {} }, error: null } as never);
+
+    await expect(changePassword('fran@example.com', 'Fran-2026-Temp', 'una-clave-larga')).resolves.toBeUndefined();
+    expect(supabase.auth.signInWithPassword).toHaveBeenCalledWith({
+      email: 'fran@example.com',
+      password: 'Fran-2026-Temp',
+    });
+    expect(supabase.auth.updateUser).toHaveBeenCalledWith({ password: 'una-clave-larga' });
+  });
+
+  it('no cambia nada si la contraseña actual es incorrecta', async () => {
+    vi.mocked(supabase.auth.signInWithPassword).mockResolvedValueOnce({
+      data: { user: null, session: null },
+      error: { message: 'Invalid login credentials' },
+    } as never);
+
+    await expect(changePassword('fran@example.com', 'mala', 'una-clave-larga')).rejects.toThrow(
+      'La contraseña actual no es correcta.',
+    );
+    expect(supabase.auth.updateUser).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['New password should be different from the old password.', /distinta de la actual/],
+    ['Password should be at least 8 characters.', /al menos 8 caracteres/],
+    ['email rate limit exceeded', /Demasiados intentos/],
+    ['boom', /No pudimos cambiar/],
+  ])('traduce el error de Supabase: %s', async (message, expected) => {
+    vi.mocked(supabase.auth.signInWithPassword).mockResolvedValueOnce(ok);
+    vi.mocked(supabase.auth.updateUser).mockResolvedValueOnce({ data: { user: null }, error: { message } } as never);
+    await expect(changePassword('fran@example.com', 'actual-123', 'nueva-1234')).rejects.toThrow(expected);
   });
 });

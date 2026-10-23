@@ -40,6 +40,35 @@ export async function signUp(email: string, password: string): Promise<SignUpRes
   return { needsConfirmation: !data.session };
 }
 
+function changePasswordError(message: string): Error {
+  if (/different|same/i.test(message)) {
+    return new Error('La nueva contraseña debe ser distinta de la actual.');
+  }
+  if (/rate limit|too many/i.test(message)) {
+    return new Error('Demasiados intentos. Espera unos minutos y vuelve a probar.');
+  }
+  if (/password/i.test(message)) {
+    return new Error('La contraseña debe tener al menos 8 caracteres.');
+  }
+  return new Error('No pudimos cambiar tu contraseña. Intenta de nuevo en un momento.');
+}
+
+/**
+ * Cambia la contraseña de la cuenta con sesión abierta. Pide la actual y la
+ * comprueba iniciando sesión de nuevo: la cuenta puede estar compartida con una
+ * contraseña provisoria, y así quien la cambia demuestra que la conoce.
+ */
+export async function changePassword(email: string, currentPassword: string, newPassword: string): Promise<void> {
+  const { error: reauthError } = await supabase.auth.signInWithPassword({ email, password: currentPassword });
+  if (reauthError) {
+    throw new Error('La contraseña actual no es correcta.');
+  }
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) {
+    throw changePasswordError(error.message);
+  }
+}
+
 export async function signOut(): Promise<void> {
   await supabase.auth.signOut();
 }
