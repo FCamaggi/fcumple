@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { resolveEnrollmentConfig, type ResolvedEnrollment } from './enrollmentConfig';
 
 /**
  * Capa de acceso de la Fase 1 (plataforma multi-tenant): evento público e
@@ -21,6 +22,8 @@ export interface EventPublic {
   cameraUnlock: 'on_identify' | 'on_checkin';
   rsvpEnabled: boolean;
   photosRevealed: boolean;
+  /** Qué le pide el organizador al inscribirse (+1, comentario, preguntas, bienvenida). */
+  enrollment: ResolvedEnrollment;
 }
 
 export type RegisterOutcome = 'ok' | 'pending_approval' | 'name_taken' | 'not_found' | 'ambiguous';
@@ -56,6 +59,7 @@ interface EventRow {
   camera_unlock: 'on_identify' | 'on_checkin';
   rsvp_enabled: boolean;
   photos_revealed: boolean;
+  enrollment_config: unknown;
 }
 
 interface AuthRow<O extends string> {
@@ -82,6 +86,7 @@ export async function getEventPublic(slug: string): Promise<EventPublic | null> 
     cameraUnlock: row.camera_unlock,
     rsvpEnabled: row.rsvp_enabled,
     photosRevealed: row.photos_revealed,
+    enrollment: resolveEnrollmentConfig(row.enrollment_config),
   };
 }
 
@@ -97,9 +102,22 @@ function mapAuth<O extends string>(row: AuthRow<O> | undefined): AuthResult<O> {
   };
 }
 
+/** La base rechazó las respuestas de la inscripción (`enrollment_invalid:<código>`). */
+export class EnrollmentAnswersError extends Error {
+  constructor(readonly code: string) {
+    super('Revisa tus respuestas e intenta de nuevo.');
+    this.name = 'EnrollmentAnswersError';
+  }
+}
+
+const ENROLLMENT_PREFIX = 'enrollment_invalid:';
+
 function authError(error: { code?: string; message?: string }): Error {
   switch (error.code) {
     case '22023':
+      if (error.message?.includes(ENROLLMENT_PREFIX)) {
+        return new EnrollmentAnswersError(error.message.slice(error.message.indexOf(ENROLLMENT_PREFIX) + ENROLLMENT_PREFIX.length));
+      }
       return new Error(
         /pin/i.test(error.message ?? '')
           ? 'El PIN debe tener entre 4 y 6 números.'
@@ -118,9 +136,22 @@ function authError(error: { code?: string; message?: string }): Error {
   }
 }
 
-/** "Inscribirme": nombre y apellido + un PIN de 4 a 6 números que elige la persona. */
-export async function registerGuest(slug: string, name: string, pin: string): Promise<AuthResult<RegisterOutcome>> {
-  const { data, error } = await supabase.rpc('register_guest', { p_slug: slug, p_name: name, p_pin: pin });
+/**
+ * "Inscribirme": nombre y apellido + un PIN de 4 a 6 números que elige la
+ * persona, y las respuestas que pidió el organizador (ya normalizadas con
+ * `cleanEnrollmentAnswers`). Sin respuestas, la llamada es la de siempre.
+ */
+export async function registerGuest(
+  slug: string,
+  name: string,
+  pin: string,
+  answers?: Record<string, unknown>,
+): Promise<AuthResult<RegisterOutcome>> {
+  const args = { p_slug: slug, p_name: name, p_pin: pin };
+  const { data, error } = await supabase.rpc(
+    'register_guest',
+    answers && Object.keys(answers).length > 0 ? { ...args, p_answers: answers } : args,
+  );
   if (error) throw authError(error);
   return mapAuth((data as AuthRow<RegisterOutcome>[] | null)?.[0]);
 }

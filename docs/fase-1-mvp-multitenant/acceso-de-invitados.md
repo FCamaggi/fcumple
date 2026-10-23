@@ -25,13 +25,15 @@ No hay lista previa obligatoria: el organizador ve quién entra a medida que se 
 
 ## Flujos y resultados
 
-### `register_guest(slug, nombre, pin)` — "Inscribirme"
+### `register_guest(slug, nombre, pin, respuestas)` — "Inscribirme"
 
 | Modo del evento | Qué hace |
 |---|---|
 | `open` (por defecto) | Crea al invitado con ese nombre y PIN y entrega el token. |
 | `list` | Solo si el organizador ya lo cargó en su lista; la persona elige su PIN la primera vez. |
 | `list_requests` | Igual, y si no está en la lista queda una **solicitud pendiente** (máximo 50) que el organizador aprueba o rechaza. |
+
+El cuarto parámetro es opcional y lleva las respuestas que el organizador configuró (acompañantes, comentario, preguntas propias): ver [`inscripcion-configurable.md`](./inscripcion-configurable.md).
 
 Resultados (`outcome`): `ok`, `pending_approval`, `name_taken` (ya hay alguien inscrito con ese nombre: o es esa persona y debe iniciar sesión, o debe agregar su segundo apellido), `not_found` (modo lista), `ambiguous` (modo lista: varias coinciden).
 
@@ -63,7 +65,7 @@ En el panel del organizador, **Restablecer acceso** sobre el invitado: cambia su
 
 ## RSVP
 
-Opcional por evento (`rsvp_enabled`, apagado por defecto).
+Opcional por evento (`rsvp_enabled`, apagado por defecto). Sin RSVP, la inscripción es la confirmación: el aforo cuenta a quienes se inscribieron, con los acompañantes que indicaron.
 
 ## Compatibilidad de Supabase
 

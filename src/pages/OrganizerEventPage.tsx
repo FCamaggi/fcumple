@@ -3,6 +3,8 @@ import { Link, useParams } from 'react-router-dom';
 import { checkInGuest } from '../lib/adminApi';
 import CameraStudio from '../components/studio/CameraStudio';
 import DoorPanel from '../components/DoorPanel';
+import EnrollmentSettings from '../components/EnrollmentSettings';
+import { QUESTION_IDS } from '../lib/enrollmentConfig';
 import EventSettingsPanel from '../components/EventSettingsPanel';
 import GuestListPanel from '../components/GuestListPanel';
 import PhotosTab from '../components/PhotosTab';
@@ -15,13 +17,14 @@ import {
   regenerateGuestToken,
   removeGuest,
   setGuestApproval,
+  setGuestPlusOnes,
   updateEvent,
   type EventSettingsPatch,
   type OrganizerEvent,
   type OrganizerGuest,
 } from '../lib/organizerApi';
 
-type Tab = 'invitados' | 'puerta' | 'camara' | 'fotos' | 'enlace' | 'ajustes';
+type Tab = 'invitados' | 'puerta' | 'camara' | 'fotos' | 'enlace' | 'inscripcion' | 'ajustes';
 
 const TABS: Array<{ id: Tab; label: string }> = [
   { id: 'invitados', label: 'Invitados' },
@@ -29,6 +32,7 @@ const TABS: Array<{ id: Tab; label: string }> = [
   { id: 'camara', label: 'Cámara' },
   { id: 'fotos', label: 'Fotos' },
   { id: 'enlace', label: 'Enlace' },
+  { id: 'inscripcion', label: 'Inscripción' },
   { id: 'ajustes', label: 'Ajustes' },
 ];
 
@@ -105,7 +109,7 @@ export default function OrganizerEventPage() {
           <h1 className="font-display text-3xl uppercase tracking-wide">{event.name}</h1>
         </header>
 
-        <nav className="flex gap-2" aria-label="Secciones">
+        <nav className="flex flex-wrap gap-2" aria-label="Secciones">
           {TABS.map((t) => (
             <button
               key={t.id}
@@ -124,12 +128,15 @@ export default function OrganizerEventPage() {
         {tab === 'invitados' && (
           <GuestListPanel
             guests={guests}
+            enrollment={event.enrollment}
+            slug={event.slug}
             onAdd={async (names) => {
-              const result = await addGuests(eventId, names);
+              const result = await addGuests(eventId, names, event.defaultPhotoQuota);
               setGuests((current) => [...current, ...result.created]);
               return result;
             }}
             onReview={async (guest, decision) => replaceGuest(await setGuestApproval(guest.id, decision))}
+            onReviewPlusOnes={async (guest, approve) => replaceGuest(await setGuestPlusOnes(guest, approve))}
             onRemove={async (guest) => {
               await removeGuest(guest.id);
               setGuests((current) => current.filter((g) => g.id !== guest.id));
@@ -150,6 +157,13 @@ export default function OrganizerEventPage() {
         {tab === 'camara' && <CameraStudio event={event} onEventChange={setEvent} />}
         {tab === 'fotos' && <PhotosTab event={event} onEventChange={setEvent} />}
         {tab === 'enlace' && <ShareEventLink event={event} />}
+        {tab === 'inscripcion' && (
+          <EnrollmentSettings
+            event={event}
+            onSave={handleSave}
+            usedQuestionIds={QUESTION_IDS.filter((id) => guests.some((g) => g.answers[id]))}
+          />
+        )}
         {tab === 'ajustes' && <EventSettingsPanel event={event} onSave={handleSave} />}
       </div>
 

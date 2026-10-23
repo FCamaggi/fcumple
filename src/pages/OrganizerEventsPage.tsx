@@ -49,13 +49,18 @@ export default function OrganizerEventsPage() {
             <span className="font-mono text-[11px] uppercase tracking-widest text-laser-500">Organizador</span>
             <h1 className="font-display text-3xl uppercase tracking-wide">Tus eventos</h1>
           </div>
-          <button
-            type="button"
-            onClick={() => void signOut()}
-            className="font-mono text-[11px] uppercase tracking-wider text-paper-100/60 underline"
-          >
-            Salir
-          </button>
+          <div className="flex items-center gap-4">
+            <Link to="/panel/cuenta" className="font-mono text-[11px] uppercase tracking-wider text-paper-100/60 underline">
+              Tu cuenta
+            </Link>
+            <button
+              type="button"
+              onClick={() => void signOut()}
+              className="font-mono text-[11px] uppercase tracking-wider text-paper-100/60 underline"
+            >
+              Salir
+            </button>
+          </div>
         </header>
 
         {error && (

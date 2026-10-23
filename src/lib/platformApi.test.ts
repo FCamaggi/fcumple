@@ -27,6 +27,7 @@ const eventRow = {
   camera_unlock: 'on_identify',
   rsvp_enabled: false,
   photos_revealed: false,
+  enrollment_config: {},
 };
 
 beforeEach(() => {
@@ -44,6 +45,22 @@ describe('getEventPublic', () => {
     const event = await getEventPublic('fiesta-abcd');
     expect(rpc).toHaveBeenCalledWith('get_event_public', { p_slug: 'fiesta-abcd' });
     expect(event).toMatchObject({ id: 'ev-1', accessMode: 'list', cameraUnlock: 'on_identify' });
+    expect(event?.enrollment).toEqual({ welcome: '', plusOnes: null, comment: null, questions: [] });
+  });
+
+  it('resuelve la configuración de la inscripción', async () => {
+    rpc.mockResolvedValueOnce({
+      data: [{ ...eventRow, enrollment_config: { welcome: 'Hola', plus_ones: { max: 1 } } }],
+      error: null,
+    });
+    const event = await getEventPublic('fiesta-abcd');
+    expect(event?.enrollment).toMatchObject({ welcome: 'Hola', plusOnes: { max: 1 } });
+  });
+
+  it('una configuración inválida no pide nada (no rompe la inscripción)', async () => {
+    rpc.mockResolvedValueOnce({ data: [{ ...eventRow, enrollment_config: { extra: 1 } }], error: null });
+    const event = await getEventPublic('fiesta-abcd');
+    expect(event?.enrollment.plusOnes).toBeNull();
   });
 
   it('devuelve null si el slug no existe', async () => {
@@ -66,6 +83,40 @@ describe('registerGuest', () => {
     const result = await registerGuest('fiesta-abcd', 'Ana Rojas', '4821');
     expect(rpc).toHaveBeenCalledWith('register_guest', { p_slug: 'fiesta-abcd', p_name: 'Ana Rojas', p_pin: '4821' });
     expect(result).toEqual({ outcome: 'ok', guestToken: 'tok', guestId: 'g1', guestName: 'Ana Rojas' });
+  });
+
+  it('envía las respuestas de la inscripción como p_answers', async () => {
+    rpc.mockResolvedValueOnce({
+      data: [{ outcome: 'ok', guest_token: 'tok', guest_id: 'g1', guest_name: 'Ana Rojas' }],
+      error: null,
+    });
+    await registerGuest('fiesta-abcd', 'Ana Rojas', '4821', { q1: 'Regina George', plus_ones: ['Luis Pérez'] });
+    expect(rpc).toHaveBeenCalledWith('register_guest', {
+      p_slug: 'fiesta-abcd',
+      p_name: 'Ana Rojas',
+      p_pin: '4821',
+      p_answers: { q1: 'Regina George', plus_ones: ['Luis Pérez'] },
+    });
+  });
+
+  it('con respuestas vacías hace la misma llamada de siempre', async () => {
+    rpc.mockResolvedValueOnce({
+      data: [{ outcome: 'ok', guest_token: 'tok', guest_id: 'g1', guest_name: 'Ana Rojas' }],
+      error: null,
+    });
+    await registerGuest('s', 'Ana Rojas', '4821', {});
+    expect(rpc).toHaveBeenCalledWith('register_guest', { p_slug: 's', p_name: 'Ana Rojas', p_pin: '4821' });
+  });
+
+  it('entrega el código cuando la base rechaza las respuestas', async () => {
+    rpc.mockResolvedValueOnce({
+      data: null,
+      error: { code: '22023', message: 'enrollment_invalid:question_required:q1' },
+    });
+    await expect(registerGuest('s', 'Ana Rojas', '4821', { q1: ' ' })).rejects.toMatchObject({
+      name: 'EnrollmentAnswersError',
+      code: 'question_required:q1',
+    });
   });
 
   it.each([

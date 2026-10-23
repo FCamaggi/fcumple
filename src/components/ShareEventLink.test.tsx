@@ -47,6 +47,15 @@ describe('ShareEventLink', () => {
     expect(decodeURIComponent(link.getAttribute('href') ?? '')).toContain('/e/cumple-abcd');
   });
 
+  it('permite probar el enlace tal como lo verán los invitados', async () => {
+    render(<ShareEventLink event={event} />);
+    const link = screen.getByRole('link', { name: 'Probar el enlace' });
+    expect(link.getAttribute('href')).toMatch(/\/e\/cumple-abcd$/);
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', expect.stringContaining('noreferrer'));
+    await waitFor(() => expect(QRCode.toDataURL).toHaveBeenCalled());
+  });
+
   it('sigue mostrando el enlace aunque falle el QR', async () => {
     vi.mocked(QRCode.toDataURL).mockRejectedValueOnce(new Error('boom'));
     render(<ShareEventLink event={event} />);

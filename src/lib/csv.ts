@@ -1,4 +1,6 @@
 import type { Guest } from '../types';
+import { QUESTION_IDS, type ResolvedEnrollment } from './enrollmentConfig';
+import type { ApprovalStatus, OrganizerGuest } from './organizerApi';
 
 const EXPORT_HEADER = ['token', 'full_name', 'status', 'plus_ones_allowed', 'plus_ones_confirmed', 'guest_note', 'phone'];
 // `token` es la clave de upsert al importar: una fila con token existente
@@ -23,7 +25,64 @@ export function guestsToCsv(guests: Guest[]): string {
   const lines = [toCsvLine(EXPORT_HEADER)];
   for (const g of guests) {
     lines.push(
-      toCsvLine([g.token ?? '', g.fullName, g.status, g.plusOnesAllowed, g.plusOnesConfirmed, g.guestNote ?? '', g.phone ?? ''])
+      // `token` y `phone` son datos de reimportación (el "+56…" de un teléfono no puede llevar comilla); el
+      // nombre y la nota los escribe una persona y sí se neutralizan contra fórmulas.
+      toCsvLine([g.token ?? '', safeCell(g.fullName), g.status, g.plusOnesAllowed, g.plusOnesConfirmed, safeCell(g.guestNote ?? ''), g.phone ?? ''])
+    );
+  }
+  return lines.join('\r\n');
+}
+
+// Una celda que empieza con = + - @ (o tab / retorno) se evalúa como fórmula al abrir el CSV en
+// Excel o Sheets, y aquí hay texto escrito por los invitados. Se le antepone una comilla simple.
+const FORMULA_START = /^[=+\-@\t\r]/;
+const safeCell = (value: string) => (FORMULA_START.test(value) ? `'${value}` : value);
+
+const APPROVAL_LABELS: Record<ApprovalStatus, string> = {
+  approved: 'Aprobado',
+  pending: 'Pendiente',
+  rejected: 'Rechazado',
+};
+
+/**
+ * CSV de la inscripción (Fase 1): quién se inscribió y qué respondió. A propósito NO lleva el token
+ * del invitado (es su credencial de sesión) ni ningún dato que la plataforma no guarda. Una columna por
+ * cada pregunta que el organizador configuró; las etiquetas son las de esa configuración.
+ */
+export function enrollmentToCsv(guests: OrganizerGuest[], enrollment: ResolvedEnrollment): string {
+  const questions = enrollment.questions;
+  const configuredIds = new Set<string>(questions.map((q) => q.id));
+  /** Respuestas a una pregunta que el organizador quitó después: no se pierden al exportar. */
+  const orphans = (g: OrganizerGuest) =>
+    QUESTION_IDS.filter((id) => !configuredIds.has(id) && g.answers[id]).map((id) => g.answers[id]);
+  const hasOrphans = guests.some((g) => orphans(g).length > 0);
+  const header = [
+    'Nombre',
+    'Estado',
+    'Entró',
+    'Llegó',
+    'Acompañantes solicitados',
+    'Acompañantes aprobados',
+    'Nombres de acompañantes',
+    ...(enrollment.comment ? [enrollment.comment.label] : []),
+    ...questions.map((q) => q.label),
+    ...(hasOrphans ? ['Respuestas a preguntas que ya no están'] : []),
+  ];
+  const lines = [toCsvLine(header.map(safeCell))];
+  for (const g of guests) {
+    lines.push(
+      toCsvLine([
+        safeCell(g.fullName),
+        APPROVAL_LABELS[g.approvalStatus],
+        g.claimedAt ? 'Sí' : 'No',
+        g.checkedInAt ? 'Sí' : 'No',
+        g.plusOnesRequested,
+        g.plusOnesConfirmed,
+        safeCell((g.answers.plus_ones ?? []).join('; ')),
+        ...(enrollment.comment ? [safeCell(g.answers.comment ?? '')] : []),
+        ...questions.map((q) => safeCell(g.answers[q.id] ?? '')),
+        ...(hasOrphans ? [safeCell(orphans(g).join('; '))] : []),
+      ]),
     );
   }
   return lines.join('\r\n');

@@ -27,7 +27,9 @@ const event: OrganizerEvent = {
   id: 'ev-1', slug: 'fiesta-abcd', name: 'Cumple de Ana', startsAt: null, location: null,
   accessMode: 'open', cameraUnlock: 'on_identify', rsvpEnabled: false,
   framesEnabled: true, stickersEnabled: true, defaultFrameId: null,
-  photosRevealedAt: null, createdAt: '2026-10-15T00:00:00Z',
+  photosRevealedAt: null, defaultPhotoQuota: 5,
+  enrollment: { welcome: '', plusOnes: null, comment: null, questions: [] },
+  createdAt: '2026-10-15T00:00:00Z',
 };
 
 const frame = (id: string, label: string, over: Partial<studio.EventFrame> = {}): studio.EventFrame => ({

@@ -65,6 +65,7 @@ const event: EventPublic = {
   cameraUnlock: 'on_identify',
   rsvpEnabled: false,
   photosRevealed: false,
+  enrollment: { welcome: '', plusOnes: null, comment: null, questions: [] },
 };
 
 const guest: MyGuest = { id: 'g1', eventId: 'ev-1', fullName: 'Ana Rojas', checkedInAt: null, photoQuota: 5 };
@@ -174,10 +175,10 @@ describe('GuestHub', () => {
     expect(listRevealedPhotosForGuest).toHaveBeenCalledWith('tok');
   });
 
-  it('muestra el aforo cuando hay confirmados', async () => {
+  it('muestra el aforo cuando hay inscritos', async () => {
     vi.mocked(getPublicHeadcount).mockResolvedValue(12);
     setup();
-    expect(await screen.findByText('Aforo // 12 confirmados')).toBeInTheDocument();
+    expect(await screen.findByText('Aforo // 12 inscritos')).toBeInTheDocument();
   });
 
   it('no ofrece la cámara hasta que los marcos y stickers terminaron de cargar', async () => {

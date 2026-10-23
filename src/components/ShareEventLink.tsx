@@ -64,10 +64,18 @@ export default function ShareEventLink({ event }: ShareEventLinkProps) {
         >
           Compartir por WhatsApp
         </a>
+        <a
+          href={url}
+          target="_blank"
+          rel="noreferrer"
+          className="flex h-10 items-center border border-smoke-700/60 px-4 font-display text-xs uppercase tracking-wider text-paper-100"
+        >
+          Probar el enlace
+        </a>
       </div>
 
       <p className="font-sans text-xs text-paper-100/60">
-        Manda el mismo enlace a todos (por ejemplo al grupo). Cada persona escribe su nombre y apellido para entrar.
+        Manda el mismo enlace a todos (por ejemplo al grupo). Cada persona escribe su nombre y apellido y elige un PIN de 4 a 6 números para entrar. Con «Probar el enlace» ves lo mismo que verán tus invitados.
       </p>
 
       {qr && (

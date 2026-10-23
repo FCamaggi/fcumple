@@ -1,4 +1,11 @@
 import { supabase } from './supabaseClient';
+import {
+  parseGuestAnswers,
+  resolveEnrollmentConfig,
+  serializeEnrollmentConfig,
+  type GuestAnswers,
+  type ResolvedEnrollment,
+} from './enrollmentConfig';
 import type { AccessMode } from './platformApi';
 import type { ModerationPhoto } from './photosApi';
 import type { Photo } from '../types';
@@ -24,6 +31,10 @@ export interface OrganizerEvent {
   stickersEnabled: boolean;
   defaultFrameId: string | null;
   photosRevealedAt: string | null;
+  /** Fotos que recibe cada invitado nuevo. */
+  defaultPhotoQuota: number;
+  /** Qué le pide el organizador al invitado al inscribirse. */
+  enrollment: ResolvedEnrollment;
   createdAt: string;
 }
 
@@ -37,6 +48,9 @@ export interface OrganizerGuest {
   plusOnesAllowed: number;
   plusOnesConfirmed: number;
   photoQuota: number;
+  /** Lo que respondió al inscribirse (acompañantes, comentario, preguntas propias). */
+  answers: GuestAnswers;
+  plusOnesRequested: number;
   checkedInAt: string | null;
   claimedAt: string | null;
   lastSeenAt: string | null;
@@ -55,6 +69,8 @@ interface EventRow {
   stickers_enabled: boolean;
   default_frame_id: string | null;
   photos_revealed_at: string | null;
+  default_photo_quota: number;
+  enrollment_config: unknown;
   created_at: string;
 }
 
@@ -68,6 +84,8 @@ interface GuestRow {
   plus_ones_allowed: number;
   plus_ones_confirmed: number;
   photo_quota: number;
+  guest_answers: unknown;
+  plus_ones_requested: number;
   checked_in_at: string | null;
   claimed_at: string | null;
   last_seen_at: string | null;
@@ -87,6 +105,8 @@ function mapEvent(row: EventRow): OrganizerEvent {
     stickersEnabled: row.stickers_enabled,
     defaultFrameId: row.default_frame_id,
     photosRevealedAt: row.photos_revealed_at,
+    defaultPhotoQuota: row.default_photo_quota,
+    enrollment: resolveEnrollmentConfig(row.enrollment_config),
     createdAt: row.created_at,
   };
 }
@@ -102,6 +122,8 @@ function mapGuest(row: GuestRow): OrganizerGuest {
     plusOnesAllowed: row.plus_ones_allowed,
     plusOnesConfirmed: row.plus_ones_confirmed,
     photoQuota: row.photo_quota,
+    answers: parseGuestAnswers(row.guest_answers),
+    plusOnesRequested: row.plus_ones_requested ?? 0,
     checkedInAt: row.checked_in_at,
     claimedAt: row.claimed_at,
     lastSeenAt: row.last_seen_at,
@@ -174,6 +196,8 @@ export interface EventSettingsPatch {
   framesEnabled?: boolean;
   stickersEnabled?: boolean;
   defaultFrameId?: string | null;
+  defaultPhotoQuota?: number;
+  enrollment?: ResolvedEnrollment;
 }
 
 export async function updateEvent(eventId: string, patch: EventSettingsPatch): Promise<OrganizerEvent> {
@@ -187,9 +211,17 @@ export async function updateEvent(eventId: string, patch: EventSettingsPatch): P
   if (patch.framesEnabled !== undefined) row.frames_enabled = patch.framesEnabled;
   if (patch.stickersEnabled !== undefined) row.stickers_enabled = patch.stickersEnabled;
   if (patch.defaultFrameId !== undefined) row.default_frame_id = patch.defaultFrameId;
+  if (patch.defaultPhotoQuota !== undefined) row.default_photo_quota = patch.defaultPhotoQuota;
+  if (patch.enrollment !== undefined) row.enrollment_config = serializeEnrollmentConfig(patch.enrollment);
 
   const { data, error } = await supabase.from('events').update(row).eq('id', eventId).select('*').single();
-  if (error) throw new Error('No pudimos guardar los ajustes del evento.');
+  if (error) {
+    throw new Error(
+      error.code === '23514'
+        ? 'Alguno de los valores no es válido: revisa los largos y las cantidades.'
+        : 'No pudimos guardar los ajustes del evento.',
+    );
+  }
   return mapEvent(data as EventRow);
 }
 
@@ -203,10 +235,15 @@ export async function listEventGuests(eventId: string): Promise<OrganizerGuest[]
   return ((data ?? []) as GuestRow[]).map(mapGuest);
 }
 
-export async function addGuest(eventId: string, fullName: string): Promise<OrganizerGuest> {
+/** `photoQuota`: cupo del invitado; sin él, el que da la base (5). Pasa el del evento para ser coherente con la inscripción. */
+export async function addGuest(eventId: string, fullName: string, photoQuota?: number): Promise<OrganizerGuest> {
   const { data, error } = await supabase
     .from('guests')
-    .insert({ event_id: eventId, full_name: fullName })
+    .insert(
+      photoQuota === undefined
+        ? { event_id: eventId, full_name: fullName }
+        : { event_id: eventId, full_name: fullName, photo_quota: photoQuota },
+    )
     .select('*')
     .single();
   if (error) throw guestError(error);
@@ -219,11 +256,11 @@ export interface AddGuestsResult {
 }
 
 /** Alta masiva (un nombre por línea): sigue con el resto aunque alguno falle. */
-export async function addGuests(eventId: string, names: string[]): Promise<AddGuestsResult> {
+export async function addGuests(eventId: string, names: string[], photoQuota?: number): Promise<AddGuestsResult> {
   const result: AddGuestsResult = { created: [], failed: [] };
   for (const name of names) {
     try {
-      result.created.push(await addGuest(eventId, name));
+      result.created.push(await addGuest(eventId, name, photoQuota));
     } catch (err) {
       result.failed.push({ name, reason: err instanceof Error ? err.message : 'Error desconocido.' });
     }
@@ -238,6 +275,20 @@ export async function setGuestApproval(guestId: string, approvalStatus: Approval
     .eq('id', guestId)
     .select('*')
     .single();
+  if (error) throw guestError(error);
+  return mapGuest(data as GuestRow);
+}
+
+/**
+ * Resuelve la solicitud de acompañantes de un invitado. Aprobar sube su cupo (sin bajar uno mayor que ya tuviera)
+ * y los confirma; no aprobar deja la solicitud en 0 (los nombres siguen en sus respuestas).
+ */
+export async function setGuestPlusOnes(guest: OrganizerGuest, approve: boolean): Promise<OrganizerGuest> {
+  const requested = guest.plusOnesRequested;
+  const patch = approve
+    ? { plus_ones_allowed: Math.max(guest.plusOnesAllowed, requested), plus_ones_confirmed: requested }
+    : { plus_ones_requested: 0 };
+  const { data, error } = await supabase.from('guests').update(patch).eq('id', guest.id).select('*').single();
   if (error) throw guestError(error);
   return mapGuest(data as GuestRow);
 }

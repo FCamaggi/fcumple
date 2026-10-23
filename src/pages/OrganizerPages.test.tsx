@@ -43,6 +43,8 @@ const event: api.OrganizerEvent = {
   stickersEnabled: true,
   defaultFrameId: null,
   photosRevealedAt: null,
+  defaultPhotoQuota: 5,
+  enrollment: { welcome: '', plusOnes: null, comment: null, questions: [] },
   createdAt: '2026-10-15T00:00:00Z',
 };
 
@@ -56,6 +58,8 @@ const ana: api.OrganizerGuest = {
   plusOnesAllowed: 0,
   plusOnesConfirmed: 0,
   photoQuota: 5,
+  answers: {},
+  plusOnesRequested: 0,
   checkedInAt: null,
   claimedAt: null,
   lastSeenAt: null,
@@ -155,7 +159,7 @@ describe('OrganizerEventPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Agregar' }));
 
     expect(await screen.findByText('Ana Rojas')).toBeInTheDocument();
-    expect(api.addGuests).toHaveBeenCalledWith('ev-1', ['Ana Rojas']);
+    expect(api.addGuests).toHaveBeenCalledWith('ev-1', ['Ana Rojas'], 5);
   });
 
   it('quita un invitado de la lista tras confirmarlo', async () => {
@@ -199,6 +203,24 @@ describe('OrganizerEventPage', () => {
 
     await waitFor(() =>
       expect(api.updateEvent).toHaveBeenCalledWith('ev-1', expect.objectContaining({ accessMode: 'open' })),
+    );
+  });
+
+  it('Inscripción: configura qué se pide al invitado y lo guarda en el evento', async () => {
+    vi.mocked(api.getMyEvent).mockResolvedValueOnce(event);
+    vi.mocked(api.listEventGuests).mockResolvedValueOnce([]);
+    vi.mocked(api.updateEvent).mockResolvedValueOnce(event);
+    renderEvent();
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Inscripción' }));
+    await userEvent.click(screen.getByLabelText('Permitir acompañantes (+1)'));
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar inscripción' }));
+
+    await waitFor(() =>
+      expect(api.updateEvent).toHaveBeenCalledWith(
+        'ev-1',
+        expect.objectContaining({ enrollment: expect.objectContaining({ plusOnes: { max: 1 } }) }),
+      ),
     );
   });
 

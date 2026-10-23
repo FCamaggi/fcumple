@@ -39,6 +39,7 @@ import {
   regenerateGuestToken,
   removeGuest,
   setGuestApproval,
+  setGuestPlusOnes,
   updateEvent,
 } from './organizerApi';
 
@@ -58,6 +59,8 @@ const eventRow = {
   stickers_enabled: true,
   default_frame_id: null,
   photos_revealed_at: null,
+  default_photo_quota: 5,
+  enrollment_config: {},
   created_at: '2026-10-15T00:00:00Z',
 };
 
@@ -71,6 +74,8 @@ const guestRow = {
   plus_ones_allowed: 0,
   plus_ones_confirmed: 0,
   photo_quota: 5,
+  guest_answers: {},
+  plus_ones_requested: 0,
   checked_in_at: null,
   claimed_at: null,
   last_seen_at: null,
@@ -123,6 +128,46 @@ describe('eventos', () => {
     });
   });
 
+  it('updateEvent guarda la configuración de la inscripción y el cupo por defecto', async () => {
+    const q = chain({ data: eventRow, error: null });
+    from.mockReturnValueOnce(q.proxy);
+    await updateEvent('ev-1', {
+      defaultPhotoQuota: 10,
+      startsAt: '2026-10-30T23:30:00.000Z',
+      enrollment: {
+        welcome: ' Hola ',
+        plusOnes: { max: 1 },
+        comment: null,
+        questions: [{ id: 'q1', label: '¿De qué te disfrazas?', required: true }],
+      },
+    });
+    expect(q.calls.find(([name]) => name === 'update')?.[1][0]).toEqual({
+      default_photo_quota: 10,
+      starts_at: '2026-10-30T23:30:00.000Z',
+      enrollment_config: {
+        welcome: 'Hola',
+        plus_ones: { max: 1 },
+        questions: [{ id: 'q1', label: '¿De qué te disfrazas?', required: true }],
+      },
+    });
+  });
+
+  it('updateEvent explica cuando la base rechaza un valor', async () => {
+    from.mockReturnValueOnce(chain({ data: null, error: { code: '23514' } }).proxy);
+    await expect(updateEvent('ev-1', { defaultPhotoQuota: 500 })).rejects.toThrow(/no es válido/);
+  });
+
+  it('mapea la configuración de la inscripción y el cupo del evento', async () => {
+    const q = chain({
+      data: [{ ...eventRow, default_photo_quota: 10, enrollment_config: { plus_ones: { max: 2 } } }],
+      error: null,
+    });
+    from.mockReturnValueOnce(q.proxy);
+    const [event] = await listMyEvents();
+    expect(event.defaultPhotoQuota).toBe(10);
+    expect(event.enrollment.plusOnes).toEqual({ max: 2 });
+  });
+
   it('updateEvent envía solo los campos indicados, en snake_case', async () => {
     const q = chain({ data: eventRow, error: null });
     from.mockReturnValueOnce(q.proxy);
@@ -142,11 +187,33 @@ describe('invitados', () => {
     expect(guests[0]).toMatchObject({ fullName: 'Ana Rojas', approvalStatus: 'approved', token: 'tok' });
   });
 
+  it('listEventGuests entrega las respuestas de la inscripción', async () => {
+    const q = chain({
+      data: [{ ...guestRow, guest_answers: { plus_ones: ['Luis Pérez'], q1: 'Regina' }, plus_ones_requested: 1 }],
+      error: null,
+    });
+    from.mockReturnValueOnce(q.proxy);
+    const [guest] = await listEventGuests('ev-1');
+    expect(guest.answers).toEqual({ plus_ones: ['Luis Pérez'], q1: 'Regina' });
+    expect(guest.plusOnesRequested).toBe(1);
+  });
+
   it('addGuest inserta con el event_id', async () => {
     const q = chain({ data: guestRow, error: null });
     from.mockReturnValueOnce(q.proxy);
     await addGuest('ev-1', 'Ana Rojas');
     expect(q.calls.find(([name]) => name === 'insert')?.[1][0]).toEqual({ event_id: 'ev-1', full_name: 'Ana Rojas' });
+  });
+
+  it('addGuest usa el cupo del evento cuando se lo pasan', async () => {
+    const q = chain({ data: guestRow, error: null });
+    from.mockReturnValueOnce(q.proxy);
+    await addGuest('ev-1', 'Ana Rojas', 10);
+    expect(q.calls.find(([name]) => name === 'insert')?.[1][0]).toEqual({
+      event_id: 'ev-1',
+      full_name: 'Ana Rojas',
+      photo_quota: 10,
+    });
   });
 
   it.each([
@@ -169,6 +236,47 @@ describe('invitados', () => {
 
     expect(result.created.map((g) => g.fullName)).toEqual(['Ana Rojas', 'Beto Mora']);
     expect(result.failed).toEqual([{ name: 'Madonna', reason: expect.stringMatching(/nombre y apellido/) }]);
+  });
+
+  it('setGuestPlusOnes: aprobar sube el cupo y confirma lo solicitado', async () => {
+    const q = chain({ data: { ...guestRow, plus_ones_requested: 2, plus_ones_allowed: 2, plus_ones_confirmed: 2 }, error: null });
+    from.mockReturnValueOnce(q.proxy);
+    const guest = {
+      id: 'g1', eventId: 'ev-1', fullName: 'Ana Rojas', token: 't', approvalStatus: 'approved' as const,
+      status: 'pending' as const, plusOnesAllowed: 0, plusOnesConfirmed: 0, photoQuota: 5, answers: {},
+      plusOnesRequested: 2, checkedInAt: null, claimedAt: null, lastSeenAt: null,
+    };
+    const updated = await setGuestPlusOnes(guest, true);
+    expect(q.calls.find(([name]) => name === 'update')?.[1][0]).toEqual({ plus_ones_allowed: 2, plus_ones_confirmed: 2 });
+    expect(updated.plusOnesConfirmed).toBe(2);
+  });
+
+  it('setGuestPlusOnes: aprobar no baja un cupo mayor que el invitado ya tenía', async () => {
+    const q = chain({ data: guestRow, error: null });
+    from.mockReturnValueOnce(q.proxy);
+    await setGuestPlusOnes(
+      {
+        id: 'g1', eventId: 'ev-1', fullName: 'Ana Rojas', token: 't', approvalStatus: 'approved', status: 'pending',
+        plusOnesAllowed: 4, plusOnesConfirmed: 0, photoQuota: 5, answers: {}, plusOnesRequested: 1,
+        checkedInAt: null, claimedAt: null, lastSeenAt: null,
+      },
+      true,
+    );
+    expect(q.calls.find(([name]) => name === 'update')?.[1][0]).toEqual({ plus_ones_allowed: 4, plus_ones_confirmed: 1 });
+  });
+
+  it('setGuestPlusOnes: no aprobar deja la solicitud en 0', async () => {
+    const q = chain({ data: guestRow, error: null });
+    from.mockReturnValueOnce(q.proxy);
+    await setGuestPlusOnes(
+      {
+        id: 'g1', eventId: 'ev-1', fullName: 'Ana Rojas', token: 't', approvalStatus: 'approved', status: 'pending',
+        plusOnesAllowed: 0, plusOnesConfirmed: 0, photoQuota: 5, answers: {}, plusOnesRequested: 2,
+        checkedInAt: null, claimedAt: null, lastSeenAt: null,
+      },
+      false,
+    );
+    expect(q.calls.find(([name]) => name === 'update')?.[1][0]).toEqual({ plus_ones_requested: 0 });
   });
 
   it('setGuestApproval actualiza approval_status', async () => {

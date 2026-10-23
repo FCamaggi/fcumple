@@ -40,6 +40,52 @@ export async function signUp(email: string, password: string): Promise<SignUpRes
   return { needsConfirmation: !data.session };
 }
 
+function changePasswordError(message: string): Error {
+  // Primero lo más específico: "known to be weak ... please choose a different one" también dice "different".
+  if (/weak|pwned|breach|known to be/i.test(message)) {
+    return new Error('Esa contraseña es muy fácil de adivinar. Elige otra.');
+  }
+  if (/same.*password|different from the old|should be different/i.test(message)) {
+    return new Error('La nueva contraseña debe ser distinta de la actual.');
+  }
+  if (/rate limit|too many/i.test(message)) {
+    return new Error('Demasiados intentos. Espera unos minutos y vuelve a probar.');
+  }
+  if (/at least|characters|too short/i.test(message)) {
+    return new Error('La contraseña debe tener al menos 8 caracteres.');
+  }
+  return new Error('No pudimos cambiar tu contraseña. Intenta de nuevo en un momento.');
+}
+
+/**
+ * Cambia la contraseña de la cuenta con sesión abierta. Pide la actual y la
+ * comprueba iniciando sesión de nuevo: la cuenta puede estar compartida con una
+ * contraseña provisoria, y así quien la cambia demuestra que la conoce. Después
+ * cierra las demás sesiones: quien sabía la provisoria no sigue dentro.
+ */
+export async function changePassword(email: string, currentPassword: string, newPassword: string): Promise<void> {
+  const { error: reauthError } = await supabase.auth.signInWithPassword({ email, password: currentPassword });
+  if (reauthError) {
+    const text = `${reauthError.message ?? ''} ${(reauthError as { code?: string }).code ?? ''}`;
+    if ((reauthError as { status?: number }).status === 400 || /invalid.*credentials|invalid_credentials/i.test(text)) {
+      throw new Error('La contraseña actual no es correcta.');
+    }
+    if (/rate limit|too many/i.test(text)) {
+      throw new Error('Demasiados intentos. Espera unos minutos y vuelve a probar.');
+    }
+    throw new Error('No pudimos comprobar tu contraseña. Intenta de nuevo en un momento.');
+  }
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) {
+    throw changePasswordError(error.message);
+  }
+  try {
+    await supabase.auth.signOut({ scope: 'others' });
+  } catch {
+    // La contraseña ya cambió; cerrar las otras sesiones es un refuerzo, no un requisito.
+  }
+}
+
 export async function signOut(): Promise<void> {
   await supabase.auth.signOut();
 }
