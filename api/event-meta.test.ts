@@ -44,6 +44,21 @@ describe('describeEvent', () => {
     expect(text).toContain('Inscríbete');
   });
 
+  it('el subtítulo va primero: «Cumpleaños Fran · viernes… · lugar»', () => {
+    const text = describeEvent({
+      name: 'PUTI HALLOWEEN',
+      subtitle: 'Cumpleaños Fran',
+      startsAt: '2026-10-30T23:30:00Z',
+      location: 'Los Pozos 6855',
+    });
+    expect(text.startsWith('Cumpleaños Fran · ')).toBe(true);
+    expect(text).toContain('Los Pozos 6855');
+  });
+
+  it('con solo subtítulo (sin fecha ni lugar) igual lo muestra', () => {
+    expect(describeEvent({ name: 'X', subtitle: 'Cumpleaños Fran', startsAt: null, location: null })).toContain('Cumpleaños Fran');
+  });
+
   it('sin fecha ni lugar sigue dando una invitación', () => {
     expect(describeEvent({ name: 'X', startsAt: null, location: null })).toBe(NEUTRAL.description);
   });
@@ -151,6 +166,13 @@ describe('renderEventPage', () => {
       'https://abc.supabase.co/rest/v1/rpc/get_event_public',
       expect.objectContaining({ method: 'POST', body: JSON.stringify({ p_slug: 'cumpleanos-fran-j4h7' }) }),
     );
+  });
+
+  it('usa el subtítulo del evento en la descripción', async () => {
+    const fetchImpl = fetchStub({ name: 'PUTI HALLOWEEN', subtitle: 'Cumpleaños Fran', starts_at: null, location: null });
+    const page = await renderEventPage({ ...base, fetchImpl });
+    expect(page.body).toContain('<title>PUTI HALLOWEEN</title>');
+    expect(page.body).toContain('Cumpleaños Fran');
   });
 
   it('un evento que no existe da la vista previa neutra, no la de otro evento', async () => {

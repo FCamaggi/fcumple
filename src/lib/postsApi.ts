@@ -63,17 +63,19 @@ export async function listPublishedPosts(): Promise<Post[]> {
 }
 
 // For the admin: every post, drafts included, most recently created first.
-export async function listAllPosts(): Promise<Post[]> {
-  const { data, error } = await supabase
-    .from('posts')
-    .select(POST_COLUMNS)
-    .order('created_at', { ascending: false });
+// Fase 1: con `eventId`, solo los de ese evento (la RLS ya limita a los del dueño, pero un dueño puede tener varios).
+export async function listAllPosts(eventId?: string): Promise<Post[]> {
+  let query = supabase.from('posts').select(POST_COLUMNS);
+  if (eventId) query = query.eq('event_id', eventId);
+  const { data, error } = await query.order('created_at', { ascending: false });
 
   if (error) fail('cargar los avisos', error);
   return ((data ?? []) as unknown as PostRow[]).map(mapRow);
 }
 
 export interface CreatePostInput {
+  /** Fase 1: el evento al que pertenece el aviso (`posts.event_id` es obligatorio). */
+  eventId?: string;
   title: string;
   body: string;
   subtitle?: string | null;
@@ -86,6 +88,7 @@ export async function createPost(input: CreatePostInput): Promise<Post> {
   const { data, error } = await supabase
     .from('posts')
     .insert({
+      ...(input.eventId ? { event_id: input.eventId } : {}),
       title: input.title,
       body: input.body,
       subtitle: input.subtitle ?? null,
@@ -144,14 +147,14 @@ export function unpublishPost(id: string): Promise<Post> {
   return updatePost(id, { publishedAt: null });
 }
 
-// Uploads to the `post-images` Storage bucket at `{postId}/{uuid}-{filename}`
-// -- scoped by post id like `party-photos` is scoped by guest token, but
-// this bucket is only ever written by `authenticated` (the admin), never by
-// a guest (see supabase/README.md conventions this mirrors). Returns just
-// the storage path; the caller decides whether it's the post's cover or a
-// gallery image.
-export async function uploadPostImage(file: File, postId: string): Promise<string> {
-  const path = `${postId}/${crypto.randomUUID()}-${file.name}`;
+// Uploads to the `post-images` Storage bucket at `{scope}/{uuid}-{filename}`. En la Fase 1 `scope` es el
+// `event_id`: la política de Storage exige que la primera carpeta sea un evento del que se es dueño. Solo escribe
+// `authenticated` (la organizadora), nunca un invitado. El nombre del archivo se limpia (Storage rechaza algunos
+// caracteres, y los celulares traen nombres con espacios y tildes). Devuelve solo la ruta; quien llama decide si
+// es la portada o una imagen de la galería.
+export async function uploadPostImage(file: File, scope: string): Promise<string> {
+  const safeName = file.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9._-]+/g, '_');
+  const path = `${scope}/${crypto.randomUUID()}-${safeName}`;
 
   const { error } = await supabase.storage.from(POST_IMAGES_BUCKET).upload(path, file, {
     contentType: file.type || undefined,
@@ -191,6 +194,8 @@ export async function listPostImages(postId: string): Promise<PostImage[]> {
 }
 
 export interface AddPostImageInput {
+  /** Fase 1: `post_images.event_id` es obligatorio. */
+  eventId?: string;
   postId: string;
   storagePath: string;
   position: number;
@@ -199,7 +204,12 @@ export interface AddPostImageInput {
 export async function addPostImage(input: AddPostImageInput): Promise<PostImage> {
   const { data, error } = await supabase
     .from('post_images')
-    .insert({ post_id: input.postId, storage_path: input.storagePath, position: input.position })
+    .insert({
+      ...(input.eventId ? { event_id: input.eventId } : {}),
+      post_id: input.postId,
+      storage_path: input.storagePath,
+      position: input.position,
+    })
     .select('id, post_id, storage_path, position')
     .single();
 

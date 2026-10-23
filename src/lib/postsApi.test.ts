@@ -102,7 +102,32 @@ describe('listAllPosts', () => {
   });
 });
 
+describe('listAllPosts: por evento', () => {
+  it('con eventId solo trae los avisos de ese evento', async () => {
+    const order = vi.fn().mockResolvedValue({ data: [row], error: null });
+    const eq = vi.fn().mockReturnValue({ order });
+    const select = vi.fn().mockReturnValue({ eq });
+    from.mockReturnValue({ select });
+
+    await listAllPosts('ev-1');
+
+    expect(eq).toHaveBeenCalledWith('event_id', 'ev-1');
+    expect(order).toHaveBeenCalledWith('created_at', { ascending: false });
+  });
+});
+
 describe('createPost', () => {
+  it('con eventId guarda el aviso en ese evento (posts.event_id es obligatorio)', async () => {
+    const single = vi.fn().mockResolvedValue({ data: { ...row, published_at: null }, error: null });
+    const select = vi.fn().mockReturnValue({ single });
+    const insert = vi.fn().mockReturnValue({ select });
+    from.mockReturnValue({ insert });
+
+    await createPost({ eventId: 'ev-1', title: 'Bienvenidos', body: 'cuerpo' });
+
+    expect(insert).toHaveBeenCalledWith(expect.objectContaining({ event_id: 'ev-1', title: 'Bienvenidos', published_at: null }));
+  });
+
   it('creates a post as a draft (published_at null)', async () => {
     const draftRow = { ...row, published_at: null };
     const single = vi.fn().mockResolvedValue({ data: draftRow, error: null });
@@ -246,6 +271,33 @@ describe('publishPost / unpublishPost', () => {
 
     expect(update).toHaveBeenCalledWith({ published_at: null });
     expect(post.publishedAt).toBeNull();
+  });
+});
+
+describe('uploadPostImage: carpeta del evento y nombre seguro', () => {
+  it('sube a la carpeta del evento (lo que exige la política de Storage)', async () => {
+    const upload = vi.fn().mockResolvedValue({ error: null });
+    storageFrom.mockReturnValue({ upload });
+    const path = await uploadPostImage(new File(['b'], 'flyer.jpg', { type: 'image/jpeg' }), 'ev-1');
+    expect(path).toMatch(/^ev-1\/[0-9a-f-]{36}-flyer\.jpg$/);
+  });
+
+  it('limpia el nombre del archivo: tildes, espacios y símbolos', async () => {
+    const upload = vi.fn().mockResolvedValue({ error: null });
+    storageFrom.mockReturnValue({ upload });
+    const path = await uploadPostImage(new File(['b'], 'Fotó de la fiesta (1) 🎃.jpg', { type: 'image/jpeg' }), 'ev-1');
+    expect(path).toMatch(/^ev-1\/[0-9a-f-]{36}-Foto_de_la_fiesta_1_\.jpg$/);
+  });
+});
+
+describe('addPostImage: por evento', () => {
+  it('con eventId registra la imagen en ese evento (post_images.event_id es obligatorio)', async () => {
+    const single = vi.fn().mockResolvedValue({ data: { id: 'i1', post_id: 'p1', storage_path: 'ev-1/a.jpg', position: 0 }, error: null });
+    const select = vi.fn().mockReturnValue({ single });
+    const insert = vi.fn().mockReturnValue({ select });
+    from.mockReturnValue({ insert });
+    await addPostImage({ eventId: 'ev-1', postId: 'p1', storagePath: 'ev-1/a.jpg', position: 0 });
+    expect(insert).toHaveBeenCalledWith({ event_id: 'ev-1', post_id: 'p1', storage_path: 'ev-1/a.jpg', position: 0 });
   });
 });
 

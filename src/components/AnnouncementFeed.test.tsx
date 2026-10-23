@@ -116,6 +116,16 @@ describe('AnnouncementFeed', () => {
     expect(images[0]).toHaveAttribute('src', 'https://cdn.example/p1/gal-a.jpg');
   });
 
+  it('la galería es un carrusel con desplazamiento por teclado y con nombre', async () => {
+    const post: Post = { ...withoutCover, galleryPaths: ['ev/a.jpg', 'ev/b.jpg', 'ev/c.jpg'] };
+    render(<AnnouncementFeed posts={[post]} />);
+    await screen.findAllByAltText('Foto de galería');
+    const list = screen.getByRole('list', { name: 'Galería del aviso' });
+    expect(list).toHaveAttribute('tabindex', '0');
+    expect(list.className).toMatch(/snap-x/);
+    expect(list.className).not.toMatch(/grid-cols-3/);
+  });
+
   it('con galleryPaths (Fase 1) usa esas rutas y no consulta post_images', async () => {
     const post: Post = { ...withoutCover, galleryPaths: ['ev/a.jpg', 'ev/b.jpg'] };
     render(<AnnouncementFeed posts={[post]} />);
