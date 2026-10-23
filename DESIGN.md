@@ -1,6 +1,6 @@
 ---
 name: Cámara de cumpleaños
-description: Entrada de evento y rollo de cámara desechable, con una piel de color que cambia en cada rama de cumpleaños.
+description: Entrada de evento y rollo de cámara desechable, con una piel de color que cambia en cada evento (ver `src/lib/theme.ts`).
 colors:
   ink-950: "oklch(16% 0.015 298)"
   ink-900: "oklch(19% 0.023 301)"
@@ -99,7 +99,7 @@ Una base de tinta casi negra con un violeta apenas perceptible, papel claro para
 - **Papel** (`paper-100`, oklch(95% 0.016 314)): texto principal; las etiquetas usan el mismo papel con 50 a 70 % de opacidad.
 
 ### Named Rules
-**La Piel Es de la Rama.** Los cuatro acentos (Ácido, Rosa fuerte, Láser, Llama) son la piel del cumpleaños anterior, no la identidad del producto. Cada rama de cumpleaños define sus propios acentos; los neutros y los roles (acción principal, error, etiqueta de evento) se conservan.
+**La Piel Es del Evento.** Los cuatro acentos (Ácido, Rosa fuerte, Láser, Llama) son la piel por defecto («Neón»), no la identidad del producto. Cada evento elige su piel (`events.theme`: un preset de `src/lib/theme.ts`, con el contraste AA verificado por test); los roles (acción principal, error, etiqueta de evento) se conservan y los nombres de los tokens de Tailwind también, ahora como variables CSS. El botón principal lleva el color de fondo como texto.
 
 **La Regla de Una Voz.** En una pantalla hay un solo acento fuerte para la acción principal. Los demás acentos nombran estados o etiquetas y nunca compiten con ella.
 
@@ -171,7 +171,7 @@ Una ventanita en Space Mono con el número de disparos restantes. Al sacar una f
 - **Do** poner datos de sistema (etiquetas, estados, cupos) en Space Mono y en mayúsculas.
 - **Do** que el boleto muestre claramente que es la entrada a un evento: nombre, fecha y lugar de ese cumpleaños.
 - **Do** respetar `prefers-reduced-motion`: el sistema ya reduce todas las animaciones a un instante.
-- **Do** definir los acentos en cada rama de cumpleaños y conservar los neutros y los roles.
+- **Do** definir los colores de cada evento como un preset de `src/lib/theme.ts` (con su test de contraste) y conservar los roles.
 
 ### Don't:
 - **Don't** aplicar grano, viraje ni filtro a las fotos: el rollo es el cupo, no un efecto.

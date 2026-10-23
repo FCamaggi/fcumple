@@ -12,6 +12,7 @@ La documentación se organiza por **fase del producto**. Cada fase tiene su carp
 ## Por dónde empezar
 
 - ¿Qué hace la app hoy? → [`fase-0-evento-unico/04-producto/estado-actual.md`](./fase-0-evento-unico/04-producto/estado-actual.md)
+- ¿Qué existe hoy y qué no? → [`fase-1-mvp-multitenant/estado-del-producto.md`](./fase-1-mvp-multitenant/estado-del-producto.md)
 - ¿Qué se va a construir ahora? → [`fase-1-mvp-multitenant/README.md`](./fase-1-mvp-multitenant/README.md)
 - ¿Por qué se descartó X? → [`estrategia/decisiones-de-alcance.md`](./estrategia/decisiones-de-alcance.md)
 - ¿Qué viene después? → [`fase-2-en-adelante/README.md`](./fase-2-en-adelante/README.md)
