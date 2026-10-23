@@ -39,6 +39,7 @@ import {
   regenerateGuestToken,
   removeGuest,
   setGuestApproval,
+  setGuestPlusOnes,
   updateEvent,
 } from './organizerApi';
 
@@ -235,6 +236,47 @@ describe('invitados', () => {
 
     expect(result.created.map((g) => g.fullName)).toEqual(['Ana Rojas', 'Beto Mora']);
     expect(result.failed).toEqual([{ name: 'Madonna', reason: expect.stringMatching(/nombre y apellido/) }]);
+  });
+
+  it('setGuestPlusOnes: aprobar sube el cupo y confirma lo solicitado', async () => {
+    const q = chain({ data: { ...guestRow, plus_ones_requested: 2, plus_ones_allowed: 2, plus_ones_confirmed: 2 }, error: null });
+    from.mockReturnValueOnce(q.proxy);
+    const guest = {
+      id: 'g1', eventId: 'ev-1', fullName: 'Ana Rojas', token: 't', approvalStatus: 'approved' as const,
+      status: 'pending' as const, plusOnesAllowed: 0, plusOnesConfirmed: 0, photoQuota: 5, answers: {},
+      plusOnesRequested: 2, checkedInAt: null, claimedAt: null, lastSeenAt: null,
+    };
+    const updated = await setGuestPlusOnes(guest, true);
+    expect(q.calls.find(([name]) => name === 'update')?.[1][0]).toEqual({ plus_ones_allowed: 2, plus_ones_confirmed: 2 });
+    expect(updated.plusOnesConfirmed).toBe(2);
+  });
+
+  it('setGuestPlusOnes: aprobar no baja un cupo mayor que el invitado ya tenía', async () => {
+    const q = chain({ data: guestRow, error: null });
+    from.mockReturnValueOnce(q.proxy);
+    await setGuestPlusOnes(
+      {
+        id: 'g1', eventId: 'ev-1', fullName: 'Ana Rojas', token: 't', approvalStatus: 'approved', status: 'pending',
+        plusOnesAllowed: 4, plusOnesConfirmed: 0, photoQuota: 5, answers: {}, plusOnesRequested: 1,
+        checkedInAt: null, claimedAt: null, lastSeenAt: null,
+      },
+      true,
+    );
+    expect(q.calls.find(([name]) => name === 'update')?.[1][0]).toEqual({ plus_ones_allowed: 4, plus_ones_confirmed: 1 });
+  });
+
+  it('setGuestPlusOnes: no aprobar deja la solicitud en 0', async () => {
+    const q = chain({ data: guestRow, error: null });
+    from.mockReturnValueOnce(q.proxy);
+    await setGuestPlusOnes(
+      {
+        id: 'g1', eventId: 'ev-1', fullName: 'Ana Rojas', token: 't', approvalStatus: 'approved', status: 'pending',
+        plusOnesAllowed: 0, plusOnesConfirmed: 0, photoQuota: 5, answers: {}, plusOnesRequested: 2,
+        checkedInAt: null, claimedAt: null, lastSeenAt: null,
+      },
+      false,
+    );
+    expect(q.calls.find(([name]) => name === 'update')?.[1][0]).toEqual({ plus_ones_requested: 0 });
   });
 
   it('setGuestApproval actualiza approval_status', async () => {

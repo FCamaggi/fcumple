@@ -21,6 +21,8 @@ export interface PageMeta {
   title: string;
   description: string;
   url: string;
+  /** URL absoluta de la imagen de la vista previa (1200x630). Sin ella, tarjeta sin imagen. */
+  image?: string;
 }
 
 export const NEUTRAL = {
@@ -64,7 +66,15 @@ export function injectMeta(html: string, meta: PageMeta): string {
     `<meta property="og:title" content="${escapeHtml(meta.title)}" />`,
     `<meta property="og:description" content="${escapeHtml(meta.description)}" />`,
     `<meta property="og:url" content="${escapeHtml(meta.url)}" />`,
-    `<meta name="twitter:card" content="summary" />`,
+    ...(meta.image
+      ? [
+          `<meta property="og:image" content="${escapeHtml(meta.image)}" />`,
+          `<meta property="og:image:width" content="1200" />`,
+          `<meta property="og:image:height" content="630" />`,
+          `<meta name="twitter:card" content="summary_large_image" />`,
+          `<meta name="twitter:image" content="${escapeHtml(meta.image)}" />`,
+        ]
+      : [`<meta name="twitter:card" content="summary" />`]),
   ].join('\n    ');
 
   // Los reemplazos son FUNCIONES, no cadenas: con una cadena, un nombre de evento como «Fiesta $'» se
@@ -87,7 +97,12 @@ function fallbackDocument(meta: PageMeta): string {
 export type FetchLike = (
   url: string,
   init?: RequestInit,
-) => Promise<{ ok: boolean; json?: () => Promise<unknown>; text?: () => Promise<string> }>;
+) => Promise<{
+  ok: boolean;
+  headers?: { get(name: string): string | null };
+  json?: () => Promise<unknown>;
+  text?: () => Promise<string>;
+}>;
 
 export interface RenderOptions {
   slug: string;
@@ -139,6 +154,21 @@ async function loadEvent(opts: RenderOptions, fetchImpl: FetchLike): Promise<Eve
   }
 }
 
+/**
+ * ¿Hay una imagen propia para este evento en `public/og/<slug>.jpg`? Vercel responde 200 con `index.html` a
+ * cualquier ruta que no existe (la reescritura de la SPA), así que no basta con `ok`: el content-type tiene que
+ * ser de una imagen.
+ */
+async function loadImage(origin: string, slug: string, fetchImpl: FetchLike): Promise<string | null> {
+  const url = `${origin}/og/${slug}.jpg`;
+  try {
+    const response = await withTimeout((signal) => fetchImpl(url, { method: 'HEAD', signal }));
+    return response.ok && /^image\//i.test(response.headers?.get('content-type') ?? '') ? url : null;
+  } catch {
+    return null;
+  }
+}
+
 async function loadIndex(origin: string, fetchImpl: FetchLike): Promise<string | null> {
   try {
     const response = await withTimeout((signal) => fetchImpl(`${origin}/index.html`, { signal }));
@@ -156,6 +186,10 @@ export async function renderEventPage(opts: RenderOptions): Promise<RenderedPage
     description: event ? describeEvent(event) : NEUTRAL.description,
     url: SLUG.test(opts.slug) ? `${opts.origin}/e/${opts.slug}` : opts.origin,
   };
+  if (event && opts.origin) {
+    const image = await loadImage(opts.origin, opts.slug, fetchImpl);
+    if (image) meta.image = image;
+  }
   const index = await loadIndex(opts.origin, fetchImpl);
   return {
     status: 200,

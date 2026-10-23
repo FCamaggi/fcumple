@@ -1921,7 +1921,8 @@ $$;
 --     guarda con un update directo (la politica "owner_all" ya se lo permite) y
 --     la restriccion CHECK es la que manda.
 --   * events.default_photo_quota: disparos por invitado nuevo (antes fijo en 5).
---   * guests.guest_answers / plus_ones_requested: lo que respondio la persona.
+--   * guests.guest_answers / plus_ones_requested: lo que respondio la persona. Los
+--     acompanantes son una SOLICITUD: el organizador los aprueba despues.
 --     Son preguntas de la fiesta: nada pide ni guarda RUT, correo, telefono ni PIN.
 --   * register_guest recibe las respuestas (p_answers, opcional: los llamados
 --     de 3 argumentos siguen funcionando) y rechaza lo que no esta configurado o
@@ -2207,8 +2208,9 @@ begin
 end;
 $$;
 
--- Guarda las respuestas y refleja los +1 en las columnas que ya leen el aforo y
--- la puerta (plus_ones_allowed / plus_ones_confirmed). Interno.
+-- Guarda las respuestas. Los acompanantes que el invitado escribe son una SOLICITUD
+-- (plus_ones_requested): no cuentan en el aforo ni en la puerta hasta que el
+-- organizador los aprueba (plus_ones_allowed / plus_ones_confirmed). Interno.
 create or replace function public._apply_enrollment(p_guest_id uuid, p_answers jsonb)
 returns void
 language sql
@@ -2217,13 +2219,7 @@ set search_path = public, extensions
 as $$
   update public.guests g
      set guest_answers = p_answers,
-         plus_ones_requested = coalesce(jsonb_array_length(p_answers -> 'plus_ones'), 0),
-         plus_ones_allowed = greatest(g.plus_ones_allowed, coalesce(jsonb_array_length(p_answers -> 'plus_ones'), 0)),
-         plus_ones_confirmed = case
-           when coalesce(jsonb_array_length(p_answers -> 'plus_ones'), 0) > 0
-             then jsonb_array_length(p_answers -> 'plus_ones')
-           else g.plus_ones_confirmed
-         end
+         plus_ones_requested = coalesce(jsonb_array_length(p_answers -> 'plus_ones'), 0)
    where g.id = p_guest_id;
 $$;
 

@@ -279,6 +279,20 @@ export async function setGuestApproval(guestId: string, approvalStatus: Approval
   return mapGuest(data as GuestRow);
 }
 
+/**
+ * Resuelve la solicitud de acompañantes de un invitado. Aprobar sube su cupo (sin bajar uno mayor que ya tuviera)
+ * y los confirma; no aprobar deja la solicitud en 0 (los nombres siguen en sus respuestas).
+ */
+export async function setGuestPlusOnes(guest: OrganizerGuest, approve: boolean): Promise<OrganizerGuest> {
+  const requested = guest.plusOnesRequested;
+  const patch = approve
+    ? { plus_ones_allowed: Math.max(guest.plusOnesAllowed, requested), plus_ones_confirmed: requested }
+    : { plus_ones_requested: 0 };
+  const { data, error } = await supabase.from('guests').update(patch).eq('id', guest.id).select('*').single();
+  if (error) throw guestError(error);
+  return mapGuest(data as GuestRow);
+}
+
 export async function removeGuest(guestId: string): Promise<void> {
   const { error } = await supabase.from('guests').delete().eq('id', guestId);
   if (error) throw guestError(error);

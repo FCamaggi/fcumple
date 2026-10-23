@@ -191,7 +191,7 @@ describe('register_guest con respuestas', () => {
     expect(g.rows[0]).toEqual({ guest_answers: {}, plus_ones_requested: 0 });
   });
 
-  it('guarda las respuestas y refleja los +1 en plus_ones_allowed y plus_ones_confirmed', async () => {
+  it('guarda las respuestas; los +1 quedan como SOLICITUD, sin aprobar', async () => {
     const ev = await newEvent(full);
     const { rows } = await register(ev.slug, 'Ana Rojas', '1234', {
       q1: 'Regina George',
@@ -206,16 +206,22 @@ describe('register_guest con respuestas', () => {
       plus_ones: ['Luis Pérez', 'Marta Soto'],
     });
     expect(g.rows[0].plus_ones_requested).toBe(2);
-    expect(g.rows[0].plus_ones_allowed).toBe(2);
-    expect(g.rows[0].plus_ones_confirmed).toBe(2);
+    expect(g.rows[0].plus_ones_allowed).toBe(0);
+    expect(g.rows[0].plus_ones_confirmed).toBe(0);
   });
 
-  it('el aforo público cuenta a los inscritos y sus acompañantes (sin RSVP)', async () => {
+  it('el aforo cuenta a los inscritos y solo a los acompañantes que el organizador aprobó (sin RSVP)', async () => {
     const ev = await newEvent(full);
-    await register(ev.slug, 'Ana Rojas', '1234', { q1: 'x', plus_ones: ['Luis Pérez'] });
+    const ana = await register(ev.slug, 'Ana Rojas', '1234', { q1: 'x', plus_ones: ['Luis Pérez'] });
     await register(ev.slug, 'Bea Soto', '1234', { q1: 'y' });
-    const { rows } = await asAnon(db, () => db.query('select get_public_headcount($1) as n', [ev.slug]));
-    expect(rows[0].n).toBe(3);
+    const antes = await asAnon(db, () => db.query('select get_public_headcount($1) as n', [ev.slug]));
+    expect(antes.rows[0].n).toBe(2); // la solicitud de +1 todavía no cuenta
+
+    await asUser(db, owner, () =>
+      db.query('update guests set plus_ones_allowed = 1, plus_ones_confirmed = 1 where id = $1', [ana.rows[0].guest_id]),
+    );
+    const despues = await asAnon(db, () => db.query('select get_public_headcount($1) as n', [ev.slug]));
+    expect(despues.rows[0].n).toBe(3);
   });
 
   it('con RSVP activado el aforo solo cuenta a los confirmados', async () => {
@@ -225,7 +231,7 @@ describe('register_guest con respuestas', () => {
     expect(antes.rows[0].n).toBe(0);
     await db.query(`update guests set status = 'confirmed' where event_id = $1`, [ev.id]);
     const despues = await asAnon(db, () => db.query('select get_public_headcount($1) as n', [ev.slug]));
-    expect(despues.rows[0].n).toBe(2);
+    expect(despues.rows[0].n).toBe(1); // el +1 sigue sin aprobar
   });
 
   it('rechaza lo obligatorio que falta, sin crear al invitado ni gastar intentos', async () => {
@@ -254,8 +260,9 @@ describe('register_guest con respuestas', () => {
     expect(rows[0].outcome).toBe('ok');
     const g = await db.query('select * from guests where id = $1', [pre.id]);
     expect(g.rows[0].guest_answers).toEqual({ q1: 'Gretchen', plus_ones: ['Luis Pérez'] });
-    expect(g.rows[0].plus_ones_allowed).toBe(3);
-    expect(g.rows[0].plus_ones_confirmed).toBe(1);
+    expect(g.rows[0].plus_ones_requested).toBe(1);
+    expect(g.rows[0].plus_ones_allowed).toBe(3); // el cupo que ya tenía del organizador no se toca
+    expect(g.rows[0].plus_ones_confirmed).toBe(0);
   });
 
   it('en modo solicitudes guarda las respuestas de la solicitud pendiente', async () => {

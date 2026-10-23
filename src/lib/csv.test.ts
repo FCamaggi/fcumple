@@ -178,13 +178,15 @@ describe('enrollmentToCsv', () => {
   it('arma una columna por cada pregunta configurada, con sus etiquetas', () => {
     const [header] = enrollmentToCsv([], config).split('\r\n');
     expect(header).toBe(
-      'Nombre,Estado,Entró,Llegó,Acompañantes,Nombres de acompañantes,¿Alguna alergia?,¿De qué te disfrazas?',
+      'Nombre,Estado,Entró,Llegó,Acompañantes solicitados,Acompañantes aprobados,Nombres de acompañantes,¿Alguna alergia?,¿De qué te disfrazas?',
     );
   });
 
   it('sin preguntas configuradas solo lleva las columnas básicas', () => {
     const empty = { welcome: '', plusOnes: null, comment: null, questions: [] };
-    expect(enrollmentToCsv([], empty)).toBe('Nombre,Estado,Entró,Llegó,Acompañantes,Nombres de acompañantes');
+    expect(enrollmentToCsv([], empty)).toBe(
+      'Nombre,Estado,Entró,Llegó,Acompañantes solicitados,Acompañantes aprobados,Nombres de acompañantes',
+    );
   });
 
   it('escribe las respuestas y los acompañantes de cada invitado', () => {
@@ -192,6 +194,7 @@ describe('enrollmentToCsv', () => {
       [
         guest({
           plusOnesRequested: 2,
+          plusOnesConfirmed: 1,
           checkedInAt: '2026-10-30T23:40:00Z',
           answers: { plus_ones: ['Luis Pérez', 'Marta Soto'], comment: 'Vegana, sin gluten', q1: 'Regina George' },
         }),
@@ -200,8 +203,8 @@ describe('enrollmentToCsv', () => {
       config,
     );
     const lines = csv.split('\r\n');
-    expect(lines[1]).toBe('Ana Rojas,Aprobado,Sí,Sí,2,Luis Pérez; Marta Soto,"Vegana, sin gluten",Regina George');
-    expect(lines[2]).toBe('Bea Soto,Pendiente,No,No,0,,,');
+    expect(lines[1]).toBe('Ana Rojas,Aprobado,Sí,Sí,2,1,Luis Pérez; Marta Soto,"Vegana, sin gluten",Regina George');
+    expect(lines[2]).toBe('Bea Soto,Pendiente,No,No,0,0,,,');
   });
 
   it('nunca incluye el token del invitado', () => {

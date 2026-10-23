@@ -16,7 +16,7 @@ Verificados el 2026-10-23 con Node 22.
 |---|---|
 | `npm run dev` | Servidor de desarrollo de Vite. |
 | `npm run typecheck` | `tsc --noEmit`. Pasa, unos 30 s. |
-| `npm test` | Vitest con jsdom: 86 archivos, 1029 tests, cerca de 1 min. |
+| `npm test` | Vitest con jsdom: 86 archivos, 1043 tests, cerca de 1 min. |
 | `npm run test:coverage` | Lo que corre el CI. |
 | `npm run build` | `tsc` y `vite build`. Pasa; avisa de chunks de más de 500 kB. |
 | `npm run test:db` | 261 tests contra un Postgres real. Levanta Postgres 16 en Docker (puerto 55433). |

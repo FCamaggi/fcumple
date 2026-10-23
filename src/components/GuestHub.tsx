@@ -106,7 +106,7 @@ export default function GuestHub({ slug, token, event, guest, onGuestChange }: G
     <div className="flex w-full max-w-md flex-col gap-5">
       {headcount !== null && headcount > 0 && (
         <p className="text-center font-mono text-[11px] uppercase tracking-widest text-hotpink-500">
-          Aforo // {headcount} confirmados
+          Aforo // {headcount} inscritos
         </p>
       )}
 

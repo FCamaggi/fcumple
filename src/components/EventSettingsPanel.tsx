@@ -32,7 +32,6 @@ export default function EventSettingsPanel({ event, onSave }: EventSettingsPanel
   const [photoQuota, setPhotoQuota] = useState(String(event.defaultPhotoQuota));
   const [accessMode, setAccessMode] = useState<AccessMode>(event.accessMode);
   const [cameraUnlock, setCameraUnlock] = useState<CameraUnlock>(event.cameraUnlock);
-  const [rsvpEnabled, setRsvpEnabled] = useState(event.rsvpEnabled);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
 
@@ -58,7 +57,6 @@ export default function EventSettingsPanel({ event, onSave }: EventSettingsPanel
         defaultPhotoQuota: quota,
         accessMode,
         cameraUnlock,
-        rsvpEnabled,
       });
       setMessage({ kind: 'ok', text: 'Ajustes guardados.' });
     } catch (err) {
@@ -159,11 +157,6 @@ export default function EventSettingsPanel({ event, onSave }: EventSettingsPanel
           ))}
         </select>
       </div>
-
-      <label className="flex items-center gap-2 font-sans text-sm text-paper-100">
-        <input type="checkbox" checked={rsvpEnabled} onChange={(e) => setRsvpEnabled(e.target.checked)} />
-        Pedir confirmación de asistencia (RSVP)
-      </label>
 
       <p className="font-sans text-xs text-paper-100/60">
         Cada invitado se inscribe con su nombre y apellido y un PIN que elige él mismo. No se pide RUT, correo ni teléfono.

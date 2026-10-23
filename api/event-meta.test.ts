@@ -97,6 +97,46 @@ describe('injectMeta', () => {
   });
 });
 
+describe('imagen propia del evento', () => {
+  const eventRow = { name: 'PUTI HALLOWEEN', starts_at: null, location: null };
+
+  function withImage(contentType: string | null, status = true) {
+    return vi.fn(async (url: string, init?: { method?: string }) => {
+      if (String(url).includes('/rest/v1/rpc/get_event_public')) return ok([eventRow]);
+      if (String(url).includes('/og/')) {
+        expect(init?.method).toBe('HEAD');
+        return { ok: status, headers: { get: () => contentType } };
+      }
+      return { ok: true, status: 200, text: async (): Promise<string> => INDEX };
+    });
+  }
+
+  it('si existe public/og/<slug>.jpg, la vista previa lleva la imagen en grande', async () => {
+    const page = await renderEventPage({ ...base, fetchImpl: withImage('image/jpeg') });
+    expect(page.body).toContain('<meta property="og:image" content="https://fcumple.example/og/cumpleanos-fran-j4h7.jpg" />');
+    expect(page.body).toContain('<meta property="og:image:width" content="1200" />');
+    expect(page.body).toContain('<meta name="twitter:card" content="summary_large_image" />');
+    expect(page.body).toContain('<meta name="twitter:image"');
+  });
+
+  it('si la ruta responde con HTML (la reescritura de la SPA), NO es una imagen y no se usa', async () => {
+    const page = await renderEventPage({ ...base, fetchImpl: withImage('text/html; charset=utf-8') });
+    expect(page.body).not.toContain('og:image');
+    expect(page.body).toContain('<meta name="twitter:card" content="summary" />');
+  });
+
+  it('si no se puede comprobar la imagen, sigue sin ella', async () => {
+    const page = await renderEventPage({ ...base, fetchImpl: withImage('image/jpeg', false) });
+    expect(page.body).not.toContain('og:image');
+  });
+
+  it('un evento sin existir (vista previa neutra) no busca imagen', async () => {
+    const fetchImpl = fetchStub(undefined);
+    await renderEventPage({ ...base, fetchImpl });
+    expect(fetchImpl).not.toHaveBeenCalledWith(expect.stringContaining('/og/'), expect.anything());
+  });
+});
+
 describe('renderEventPage', () => {
   it('pone el nombre, la fecha y el lugar del evento en la vista previa', async () => {
     const fetchImpl = fetchStub({ name: 'PUTI HALLOWEEN', starts_at: '2026-10-30T23:30:00Z', location: 'Los Pozos 6855' });

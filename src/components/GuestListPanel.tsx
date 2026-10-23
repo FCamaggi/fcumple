@@ -12,6 +12,8 @@ interface GuestListPanelProps {
   slug: string;
   onAdd: (names: string[]) => Promise<AddGuestsResult>;
   onReview: (guest: OrganizerGuest, decision: 'approved' | 'rejected') => Promise<void>;
+  /** Resuelve la solicitud de acompañantes de un invitado ya aprobado. */
+  onReviewPlusOnes: (guest: OrganizerGuest, approve: boolean) => Promise<void>;
   onRemove: (guest: OrganizerGuest) => Promise<void>;
   onRegenerate: (guest: OrganizerGuest) => Promise<void>;
 }
@@ -32,6 +34,32 @@ function answerRows(guest: OrganizerGuest, enrollment: ResolvedEnrollment): Arra
     rows.push({ key: id, question: question?.label ?? 'Pregunta que ya no está', answer: value });
   }
   return rows;
+}
+
+/** Acompañantes: pendientes (una solicitud) o ya aprobados. Nada si no hay. */
+function PlusOnesBadge({ guest }: { guest: OrganizerGuest }) {
+  const pending = guest.plusOnesRequested > guest.plusOnesConfirmed;
+  if (pending) {
+    return (
+      <span
+        className="font-mono text-[11px] uppercase tracking-wide text-hotpink-500"
+        aria-label={`Solicita ${guest.plusOnesRequested} acompañante${guest.plusOnesRequested === 1 ? '' : 's'}, sin aprobar`}
+      >
+        Solicita +{guest.plusOnesRequested}
+      </span>
+    );
+  }
+  if (guest.plusOnesConfirmed > 0) {
+    return (
+      <span
+        className="font-mono text-[11px] text-laser-500"
+        aria-label={`${guest.plusOnesConfirmed} acompañante${guest.plusOnesConfirmed === 1 ? '' : 's'} aprobado${guest.plusOnesConfirmed === 1 ? '' : 's'}`}
+      >
+        +{guest.plusOnesConfirmed}
+      </span>
+    );
+  }
+  return null;
 }
 
 function AnswersDetail({ guest, enrollment }: { guest: OrganizerGuest; enrollment: ResolvedEnrollment }) {
@@ -66,6 +94,7 @@ export default function GuestListPanel({
   slug,
   onAdd,
   onReview,
+  onReviewPlusOnes,
   onRemove,
   onRegenerate,
 }: GuestListPanelProps) {
@@ -126,7 +155,10 @@ export default function GuestListPanel({
           <ul className="flex flex-col gap-2">
             {pending.map((guest) => (
               <li key={guest.id} className="flex flex-wrap items-center justify-between gap-2 bg-ink-900 px-3 py-2">
-                <span className="font-sans text-sm text-paper-100">{guest.fullName}</span>
+                <span className="flex items-baseline gap-2">
+                  <span className="font-sans text-sm text-paper-100">{guest.fullName}</span>
+                  <PlusOnesBadge guest={guest} />
+                </span>
                 <span className="flex gap-2">
                   <button type="button" className={buttonClass} onClick={() => void run(() => onReview(guest, 'approved'))}>
                     Aprobar
@@ -200,14 +232,7 @@ export default function GuestListPanel({
                 <span className="flex flex-col">
                   <span className="flex items-baseline gap-2">
                     <span className="font-sans text-sm text-paper-100">{guest.fullName}</span>
-                    {guest.plusOnesRequested > 0 && (
-                      <span
-                        className="font-mono text-[11px] text-laser-500"
-                        aria-label={`Trae ${guest.plusOnesRequested} acompañante${guest.plusOnesRequested === 1 ? '' : 's'}`}
-                      >
-                        +{guest.plusOnesRequested}
-                      </span>
-                    )}
+                    <PlusOnesBadge guest={guest} />
                   </span>
                   <span className="font-mono text-[10px] uppercase tracking-wide text-paper-100/50">
                     {guest.approvalStatus === 'rejected'
@@ -219,7 +244,25 @@ export default function GuestListPanel({
                           : 'Aún no entra'}
                   </span>
                 </span>
-                <span className="flex gap-2">
+                <span className="flex flex-wrap gap-2">
+                  {guest.plusOnesRequested > guest.plusOnesConfirmed && (
+                    <>
+                      <button
+                        type="button"
+                        className={buttonClass}
+                        onClick={() => void run(() => onReviewPlusOnes(guest, true))}
+                      >
+                        Aprobar +{guest.plusOnesRequested}
+                      </button>
+                      <button
+                        type="button"
+                        className={buttonClass}
+                        onClick={() => void run(() => onReviewPlusOnes(guest, false))}
+                      >
+                        No aprobar
+                      </button>
+                    </>
+                  )}
                   <button
                     type="button"
                     className={buttonClass}

@@ -164,7 +164,8 @@ export default function EnrollmentSettings({ event, onSave, usedQuestionIds = []
               ))}
             </select>
             <p className="font-sans text-xs text-paper-100/60">
-              Cada invitado indica cuántos trae y escribe sus nombres; se cuentan en el aforo.
+              Cada invitado indica cuántos trae y escribe sus nombres. Es una solicitud: tú la apruebas desde Invitados, y
+              solo los aprobados se cuentan en el aforo.
             </p>
           </div>
         )}

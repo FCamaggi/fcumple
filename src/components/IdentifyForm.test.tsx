@@ -244,6 +244,11 @@ describe('IdentifyForm: inscripción configurable', () => {
     await waitFor(() => expect(registerGuest).toHaveBeenCalledWith('s', 'Ana Rojas', '4821', {}));
   });
 
+  it('avisa que los acompañantes son una solicitud que aprueba quien organiza', () => {
+    render(<IdentifyForm slug="s" event={eventWith} onIdentified={vi.fn()} />);
+    expect(screen.getByText(/Es una solicitud: quien organiza la revisa y la aprueba/)).toBeInTheDocument();
+  });
+
   it('pide los nombres de los acompañantes según la cantidad elegida', async () => {
     vi.mocked(registerGuest).mockResolvedValueOnce(ok);
     render(<IdentifyForm slug="s" event={eventWith} onIdentified={vi.fn()} />);

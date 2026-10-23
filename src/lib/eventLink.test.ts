@@ -8,6 +8,12 @@ describe('eventUrl', () => {
   });
 });
 
+describe('whatsappMessage: el PIN', () => {
+  it('avisa que hay que elegir un PIN (quien se inscribe primero no lo sabe)', () => {
+    expect(whatsappMessage('Fiesta', 'https://x.app/e/a')).toMatch(/PIN de 4 a 6 números/);
+  });
+});
+
 describe('whatsappMessage', () => {
   it('es un único mensaje con el nombre del evento y el enlace', () => {
     const message = whatsappMessage('Cumple de Fabrizio', 'https://fcumple.app/e/fiesta-abcd');

@@ -9,11 +9,13 @@ Pestaña **Inscripción** del panel (`/panel/e/:eventId`). Todo es opcional.
 | Opción | Qué hace | Límites |
 |---|---|---|
 | Texto de bienvenida | Se muestra arriba del formulario de inscripción. | Hasta 400 caracteres. |
-| Acompañantes (+1) | El invitado indica cuántos trae y escribe el nombre de cada uno. Se cuentan en el aforo. | Máximo de 1 a 5; nombre hasta 80 caracteres. |
+| Acompañantes (+1) | El invitado indica cuántos trae y escribe el nombre de cada uno. Es una **solicitud**: el organizador la aprueba desde Invitados y solo los aprobados cuentan en el aforo. | Máximo de 1 a 5; nombre hasta 80 caracteres. |
 | Comentario | Una pregunta de texto libre, con su texto editable y obligatoria u opcional. | Pregunta hasta 120 caracteres; respuesta hasta 280. |
 | Preguntas propias | De 0 a 3 preguntas de respuesta corta, cada una con su texto y obligatoria u opcional. | Pregunta hasta 80 caracteres; respuesta hasta 140. |
 
 Los largos se cuentan en caracteres Unicode (un emoji cuenta uno), igual en el navegador y en la base. Un texto con solo espacios (incluidos el espacio de no separación y el BOM) cuenta como vacío en los dos lados.
+
+El RSVP ya no se ofrece en Ajustes: no tiene pantalla para el invitado y, si se activaba, el aforo pasaba a contar solo a los «confirmados» (nadie puede confirmar) y quedaba en cero.
 
 En **Ajustes** del panel también se edita la **fecha y hora** del evento (`events.starts_at`, en la hora del dispositivo de quien la escribe; solo se reenvía si se toca) y las **fotos por invitado** (`events.default_photo_quota`, de 0 a 100). El cupo nuevo se aplica a quienes se inscriban desde ese momento, y a los invitados que el organizador cargue a mano; no cambia el de quienes ya están inscritos.
 
@@ -46,7 +48,7 @@ Migración `20261023100012_enrollment_config.sql`. La regla de validación **viv
 
   Las claves son cerradas: cualquier otra se rechaza. Los ids de las preguntas son `q1`, `q2` y `q3`. Al quitar una pregunta, las demás **conservan su id**, y el panel **no reutiliza** el id de una pregunta que ya tiene respuestas de invitados: así una respuesta vieja nunca aparece como respuesta a una pregunta nueva.
 - `events.default_photo_quota int` (por defecto 5, de 0 a 100): fotos de cada invitado nuevo (`register_guest`) y de los que carga el organizador a mano.
-- `guests.guest_answers jsonb` (por defecto `{}`, forma cerrada y de hasta 8 000 bytes) y `guests.plus_ones_requested int` (0 a 5). Los acompañantes también se reflejan en `plus_ones_allowed` y `plus_ones_confirmed`, que son los que leen el aforo y la puerta. **Es intencional** que el invitado fije su propio +1 hasta el máximo configurado: por defecto todos tienen 0, así que respetar ese 0 anularía la función.
+- `guests.guest_answers jsonb` (por defecto `{}`, forma cerrada y de hasta 8 000 bytes) y `guests.plus_ones_requested int` (0 a 5). Los acompañantes son una **solicitud** (`plus_ones_requested`): la inscripción no toca `plus_ones_allowed` ni `plus_ones_confirmed`, que son los que leen el aforo y la puerta. Cuando el organizador aprueba (botón «Aprobar +N» en Invitados), el panel sube `plus_ones_allowed` (sin bajar un cupo mayor que ya tuviera) y confirma `plus_ones_confirmed`; «No aprobar» deja la solicitud en 0 (los nombres siguen en `guest_answers`).
 - El organizador guarda la configuración con un `update` directo sobre `events` (la política `owner_all` ya se lo permite); la restricción `CHECK` es la que manda. No hay un RPC aparte.
 
 ```json
@@ -68,7 +70,7 @@ Una respuesta inválida lanza el error `22023` con el mensaje `enrollment_invali
 
 Las respuestas se guardan en los cuatro caminos de alta (abierto nuevo, abierto reclamado, invitado de la lista y solicitud pendiente).
 
-`get_event_public` entrega además `enrollment_config`. `get_public_headcount` cuenta, cuando el evento **no** usa RSVP, a quienes ya se inscribieron (`claimed_at`) y no declinaron, con sus acompañantes (antes solo contaba `status = 'confirmed'`, que en la Fase 1 nadie puede fijar, y la línea de aforo nunca se mostraba); con RSVP activado sigue contando solo a los confirmados.
+`get_event_public` entrega además `enrollment_config`. `get_public_headcount` cuenta, cuando el evento **no** usa RSVP, a quienes ya se inscribieron (`claimed_at`) y no declinaron, con sus acompañantes **aprobados** (antes solo contaba `status = 'confirmed'`, que en la Fase 1 nadie puede fijar, y la línea de aforo nunca se mostraba); con RSVP activado sigue contando solo a los confirmados.
 
 ## Vista del invitado
 
@@ -76,9 +78,9 @@ Las respuestas se guardan en los cuatro caminos de alta (abierto nuevo, abierto 
 
 ## Respuestas en el panel y CSV
 
-La pestaña **Invitados** muestra `+N` junto a quien trae acompañantes y un desplegable «Ver respuestas» con los nombres, el comentario y las respuestas, usando las preguntas del organizador (también en las solicitudes pendientes, para decidir con ellas; la respuesta a una pregunta que ya se quitó no se esconde).
+La pestaña **Invitados** marca «Solicita +N» (en rosa) junto a quien pidió acompañantes y tiene los botones «Aprobar +N» y «No aprobar»; ya aprobados se ven como `+N`. Además hay un desplegable «Ver respuestas» con los nombres, el comentario y las respuestas, usando las preguntas del organizador (también en las solicitudes pendientes, para decidir con ellas; la respuesta a una pregunta que ya se quitó no se esconde).
 
-**Exportar CSV** (`enrollmentToCsv` en `src/lib/csv.ts`) tiene una columna por cada pregunta configurada, y una columna extra solo si algún invitado respondió una pregunta que ya se quitó. **No incluye el token** del invitado (es su credencial de sesión) y neutraliza con una comilla simple las celdas que empiezan con `=`, `+`, `-`, `@`, tabulación o retorno, para que el texto escrito por un invitado no se evalúe como fórmula al abrirlo en Excel o Sheets. Lleva el BOM de UTF-8 para que Excel lea bien las tildes. (El exportador de la Fase 0, `guestsToCsv`, sí lleva `token` y `phone`, porque sirve para reimportar; neutraliza el nombre y la nota, no esas dos columnas.)
+**Exportar CSV** (`enrollmentToCsv` en `src/lib/csv.ts`) tiene las columnas «Acompañantes solicitados» y «Acompañantes aprobados», una columna por cada pregunta configurada, y una columna extra solo si algún invitado respondió una pregunta que ya se quitó. **No incluye el token** del invitado (es su credencial de sesión) y neutraliza con una comilla simple las celdas que empiezan con `=`, `+`, `-`, `@`, tabulación o retorno, para que el texto escrito por un invitado no se evalúe como fórmula al abrirlo en Excel o Sheets. Lleva el BOM de UTF-8 para que Excel lea bien las tildes. (El exportador de la Fase 0, `guestsToCsv`, sí lleva `token` y `phone`, porque sirve para reimportar; neutraliza el nombre y la nota, no esas dos columnas.)
 
 ## Vista previa del enlace por evento
 
@@ -87,6 +89,7 @@ La web es una SPA estática, así que todas las rutas devuelven el mismo `index.
 - [`api/event-meta.ts`](../../api/event-meta.ts) es una función de Vercel que lee `get_event_public` por REST (con la clave anon) y devuelve `index.html` con el `<title>` y las etiquetas `og:*` del evento. Es **autocontenida** (no importa nada de `src`) y **nunca lanza**: ante cualquier fallo (evento inexistente, Supabase caído, `index.html` ilegible) responde con la vista previa neutra.
 - [`vercel.json`](../../vercel.json) manda a esa función **solo** las peticiones de rastreadores conocidos, por user-agent (WhatsApp, Facebook/iMessage, Twitter, Telegram, Slack, Discord, LinkedIn, Google, Bing, Apple, Skype, Signal). Los invitados siguen por el camino estático de siempre: si la función fallara, el enlace de inscripción no se ve afectado.
 - `index.html` lleva ahora una vista previa **neutra**, sin imagen (la anterior era la de un cumpleaños de la Fase 0).
+- **Imagen propia por evento:** si existe `public/og/<slug>.jpg` (1200×630, JPG, idealmente menos de 300 kB), la función la agrega a la vista previa con tarjeta grande. Se comprueba con un `HEAD` y exige `content-type` de imagen: Vercel responde 200 con `index.html` a cualquier ruta que no existe, así que `ok` no basta. Sin el archivo, la vista previa queda sin imagen. El archivo queda en el repositorio, que es público: que sea solo el arte de la fiesta.
 - El origen (`og:url` y el host de donde se lee `index.html`) **no se toma de las cabeceras de la petición**: solo se acepta un host que Vercel declara del proyecto (`VERCEL_URL`, `VERCEL_BRANCH_URL`, `VERCEL_PROJECT_PRODUCTION_URL`); si no, se usa el canónico. Los reemplazos sobre `index.html` son funciones (con una cadena, un nombre de evento como «Fiesta $'» se expandiría con el resto del documento).
 - La función lee `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` (o `SUPABASE_URL` y `SUPABASE_ANON_KEY`) del entorno de Vercel. Las dos primeras ya existen porque el build las usa.
 - La respuesta se cachea 60 segundos en el borde (`s-maxage=60`, con `Vary: User-Agent`); los rastreadores además guardan su propia copia, así que un cambio de nombre tarda en verse. Lleva `noindex, nofollow`.

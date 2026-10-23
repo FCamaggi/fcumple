@@ -17,6 +17,7 @@ import {
   regenerateGuestToken,
   removeGuest,
   setGuestApproval,
+  setGuestPlusOnes,
   updateEvent,
   type EventSettingsPatch,
   type OrganizerEvent,
@@ -135,6 +136,7 @@ export default function OrganizerEventPage() {
               return result;
             }}
             onReview={async (guest, decision) => replaceGuest(await setGuestApproval(guest.id, decision))}
+            onReviewPlusOnes={async (guest, approve) => replaceGuest(await setGuestPlusOnes(guest, approve))}
             onRemove={async (guest) => {
               await removeGuest(guest.id);
               setGuests((current) => current.filter((g) => g.id !== guest.id));

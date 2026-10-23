@@ -24,13 +24,12 @@ const event: OrganizerEvent = {
 };
 
 describe('EventSettingsPanel', () => {
-  it('guarda los cambios de acceso, cámara y RSVP', async () => {
+  it('guarda los cambios de acceso y cámara', async () => {
     const onSave = vi.fn().mockResolvedValue(undefined);
     render(<EventSettingsPanel event={event} onSave={onSave} />);
 
     await userEvent.selectOptions(screen.getByLabelText('Quién puede entrar'), 'list_requests');
     await userEvent.selectOptions(screen.getByLabelText('La cámara se habilita'), 'on_checkin');
-    await userEvent.click(screen.getByLabelText(/Pedir confirmación/));
     await userEvent.click(screen.getByRole('button', { name: 'Guardar ajustes' }));
 
     expect(onSave).toHaveBeenCalledWith({
@@ -39,7 +38,6 @@ describe('EventSettingsPanel', () => {
       defaultPhotoQuota: 5,
       accessMode: 'list_requests',
       cameraUnlock: 'on_checkin',
-      rsvpEnabled: true,
     });
     expect(await screen.findByRole('status')).toHaveTextContent('Ajustes guardados.');
   });
@@ -104,6 +102,12 @@ describe('EventSettingsPanel', () => {
     render(<EventSettingsPanel event={event} onSave={vi.fn().mockRejectedValue(new Error('No pudimos guardar los ajustes del evento.'))} />);
     await userEvent.click(screen.getByRole('button', { name: 'Guardar ajustes' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos guardar los ajustes');
+  });
+
+  it('no ofrece el RSVP: no tiene pantalla para el invitado y vaciaría el aforo', () => {
+    render(<EventSettingsPanel event={event} onSave={vi.fn()} />);
+    expect(screen.queryByLabelText(/confirmación de asistencia/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/RSVP/)).not.toBeInTheDocument();
   });
 
   it('explica que cada invitado elige su PIN y que no se pide RUT, correo ni teléfono', () => {

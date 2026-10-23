@@ -35,6 +35,7 @@ function setup(guests: OrganizerGuest[], overrides: Record<string, unknown> = {}
     slug: 'fiesta-abcd',
     onAdd: vi.fn().mockResolvedValue({ created: [], failed: [] }),
     onReview: vi.fn().mockResolvedValue(undefined),
+    onReviewPlusOnes: vi.fn().mockResolvedValue(undefined),
     onRemove: vi.fn().mockResolvedValue(undefined),
     onRegenerate: vi.fn().mockResolvedValue(undefined),
     ...overrides,
@@ -55,11 +56,33 @@ const configured = resolveEnrollmentConfig({
 });
 
 describe('GuestListPanel: respuestas de la inscripción', () => {
-  it('muestra cuántos acompañantes trae cada invitado', () => {
+  it('marca como SOLICITUD los acompañantes que todavía no se aprobaron', () => {
     setup([guest({ plusOnesRequested: 2, answers: { plus_ones: ['Luis Pérez', 'Marta Soto'] } })], {
       enrollment: configured,
     });
-    expect(screen.getByText('+2')).toBeInTheDocument();
+    expect(screen.getByText('Solicita +2')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Aprobar +2' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'No aprobar' })).toBeInTheDocument();
+  });
+
+  it('los acompañantes aprobados se muestran como +N, sin botones', () => {
+    setup([guest({ plusOnesRequested: 1, plusOnesConfirmed: 1, plusOnesAllowed: 1 })], { enrollment: configured });
+    expect(screen.getByText('+1')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Aprobar \+/ })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Solicita/)).not.toBeInTheDocument();
+  });
+
+  it('aprobar y no aprobar llaman al panel con la decisión', async () => {
+    const props = setup([guest({ plusOnesRequested: 2 })], { enrollment: configured });
+    await userEvent.click(screen.getByRole('button', { name: 'Aprobar +2' }));
+    expect(props.onReviewPlusOnes).toHaveBeenCalledWith(expect.objectContaining({ id: 'g1' }), true);
+    await userEvent.click(screen.getByRole('button', { name: 'No aprobar' }));
+    expect(props.onReviewPlusOnes).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'g1' }), false);
+  });
+
+  it('una solicitud de acceso pendiente también muestra que pide acompañantes', () => {
+    setup([guest({ approvalStatus: 'pending', plusOnesRequested: 1 })], { enrollment: configured });
+    expect(screen.getByText('Solicita +1')).toBeInTheDocument();
   });
 
   it('despliega los acompañantes, el comentario y las respuestas con las preguntas del organizador', async () => {

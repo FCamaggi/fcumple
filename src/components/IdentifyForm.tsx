@@ -395,6 +395,9 @@ export default function IdentifyForm({ slug, event, onIdentified }: IdentifyForm
       {isRegister && enrollment.plusOnes && (
         <fieldset className="flex flex-col gap-3">
           <legend className={`${labelClass} mb-2`}>¿Cuántos acompañantes traes?</legend>
+          <p className="font-sans text-xs text-paper-100/70">
+            Es una solicitud: quien organiza la revisa y la aprueba. Conversa con quien organiza antes de traer a alguien.
+          </p>
           <div className="flex flex-wrap gap-2">
             {Array.from({ length: enrollment.plusOnes.max + 1 }, (_, n) => (
               <label key={n} className="relative">

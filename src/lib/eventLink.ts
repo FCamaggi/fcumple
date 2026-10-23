@@ -12,7 +12,7 @@ export function whatsappMessage(eventName: string, url: string): string {
   return [
     `\u{1F4F8} ${eventName}`,
     '',
-    'Entra con este enlace, escribe tu nombre y apellido y listo:',
+    'Entra con este enlace, escribe tu nombre y apellido, elige un PIN de 4 a 6 números y listo:',
     url,
   ].join('\n');
 }
