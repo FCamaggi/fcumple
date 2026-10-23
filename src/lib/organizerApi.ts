@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { resolveEnrollmentConfig, serializeEnrollmentConfig, type ResolvedEnrollment } from './enrollmentConfig';
 import type { AccessMode } from './platformApi';
 import type { ModerationPhoto } from './photosApi';
 import type { Photo } from '../types';
@@ -24,6 +25,10 @@ export interface OrganizerEvent {
   stickersEnabled: boolean;
   defaultFrameId: string | null;
   photosRevealedAt: string | null;
+  /** Fotos que recibe cada invitado nuevo. */
+  defaultPhotoQuota: number;
+  /** Qué le pide el organizador al invitado al inscribirse. */
+  enrollment: ResolvedEnrollment;
   createdAt: string;
 }
 
@@ -55,6 +60,8 @@ interface EventRow {
   stickers_enabled: boolean;
   default_frame_id: string | null;
   photos_revealed_at: string | null;
+  default_photo_quota: number;
+  enrollment_config: unknown;
   created_at: string;
 }
 
@@ -87,6 +94,8 @@ function mapEvent(row: EventRow): OrganizerEvent {
     stickersEnabled: row.stickers_enabled,
     defaultFrameId: row.default_frame_id,
     photosRevealedAt: row.photos_revealed_at,
+    defaultPhotoQuota: row.default_photo_quota,
+    enrollment: resolveEnrollmentConfig(row.enrollment_config),
     createdAt: row.created_at,
   };
 }
@@ -174,6 +183,8 @@ export interface EventSettingsPatch {
   framesEnabled?: boolean;
   stickersEnabled?: boolean;
   defaultFrameId?: string | null;
+  defaultPhotoQuota?: number;
+  enrollment?: ResolvedEnrollment;
 }
 
 export async function updateEvent(eventId: string, patch: EventSettingsPatch): Promise<OrganizerEvent> {
@@ -187,9 +198,17 @@ export async function updateEvent(eventId: string, patch: EventSettingsPatch): P
   if (patch.framesEnabled !== undefined) row.frames_enabled = patch.framesEnabled;
   if (patch.stickersEnabled !== undefined) row.stickers_enabled = patch.stickersEnabled;
   if (patch.defaultFrameId !== undefined) row.default_frame_id = patch.defaultFrameId;
+  if (patch.defaultPhotoQuota !== undefined) row.default_photo_quota = patch.defaultPhotoQuota;
+  if (patch.enrollment !== undefined) row.enrollment_config = serializeEnrollmentConfig(patch.enrollment);
 
   const { data, error } = await supabase.from('events').update(row).eq('id', eventId).select('*').single();
-  if (error) throw new Error('No pudimos guardar los ajustes del evento.');
+  if (error) {
+    throw new Error(
+      error.code === '23514'
+        ? 'Alguno de los valores no es válido: revisa los largos y las cantidades.'
+        : 'No pudimos guardar los ajustes del evento.',
+    );
+  }
   return mapEvent(data as EventRow);
 }
 
@@ -203,10 +222,15 @@ export async function listEventGuests(eventId: string): Promise<OrganizerGuest[]
   return ((data ?? []) as GuestRow[]).map(mapGuest);
 }
 
-export async function addGuest(eventId: string, fullName: string): Promise<OrganizerGuest> {
+/** `photoQuota`: cupo del invitado; sin él, el que da la base (5). Pasa el del evento para ser coherente con la inscripción. */
+export async function addGuest(eventId: string, fullName: string, photoQuota?: number): Promise<OrganizerGuest> {
   const { data, error } = await supabase
     .from('guests')
-    .insert({ event_id: eventId, full_name: fullName })
+    .insert(
+      photoQuota === undefined
+        ? { event_id: eventId, full_name: fullName }
+        : { event_id: eventId, full_name: fullName, photo_quota: photoQuota },
+    )
     .select('*')
     .single();
   if (error) throw guestError(error);
@@ -219,11 +243,11 @@ export interface AddGuestsResult {
 }
 
 /** Alta masiva (un nombre por línea): sigue con el resto aunque alguno falle. */
-export async function addGuests(eventId: string, names: string[]): Promise<AddGuestsResult> {
+export async function addGuests(eventId: string, names: string[], photoQuota?: number): Promise<AddGuestsResult> {
   const result: AddGuestsResult = { created: [], failed: [] };
   for (const name of names) {
     try {
-      result.created.push(await addGuest(eventId, name));
+      result.created.push(await addGuest(eventId, name, photoQuota));
     } catch (err) {
       result.failed.push({ name, reason: err instanceof Error ? err.message : 'Error desconocido.' });
     }

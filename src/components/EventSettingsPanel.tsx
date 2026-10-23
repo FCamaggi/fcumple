@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { AccessMode } from '../lib/platformApi';
 import type { CameraUnlock, EventSettingsPatch, OrganizerEvent } from '../lib/organizerApi';
+import { isoToLocalInput, localInputToIso } from '../lib/localDateTime';
 
 interface EventSettingsPanelProps {
   event: OrganizerEvent;
@@ -18,13 +19,17 @@ const UNLOCK_LABELS: Record<CameraUnlock, string> = {
   on_checkin: 'Cuando marque su llegada en la puerta',
 };
 
-const selectClass = 'bg-ink-950 px-3 py-2 font-sans text-sm text-paper-100 outline-none';
+const fieldClass =
+  'bg-ink-950 px-3 py-2 font-sans text-sm text-paper-100 outline-none focus-visible:ring-2 focus-visible:ring-acid-400';
+const selectClass = fieldClass;
 const labelClass = 'font-mono text-[11px] uppercase tracking-wider text-paper-100/70';
 
-/** Ajustes del evento: cómo entran los invitados y cuándo se habilita la cámara. */
+/** Ajustes del evento: nombre, fecha y lugar, cómo entran los invitados, cupo de fotos y cuándo se habilita la cámara. */
 export default function EventSettingsPanel({ event, onSave }: EventSettingsPanelProps) {
   const [name, setName] = useState(event.name);
+  const [startsAt, setStartsAt] = useState(isoToLocalInput(event.startsAt));
   const [location, setLocation] = useState(event.location ?? '');
+  const [photoQuota, setPhotoQuota] = useState(String(event.defaultPhotoQuota));
   const [accessMode, setAccessMode] = useState<AccessMode>(event.accessMode);
   const [cameraUnlock, setCameraUnlock] = useState<CameraUnlock>(event.cameraUnlock);
   const [rsvpEnabled, setRsvpEnabled] = useState(event.rsvpEnabled);
@@ -38,11 +43,18 @@ export default function EventSettingsPanel({ event, onSave }: EventSettingsPanel
       setMessage({ kind: 'error', text: 'El evento necesita un nombre.' });
       return;
     }
+    const quota = Number(photoQuota);
+    if (photoQuota.trim() === '' || !Number.isInteger(quota) || quota < 0 || quota > 100) {
+      setMessage({ kind: 'error', text: 'Las fotos por invitado deben ser un número entero entre 0 y 100.' });
+      return;
+    }
     setSaving(true);
     try {
       await onSave({
         name: name.trim(),
+        startsAt: localInputToIso(startsAt),
         location: location.trim() || null,
+        defaultPhotoQuota: quota,
         accessMode,
         cameraUnlock,
         rsvpEnabled,
@@ -56,17 +68,28 @@ export default function EventSettingsPanel({ event, onSave }: EventSettingsPanel
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex max-w-md flex-col gap-4" aria-label="Ajustes del evento">
+    <form onSubmit={handleSubmit} noValidate className="flex max-w-md flex-col gap-4" aria-label="Ajustes del evento">
       <div className="flex flex-col gap-1">
         <label htmlFor="ev-name" className={labelClass}>
           Nombre del evento
         </label>
+        <input id="ev-name" value={name} onChange={(e) => setName(e.target.value)} className={fieldClass} />
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <label htmlFor="ev-starts-at" className={labelClass}>
+          Fecha y hora
+        </label>
         <input
-          id="ev-name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="bg-ink-950 px-3 py-2 font-sans text-sm text-paper-100 outline-none"
+          id="ev-starts-at"
+          type="datetime-local"
+          value={startsAt}
+          onChange={(e) => setStartsAt(e.target.value)}
+          className={fieldClass}
         />
+        <p className="font-sans text-xs text-paper-100/60">
+          Es la hora de tu dispositivo. Los invitados la ven en la entrada del evento.
+        </p>
       </div>
 
       <div className="flex flex-col gap-1">
@@ -77,7 +100,7 @@ export default function EventSettingsPanel({ event, onSave }: EventSettingsPanel
           id="ev-location"
           value={location}
           onChange={(e) => setLocation(e.target.value)}
-          className="bg-ink-950 px-3 py-2 font-sans text-sm text-paper-100 outline-none"
+          className={fieldClass}
         />
       </div>
 
@@ -97,6 +120,25 @@ export default function EventSettingsPanel({ event, onSave }: EventSettingsPanel
             </option>
           ))}
         </select>
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <label htmlFor="ev-quota" className={labelClass}>
+          Fotos por invitado
+        </label>
+        <input
+          id="ev-quota"
+          type="number"
+          inputMode="numeric"
+          min={0}
+          max={100}
+          value={photoQuota}
+          onChange={(e) => setPhotoQuota(e.target.value)}
+          className={fieldClass}
+        />
+        <p className="font-sans text-xs text-paper-100/60">
+          Se aplica a quienes se inscriban desde ahora; no cambia el cupo de quienes ya están inscritos.
+        </p>
       </div>
 
       <div className="flex flex-col gap-1">

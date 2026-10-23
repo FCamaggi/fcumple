@@ -50,6 +50,8 @@ const event: api.OrganizerEvent = {
   stickersEnabled: true,
   defaultFrameId: null,
   photosRevealedAt: null,
+  defaultPhotoQuota: 5,
+  enrollment: { welcome: '', plusOnes: null, comment: null, questions: [] },
   createdAt: '2026-10-15T00:00:00Z',
 };
 

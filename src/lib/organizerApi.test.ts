@@ -58,6 +58,8 @@ const eventRow = {
   stickers_enabled: true,
   default_frame_id: null,
   photos_revealed_at: null,
+  default_photo_quota: 5,
+  enrollment_config: {},
   created_at: '2026-10-15T00:00:00Z',
 };
 
@@ -123,6 +125,46 @@ describe('eventos', () => {
     });
   });
 
+  it('updateEvent guarda la configuración de la inscripción y el cupo por defecto', async () => {
+    const q = chain({ data: eventRow, error: null });
+    from.mockReturnValueOnce(q.proxy);
+    await updateEvent('ev-1', {
+      defaultPhotoQuota: 10,
+      startsAt: '2026-10-30T23:30:00.000Z',
+      enrollment: {
+        welcome: ' Hola ',
+        plusOnes: { max: 1 },
+        comment: null,
+        questions: [{ id: 'q1', label: '¿De qué te disfrazas?', required: true }],
+      },
+    });
+    expect(q.calls.find(([name]) => name === 'update')?.[1][0]).toEqual({
+      default_photo_quota: 10,
+      starts_at: '2026-10-30T23:30:00.000Z',
+      enrollment_config: {
+        welcome: 'Hola',
+        plus_ones: { max: 1 },
+        questions: [{ id: 'q1', label: '¿De qué te disfrazas?', required: true }],
+      },
+    });
+  });
+
+  it('updateEvent explica cuando la base rechaza un valor', async () => {
+    from.mockReturnValueOnce(chain({ data: null, error: { code: '23514' } }).proxy);
+    await expect(updateEvent('ev-1', { defaultPhotoQuota: 500 })).rejects.toThrow(/no es válido/);
+  });
+
+  it('mapea la configuración de la inscripción y el cupo del evento', async () => {
+    const q = chain({
+      data: [{ ...eventRow, default_photo_quota: 10, enrollment_config: { plus_ones: { max: 2 } } }],
+      error: null,
+    });
+    from.mockReturnValueOnce(q.proxy);
+    const [event] = await listMyEvents();
+    expect(event.defaultPhotoQuota).toBe(10);
+    expect(event.enrollment.plusOnes).toEqual({ max: 2 });
+  });
+
   it('updateEvent envía solo los campos indicados, en snake_case', async () => {
     const q = chain({ data: eventRow, error: null });
     from.mockReturnValueOnce(q.proxy);
@@ -147,6 +189,17 @@ describe('invitados', () => {
     from.mockReturnValueOnce(q.proxy);
     await addGuest('ev-1', 'Ana Rojas');
     expect(q.calls.find(([name]) => name === 'insert')?.[1][0]).toEqual({ event_id: 'ev-1', full_name: 'Ana Rojas' });
+  });
+
+  it('addGuest usa el cupo del evento cuando se lo pasan', async () => {
+    const q = chain({ data: guestRow, error: null });
+    from.mockReturnValueOnce(q.proxy);
+    await addGuest('ev-1', 'Ana Rojas', 10);
+    expect(q.calls.find(([name]) => name === 'insert')?.[1][0]).toEqual({
+      event_id: 'ev-1',
+      full_name: 'Ana Rojas',
+      photo_quota: 10,
+    });
   });
 
   it.each([

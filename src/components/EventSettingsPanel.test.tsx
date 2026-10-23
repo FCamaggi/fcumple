@@ -1,8 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import EventSettingsPanel from './EventSettingsPanel';
 import type { OrganizerEvent } from '../lib/organizerApi';
+import { isoToLocalInput, localInputToIso } from '../lib/localDateTime';
 
 const event: OrganizerEvent = {
   id: 'ev-1',
@@ -17,6 +18,8 @@ const event: OrganizerEvent = {
   stickersEnabled: true,
   defaultFrameId: null,
   photosRevealedAt: null,
+  defaultPhotoQuota: 5,
+  enrollment: { welcome: '', plusOnes: null, comment: null, questions: [] },
   createdAt: '2026-10-15T00:00:00Z',
 };
 
@@ -32,12 +35,52 @@ describe('EventSettingsPanel', () => {
 
     expect(onSave).toHaveBeenCalledWith({
       name: 'Fiesta',
+      startsAt: null,
       location: 'Casa',
+      defaultPhotoQuota: 5,
       accessMode: 'list_requests',
       cameraUnlock: 'on_checkin',
       rsvpEnabled: true,
     });
     expect(await screen.findByRole('status')).toHaveTextContent('Ajustes guardados.');
+  });
+
+  it('muestra la fecha del evento y guarda la que se escribe', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<EventSettingsPanel event={{ ...event, startsAt: '2026-10-30T23:30:00.000Z' }} onSave={onSave} />);
+    expect(screen.getByLabelText('Fecha y hora')).toHaveValue(isoToLocalInput('2026-10-30T23:30:00.000Z'));
+
+    fireEvent.change(screen.getByLabelText('Fecha y hora'), { target: { value: '2026-10-31T21:00' } });
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar ajustes' }));
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ startsAt: localInputToIso('2026-10-31T21:00') }));
+  });
+
+  it('se puede quitar la fecha', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<EventSettingsPanel event={{ ...event, startsAt: '2026-10-30T23:30:00.000Z' }} onSave={onSave} />);
+    fireEvent.change(screen.getByLabelText('Fecha y hora'), { target: { value: '' } });
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar ajustes' }));
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ startsAt: null }));
+  });
+
+  it('guarda las fotos por invitado', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<EventSettingsPanel event={event} onSave={onSave} />);
+    await userEvent.clear(screen.getByLabelText('Fotos por invitado'));
+    await userEvent.type(screen.getByLabelText('Fotos por invitado'), '10');
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar ajustes' }));
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ defaultPhotoQuota: 10 }));
+  });
+
+  it.each(['', '-1', '101', '2.5'])('no deja guardar %j fotos por invitado', async (value) => {
+    const onSave = vi.fn();
+    render(<EventSettingsPanel event={event} onSave={onSave} />);
+    const input = screen.getByLabelText('Fotos por invitado');
+    await userEvent.clear(input);
+    if (value) fireEvent.change(input, { target: { value } });
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar ajustes' }));
+    expect(screen.getByRole('alert')).toHaveTextContent(/entre 0 y 100/);
+    expect(onSave).not.toHaveBeenCalled();
   });
 
   it('no deja guardar un evento sin nombre', async () => {
