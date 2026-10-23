@@ -59,11 +59,16 @@ export default {
           '0%': { transform: 'translateX(0)' },
           '100%': { transform: 'translateX(-50%)' },
         },
+        // Entrada corta de un campo que aparece. Si la animación no corre, el campo ya es visible.
+        reveal: {
+          from: { opacity: '0', transform: 'translateY(4px)' },
+        },
       },
       animation: {
         flicker: 'flicker 0.6s ease-out 1',
         grain: 'grain 8s steps(4) infinite',
         ticker: 'ticker 18s linear infinite',
+        reveal: 'reveal 200ms cubic-bezier(0.23, 1, 0.32, 1)',
       },
     },
   },

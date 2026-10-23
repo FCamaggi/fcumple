@@ -65,6 +65,7 @@ const event: EventPublic = {
   cameraUnlock: 'on_identify',
   rsvpEnabled: false,
   photosRevealed: false,
+  enrollment: { welcome: '', plusOnes: null, comment: null, questions: [] },
 };
 
 const guest: MyGuest = { id: 'g1', eventId: 'ev-1', fullName: 'Ana Rojas', checkedInAt: null, photoQuota: 5 };

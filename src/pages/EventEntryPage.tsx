@@ -20,7 +20,7 @@ type State =
   | { phase: 'identify'; event: EventPublic }
   | { phase: 'inside'; event: EventPublic; guest: MyGuest; token: string };
 
-const centered = 'flex min-h-screen items-center justify-center bg-ink-950 px-4 text-paper-100';
+const centered = 'flex min-h-screen items-center justify-center bg-ink-950 px-4 py-8 text-paper-100';
 
 function formatDate(iso: string | null): string | null {
   if (!iso) return null;
