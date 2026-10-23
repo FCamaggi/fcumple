@@ -3,6 +3,7 @@ import {
   ENROLLMENT_LIMITS,
   cleanEnrollmentAnswers,
   emptyEnrollment,
+  asksForPersonalData,
   enrollmentErrorMessage,
   parseGuestAnswers,
   resolveEnrollmentConfig,
@@ -166,5 +167,23 @@ describe('parseGuestAnswers', () => {
     expect(parseGuestAnswers([])).toEqual({});
     expect(parseGuestAnswers({ plus_ones: 'Ana', comment: 5, q1: '  ', pin: '1234' })).toEqual({});
     expect(parseGuestAnswers({ plus_ones: ['Ana', 7, ' '] })).toEqual({ plus_ones: ['Ana'] });
+  });
+});
+
+describe('asksForPersonalData', () => {
+  it.each(['¿Cuál es tu RUT?', 'Correo electrónico', 'Tu teléfono', 'Número de WhatsApp', 'e-mail', 'Elige una CLAVE', 'Tu contraseña', 'Cédula'])(
+    'detecta %j',
+    (label) => expect(asksForPersonalData(label)).toBe(true),
+  );
+
+  it.each(['¿De qué te disfrazas?', 'Pintura favorita', 'Canción que pedirías', '¿Alguna alergia o restricción?', 'Corrección', 'Gmail'])(
+    'deja pasar %j',
+    (label) => expect(asksForPersonalData(label)).toBe(false),
+  );
+
+  it('la configuración con una pregunta así no es válida', () => {
+    expect(validateEnrollmentConfig({ comment: { label: 'Tu teléfono', required: false } })).toBe(false);
+    expect(validateEnrollmentConfig({ questions: [{ id: 'q1', label: '¿Cuál es tu RUT?', required: true }] })).toBe(false);
+    expect(validateEnrollmentConfig({ questions: [{ id: 'q1', label: '¿De qué te disfrazas?', required: true }] })).toBe(true);
   });
 });

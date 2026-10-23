@@ -79,6 +79,16 @@ describe('paridad cliente-base de la configuración', () => {
     ['pregunta con etiqueta de 81', { questions: [q('q1', longText(81))] }, false],
     ['pregunta sin etiqueta', { questions: [{ id: 'q1', required: false }] }, false],
     ['preguntas no es lista', { questions: { id: 'q1' } }, false],
+    ['bienvenida con solo NBSP', { welcome: '\u00a0\u00a0' }, false],
+    ['bienvenida con solo BOM', { welcome: '\ufeff' }, false],
+    ['bienvenida con NBSP alrededor', { welcome: '\u00a0Hola\u00a0' }, true],
+    ['etiqueta con solo espacio de ancho fijo', { comment: { label: '\u202f', required: false } }, false],
+    ['comentario que pide el teléfono', { comment: { label: 'Tu teléfono', required: false } }, false],
+    ['pregunta que pide el RUT', { questions: [q('q1', '¿Cuál es tu RUT?')] }, false],
+    ['pregunta que pide un correo', { questions: [q('q1', 'Correo electrónico')] }, false],
+    ['pregunta que pide una clave', { questions: [q('q1', 'Elige una clave')] }, false],
+    ['pregunta con "pin" dentro de otra palabra', { questions: [q('q1', 'Pintura favorita')] }, true],
+    ['pregunta normal', { questions: [q('q1', '¿De qué te disfrazas?')] }, true],
   ];
 
   it.each(cases)('%s', async (_name, config, ok) => {
@@ -152,6 +162,10 @@ describe('paridad cliente-base de las respuestas', () => {
     ['respuesta numérica', base, { q1: 7 }, { ok: false, error: 'question_invalid:q1' }],
     ['pregunta que no está configurada', base, { q1: 'x', q2: 'y' }, { ok: false, error: 'question_unknown:q2' }],
     ['pregunta no configurada en blanco', base, { q1: 'x', q2: ' ' }, { ok: true, answers: { q1: 'x' } }],
+    ['comentario con solo NBSP cuenta como vacío', base, { q1: 'x', comment: '\u00a0' }, { ok: true, answers: { q1: 'x' } }],
+    ['respuesta con solo BOM cuenta como vacía', base, { q1: '\ufeff' }, { ok: false, error: 'question_required:q1' }],
+    ['+1 con solo NBSP', base, { q1: 'x', plus_ones: ['\u00a0'] }, { ok: false, error: 'plus_one_name' }],
+    ['recorta NBSP alrededor', base, { q1: '\u00a0Regina\u00a0' }, { ok: true, answers: { q1: 'Regina' } }],
   ];
 
   it.each(cases)('%s', async (_name, config, answers, expected) => {
@@ -250,6 +264,47 @@ describe('register_guest con respuestas', () => {
     expect(rows[0].outcome).toBe('pending_approval');
     const g = await db.query('select approval_status, guest_answers from guests where id = $1', [rows[0].guest_id]);
     expect(g.rows[0]).toEqual({ approval_status: 'pending', guest_answers: { q1: 'Karen' } });
+  });
+});
+
+describe('casos que el cliente no produce pero la base debe aguantar', () => {
+  it('un máximo de acompañantes escrito como 2.0 funciona (la base lo aceptó, register_guest no debe romperse)', async () => {
+    const ev = await createEvent(db, owner);
+    await db.query(`update events set enrollment_config = '{"plus_ones":{"max":2.0}}'::jsonb where id = $1`, [ev.id]);
+    const { rows } = await register(ev.slug, 'Ana Rojas', '1234', { plus_ones: ['Luis Pérez', 'Marta Soto'] });
+    expect(rows[0].outcome).toBe('ok');
+  });
+
+  it('el peor caso legítimo (todo al máximo, en emojis) cabe en guest_answers', async () => {
+    const config = {
+      plus_ones: { max: 5 },
+      comment: { label: 'Comentario', required: false },
+      questions: [
+        { id: 'q1', label: 'Uno', required: false },
+        { id: 'q2', label: 'Dos', required: false },
+        { id: 'q3', label: 'Tres', required: false },
+      ],
+    };
+    const ev = await newEvent(config);
+    const bat = (n: number) => '🦇'.repeat(n);
+    const { rows } = await register(ev.slug, 'Ana Rojas', '1234', {
+      plus_ones: [bat(80), bat(80), bat(80), bat(80), bat(80)],
+      comment: bat(280),
+      q1: bat(140),
+      q2: bat(140),
+      q3: bat(140),
+    });
+    expect(rows[0].outcome).toBe('ok');
+  });
+
+  it('el aforo no cuenta a quien el organizador cargó y nunca se inscribió, ni a quien declinó', async () => {
+    const ev = await newEvent({});
+    await createGuest(db, ev.id, 'Carga Manual'); // precargado, sin inscribirse
+    await register(ev.slug, 'Ana Rojas', '1234'); // inscrita
+    const declined = await register(ev.slug, 'Bea Soto', '1234');
+    await db.query(`update guests set status = 'declined' where id = $1`, [declined.rows[0].guest_id]);
+    const { rows } = await asAnon(db, () => db.query('select get_public_headcount($1) as n', [ev.slug]));
+    expect(rows[0].n).toBe(1);
   });
 });
 

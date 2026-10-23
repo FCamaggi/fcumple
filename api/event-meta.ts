@@ -31,7 +31,8 @@ export const NEUTRAL = {
 /** Zona horaria con la que se escribe la fecha en la vista previa (el servidor no conoce la del invitado). */
 const TIME_ZONE = 'America/Santiago';
 const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
-const CACHE_CONTROL = 'public, s-maxage=300, stale-while-revalidate=3600';
+// Corta a propósito: un rastreador y un navegador no deben compartir una copia vieja por mucho tiempo.
+const CACHE_CONTROL = 'public, s-maxage=60, stale-while-revalidate=300';
 const TIMEOUT_MS = 2500;
 
 const escapeHtml = (s: string) =>
@@ -57,6 +58,7 @@ export function describeEvent(meta: EventMeta): string {
 export function injectMeta(html: string, meta: PageMeta): string {
   const tags = [
     `<meta name="description" content="${escapeHtml(meta.description)}" />`,
+    `<meta name="robots" content="noindex, nofollow" />`,
     `<meta property="og:type" content="website" />`,
     `<meta property="og:locale" content="es_CL" />`,
     `<meta property="og:title" content="${escapeHtml(meta.title)}" />`,
@@ -65,10 +67,12 @@ export function injectMeta(html: string, meta: PageMeta): string {
     `<meta name="twitter:card" content="summary" />`,
   ].join('\n    ');
 
+  // Los reemplazos son FUNCIONES, no cadenas: con una cadena, un nombre de evento como «Fiesta $'» se
+  // expandiría con el resto del documento ($&, $`, $' son patrones especiales de String.replace).
   const stripped = html
-    .replace(/<title>[\s\S]*?<\/title>/i, `<title>${escapeHtml(meta.title)}</title>`)
-    .replace(/<meta\s+(?:property|name)="(?:og:[^"]*|twitter:[^"]*|description)"[^>]*>\s*/gi, '');
-  return stripped.replace(/<\/head>/i, `    ${tags}\n  </head>`);
+    .replace(/<title>[\s\S]*?<\/title>/i, () => `<title>${escapeHtml(meta.title)}</title>`)
+    .replace(/<meta\s+(?:property|name)="(?:og:[^"]*|twitter:[^"]*|description|robots)"[^>]*>\s*/gi, '');
+  return stripped.replace(/<\/head>/i, () => `    ${tags}\n  </head>`);
 }
 
 /** Documento mínimo para cuando no se puede leer `index.html`: solo sirve a los rastreadores. */
@@ -122,10 +126,14 @@ async function loadEvent(opts: RenderOptions, fetchImpl: FetchLike): Promise<Eve
       }),
     );
     if (!response.ok) return null;
-    const rows = (await response.json?.()) as Array<{ name?: string; starts_at?: string | null; location?: string | null }>;
+    const rows = (await response.json?.()) as Array<{ name?: unknown; starts_at?: unknown; location?: unknown }>;
     const row = Array.isArray(rows) ? rows[0] : undefined;
     if (!row || typeof row.name !== 'string' || !row.name.trim()) return null;
-    return { name: row.name.trim(), startsAt: row.starts_at ?? null, location: row.location ?? null };
+    return {
+      name: row.name.trim(),
+      startsAt: typeof row.starts_at === 'string' ? row.starts_at : null,
+      location: typeof row.location === 'string' ? row.location : null,
+    };
   } catch {
     return null;
   }
@@ -151,7 +159,7 @@ export async function renderEventPage(opts: RenderOptions): Promise<RenderedPage
   const index = await loadIndex(opts.origin, fetchImpl);
   return {
     status: 200,
-    headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': CACHE_CONTROL },
+    headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': CACHE_CONTROL, vary: 'User-Agent' },
     body: index ? injectMeta(index, meta) : fallbackDocument(meta),
   };
 }
@@ -170,14 +178,27 @@ interface Res {
 
 const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? '';
 
+/**
+ * Origen público de ESTE despliegue. Las cabeceras de la petición no se toman a ciegas: con ellas la
+ * función pediría `index.html` a un host que elige quien hace la petición (SSRF) y lo serviría desde la
+ * caché pública. Solo se acepta un host que Vercel declara como del proyecto; si no, se usa el canónico.
+ */
+function publicOrigin(requestHost: string, env: NodeJS.ProcessEnv): string {
+  const own = [env.VERCEL_URL, env.VERCEL_BRANCH_URL, env.VERCEL_PROJECT_PRODUCTION_URL].filter(
+    (h): h is string => Boolean(h),
+  );
+  const canonical = env.VERCEL_PROJECT_PRODUCTION_URL || env.VERCEL_URL || '';
+  const host = own.includes(requestHost) ? requestHost : canonical;
+  return host ? `https://${host}` : '';
+}
+
 export default async function handler(req: Req, res: Res): Promise<void> {
   let page: RenderedPage;
   try {
-    const host = first(req.headers['x-forwarded-host']) || first(req.headers.host);
-    const proto = first(req.headers['x-forwarded-proto']) || 'https';
+    const requestHost = first(req.headers['x-forwarded-host']) || first(req.headers.host);
     page = await renderEventPage({
       slug: first(req.query?.slug),
-      origin: host ? `${proto}://${host}` : '',
+      origin: publicOrigin(requestHost, process.env),
       supabaseUrl: process.env.VITE_SUPABASE_URL ?? process.env.SUPABASE_URL ?? '',
       anonKey: process.env.VITE_SUPABASE_ANON_KEY ?? process.env.SUPABASE_ANON_KEY ?? '',
     });

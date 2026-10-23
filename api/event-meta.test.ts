@@ -74,6 +74,21 @@ describe('injectMeta', () => {
     expect(out).toContain('<div id="root"></div>');
   });
 
+  it('un nombre con los patrones especiales de String.replace ($&, $`, $\') no rompe la página', () => {
+    for (const name of ["Fiesta $'", 'Fiesta $`', 'Fiesta $&', 'Fiesta $$ y $1']) {
+      const html = injectMeta(INDEX, { title: name, description: name, url: 'https://fcumple.example/e/x' });
+      const escaped = name.replace(/&/g, '&amp;').replace(/'/g, '&#39;');
+      expect(html).toContain(`<title>${escaped}</title>`);
+      expect(html.match(/<\/head>/g)).toHaveLength(1);
+      expect(html.match(/<body>/g)).toHaveLength(1);
+      expect(html.match(/<title>/g)).toHaveLength(1);
+    }
+  });
+
+  it('pide a los buscadores que no la indexen', () => {
+    expect(out).toContain('<meta name="robots" content="noindex, nofollow" />');
+  });
+
   it('escapa el HTML del nombre del evento', () => {
     const evil = injectMeta(INDEX, { title: '"><script>alert(1)</script>', description: '& <b>', url: 'u' });
     expect(evil).not.toContain('<script>alert(1)</script>');
@@ -90,7 +105,8 @@ describe('renderEventPage', () => {
     expect(page.body).toContain('<title>PUTI HALLOWEEN</title>');
     expect(page.body).toContain('Los Pozos 6855');
     expect(page.body).toContain('https://fcumple.example/e/cumpleanos-fran-j4h7');
-    expect(page.headers['cache-control']).toMatch(/s-maxage=300/);
+    expect(page.headers['cache-control']).toMatch(/s-maxage=60/);
+    expect(page.headers.vary).toBe('User-Agent');
     expect(fetchImpl).toHaveBeenCalledWith(
       'https://abc.supabase.co/rest/v1/rpc/get_event_public',
       expect.objectContaining({ method: 'POST', body: JSON.stringify({ p_slug: 'cumpleanos-fran-j4h7' }) }),
@@ -173,6 +189,7 @@ describe('handler', () => {
     vi.stubGlobal('fetch', fetchStub({ name: 'PUTI HALLOWEEN', starts_at: null, location: null }));
     vi.stubEnv('VITE_SUPABASE_URL', 'https://abc.supabase.co');
     vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'anon');
+    vi.stubEnv('VERCEL_PROJECT_PRODUCTION_URL', 'fcumple.example');
     const r = res();
     await handler(
       { query: { slug: 'cumpleanos-fran-j4h7' }, headers: { host: 'fcumple.example', 'x-forwarded-proto': 'https' } },
@@ -182,6 +199,43 @@ describe('handler', () => {
     expect(r.out.headers['content-type']).toMatch(/text\/html/);
     expect(r.out.body).toContain('<title>PUTI HALLOWEEN</title>');
     expect(r.out.body).toContain('https://fcumple.example/e/cumpleanos-fran-j4h7');
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
+
+  it('no confía en las cabeceras para decidir a qué host pedir index.html (ni para og:url)', async () => {
+    const fetchImpl = fetchStub({ name: 'PUTI HALLOWEEN', starts_at: null, location: null });
+    vi.stubGlobal('fetch', fetchImpl);
+    vi.stubEnv('VITE_SUPABASE_URL', 'https://abc.supabase.co');
+    vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'anon');
+    vi.stubEnv('VERCEL_PROJECT_PRODUCTION_URL', 'fcumple.example');
+    vi.stubEnv('VERCEL_URL', 'fcumple-abc123.vercel.app');
+    const r = res();
+    await handler(
+      {
+        query: { slug: 'cumpleanos-fran-j4h7' },
+        headers: { host: 'atacante.com', 'x-forwarded-host': 'atacante.com', 'x-forwarded-proto': 'http' },
+      },
+      r.api,
+    );
+    const urls = fetchImpl.mock.calls.map((c) => String(c[0]));
+    expect(urls.some((u) => u.includes('atacante.com'))).toBe(false);
+    expect(urls).toContain('https://fcumple.example/index.html');
+    expect(r.out.body).not.toContain('atacante.com');
+    expect(r.out.body).toContain('https://fcumple.example/e/cumpleanos-fran-j4h7');
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
+
+  it('acepta el host del propio despliegue (para probar en una vista previa de Vercel)', async () => {
+    vi.stubGlobal('fetch', fetchStub({ name: 'PUTI HALLOWEEN', starts_at: null, location: null }));
+    vi.stubEnv('VITE_SUPABASE_URL', 'https://abc.supabase.co');
+    vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'anon');
+    vi.stubEnv('VERCEL_PROJECT_PRODUCTION_URL', 'fcumple.example');
+    vi.stubEnv('VERCEL_URL', 'fcumple-abc123.vercel.app');
+    const r = res();
+    await handler({ query: { slug: 'cumpleanos-fran-j4h7' }, headers: { host: 'fcumple-abc123.vercel.app' } }, r.api);
+    expect(r.out.body).toContain('https://fcumple-abc123.vercel.app/e/cumpleanos-fran-j4h7');
     vi.unstubAllGlobals();
     vi.unstubAllEnvs();
   });

@@ -18,6 +18,33 @@
 -- ---------------------------------------------------------------------------
 -- Validacion de la configuracion (claves cerradas, largos acotados).
 -- ---------------------------------------------------------------------------
+-- Recorta con la misma lista de espacios que String.prototype.trim de JavaScript (incluye NBSP y BOM).
+-- \s de Postgres depende de la collation de la base y recorta distinto: sin esto, el cliente y la base
+-- discreparían sobre qué es un texto "vacío".
+create or replace function public._enroll_trim(s text)
+returns text
+language sql
+immutable
+as $$
+  select regexp_replace(
+    s,
+    '^[\t\n\v\f\r \u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]+|[\t\n\v\f\r \u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]+$',
+    '',
+    'g'
+  );
+$$;
+
+-- ¿La pregunta pide un dato que esta plataforma no guarda (RUT, correo, teléfono, claves)? Compara sin tildes,
+-- en minúsculas y por palabra completa ("pintura" no es "pin"). La misma regla vive en enrollmentConfig.ts.
+create or replace function public._enroll_asks_personal_data(label text)
+returns boolean
+language sql
+immutable
+as $$
+  select translate(lower(label), 'áéíóúüñ', 'aeiouun')
+    ~ '\m(rut|run|dni|cedula|pasaporte|correo|email|mail|telefono|celular|fono|whatsapp|pin|clave|contrasena|password)\M';
+$$;
+
 create or replace function public._enroll_text(j jsonb, k text, max_len int)
 returns boolean
 language sql
@@ -26,7 +53,7 @@ as $$
   select case
     when not (j ? k) then false
     when jsonb_typeof(j -> k) = 'string'
-      then char_length(regexp_replace(j ->> k, '^\s+|\s+$', '', 'g')) between 1 and max_len
+      then char_length(public._enroll_trim(j ->> k)) between 1 and max_len
     else false
   end;
 $$;
@@ -35,6 +62,7 @@ create or replace function public.valid_enrollment_config(c jsonb)
 returns boolean
 language plpgsql
 immutable
+set search_path = public, extensions
 as $$
 declare
   k text;
@@ -75,7 +103,7 @@ begin
     for k in select jsonb_object_keys(p) loop
       if k not in ('label', 'required') then return false; end if;
     end loop;
-    if not public._enroll_text(p, 'label', 120) then return false; end if;
+    if not public._enroll_text(p, 'label', 120) or public._enroll_asks_personal_data(p ->> 'label') then return false; end if;
     if not (p ? 'required') or jsonb_typeof(p -> 'required') <> 'boolean' then return false; end if;
   end if;
 
@@ -89,7 +117,7 @@ begin
       end loop;
       if not (q ? 'id') or jsonb_typeof(q -> 'id') <> 'string' then return false; end if;
       if (q ->> 'id') not in ('q1', 'q2', 'q3') or (q ->> 'id') = any (seen) then return false; end if;
-      if not public._enroll_text(q, 'label', 80) then return false; end if;
+      if not public._enroll_text(q, 'label', 80) or public._enroll_asks_personal_data(q ->> 'label') then return false; end if;
       if not (q ? 'required') or jsonb_typeof(q -> 'required') <> 'boolean' then return false; end if;
       seen := seen || (q ->> 'id');
     end loop;
@@ -105,12 +133,13 @@ create or replace function public.valid_guest_answers(a jsonb)
 returns boolean
 language plpgsql
 immutable
+set search_path = public, extensions
 as $$
 declare
   k text;
   el jsonb;
 begin
-  if a is null or jsonb_typeof(a) <> 'object' or octet_length(a::text) > 4000 then
+  if a is null or jsonb_typeof(a) <> 'object' or octet_length(a::text) > 8000 then
     return false;
   end if;
   for k in select jsonb_object_keys(a) loop
@@ -155,6 +184,7 @@ create or replace function public._clean_enrollment_answers(c jsonb, a jsonb)
 returns jsonb
 language plpgsql
 immutable
+set search_path = public, extensions
 as $$
 declare
   k text;
@@ -189,14 +219,14 @@ begin
       if not (c ? 'plus_ones') then
         raise exception 'enrollment_invalid:plus_ones_disabled' using errcode = '22023';
       end if;
-      if jsonb_array_length(v) > (c #>> '{plus_ones,max}')::int then
+      if jsonb_array_length(v) > (c #>> '{plus_ones,max}')::numeric then
         raise exception 'enrollment_invalid:plus_ones_too_many' using errcode = '22023';
       end if;
       for el in select * from jsonb_array_elements(v) loop
         if jsonb_typeof(el) <> 'string' then
           raise exception 'enrollment_invalid:plus_one_name' using errcode = '22023';
         end if;
-        s := regexp_replace(el #>> '{}', '^\s+|\s+$', '', 'g');
+        s := public._enroll_trim(el #>> '{}');
         if char_length(s) not between 1 and 80 then
           raise exception 'enrollment_invalid:plus_one_name' using errcode = '22023';
         end if;
@@ -212,7 +242,7 @@ begin
     if jsonb_typeof(v) <> 'string' then
       raise exception 'enrollment_invalid:comment_invalid' using errcode = '22023';
     end if;
-    s := regexp_replace(v #>> '{}', '^\s+|\s+$', '', 'g');
+    s := public._enroll_trim(v #>> '{}');
     if s <> '' then
       if not (c ? 'comment') then
         raise exception 'enrollment_invalid:comment_disabled' using errcode = '22023';
@@ -236,7 +266,7 @@ begin
       if jsonb_typeof(v) <> 'string' then
         raise exception 'enrollment_invalid:question_invalid:%', qid using errcode = '22023';
       end if;
-      s := regexp_replace(v #>> '{}', '^\s+|\s+$', '', 'g');
+      s := public._enroll_trim(v #>> '{}');
       if s <> '' then
         if char_length(s) > 140 then
           raise exception 'enrollment_invalid:question_too_long:%', qid using errcode = '22023';
@@ -253,7 +283,7 @@ begin
   foreach qid in array array['q1', 'q2', 'q3'] loop
     v := a -> qid;
     if not (qid = any (configured)) and v is not null and jsonb_typeof(v) <> 'null' then
-      if jsonb_typeof(v) = 'string' and regexp_replace(v #>> '{}', '^\s+|\s+$', '', 'g') = '' then
+      if jsonb_typeof(v) = 'string' and public._enroll_trim(v #>> '{}') = '' then
         continue;
       end if;
       raise exception 'enrollment_invalid:question_unknown:%', qid using errcode = '22023';
@@ -482,8 +512,9 @@ grant execute on function public.register_guest(text, text, text, jsonb) to anon
 -- get_public_headcount: sin RSVP activado, la inscripcion ES la confirmacion.
 -- Antes solo contaba status = 'confirmed', que en la Fase 1 nadie puede fijar
 -- (no hay pantalla de RSVP), asi que el aforo del hub nunca aparecia. Ahora, si
--- el evento no usa RSVP, cuenta a todos los inscritos aprobados con sus
--- acompanantes; con RSVP activado sigue contando solo a los confirmados.
+-- el evento no usa RSVP, cuenta a quienes ya se inscribieron (claimed_at) y no
+-- declinaron, con sus acompanantes (no a quien el organizador cargo y nunca
+-- entro); con RSVP activado sigue contando solo a los confirmados.
 -- ---------------------------------------------------------------------------
 create or replace function public.get_public_headcount(p_slug text)
 returns int
@@ -496,6 +527,9 @@ as $$
   from public.events e
   join public.guests g on g.event_id = e.id
   where e.slug = p_slug
-    and (g.status = 'confirmed' or not e.rsvp_enabled)
-    and g.approval_status = 'approved';
+    and g.approval_status = 'approved'
+    and (
+      (e.rsvp_enabled and g.status = 'confirmed')
+      or (not e.rsvp_enabled and g.claimed_at is not null and g.status <> 'declined')
+    );
 $$;

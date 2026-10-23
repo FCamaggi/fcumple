@@ -58,6 +58,23 @@ const text = (x: unknown, max: number): x is string =>
 
 const hasOnly = (o: Json, keys: readonly string[]) => Object.keys(o).every((k) => keys.includes(k));
 
+const PERSONAL_DATA_WORDS =
+  /\b(rut|run|dni|cedula|pasaporte|correo|email|mail|telefono|celular|fono|whatsapp|pin|clave|contrasena|password)\b/;
+
+/**
+ * ¿La pregunta pide un dato que esta plataforma no guarda (RUT, correo, teléfono, claves)? Compara sin
+ * tildes, en minúsculas y por palabra completa ("pintura" no es "pin"). La base aplica la misma regla
+ * (`_enroll_asks_personal_data`). Es una red, no una garantía: un texto libre se puede disfrazar.
+ */
+export function asksForPersonalData(label: string): boolean {
+  return PERSONAL_DATA_WORDS.test(
+    label
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, ''),
+  );
+}
+
 export function validateEnrollmentConfig(config: unknown): boolean {
   if (!isObject(config) || !hasOnly(config, ['welcome', 'plus_ones', 'comment', 'questions'])) return false;
 
@@ -74,7 +91,9 @@ export function validateEnrollmentConfig(config: unknown): boolean {
   if ('comment' in config) {
     const c = config.comment;
     if (!isObject(c) || !hasOnly(c, ['label', 'required'])) return false;
-    if (!text(c.label, ENROLLMENT_LIMITS.commentLabel) || typeof c.required !== 'boolean') return false;
+    if (!text(c.label, ENROLLMENT_LIMITS.commentLabel) || asksForPersonalData(c.label) || typeof c.required !== 'boolean') {
+      return false;
+    }
   }
 
   if ('questions' in config) {
@@ -84,7 +103,9 @@ export function validateEnrollmentConfig(config: unknown): boolean {
     for (const q of qs) {
       if (!isObject(q) || !hasOnly(q, ['id', 'label', 'required'])) return false;
       if (typeof q.id !== 'string' || !(QUESTION_IDS as readonly string[]).includes(q.id) || seen.has(q.id)) return false;
-      if (!text(q.label, ENROLLMENT_LIMITS.questionLabel) || typeof q.required !== 'boolean') return false;
+      if (!text(q.label, ENROLLMENT_LIMITS.questionLabel) || asksForPersonalData(q.label) || typeof q.required !== 'boolean') {
+        return false;
+      }
       seen.add(q.id);
     }
   }
