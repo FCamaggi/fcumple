@@ -219,8 +219,44 @@ describe('enrollmentToCsv', () => {
     expect(row).toContain(`'@SUM(A1)`);
   });
 
+  it('no pierde la respuesta a una pregunta que ya se quitó: va en una columna aparte', () => {
+    const csv = enrollmentToCsv([guest({ answers: { q1: 'Regina', q3: 'Respuesta vieja' } })], config);
+    const [header, row] = csv.split('\r\n');
+    expect(header.endsWith('Respuestas a preguntas que ya no están')).toBe(true);
+    expect(row.endsWith('Respuesta vieja')).toBe(true);
+  });
+
+  it('sin respuestas huérfanas no agrega esa columna', () => {
+    const [header] = enrollmentToCsv([guest({ answers: { q1: 'Regina' } })], config).split('\r\n');
+    expect(header).not.toContain('ya no están');
+  });
+
   it('también neutraliza las etiquetas de las preguntas', () => {
     const csv = enrollmentToCsv([], { ...config, questions: [{ id: 'q1', label: '=1+1', required: false }] });
     expect(csv.split('\r\n')[0]).toContain(`'=1+1`);
+  });
+});
+
+describe('guestsToCsv (Fase 0): fórmulas', () => {
+  it('neutraliza el nombre y la nota, pero no el teléfono ni el token (son datos de reimportación)', () => {
+    const csv = guestsToCsv([
+      {
+        id: 'g1',
+        token: 'tok',
+        fullName: '=HYPERLINK("http://malo")',
+        status: 'pending',
+        plusOnesAllowed: 0,
+        plusOnesConfirmed: 0,
+        guestNote: '@cmd',
+        phone: '+56912345678',
+        respondedAt: null,
+        checkedInAt: null,
+      },
+    ]);
+    const row = csv.split('\r\n')[1];
+    expect(row).toContain(`"'=HYPERLINK(""http://malo"")"`);
+    expect(row).toContain(`'@cmd`);
+    expect(row).toContain('+56912345678');
+    expect(row).not.toContain(`'+56912345678`);
   });
 });

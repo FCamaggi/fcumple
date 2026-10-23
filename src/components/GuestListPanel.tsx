@@ -19,17 +19,17 @@ interface GuestListPanelProps {
 const buttonClass = 'h-8 border border-smoke-700/60 px-3 font-mono text-[11px] uppercase tracking-wider text-paper-100';
 
 /** Pares «pregunta → respuesta» de un invitado, con las preguntas del organizador. */
-function answerRows(guest: OrganizerGuest, enrollment: ResolvedEnrollment): Array<[string, string]> {
-  const rows: Array<[string, string]> = [];
+function answerRows(guest: OrganizerGuest, enrollment: ResolvedEnrollment): Array<{ key: string; question: string; answer: string }> {
+  const rows: Array<{ key: string; question: string; answer: string }> = [];
   const { answers } = guest;
-  if (answers.plus_ones?.length) rows.push(['Acompañantes', answers.plus_ones.join(', ')]);
-  if (answers.comment) rows.push([enrollment.comment?.label ?? 'Comentario', answers.comment]);
+  if (answers.plus_ones?.length) rows.push({ key: 'plus', question: 'Acompañantes', answer: answers.plus_ones.join(', ') });
+  if (answers.comment) rows.push({ key: 'comment', question: enrollment.comment?.label ?? 'Comentario', answer: answers.comment });
   for (const id of QUESTION_IDS) {
     const value = answers[id];
     if (!value) continue;
     const question = enrollment.questions.find((q) => q.id === id);
     // Una pregunta que el organizador quitó después: la respuesta existe, no se esconde.
-    rows.push([question?.label ?? 'Pregunta que ya no está', value]);
+    rows.push({ key: id, question: question?.label ?? 'Pregunta que ya no está', answer: value });
   }
   return rows;
 }
@@ -43,8 +43,8 @@ function AnswersDetail({ guest, enrollment }: { guest: OrganizerGuest; enrollmen
         Ver respuestas ({rows.length})
       </summary>
       <dl className="mt-2 flex flex-col gap-2">
-        {rows.map(([question, answer]) => (
-          <div key={question + answer} className="flex flex-col">
+        {rows.map(({ key, question, answer }) => (
+          <div key={key} className="flex flex-col">
             <dt className="font-mono text-[10px] uppercase tracking-wide text-paper-100/50">{question}</dt>
             <dd className="whitespace-pre-line font-sans text-sm text-paper-100">{answer}</dd>
           </div>

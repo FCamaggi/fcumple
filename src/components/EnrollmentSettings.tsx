@@ -3,6 +3,7 @@ import type { EventSettingsPatch, OrganizerEvent } from '../lib/organizerApi';
 import {
   ENROLLMENT_LIMITS,
   QUESTION_IDS,
+  asksForPersonalData,
   emptyEnrollment,
   type QuestionId,
   type ResolvedEnrollment,
@@ -11,6 +12,11 @@ import {
 interface EnrollmentSettingsProps {
   event: OrganizerEvent;
   onSave: (patch: EventSettingsPatch) => Promise<void>;
+  /**
+   * Ids de preguntas con respuestas ya guardadas por algún invitado. Una pregunta nueva no los reutiliza:
+   * si se quitó `q2` y se agrega otra, las respuestas viejas de `q2` aparecerían como respuesta a la nueva.
+   */
+  usedQuestionIds?: readonly QuestionId[];
 }
 
 interface QuestionDraft {
@@ -34,7 +40,7 @@ const smallButton =
  * pide solo nombre, apellido y PIN. Las reglas y los límites viven en
  * `enrollmentConfig.ts` (y la base las replica).
  */
-export default function EnrollmentSettings({ event, onSave }: EnrollmentSettingsProps) {
+export default function EnrollmentSettings({ event, onSave, usedQuestionIds = [] }: EnrollmentSettingsProps) {
   const current = event.enrollment;
   const [welcome, setWelcome] = useState(current.welcome);
   const [plusOnesOn, setPlusOnesOn] = useState(current.plusOnes !== null);
@@ -46,7 +52,9 @@ export default function EnrollmentSettings({ event, onSave }: EnrollmentSettings
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
 
-  const freeId = QUESTION_IDS.find((id) => !questions.some((q) => q.id === id));
+  const freeId = QUESTION_IDS.find((id) => !questions.some((q) => q.id === id) && !usedQuestionIds.includes(id));
+  // Hay lugar para otra pregunta, pero todos los ids libres ya tienen respuestas de invitados.
+  const blockedByAnswers = !freeId && questions.length < ENROLLMENT_LIMITS.questions;
 
   function addQuestion() {
     if (!freeId) return;
@@ -70,6 +78,17 @@ export default function EnrollmentSettings({ event, onSave }: EnrollmentSettings
     const blank = questions.findIndex((q) => !q.label.trim());
     if (blank >= 0) {
       setMessage({ kind: 'error', text: `Escribe el texto de la pregunta ${blank + 1}.` });
+      return;
+    }
+    const personalData = [
+      ...(commentOn ? [{ name: 'del comentario', label: commentLabel }] : []),
+      ...questions.map((q, i) => ({ name: `${i + 1}`, label: q.label })),
+    ].find((item) => asksForPersonalData(item.label));
+    if (personalData) {
+      setMessage({
+        kind: 'error',
+        text: `La pregunta ${personalData.name} pide un dato personal. No se pueden pedir RUT, correo, teléfono ni claves: esta plataforma no los guarda.`,
+      });
       return;
     }
 
@@ -228,6 +247,12 @@ export default function EnrollmentSettings({ event, onSave }: EnrollmentSettings
         <button type="button" className={`${smallButton} self-start`} onClick={addQuestion} disabled={!freeId}>
           Agregar pregunta
         </button>
+        {blockedByAnswers && (
+          <p className="font-sans text-xs text-paper-100/60">
+            Los invitados ya respondieron las preguntas que quitaste: para no mezclar esas respuestas con una pregunta
+            nueva, no se pueden volver a usar.
+          </p>
+        )}
       </fieldset>
 
       {message && (

@@ -4,6 +4,7 @@ import { checkInGuest } from '../lib/adminApi';
 import CameraStudio from '../components/studio/CameraStudio';
 import DoorPanel from '../components/DoorPanel';
 import EnrollmentSettings from '../components/EnrollmentSettings';
+import { QUESTION_IDS } from '../lib/enrollmentConfig';
 import EventSettingsPanel from '../components/EventSettingsPanel';
 import GuestListPanel from '../components/GuestListPanel';
 import PhotosTab from '../components/PhotosTab';
@@ -154,7 +155,13 @@ export default function OrganizerEventPage() {
         {tab === 'camara' && <CameraStudio event={event} onEventChange={setEvent} />}
         {tab === 'fotos' && <PhotosTab event={event} onEventChange={setEvent} />}
         {tab === 'enlace' && <ShareEventLink event={event} />}
-        {tab === 'inscripcion' && <EnrollmentSettings event={event} onSave={handleSave} />}
+        {tab === 'inscripcion' && (
+          <EnrollmentSettings
+            event={event}
+            onSave={handleSave}
+            usedQuestionIds={QUESTION_IDS.filter((id) => guests.some((g) => g.answers[id]))}
+          />
+        )}
         {tab === 'ajustes' && <EventSettingsPanel event={event} onSave={handleSave} />}
       </div>
 

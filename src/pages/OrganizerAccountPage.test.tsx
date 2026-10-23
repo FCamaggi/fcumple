@@ -88,6 +88,15 @@ describe('OrganizerAccountPage', () => {
     expect(screen.getByLabelText('Contraseña nueva')).toHaveValue('una-clave-larga');
   });
 
+  it('sin correo en la sesión no intenta cambiar nada', async () => {
+    vi.mocked(useSession).mockReturnValue({ session: null, loading: false });
+    setup();
+    await fill('actual', 'una-clave-larga');
+    await userEvent.click(submit());
+    expect(screen.getByRole('alert')).toHaveTextContent('Vuelve a entrar');
+    expect(changePassword).not.toHaveBeenCalled();
+  });
+
   it('los campos son de contraseña y se autocompletan como corresponde', () => {
     setup();
     expect(screen.getByLabelText('Contraseña actual')).toHaveAttribute('autocomplete', 'current-password');

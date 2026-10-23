@@ -111,6 +111,43 @@ describe('EnrollmentSettings', () => {
     expect(new Set(ids).size).toBe(2);
   });
 
+  it('una pregunta nueva no reutiliza el id de una con respuestas ya guardadas', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<EnrollmentSettings event={event} onSave={onSave} usedQuestionIds={['q1']} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Agregar pregunta' }));
+    await userEvent.type(screen.getByLabelText('Pregunta 1'), 'Bebida');
+    await userEvent.click(save());
+    expect(onSave.mock.calls[0][0].enrollment.questions).toEqual([{ id: 'q2', label: 'Bebida', required: false }]);
+  });
+
+  it('si todos los ids libres tienen respuestas, no deja agregar y lo explica', () => {
+    render(<EnrollmentSettings event={event} onSave={vi.fn()} usedQuestionIds={['q1', 'q2', 'q3']} />);
+    expect(screen.getByRole('button', { name: 'Agregar pregunta' })).toBeDisabled();
+    expect(screen.getByText(/ya respondieron las preguntas que quitaste/)).toBeInTheDocument();
+  });
+
+  it('no deja guardar una pregunta que pide RUT, correo, teléfono o claves', async () => {
+    const onSave = vi.fn();
+    render(<EnrollmentSettings event={event} onSave={onSave} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Agregar pregunta' }));
+    await userEvent.type(screen.getByLabelText('Pregunta 1'), '¿Cuál es tu RUT?');
+    await userEvent.click(save());
+    expect(screen.getByRole('alert')).toHaveTextContent(/pide un dato personal/);
+    expect(onSave).not.toHaveBeenCalled();
+  });
+
+  it('tampoco el comentario puede pedir un dato personal', async () => {
+    const onSave = vi.fn();
+    render(<EnrollmentSettings event={event} onSave={onSave} />);
+    await userEvent.click(screen.getByLabelText('Pedir un comentario'));
+    const label = screen.getByLabelText('Pregunta del comentario');
+    await userEvent.clear(label);
+    await userEvent.type(label, 'Tu teléfono');
+    await userEvent.click(save());
+    expect(screen.getByRole('alert')).toHaveTextContent(/pide un dato personal/);
+    expect(onSave).not.toHaveBeenCalled();
+  });
+
   it('carga la configuración actual', () => {
     const configured = {
       ...event,

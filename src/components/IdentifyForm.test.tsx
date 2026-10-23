@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 vi.mock('../lib/platformApi', async () => {
@@ -177,7 +177,7 @@ describe('IdentifyForm: ya me inscribí', () => {
     await userEvent.type(screen.getByLabelText('Nombre y apellido'), 'Ana Rojas');
     await userEvent.type(screen.getByLabelText('Tu PIN'), '4821');
     await userEvent.click(screen.getByRole('button', { name: 'Entrar' }));
-    expect(await screen.findByRole('status')).toHaveTextContent(/pendiente/);
+    expect(await screen.findByRole('status')).toHaveTextContent(/sigue pendiente/);
   });
 
   it('cambiar de pestaña limpia el mensaje y los PIN', async () => {
@@ -311,7 +311,7 @@ describe('IdentifyForm: inscripción configurable', () => {
     const comment = screen.getByLabelText(/Alguna alergia/);
     expect(comment).toHaveAttribute('maxlength', '280');
     await userEvent.type(comment, 'vegana');
-    expect(screen.getByText('6/280')).toBeInTheDocument();
+    expect(screen.getByText('6 de 280 caracteres')).toBeInTheDocument();
   });
 
   it('un comentario obligatorio vacío bloquea el envío', async () => {
@@ -337,6 +337,53 @@ describe('IdentifyForm: inscripción configurable', () => {
     expect(screen.getByLabelText('Nombre y apellido')).toHaveValue('Ana Rojas');
   });
 
+  it('hay un solo anuncio de error aunque falten varios campos', async () => {
+    render(<IdentifyForm slug="s" event={eventWith} onIdentified={vi.fn()} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Inscribirme y entrar' }));
+    expect(screen.getAllByRole('alert')).toHaveLength(1);
+    expect(screen.getByRole('alert')).toHaveTextContent(/nombre y tu apellido/);
+    expect(screen.getByRole('alert')).toHaveTextContent(/PIN debe tener/);
+  });
+
+  it('un error de un campo que ya no existe se muestra en el aviso general, no se pierde', async () => {
+    vi.mocked(registerGuest).mockRejectedValueOnce(new EnrollmentAnswersError('question_unknown:q2'));
+    render(<IdentifyForm slug="s" event={eventWith} onIdentified={vi.fn()} />);
+    await fillRegister('Ana Rojas', '4821');
+    await userEvent.type(screen.getByLabelText(/De qué te disfrazas/), 'Regina');
+    await userEvent.click(screen.getByRole('button', { name: 'Inscribirme y entrar' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/organizador haya cambiado el formulario/);
+  });
+
+  it('un acompañante de más que ya no cabe también llega al aviso general', async () => {
+    vi.mocked(registerGuest).mockRejectedValueOnce(new EnrollmentAnswersError('plus_ones_too_many'));
+    render(<IdentifyForm slug="s" event={eventWith} onIdentified={vi.fn()} />);
+    await fillRegister('Ana Rojas', '4821');
+    await userEvent.type(screen.getByLabelText(/De qué te disfrazas/), 'Regina');
+    await userEvent.click(screen.getByLabelText('1'));
+    await userEvent.type(screen.getByLabelText('Nombre del acompañante'), 'Luis Pérez');
+    await userEvent.click(screen.getByRole('button', { name: 'Inscribirme y entrar' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/Puedes traer hasta 2|cambiado el formulario/);
+  });
+
+  it('al corregir un campo con error, su error desaparece', async () => {
+    render(<IdentifyForm slug="s" event={eventWith} onIdentified={vi.fn()} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Inscribirme y entrar' }));
+    const name = screen.getByLabelText('Nombre y apellido');
+    expect(name).toHaveAttribute('aria-invalid', 'true');
+    await userEvent.type(name, 'Ana Rojas');
+    expect(name).toHaveAttribute('aria-invalid', 'false');
+  });
+
+  it('avisa que no se escriban datos personales en las respuestas libres', () => {
+    render(<IdentifyForm slug="s" event={eventWith} onIdentified={vi.fn()} />);
+    expect(screen.getByText(/No escribas aquí RUT, correo, teléfono ni claves/)).toBeInTheDocument();
+  });
+
+  it('sin comentario ni preguntas no muestra ese aviso', () => {
+    render(<IdentifyForm slug="s" event={baseEvent} onIdentified={vi.fn()} />);
+    expect(screen.queryByText(/No escribas aquí RUT/)).not.toBeInTheDocument();
+  });
+
   it('al iniciar sesión no pide acompañantes, comentario ni preguntas', async () => {
     render(<IdentifyForm slug="s" event={eventWith} onIdentified={vi.fn()} />);
     await userEvent.click(screen.getByRole('button', { name: 'Ya me inscribí' }));
@@ -351,6 +398,6 @@ describe('IdentifyForm: inscripción configurable', () => {
     await fillRegister('Ana Rojas', '4821');
     await userEvent.click(screen.getByRole('button', { name: 'Inscribirme y entrar' }));
     expect(screen.getByRole('button', { name: 'Un momento...' })).toBeDisabled();
-    finish(ok);
+    await act(async () => finish(ok));
   });
 });

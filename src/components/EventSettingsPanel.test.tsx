@@ -35,7 +35,6 @@ describe('EventSettingsPanel', () => {
 
     expect(onSave).toHaveBeenCalledWith({
       name: 'Fiesta',
-      startsAt: null,
       location: 'Casa',
       defaultPhotoQuota: 5,
       accessMode: 'list_requests',
@@ -53,6 +52,13 @@ describe('EventSettingsPanel', () => {
     fireEvent.change(screen.getByLabelText('Fecha y hora'), { target: { value: '2026-10-31T21:00' } });
     await userEvent.click(screen.getByRole('button', { name: 'Guardar ajustes' }));
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ startsAt: localInputToIso('2026-10-31T21:00') }));
+  });
+
+  it('si no toca la fecha, no la reenvía', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<EventSettingsPanel event={{ ...event, startsAt: '2026-10-30T23:30:00.000Z' }} onSave={onSave} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar ajustes' }));
+    expect(onSave.mock.calls[0][0]).not.toHaveProperty('startsAt');
   });
 
   it('se puede quitar la fecha', async () => {

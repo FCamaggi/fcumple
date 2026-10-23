@@ -22,6 +22,7 @@ beforeEach(() => {
   vi.mocked(supabase.auth.signOut).mockReset();
   vi.mocked(supabase.auth.signUp).mockReset();
   vi.mocked(supabase.auth.updateUser).mockReset();
+  vi.mocked(supabase.auth.signOut).mockReset();
 });
 
 describe('signIn', () => {
@@ -120,6 +121,30 @@ describe('changePassword', () => {
       password: 'Fran-2026-Temp',
     });
     expect(supabase.auth.updateUser).toHaveBeenCalledWith({ password: 'una-clave-larga' });
+    expect(supabase.auth.signOut).toHaveBeenCalledWith({ scope: 'others' });
+  });
+
+  it('si no se pueden cerrar las otras sesiones, el cambio igual se considera hecho', async () => {
+    vi.mocked(supabase.auth.signInWithPassword).mockResolvedValueOnce(ok);
+    vi.mocked(supabase.auth.updateUser).mockResolvedValueOnce({ data: { user: {} }, error: null } as never);
+    vi.mocked(supabase.auth.signOut).mockRejectedValueOnce(new Error('red'));
+    await expect(changePassword('fran@example.com', 'actual-123', 'nueva-1234')).resolves.toBeUndefined();
+  });
+
+  it('un fallo que no es de credenciales no se disfraza de "contraseña incorrecta"', async () => {
+    vi.mocked(supabase.auth.signInWithPassword).mockResolvedValueOnce({
+      data: { user: null, session: null },
+      error: { message: 'Failed to fetch', status: 0 },
+    } as never);
+    await expect(changePassword('fran@example.com', 'x', 'nueva-1234')).rejects.toThrow(/No pudimos comprobar/);
+  });
+
+  it('un límite de intentos al comprobar la actual se dice como tal', async () => {
+    vi.mocked(supabase.auth.signInWithPassword).mockResolvedValueOnce({
+      data: { user: null, session: null },
+      error: { message: 'email rate limit exceeded', status: 429 },
+    } as never);
+    await expect(changePassword('fran@example.com', 'x', 'nueva-1234')).rejects.toThrow(/Demasiados intentos/);
   });
 
   it('no cambia nada si la contraseña actual es incorrecta', async () => {
@@ -137,6 +162,7 @@ describe('changePassword', () => {
   it.each([
     ['New password should be different from the old password.', /distinta de la actual/],
     ['Password should be at least 8 characters.', /al menos 8 caracteres/],
+    ['Password is known to be weak and easy to guess, please choose a different one.', /fácil de adivinar/],
     ['email rate limit exceeded', /Demasiados intentos/],
     ['boom', /No pudimos cambiar/],
   ])('traduce el error de Supabase: %s', async (message, expected) => {

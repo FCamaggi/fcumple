@@ -52,7 +52,8 @@ export default function EventSettingsPanel({ event, onSave }: EventSettingsPanel
     try {
       await onSave({
         name: name.trim(),
-        startsAt: localInputToIso(startsAt),
+        // Solo si la tocó: reenviarla en cada guardado reescribiría la fecha (y le quitaría los segundos).
+        ...(startsAt !== isoToLocalInput(event.startsAt) ? { startsAt: localInputToIso(startsAt) } : {}),
         location: location.trim() || null,
         defaultPhotoQuota: quota,
         accessMode,

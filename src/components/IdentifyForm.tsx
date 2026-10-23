@@ -121,7 +121,7 @@ function Field({
         </p>
       )}
       {error && (
-        <p id={`${id}-error`} role="alert" className="font-mono text-[11px] uppercase tracking-wide text-flame-500">
+        <p id={`${id}-error`} className="font-mono text-[11px] uppercase tracking-wide text-flame-500">
           {error}
         </p>
       )}
@@ -166,15 +166,33 @@ export default function IdentifyForm({ slug, event, onIdentified }: IdentifyForm
   // Enfoca el primer campo con error una vez que el formulario ya lo pintó.
   useEffect(() => {
     if (!focusField) return;
-    const id = focusField === 'plus' ? `entry-plus-${plusNames.findIndex((n) => !n.trim())}` : `entry-${focusField}`;
-    const target = document.getElementById(id);
+    const target = document.getElementById(focusField);
     if (target instanceof HTMLElement) target.focus();
     setFocusField(null);
-  }, [focusField, errors, plusNames]);
+  }, [focusField]);
 
   function fail(next: Errors) {
     setErrors(next);
-    setFocusField(FIELD_ORDER.find((f) => f in next) ?? null);
+    const first = FIELD_ORDER.find((f) => f in next);
+    if (!first) return;
+    setFocusField(first === 'plus' ? `entry-plus-${plusNames.findIndex((n) => !n.trim())}` : `entry-${first}`);
+  }
+
+  /** ¿Existe en pantalla el campo al que apunta un error? (el organizador pudo cambiar el formulario). */
+  function isRendered(field: string): boolean {
+    if (field === 'comment') return Boolean(enrollment.comment);
+    if (field === 'plus') return Boolean(enrollment.plusOnes) && plusNames.some((n) => !n.trim());
+    if (/^q[1-3]$/.test(field)) return enrollment.questions.some((q) => q.id === field);
+    return true;
+  }
+
+  /** Al corregir un campo, su error deja de ser cierto: se quita. */
+  function clearError(field: string) {
+    setErrors((prev) => {
+      if (!(field in prev)) return prev;
+      const { [field]: _gone, ...rest } = prev;
+      return rest;
+    });
   }
 
   function switchMode(next: Mode) {
@@ -245,7 +263,7 @@ export default function IdentifyForm({ slug, event, onIdentified }: IdentifyForm
       setPin('');
       setPinRepeat('');
       if (result.outcome === 'pending_approval') {
-        setNotice(pendingMessage(event));
+        setNotice(isRegister ? pendingMessage(event) : 'Tu solicitud sigue pendiente. Quien organiza el evento debe aprobarla.');
       } else {
         setMessage(
           isRegister
@@ -256,7 +274,14 @@ export default function IdentifyForm({ slug, event, onIdentified }: IdentifyForm
     } catch (err) {
       // Error de red o límite de intentos: se conserva lo escrito para reintentar.
       if (err instanceof EnrollmentAnswersError) {
-        fail({ [fieldForCode(err.code)]: enrollmentErrorMessage(err.code, enrollment) });
+        const field = fieldForCode(err.code);
+        const text = enrollmentErrorMessage(err.code, enrollment);
+        if (isRendered(field)) {
+          fail({ [field]: text });
+        } else {
+          // El campo que falla ya no está en pantalla: lo más probable es que el organizador cambió el formulario.
+          setMessage(`${text} Es posible que el organizador haya cambiado el formulario: recarga la página e intenta de nuevo.`);
+        }
       } else {
         setMessage(err instanceof Error ? err.message : 'No pudimos completar la operación.');
       }
@@ -313,7 +338,10 @@ export default function IdentifyForm({ slug, event, onIdentified }: IdentifyForm
             autoCapitalize="words"
             placeholder="Ana Rojas"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => {
+              setName(e.target.value);
+              clearError('name');
+            }}
             className={inputClass}
           />
         )}
@@ -334,7 +362,10 @@ export default function IdentifyForm({ slug, event, onIdentified }: IdentifyForm
             maxLength={6}
             autoComplete={isRegister ? 'new-password' : 'current-password'}
             value={pin}
-            onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
+            onChange={(e) => {
+              setPin(e.target.value.replace(/\D/g, ''));
+              clearError('pin');
+            }}
             className={inputClass}
           />
         )}
@@ -351,7 +382,10 @@ export default function IdentifyForm({ slug, event, onIdentified }: IdentifyForm
               maxLength={6}
               autoComplete="new-password"
               value={pinRepeat}
-              onChange={(e) => setPinRepeat(e.target.value.replace(/\D/g, ''))}
+              onChange={(e) => {
+                setPinRepeat(e.target.value.replace(/\D/g, ''));
+                clearError('pin-repeat');
+              }}
               className={inputClass}
             />
           )}
@@ -361,7 +395,7 @@ export default function IdentifyForm({ slug, event, onIdentified }: IdentifyForm
       {isRegister && enrollment.plusOnes && (
         <fieldset className="flex flex-col gap-3">
           <legend className={`${labelClass} mb-2`}>¿Cuántos acompañantes traes?</legend>
-          <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Cantidad de acompañantes">
+          <div className="flex flex-wrap gap-2">
             {Array.from({ length: enrollment.plusOnes.max + 1 }, (_, n) => (
               <label key={n} className="relative">
                 <input
@@ -397,9 +431,10 @@ export default function IdentifyForm({ slug, event, onIdentified }: IdentifyForm
                         autoCapitalize="words"
                         maxLength={ENROLLMENT_LIMITS.plusOneName}
                         value={value}
-                        onChange={(e) =>
-                          setPlusNames((prev) => prev.map((n, idx) => (idx === i ? e.target.value : n)))
-                        }
+                        onChange={(e) => {
+                          setPlusNames((prev) => prev.map((n, idx) => (idx === i ? e.target.value : n)));
+                          clearError('plus');
+                        }}
                         className={inputClass}
                       />
                     )}
@@ -417,7 +452,7 @@ export default function IdentifyForm({ slug, event, onIdentified }: IdentifyForm
           label={enrollment.comment.label}
           optional={!enrollment.comment.required}
           error={errors.comment}
-          hint={`${[...comment].length}/${ENROLLMENT_LIMITS.comment}`}
+          hint={`${[...comment].length} de ${ENROLLMENT_LIMITS.comment} caracteres`}
         >
           {(a11y) => (
             <textarea
@@ -426,7 +461,10 @@ export default function IdentifyForm({ slug, event, onIdentified }: IdentifyForm
               rows={3}
               maxLength={ENROLLMENT_LIMITS.comment}
               value={comment}
-              onChange={(e) => setComment(e.target.value)}
+              onChange={(e) => {
+                setComment(e.target.value);
+                clearError('comment');
+              }}
               className={`${inputClass} resize-none`}
             />
           )}
@@ -442,12 +480,27 @@ export default function IdentifyForm({ slug, event, onIdentified }: IdentifyForm
                 aria-required={q.required ? 'true' : undefined}
                 maxLength={ENROLLMENT_LIMITS.answer}
                 value={answers[q.id] ?? ''}
-                onChange={(e) => setAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))}
+                onChange={(e) => {
+                  setAnswers((prev) => ({ ...prev, [q.id]: e.target.value }));
+                  clearError(q.id);
+                }}
                 className={inputClass}
               />
             )}
           </Field>
         ))}
+
+      {/* Un solo anuncio para lectores de pantalla; cada error visible va junto a su campo. */}
+      {Object.keys(errors).length > 0 && (
+        <p role="alert" className="sr-only">
+          {Object.values(errors).join(' ')}
+        </p>
+      )}
+      {isRegister && (enrollment.comment || enrollment.questions.length > 0) && (
+        <p className="font-mono text-[10px] tracking-wide text-paper-100/50">
+          No escribas aquí RUT, correo, teléfono ni claves.
+        </p>
+      )}
 
       {message && (
         <p role="alert" className="font-mono text-[11px] uppercase tracking-wide text-flame-500">

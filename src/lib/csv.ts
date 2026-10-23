@@ -1,5 +1,5 @@
 import type { Guest } from '../types';
-import type { ResolvedEnrollment } from './enrollmentConfig';
+import { QUESTION_IDS, type ResolvedEnrollment } from './enrollmentConfig';
 import type { ApprovalStatus, OrganizerGuest } from './organizerApi';
 
 const EXPORT_HEADER = ['token', 'full_name', 'status', 'plus_ones_allowed', 'plus_ones_confirmed', 'guest_note', 'phone'];
@@ -25,7 +25,9 @@ export function guestsToCsv(guests: Guest[]): string {
   const lines = [toCsvLine(EXPORT_HEADER)];
   for (const g of guests) {
     lines.push(
-      toCsvLine([g.token ?? '', g.fullName, g.status, g.plusOnesAllowed, g.plusOnesConfirmed, g.guestNote ?? '', g.phone ?? ''])
+      // `token` y `phone` son datos de reimportación (el "+56…" de un teléfono no puede llevar comilla); el
+      // nombre y la nota los escribe una persona y sí se neutralizan contra fórmulas.
+      toCsvLine([g.token ?? '', safeCell(g.fullName), g.status, g.plusOnesAllowed, g.plusOnesConfirmed, safeCell(g.guestNote ?? ''), g.phone ?? ''])
     );
   }
   return lines.join('\r\n');
@@ -49,6 +51,11 @@ const APPROVAL_LABELS: Record<ApprovalStatus, string> = {
  */
 export function enrollmentToCsv(guests: OrganizerGuest[], enrollment: ResolvedEnrollment): string {
   const questions = enrollment.questions;
+  const configuredIds = new Set<string>(questions.map((q) => q.id));
+  /** Respuestas a una pregunta que el organizador quitó después: no se pierden al exportar. */
+  const orphans = (g: OrganizerGuest) =>
+    QUESTION_IDS.filter((id) => !configuredIds.has(id) && g.answers[id]).map((id) => g.answers[id]);
+  const hasOrphans = guests.some((g) => orphans(g).length > 0);
   const header = [
     'Nombre',
     'Estado',
@@ -58,6 +65,7 @@ export function enrollmentToCsv(guests: OrganizerGuest[], enrollment: ResolvedEn
     'Nombres de acompañantes',
     ...(enrollment.comment ? [enrollment.comment.label] : []),
     ...questions.map((q) => q.label),
+    ...(hasOrphans ? ['Respuestas a preguntas que ya no están'] : []),
   ];
   const lines = [toCsvLine(header.map(safeCell))];
   for (const g of guests) {
@@ -71,6 +79,7 @@ export function enrollmentToCsv(guests: OrganizerGuest[], enrollment: ResolvedEn
         safeCell((g.answers.plus_ones ?? []).join('; ')),
         ...(enrollment.comment ? [safeCell(g.answers.comment ?? '')] : []),
         ...questions.map((q) => safeCell(g.answers[q.id] ?? '')),
+        ...(hasOrphans ? [safeCell(orphans(g).join('; '))] : []),
       ]),
     );
   }

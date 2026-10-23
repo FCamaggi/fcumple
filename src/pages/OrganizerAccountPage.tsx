@@ -26,6 +26,10 @@ export default function OrganizerAccountPage() {
     e.preventDefault();
     setMessage(null);
 
+    if (!email) {
+      setMessage({ kind: 'error', text: 'No pudimos identificar tu sesión. Vuelve a entrar.' });
+      return;
+    }
     if (!current) {
       setMessage({ kind: 'error', text: 'Escribe tu contraseña actual.' });
       return;
