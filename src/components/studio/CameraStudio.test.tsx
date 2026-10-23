@@ -27,7 +27,10 @@ const event: OrganizerEvent = {
   id: 'ev-1', slug: 'fiesta-abcd', name: 'Cumple de Ana', startsAt: null, location: null,
   accessMode: 'open', cameraUnlock: 'on_identify', rsvpEnabled: false,
   framesEnabled: true, stickersEnabled: true, defaultFrameId: null,
-  photosRevealedAt: null, defaultPhotoQuota: 5,
+  photosRevealedAt: null, subtitle: null,
+  theme: {},
+  activationCode: 'a1b2c3d4e5f60718293a4b5c6d7e8f90',
+  defaultPhotoQuota: 5,
   enrollment: { welcome: '', plusOnes: null, comment: null, questions: [] },
   createdAt: '2026-10-15T00:00:00Z',
 };

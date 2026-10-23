@@ -8,6 +8,7 @@ import { supabase } from './supabaseClient';
 import {
   clearGuestSession,
   getEventPublic,
+  activateCamera,
   getMyGuest,
   loginGuest,
   registerGuest,
@@ -46,6 +47,22 @@ describe('getEventPublic', () => {
     expect(rpc).toHaveBeenCalledWith('get_event_public', { p_slug: 'fiesta-abcd' });
     expect(event).toMatchObject({ id: 'ev-1', accessMode: 'list', cameraUnlock: 'on_identify' });
     expect(event?.enrollment).toEqual({ welcome: '', plusOnes: null, comment: null, questions: [] });
+  });
+
+  it('entrega el subtítulo, el estilo y el modo de cámara del evento', async () => {
+    rpc.mockResolvedValueOnce({
+      data: [{ ...eventRow, camera_unlock: 'on_event_qr', subtitle: 'Cumpleaños Fran', theme: { preset: 'rosa-chicle' } }],
+      error: null,
+    });
+    const event = await getEventPublic('fiesta-abcd');
+    expect(event).toMatchObject({ cameraUnlock: 'on_event_qr', subtitle: 'Cumpleaños Fran', theme: { preset: 'rosa-chicle' } });
+  });
+
+  it('sin subtítulo ni estilo (base sin migrar) no rompe: subtítulo nulo y estilo vacío', async () => {
+    rpc.mockResolvedValueOnce({ data: [eventRow], error: null });
+    const event = await getEventPublic('fiesta-abcd');
+    expect(event?.subtitle).toBeNull();
+    expect(event?.theme).toEqual({});
   });
 
   it('resuelve la configuración de la inscripción', async () => {
@@ -186,7 +203,16 @@ describe('getMyGuest', () => {
       fullName: 'Ana Rojas',
       checkedInAt: null,
       photoQuota: 5,
+      cameraActivatedAt: null,
     });
+  });
+
+  it('entrega cuándo activó la cámara con el QR de la fiesta', async () => {
+    rpc.mockResolvedValueOnce({
+      data: [{ id: 'g1', event_id: 'ev-1', full_name: 'Ana Rojas', checked_in_at: null, photo_quota: 5, camera_activated_at: '2026-10-30T23:40:00Z' }],
+      error: null,
+    });
+    expect((await getMyGuest('tok'))?.cameraActivatedAt).toBe('2026-10-30T23:40:00Z');
   });
 
   it('devuelve null con un token que no corresponde a nadie', async () => {
@@ -224,5 +250,25 @@ describe('sesión del invitado', () => {
     expect(() => saveGuestSession('x', { token: 't', guestName: 'n' })).not.toThrow();
     expect(loadGuestSession('x')).toBeNull();
     vi.restoreAllMocks();
+  });
+});
+
+describe('activateCamera', () => {
+  it('llama a activate_camera con el token y el código del QR', async () => {
+    rpc.mockResolvedValueOnce({ data: true, error: null });
+    await expect(activateCamera('tok', 'a1b2c3d4e5f6')).resolves.toBe(true);
+    expect(rpc).toHaveBeenCalledWith('activate_camera', { p_token: 'tok', p_code: 'a1b2c3d4e5f6' });
+  });
+
+  it('un código que no corresponde devuelve false (no es un error)', async () => {
+    rpc.mockResolvedValueOnce({ data: false, error: null });
+    await expect(activateCamera('tok', 'viejo')).resolves.toBe(false);
+  });
+
+  it('traduce el límite de intentos y cualquier otro fallo', async () => {
+    rpc.mockResolvedValueOnce({ data: null, error: { code: '53400', message: 'too many attempts' } });
+    await expect(activateCamera('tok', 'x')).rejects.toThrow(/Demasiados intentos/);
+    rpc.mockResolvedValueOnce({ data: null, error: { code: 'XX000', message: 'boom' } });
+    await expect(activateCamera('tok', 'x')).rejects.toThrow(/No pudimos activar la cámara/);
   });
 });

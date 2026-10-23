@@ -12,7 +12,13 @@ import { sortPhotosForTriage, getModerationDecisionFromSwipe, type ModerationDec
 export interface ModerationSource {
   list: () => Promise<ModerationPhoto[]>;
   moderate: (id: string, status: ModerationDecision) => Promise<unknown>;
-  reveal: () => Promise<unknown>;
+  /** Fase 0: un único «revelar el rollo». */
+  reveal?: () => Promise<unknown>;
+  /**
+   * Fase 1: publicar por lotes. Se puede repetir durante la fiesta y devuelve cuántas fotos aprobadas se
+   * publicaron. Si existe, reemplaza al botón de revelar.
+   */
+  publish?: () => Promise<number>;
 }
 
 const PHASE_0_SOURCE: ModerationSource = {
@@ -68,6 +74,7 @@ export default function PhotoModerationPanel({ onClose, source, initiallyReveale
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [revealed, setRevealed] = useState(initiallyRevealed);
+  const [notice, setNotice] = useState<string | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   // Guarda contra un doble-tap/doble-click rápido en el mismo disparo de
   // moderatePhoto: sin esto, dos llamadas para el mismo id llegan antes de
@@ -134,6 +141,22 @@ export default function PhotoModerationPanel({ onClose, source, initiallyReveale
     if (decision) handleModerate(decision);
   }
 
+  async function handlePublish() {
+    let message = '¿Publicar las fotos aprobadas? Tus invitados las verán en la cartelera.';
+    if (queue.length > 0) {
+      message += `\n\nQuedan ${queue.length} fotos sin revisar: no se publican hasta que las apruebes.`;
+    }
+    if (!window.confirm(message)) return;
+    setError(null);
+    setNotice(null);
+    try {
+      const count = await sourceRef.current.publish?.();
+      setNotice(count ? `Publicaste ${count} foto(s).` : 'No había fotos aprobadas nuevas para publicar.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No pudimos publicar las fotos.');
+    }
+  }
+
   async function handleReveal() {
     let message = '¿Revelar el rollo? Esta acción no se puede deshacer para este evento.';
     if (queue.length > 0) {
@@ -142,7 +165,7 @@ export default function PhotoModerationPanel({ onClose, source, initiallyReveale
     if (!window.confirm(message)) return;
     setError(null);
     try {
-      await sourceRef.current.reveal();
+      await sourceRef.current.reveal?.();
       setRevealed(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No pudimos revelar el rollo.');
@@ -159,14 +182,24 @@ export default function PhotoModerationPanel({ onClose, source, initiallyReveale
           {current && <span className="font-sans text-sm font-bold text-paper-100">{current.guestFullName}</span>}
         </div>
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleReveal}
-            disabled={revealed}
-            className="tap-target border border-smoke-700/50 px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-flame-500 transition-colors hover:bg-flame-500/10 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {revealed ? 'Rollo revelado' : 'Revelar el rollo'}
-          </button>
+          {source?.publish ? (
+            <button
+              type="button"
+              onClick={() => void handlePublish()}
+              className="tap-target border border-acid-400 px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-acid-400 transition-colors hover:bg-acid-400/10"
+            >
+              Publicar lote
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleReveal}
+              disabled={revealed}
+              className="tap-target border border-smoke-700/50 px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-flame-500 transition-colors hover:bg-flame-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {revealed ? 'Rollo revelado' : 'Revelar el rollo'}
+            </button>
+          )}
           <button
             type="button"
             onClick={onClose}
@@ -180,6 +213,11 @@ export default function PhotoModerationPanel({ onClose, source, initiallyReveale
       {error && (
         <p role="alert" className="bg-flame-500/10 px-4 py-2 font-mono text-[11px] uppercase tracking-wider text-flame-500">
           {error}
+        </p>
+      )}
+      {notice && (
+        <p role="status" className="bg-acid-400/10 px-4 py-2 font-mono text-[11px] uppercase tracking-wider text-acid-400">
+          {notice}
         </p>
       )}
 

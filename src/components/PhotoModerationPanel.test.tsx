@@ -263,3 +263,54 @@ describe('PhotoModerationPanel', () => {
     });
   });
 });
+
+describe('PhotoModerationPanel: publicar por lotes (Fase 1)', () => {
+  const source = (publish: () => Promise<number>) => ({
+    list: vi.fn().mockResolvedValue([older]),
+    moderate: vi.fn().mockResolvedValue(undefined),
+    publish,
+  });
+
+  beforeEach(() => {
+    vi.mocked(getSignedPhotoUrl).mockResolvedValue('https://signed.example/a.jpg');
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+  });
+
+  it('con publish ofrece «Publicar lote» en lugar de «Revelar el rollo»', async () => {
+    render(<PhotoModerationPanel onClose={vi.fn()} source={source(vi.fn().mockResolvedValue(0))} />);
+    expect(await screen.findByRole('button', { name: 'Publicar lote' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Revelar el rollo/ })).not.toBeInTheDocument();
+  });
+
+  it('publica y cuenta cuántas fotos fueron; se puede repetir', async () => {
+    const publish = vi.fn().mockResolvedValueOnce(4).mockResolvedValueOnce(0);
+    render(<PhotoModerationPanel onClose={vi.fn()} source={source(publish)} />);
+    const button = await screen.findByRole('button', { name: 'Publicar lote' });
+
+    await userEvent.click(button);
+    expect(await screen.findByRole('status')).toHaveTextContent('Publicaste 4 foto(s).');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Publicar lote' }));
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('No había fotos aprobadas nuevas'));
+    expect(publish).toHaveBeenCalledTimes(2);
+  });
+
+  it('avisa cuántas fotos quedan sin revisar y no publica si se cancela', async () => {
+    vi.mocked(window.confirm).mockReturnValueOnce(false);
+    const publish = vi.fn().mockResolvedValue(1);
+    render(<PhotoModerationPanel onClose={vi.fn()} source={source(publish)} />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Publicar lote' }));
+    expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining('Quedan 1 fotos sin revisar'));
+    expect(publish).not.toHaveBeenCalled();
+  });
+
+  it('si falla, lo muestra y deja volver a intentar', async () => {
+    const publish = vi.fn().mockRejectedValueOnce(new Error('No pudimos publicar las fotos.')).mockResolvedValueOnce(2);
+    render(<PhotoModerationPanel onClose={vi.fn()} source={source(publish)} />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Publicar lote' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos publicar');
+    await userEvent.click(screen.getByRole('button', { name: 'Publicar lote' }));
+    expect(await screen.findByRole('status')).toHaveTextContent('Publicaste 2');
+  });
+});
+

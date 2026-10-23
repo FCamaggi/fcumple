@@ -3,15 +3,30 @@
 @tailwind utilities;
 
 @layer base {
+  /*
+   * Piel por defecto: el neón de siempre. Cada evento la reemplaza desde ThemeScope (src/lib/theme.ts),
+   * que escribe estas mismas variables en <html>. Un test comprueba que estos valores son los del preset neón.
+   */
+  :root {
+    --c-ink-950: 13 11 18;
+    --c-ink-900: 22 18 29;
+    --c-smoke-700: 58 50 68;
+    --c-paper-100: 243 236 247;
+    --c-acid-400: 200 255 61;
+    --c-laser-500: 0 230 216;
+    --c-hotpink-500: 255 47 146;
+    --c-flame-500: 255 90 31;
+  }
+
   html,
   body {
-    background-color: theme('colors.ink.950');
+    background-color: rgb(var(--c-ink-950));
     overscroll-behavior: none;
   }
 
   ::selection {
-    background-color: theme('colors.hotpink.500');
-    color: theme('colors.ink.950');
+    background-color: rgb(var(--c-hotpink-500));
+    color: rgb(var(--c-ink-950));
   }
 }
 
@@ -20,8 +35,8 @@
   .perforation {
     background-image: repeating-linear-gradient(
       to right,
-      theme('colors.smoke.700') 0,
-      theme('colors.smoke.700') 6px,
+      rgb(var(--c-smoke-700)) 0,
+      rgb(var(--c-smoke-700)) 6px,
       transparent 6px,
       transparent 14px
     );
@@ -39,7 +54,7 @@
     width: 16px;
     height: 16px;
     border-radius: 9999px;
-    background-color: theme('colors.ink.950');
+    background-color: rgb(var(--c-ink-950));
     transform: translateY(-50%);
   }
   .notch-left::before {

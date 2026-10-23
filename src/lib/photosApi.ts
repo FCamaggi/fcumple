@@ -107,6 +107,8 @@ export async function uploadPhoto(token: string, blob: Blob, displayBlob?: Blob 
 
 export interface ModerationPhoto extends Photo {
   guestFullName: string;
+  /** Cuándo la organizadora la publicó en la cartelera (null = aprobada pero aún sin publicar). */
+  publishedAt?: string | null;
 }
 
 interface ModerationPhotoRow extends PhotoRow {

@@ -34,7 +34,8 @@ import {
   listEventGuests,
   listEventPhotos,
   moderateEventPhoto,
-  revealEventPhotos,
+  publishPhotoBatch,
+  rotateActivationCode,
   listMyEvents,
   regenerateGuestToken,
   removeGuest,
@@ -61,6 +62,9 @@ const eventRow = {
   photos_revealed_at: null,
   default_photo_quota: 5,
   enrollment_config: {},
+  subtitle: null,
+  theme: {},
+  activation_code: 'a1b2c3d4e5f60718293a4b5c6d7e8f90',
   created_at: '2026-10-15T00:00:00Z',
 };
 
@@ -333,16 +337,37 @@ describe('fotos del evento', () => {
     expect(q.calls.find(([name]) => name === 'eq')?.[1]).toEqual(['id', 'p1']);
   });
 
-  it('revealEventPhotos solo revela si todavía no estaba revelado', async () => {
-    const q = chain({ data: { ...eventRow, photos_revealed_at: '2026-10-16T00:00:00Z' }, error: null });
-    from.mockReturnValueOnce(q.proxy);
-    const ev = await revealEventPhotos('ev-1');
-    expect(q.calls.find(([name]) => name === 'is')?.[1]).toEqual(['photos_revealed_at', null]);
-    expect(ev.photosRevealedAt).toBe('2026-10-16T00:00:00Z');
+  it('publishPhotoBatch publica el lote con la RPC y devuelve cuántas fotos fueron', async () => {
+    rpc.mockResolvedValueOnce({ data: 7, error: null });
+    await expect(publishPhotoBatch('ev-1')).resolves.toBe(7);
+    expect(rpc).toHaveBeenCalledWith('publish_photo_batch', { p_event_id: 'ev-1' });
   });
 
-  it('revealEventPhotos explica el error si ya estaba revelado', async () => {
-    from.mockReturnValueOnce(chain({ data: null, error: { code: 'PGRST116' } }).proxy);
-    await expect(revealEventPhotos('ev-1')).rejects.toThrow(/ya esté revelado/);
+  it('publishPhotoBatch explica los errores', async () => {
+    rpc.mockResolvedValueOnce({ data: null, error: { code: '42501', message: 'x' } });
+    await expect(publishPhotoBatch('ev-1')).rejects.toThrow(/Solo la dueña/);
+    rpc.mockResolvedValueOnce({ data: null, error: { code: 'XX000', message: 'x' } });
+    await expect(publishPhotoBatch('ev-1')).rejects.toThrow(/No pudimos publicar/);
+  });
+
+  it('rotateActivationCode devuelve el código nuevo', async () => {
+    rpc.mockResolvedValueOnce({ data: 'f'.repeat(32), error: null });
+    await expect(rotateActivationCode('ev-1')).resolves.toBe('f'.repeat(32));
+    expect(rpc).toHaveBeenCalledWith('rotate_activation_code', { p_event_id: 'ev-1' });
+  });
+
+  it('rotateActivationCode explica si falla', async () => {
+    rpc.mockResolvedValueOnce({ data: null, error: { code: '42501', message: 'x' } });
+    await expect(rotateActivationCode('ev-1')).rejects.toThrow(/No pudimos cambiar el código/);
+  });
+
+  it('listEventPhotos entrega cuándo se publicó cada foto', async () => {
+    const q = chain({
+      data: [{ id: 'p1', guest_id: 'g1', storage_path: 'a', display_storage_path: null, status: 'approved', created_at: 't', published_at: '2026-10-30T23:00:00Z', guests: { full_name: 'Ana Rojas' } }],
+      error: null,
+    });
+    from.mockReturnValueOnce(q.proxy);
+    const [p] = await listEventPhotos('ev-1');
+    expect(p.publishedAt).toBe('2026-10-30T23:00:00Z');
   });
 });

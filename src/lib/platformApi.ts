@@ -19,12 +19,19 @@ export interface EventPublic {
   location: string | null;
   rsvpDeadline: string | null;
   accessMode: AccessMode;
-  cameraUnlock: 'on_identify' | 'on_checkin';
+  cameraUnlock: CameraUnlock;
   rsvpEnabled: boolean;
   photosRevealed: boolean;
   /** Qué le pide el organizador al inscribirse (+1, comentario, preguntas, bienvenida). */
   enrollment: ResolvedEnrollment;
+  /** Línea debajo del título (p. ej. «Cumpleaños Fran» bajo «PUTI HALLOWEEN»). */
+  subtitle: string | null;
+  /** Estilo del evento tal como lo guarda la base (`{preset}`); `resolveTheme` lo convierte en colores. */
+  theme: unknown;
 }
+
+/** Cuándo se habilita la cámara de un invitado: al inscribirse, al marcar su llegada, o al escanear el QR de la fiesta. */
+export type CameraUnlock = 'on_identify' | 'on_checkin' | 'on_event_qr';
 
 export type RegisterOutcome = 'ok' | 'pending_approval' | 'name_taken' | 'not_found' | 'ambiguous';
 export type LoginOutcome = 'ok' | 'pending_approval' | 'invalid' | 'ambiguous' | 'locked' | 'needs_registration';
@@ -47,6 +54,8 @@ export interface MyGuest {
   fullName: string;
   checkedInAt: string | null;
   photoQuota: number;
+  /** Cuándo escaneó el QR de la fiesta (solo importa con `camera_unlock = on_event_qr`). */
+  cameraActivatedAt: string | null;
 }
 
 interface EventRow {
@@ -56,10 +65,12 @@ interface EventRow {
   location: string | null;
   rsvp_deadline: string | null;
   access_mode: AccessMode;
-  camera_unlock: 'on_identify' | 'on_checkin';
+  camera_unlock: CameraUnlock;
   rsvp_enabled: boolean;
   photos_revealed: boolean;
   enrollment_config: unknown;
+  subtitle: string | null;
+  theme: unknown;
 }
 
 interface AuthRow<O extends string> {
@@ -87,6 +98,8 @@ export async function getEventPublic(slug: string): Promise<EventPublic | null> 
     rsvpEnabled: row.rsvp_enabled,
     photosRevealed: row.photos_revealed,
     enrollment: resolveEnrollmentConfig(row.enrollment_config),
+    subtitle: row.subtitle ?? null,
+    theme: row.theme ?? {},
   };
 }
 
@@ -174,6 +187,7 @@ export async function getMyGuest(token: string): Promise<MyGuest | null> {
     full_name: string;
     checked_in_at: string | null;
     photo_quota: number;
+    camera_activated_at?: string | null;
   }> | null)?.[0];
   if (!row) return null;
   return {
@@ -182,7 +196,24 @@ export async function getMyGuest(token: string): Promise<MyGuest | null> {
     fullName: row.full_name,
     checkedInAt: row.checked_in_at,
     photoQuota: row.photo_quota,
+    cameraActivatedAt: row.camera_activated_at ?? null,
   };
+}
+
+/**
+ * Activa la cámara con el código del QR de la fiesta. `true` si el código era el correcto (o ya estaba
+ * activada); `false` si no corresponde (por ejemplo un QR antiguo que el organizador cambió).
+ */
+export async function activateCamera(token: string, code: string): Promise<boolean> {
+  const { data, error } = await supabase.rpc('activate_camera', { p_token: token, p_code: code });
+  if (error) {
+    throw new Error(
+      error.code === '53400'
+        ? 'Demasiados intentos seguidos. Espera unos minutos y vuelve a probar.'
+        : 'No pudimos activar la cámara. Intenta de nuevo en un momento.',
+    );
+  }
+  return data === true;
 }
 
 // --- Sesión del invitado en este dispositivo -----------------------------

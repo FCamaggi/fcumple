@@ -3,6 +3,7 @@ import QRCode from 'qrcode';
 import AnnouncementFeed from './AnnouncementFeed';
 import CameraCapture from './CameraCapture';
 import CameraSection from './CameraSection';
+import PhotoCarousel from './PhotoCarousel';
 import RevealedRoll, { type RawRevealedPhoto } from './RevealedRoll';
 import { getPhotoQuota } from '../lib/photosApi';
 import { useCameraAssets } from '../hooks/useCameraAssets';
@@ -38,7 +39,12 @@ export default function GuestHub({ slug, token, event, guest, onGuestChange }: G
   const [showQr, setShowQr] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  const cameraUnlocked = event.cameraUnlock === 'on_identify' || guest.checkedInAt !== null;
+  // Cada modo tiene su propio desbloqueo: al inscribirse, al marcar la llegada el organizador, o al escanear el
+  // QR impreso de la fiesta (`/e/:slug/a/:code`). Es solo la cara visible: submit_photo lo exige en la base.
+  const cameraUnlocked =
+    event.cameraUnlock === 'on_identify' ||
+    (event.cameraUnlock === 'on_checkin' && guest.checkedInAt !== null) ||
+    (event.cameraUnlock === 'on_event_qr' && guest.cameraActivatedAt !== null);
   // Marcos y stickers del evento: se cargan antes de ofrecer la cámara para que abra con todo listo.
   const cameraAssets = useCameraAssets(token, cameraUnlocked);
   const cameraReady = cameraAssets.status === 'ready' || cameraAssets.status === 'error';
@@ -70,19 +76,24 @@ export default function GuestHub({ slug, token, event, guest, onGuestChange }: G
     };
   }, [token, cameraUnlocked]);
 
+  // Las fotos publicadas por la organizadora: se piden siempre (ella puede publicar un lote con esta página abierta)
+  // y se vuelven a pedir cada minuto mientras la página está a la vista. Solo es la lista; las imágenes se piden
+  // de a una, cuando entran en pantalla.
   useEffect(() => {
-    if (!event.photosRevealed) {
-      setRevealed([]);
-      return;
-    }
     let active = true;
-    listRevealedPhotosForGuest(token)
-      .then((photos) => active && setRevealed(photos))
-      .catch(() => active && setRevealed([]));
+    const load = (initial: boolean) =>
+      listRevealedPhotosForGuest(token)
+        .then((photos) => active && setRevealed(photos))
+        .catch(() => active && initial && setRevealed([]));
+    void load(true);
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === 'visible') void load(false);
+    }, 60_000);
     return () => {
       active = false;
+      window.clearInterval(timer);
     };
-  }, [token, event.photosRevealed]);
+  }, [token]);
 
   const upload = useMemo(
     () => (blob: Blob, displayBlob?: Blob | null) =>
@@ -112,7 +123,27 @@ export default function GuestHub({ slug, token, event, guest, onGuestChange }: G
 
       {cameraUnlocked && quota && cameraReady && <CameraSection quota={quota} onOpen={() => setShowCamera(true)} />}
 
-      {!cameraUnlocked && (
+      {!cameraUnlocked && event.cameraUnlock === 'on_event_qr' && (
+        <section className="flex flex-col gap-3 bg-ink-900 p-4 shadow-2xl" aria-label="Cámara bloqueada">
+          <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-hotpink-500">
+            Cámara // aún bloqueada
+          </span>
+          <p className="font-sans text-sm text-paper-100/80">
+            Escanea el código QR de la fiesta con la cámara de tu celular para activar la cámara. Lo encuentras impreso en
+            el lugar del evento.
+          </p>
+          <button
+            type="button"
+            onClick={() => void refreshGuest()}
+            disabled={refreshing}
+            className="h-11 border border-acid-400 font-display text-sm uppercase tracking-wider text-acid-400 disabled:opacity-60"
+          >
+            {refreshing ? 'Revisando...' : 'Ya escaneé el código'}
+          </button>
+        </section>
+      )}
+
+      {!cameraUnlocked && event.cameraUnlock !== 'on_event_qr' && (
         <section className="flex flex-col gap-3 bg-ink-900 p-4 shadow-2xl" aria-label="Cámara bloqueada">
           <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-hotpink-500">
             Cámara // aún bloqueada
@@ -141,6 +172,8 @@ export default function GuestHub({ slug, token, event, guest, onGuestChange }: G
       )}
 
       <AnnouncementFeed posts={posts} />
+
+      <PhotoCarousel photos={revealed} />
 
       <RevealedRoll photos={revealed} />
 
