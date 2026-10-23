@@ -5,8 +5,8 @@ La documentación se organiza por **fase del producto**. Cada fase tiene su carp
 | Carpeta | Qué contiene | Estado |
 |---|---|---|
 | [`estrategia/`](./estrategia/) | El informe original de la plataforma "Burn Camera" y la evaluación de factibilidad con las decisiones de alcance que se tomaron sobre él. | Referencia |
-| [`fase-0-evento-unico/`](./fase-0-evento-unico/) | La app tal como existe hoy: un solo evento (cumpleaños), un solo admin, en producción. Antes eran las carpetas `01-vision` … `08-QA`. | **Construida** |
-| [`fase-1-mvp-multitenant/`](./fase-1-mvp-multitenant/) | MVP de plataforma: varios eventos aislados, solo web (QR → navegador), marcos y stickers configurados por el organizador. | **Planificada** |
+| [`fase-0-evento-unico/`](./fase-0-evento-unico/) | La app de un solo evento (cumpleaños) y un solo admin que se construyó primero. Antes eran las carpetas `01-vision` … `08-QA`. | **Histórico** (ya no es el esquema vigente) |
+| [`fase-1-mvp-multitenant/`](./fase-1-mvp-multitenant/) | MVP de plataforma: varios eventos aislados, solo web (QR → navegador), marcos y stickers configurados por el organizador. | **En producción** (el esquema vigente) |
 | [`fase-2-en-adelante/`](./fase-2-en-adelante/) | Backlog ordenado de lo que quedó fuera del MVP: pagos, planes, R2, muro en vivo, photobooks, app nativa, etc. | Backlog |
 
 ## Por dónde empezar

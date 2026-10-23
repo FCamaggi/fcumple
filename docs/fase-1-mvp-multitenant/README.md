@@ -12,6 +12,7 @@ Contexto de decisiones: [`../estrategia/decisiones-de-alcance.md`](../estrategia
 4. **Acceso de invitados solo web con un único enlace/QR por evento**: cada persona se inscribe con nombre y apellido y un PIN que elige (o inicia sesión con los mismos datos). Sin lista previa, RUT, correo ni teléfono. Ver [`acceso-de-invitados.md`](./acceso-de-invitados.md).
 5. **Marcos genéricos (colores y textos editables) y stickers (emojis e imágenes subidas)**, definidos por el organizador, con toggles por recurso y globales. Ver [`marcos-y-stickers.md`](./marcos-y-stickers.md).
 6. **Moderación por lotes horarios**, sobre `photoTimeline.ts`. Ver [`moderacion-por-lotes.md`](./moderacion-por-lotes.md).
+7. **Inscripción configurable:** el organizador elige qué se le pide al invitado (acompañantes, comentario, preguntas propias, bienvenida), ve las respuestas y las exporta a CSV, y el enlace se ve con el nombre, la fecha y el lugar del evento en WhatsApp. Ver [`inscripcion-configurable.md`](./inscripcion-configurable.md).
 
 ## Fuera del MVP (ver [Fase 2](../fase-2-en-adelante/README.md))
 
