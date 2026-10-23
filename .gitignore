@@ -33,3 +33,6 @@ coverage/
 
 # claude code session-local files
 .claude/
+
+# Datos de clientes (briefs, respuestas, invitaciones): privados. El repo es público.
+docs/clientes/
