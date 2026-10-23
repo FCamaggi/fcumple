@@ -1,4 +1,6 @@
 import type { Guest } from '../types';
+import type { ResolvedEnrollment } from './enrollmentConfig';
+import type { ApprovalStatus, OrganizerGuest } from './organizerApi';
 
 const EXPORT_HEADER = ['token', 'full_name', 'status', 'plus_ones_allowed', 'plus_ones_confirmed', 'guest_note', 'phone'];
 // `token` es la clave de upsert al importar: una fila con token existente
@@ -24,6 +26,52 @@ export function guestsToCsv(guests: Guest[]): string {
   for (const g of guests) {
     lines.push(
       toCsvLine([g.token ?? '', g.fullName, g.status, g.plusOnesAllowed, g.plusOnesConfirmed, g.guestNote ?? '', g.phone ?? ''])
+    );
+  }
+  return lines.join('\r\n');
+}
+
+// Una celda que empieza con = + - @ (o tab / retorno) se evalúa como fórmula al abrir el CSV en
+// Excel o Sheets, y aquí hay texto escrito por los invitados. Se le antepone una comilla simple.
+const FORMULA_START = /^[=+\-@\t\r]/;
+const safeCell = (value: string) => (FORMULA_START.test(value) ? `'${value}` : value);
+
+const APPROVAL_LABELS: Record<ApprovalStatus, string> = {
+  approved: 'Aprobado',
+  pending: 'Pendiente',
+  rejected: 'Rechazado',
+};
+
+/**
+ * CSV de la inscripción (Fase 1): quién se inscribió y qué respondió. A propósito NO lleva el token
+ * del invitado (es su credencial de sesión) ni ningún dato que la plataforma no guarda. Una columna por
+ * cada pregunta que el organizador configuró; las etiquetas son las de esa configuración.
+ */
+export function enrollmentToCsv(guests: OrganizerGuest[], enrollment: ResolvedEnrollment): string {
+  const questions = enrollment.questions;
+  const header = [
+    'Nombre',
+    'Estado',
+    'Entró',
+    'Llegó',
+    'Acompañantes',
+    'Nombres de acompañantes',
+    ...(enrollment.comment ? [enrollment.comment.label] : []),
+    ...questions.map((q) => q.label),
+  ];
+  const lines = [toCsvLine(header.map(safeCell))];
+  for (const g of guests) {
+    lines.push(
+      toCsvLine([
+        safeCell(g.fullName),
+        APPROVAL_LABELS[g.approvalStatus],
+        g.claimedAt ? 'Sí' : 'No',
+        g.checkedInAt ? 'Sí' : 'No',
+        g.plusOnesRequested,
+        safeCell((g.answers.plus_ones ?? []).join('; ')),
+        ...(enrollment.comment ? [safeCell(g.answers.comment ?? '')] : []),
+        ...questions.map((q) => safeCell(g.answers[q.id] ?? '')),
+      ]),
     );
   }
   return lines.join('\r\n');

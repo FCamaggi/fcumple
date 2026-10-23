@@ -3,6 +3,10 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import GuestListPanel from './GuestListPanel';
 import type { OrganizerGuest } from '../lib/organizerApi';
+import { emptyEnrollment, resolveEnrollmentConfig } from '../lib/enrollmentConfig';
+
+vi.mock('../lib/downloadCsv', () => ({ downloadCsv: vi.fn() }));
+import { downloadCsv } from '../lib/downloadCsv';
 
 function guest(overrides: Partial<OrganizerGuest> = {}): OrganizerGuest {
   return {
@@ -15,6 +19,8 @@ function guest(overrides: Partial<OrganizerGuest> = {}): OrganizerGuest {
     plusOnesAllowed: 0,
     plusOnesConfirmed: 0,
     photoQuota: 5,
+    answers: {},
+    plusOnesRequested: 0,
     checkedInAt: null,
     claimedAt: null,
     lastSeenAt: null,
@@ -25,6 +31,8 @@ function guest(overrides: Partial<OrganizerGuest> = {}): OrganizerGuest {
 function setup(guests: OrganizerGuest[], overrides: Record<string, unknown> = {}) {
   const props = {
     guests,
+    enrollment: emptyEnrollment(),
+    slug: 'fiesta-abcd',
     onAdd: vi.fn().mockResolvedValue({ created: [], failed: [] }),
     onReview: vi.fn().mockResolvedValue(undefined),
     onRemove: vi.fn().mockResolvedValue(undefined),
@@ -37,6 +45,76 @@ function setup(guests: OrganizerGuest[], overrides: Record<string, unknown> = {}
 
 beforeEach(() => {
   vi.spyOn(window, 'confirm').mockReturnValue(true);
+  vi.mocked(downloadCsv).mockReset();
+});
+
+const configured = resolveEnrollmentConfig({
+  plus_ones: { max: 2 },
+  comment: { label: '¿Alguna alergia?', required: false },
+  questions: [{ id: 'q1', label: '¿De qué te disfrazas?', required: true }],
+});
+
+describe('GuestListPanel: respuestas de la inscripción', () => {
+  it('muestra cuántos acompañantes trae cada invitado', () => {
+    setup([guest({ plusOnesRequested: 2, answers: { plus_ones: ['Luis Pérez', 'Marta Soto'] } })], {
+      enrollment: configured,
+    });
+    expect(screen.getByText('+2')).toBeInTheDocument();
+  });
+
+  it('despliega los acompañantes, el comentario y las respuestas con las preguntas del organizador', async () => {
+    setup(
+      [
+        guest({
+          plusOnesRequested: 1,
+          answers: { plus_ones: ['Luis Pérez'], comment: 'Vegana', q1: 'Regina George' },
+        }),
+      ],
+      { enrollment: configured },
+    );
+    await userEvent.click(screen.getByText(/Ver respuestas/));
+    expect(screen.getByText('Acompañantes')).toBeInTheDocument();
+    expect(screen.getByText('Luis Pérez')).toBeInTheDocument();
+    expect(screen.getByText('¿Alguna alergia?')).toBeInTheDocument();
+    expect(screen.getByText('Vegana')).toBeInTheDocument();
+    expect(screen.getByText('¿De qué te disfrazas?')).toBeInTheDocument();
+    expect(screen.getByText('Regina George')).toBeInTheDocument();
+  });
+
+  it('un invitado sin respuestas no muestra el desplegable', () => {
+    setup([guest()], { enrollment: configured });
+    expect(screen.queryByText(/Ver respuestas/)).not.toBeInTheDocument();
+  });
+
+  it('las solicitudes pendientes también muestran sus respuestas, para decidir con ellas', async () => {
+    setup([guest({ approvalStatus: 'pending', answers: { q1: 'Gretchen' } })], { enrollment: configured });
+    await userEvent.click(screen.getByText(/Ver respuestas/));
+    expect(screen.getByText('Gretchen')).toBeInTheDocument();
+  });
+
+  it('no esconde la respuesta a una pregunta que el organizador ya quitó', async () => {
+    setup([guest({ answers: { q2: 'Respuesta vieja' } })], { enrollment: configured });
+    await userEvent.click(screen.getByText(/Ver respuestas/));
+    expect(screen.getByText('Respuesta vieja')).toBeInTheDocument();
+    expect(screen.getByText(/pregunta que ya no está/i)).toBeInTheDocument();
+  });
+
+  it('exporta el CSV con el nombre del evento y el BOM para Excel', async () => {
+    setup([guest({ answers: { q1: 'Regina George' } })], { enrollment: configured });
+    await userEvent.click(screen.getByRole('button', { name: 'Exportar CSV' }));
+    expect(downloadCsv).toHaveBeenCalledTimes(1);
+    const [filename, content, options] = vi.mocked(downloadCsv).mock.calls[0];
+    expect(filename).toBe('invitados-fiesta-abcd.csv');
+    expect(content).toContain('Ana Rojas');
+    expect(content).toContain('Regina George');
+    expect(content).not.toContain('tok');
+    expect(options).toEqual({ bom: true });
+  });
+
+  it('sin invitados no ofrece exportar', () => {
+    setup([]);
+    expect(screen.queryByRole('button', { name: 'Exportar CSV' })).not.toBeInTheDocument();
+  });
 });
 
 describe('GuestListPanel', () => {

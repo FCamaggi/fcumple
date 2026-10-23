@@ -1,5 +1,11 @@
 import { supabase } from './supabaseClient';
-import { resolveEnrollmentConfig, serializeEnrollmentConfig, type ResolvedEnrollment } from './enrollmentConfig';
+import {
+  parseGuestAnswers,
+  resolveEnrollmentConfig,
+  serializeEnrollmentConfig,
+  type GuestAnswers,
+  type ResolvedEnrollment,
+} from './enrollmentConfig';
 import type { AccessMode } from './platformApi';
 import type { ModerationPhoto } from './photosApi';
 import type { Photo } from '../types';
@@ -42,6 +48,9 @@ export interface OrganizerGuest {
   plusOnesAllowed: number;
   plusOnesConfirmed: number;
   photoQuota: number;
+  /** Lo que respondió al inscribirse (acompañantes, comentario, preguntas propias). */
+  answers: GuestAnswers;
+  plusOnesRequested: number;
   checkedInAt: string | null;
   claimedAt: string | null;
   lastSeenAt: string | null;
@@ -75,6 +84,8 @@ interface GuestRow {
   plus_ones_allowed: number;
   plus_ones_confirmed: number;
   photo_quota: number;
+  guest_answers: unknown;
+  plus_ones_requested: number;
   checked_in_at: string | null;
   claimed_at: string | null;
   last_seen_at: string | null;
@@ -111,6 +122,8 @@ function mapGuest(row: GuestRow): OrganizerGuest {
     plusOnesAllowed: row.plus_ones_allowed,
     plusOnesConfirmed: row.plus_ones_confirmed,
     photoQuota: row.photo_quota,
+    answers: parseGuestAnswers(row.guest_answers),
+    plusOnesRequested: row.plus_ones_requested ?? 0,
     checkedInAt: row.checked_in_at,
     claimedAt: row.claimed_at,
     lastSeenAt: row.last_seen_at,

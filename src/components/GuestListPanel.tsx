@@ -1,8 +1,15 @@
 import { useState } from 'react';
 import type { AddGuestsResult, OrganizerGuest } from '../lib/organizerApi';
+import { QUESTION_IDS, type ResolvedEnrollment } from '../lib/enrollmentConfig';
+import { enrollmentToCsv } from '../lib/csv';
+import { downloadCsv } from '../lib/downloadCsv';
 
 interface GuestListPanelProps {
   guests: OrganizerGuest[];
+  /** Lo que se le pide al invitado al inscribirse: da el nombre de cada pregunta. */
+  enrollment: ResolvedEnrollment;
+  /** Para nombrar el archivo del CSV. */
+  slug: string;
   onAdd: (names: string[]) => Promise<AddGuestsResult>;
   onReview: (guest: OrganizerGuest, decision: 'approved' | 'rejected') => Promise<void>;
   onRemove: (guest: OrganizerGuest) => Promise<void>;
@@ -11,13 +18,57 @@ interface GuestListPanelProps {
 
 const buttonClass = 'h-8 border border-smoke-700/60 px-3 font-mono text-[11px] uppercase tracking-wider text-paper-100';
 
+/** Pares «pregunta → respuesta» de un invitado, con las preguntas del organizador. */
+function answerRows(guest: OrganizerGuest, enrollment: ResolvedEnrollment): Array<[string, string]> {
+  const rows: Array<[string, string]> = [];
+  const { answers } = guest;
+  if (answers.plus_ones?.length) rows.push(['Acompañantes', answers.plus_ones.join(', ')]);
+  if (answers.comment) rows.push([enrollment.comment?.label ?? 'Comentario', answers.comment]);
+  for (const id of QUESTION_IDS) {
+    const value = answers[id];
+    if (!value) continue;
+    const question = enrollment.questions.find((q) => q.id === id);
+    // Una pregunta que el organizador quitó después: la respuesta existe, no se esconde.
+    rows.push([question?.label ?? 'Pregunta que ya no está', value]);
+  }
+  return rows;
+}
+
+function AnswersDetail({ guest, enrollment }: { guest: OrganizerGuest; enrollment: ResolvedEnrollment }) {
+  const rows = answerRows(guest, enrollment);
+  if (rows.length === 0) return null;
+  return (
+    <details className="w-full">
+      <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-wide text-paper-100/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-acid-400">
+        Ver respuestas ({rows.length})
+      </summary>
+      <dl className="mt-2 flex flex-col gap-2">
+        {rows.map(([question, answer]) => (
+          <div key={question + answer} className="flex flex-col">
+            <dt className="font-mono text-[10px] uppercase tracking-wide text-paper-100/50">{question}</dt>
+            <dd className="whitespace-pre-line font-sans text-sm text-paper-100">{answer}</dd>
+          </div>
+        ))}
+      </dl>
+    </details>
+  );
+}
+
 /**
  * Invitados del evento. Cada persona se inscribe sola con el enlace (nombre y
  * apellido + un PIN que elige); también se puede cargar una lista a mano. Las
  * solicitudes de acceso pendientes aparecen arriba para aprobarlas o
  * rechazarlas, y "Restablecer acceso" ayuda a quien olvidó su PIN.
  */
-export default function GuestListPanel({ guests, onAdd, onReview, onRemove, onRegenerate }: GuestListPanelProps) {
+export default function GuestListPanel({
+  guests,
+  enrollment,
+  slug,
+  onAdd,
+  onReview,
+  onRemove,
+  onRegenerate,
+}: GuestListPanelProps) {
   const [text, setText] = useState('');
   const [adding, setAdding] = useState(false);
   const [feedback, setFeedback] = useState<{ kind: 'ok' | 'error'; lines: string[] } | null>(null);
@@ -74,7 +125,7 @@ export default function GuestListPanel({ guests, onAdd, onReview, onRemove, onRe
           </h2>
           <ul className="flex flex-col gap-2">
             {pending.map((guest) => (
-              <li key={guest.id} className="flex items-center justify-between gap-2 bg-ink-900 px-3 py-2">
+              <li key={guest.id} className="flex flex-wrap items-center justify-between gap-2 bg-ink-900 px-3 py-2">
                 <span className="font-sans text-sm text-paper-100">{guest.fullName}</span>
                 <span className="flex gap-2">
                   <button type="button" className={buttonClass} onClick={() => void run(() => onReview(guest, 'approved'))}>
@@ -84,6 +135,7 @@ export default function GuestListPanel({ guests, onAdd, onReview, onRemove, onRe
                     Rechazar
                   </button>
                 </span>
+                <AnswersDetail guest={guest} enrollment={enrollment} />
               </li>
             ))}
           </ul>
@@ -125,9 +177,20 @@ export default function GuestListPanel({ guests, onAdd, onReview, onRemove, onRe
       )}
 
       <section aria-label="Invitados" className="flex flex-col gap-2">
-        <h2 className="font-mono text-[11px] font-bold uppercase tracking-widest text-laser-500">
-          Invitados: {members.length} · han entrado: {entered}
-        </h2>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="font-mono text-[11px] font-bold uppercase tracking-widest text-laser-500">
+            Invitados: {members.length} · han entrado: {entered}
+          </h2>
+          {guests.length > 0 && (
+            <button
+              type="button"
+              className={buttonClass}
+              onClick={() => downloadCsv(`invitados-${slug}.csv`, enrollmentToCsv(guests, enrollment), { bom: true })}
+            >
+              Exportar CSV
+            </button>
+          )}
+        </div>
         {members.length === 0 ? (
           <p className="font-sans text-sm text-paper-100/60">Todavía no hay invitados. Aparecerán aquí a medida que se inscriban con el enlace del evento.</p>
         ) : (
@@ -135,7 +198,17 @@ export default function GuestListPanel({ guests, onAdd, onReview, onRemove, onRe
             {members.map((guest) => (
               <li key={guest.id} className="flex flex-wrap items-center justify-between gap-2 bg-ink-900 px-3 py-2">
                 <span className="flex flex-col">
-                  <span className="font-sans text-sm text-paper-100">{guest.fullName}</span>
+                  <span className="flex items-baseline gap-2">
+                    <span className="font-sans text-sm text-paper-100">{guest.fullName}</span>
+                    {guest.plusOnesRequested > 0 && (
+                      <span
+                        className="font-mono text-[11px] text-laser-500"
+                        aria-label={`Trae ${guest.plusOnesRequested} acompañante${guest.plusOnesRequested === 1 ? '' : 's'}`}
+                      >
+                        +{guest.plusOnesRequested}
+                      </span>
+                    )}
+                  </span>
                   <span className="font-mono text-[10px] uppercase tracking-wide text-paper-100/50">
                     {guest.approvalStatus === 'rejected'
                       ? 'Rechazado'
@@ -170,6 +243,7 @@ export default function GuestListPanel({ guests, onAdd, onReview, onRemove, onRe
                     Quitar
                   </button>
                 </span>
+                <AnswersDetail guest={guest} enrollment={enrollment} />
               </li>
             ))}
           </ul>

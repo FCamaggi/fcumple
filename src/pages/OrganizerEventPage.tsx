@@ -126,6 +126,8 @@ export default function OrganizerEventPage() {
         {tab === 'invitados' && (
           <GuestListPanel
             guests={guests}
+            enrollment={event.enrollment}
+            slug={event.slug}
             onAdd={async (names) => {
               const result = await addGuests(eventId, names, event.defaultPhotoQuota);
               setGuests((current) => [...current, ...result.created]);

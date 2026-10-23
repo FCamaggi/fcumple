@@ -58,6 +58,8 @@ const ana: api.OrganizerGuest = {
   plusOnesAllowed: 0,
   plusOnesConfirmed: 0,
   photoQuota: 5,
+  answers: {},
+  plusOnesRequested: 0,
   checkedInAt: null,
   claimedAt: null,
   lastSeenAt: null,

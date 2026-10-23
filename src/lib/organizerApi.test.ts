@@ -73,6 +73,8 @@ const guestRow = {
   plus_ones_allowed: 0,
   plus_ones_confirmed: 0,
   photo_quota: 5,
+  guest_answers: {},
+  plus_ones_requested: 0,
   checked_in_at: null,
   claimed_at: null,
   last_seen_at: null,
@@ -182,6 +184,17 @@ describe('invitados', () => {
     const guests = await listEventGuests('ev-1');
     expect(q.calls.find(([name]) => name === 'eq')?.[1]).toEqual(['event_id', 'ev-1']);
     expect(guests[0]).toMatchObject({ fullName: 'Ana Rojas', approvalStatus: 'approved', token: 'tok' });
+  });
+
+  it('listEventGuests entrega las respuestas de la inscripción', async () => {
+    const q = chain({
+      data: [{ ...guestRow, guest_answers: { plus_ones: ['Luis Pérez'], q1: 'Regina' }, plus_ones_requested: 1 }],
+      error: null,
+    });
+    from.mockReturnValueOnce(q.proxy);
+    const [guest] = await listEventGuests('ev-1');
+    expect(guest.answers).toEqual({ plus_ones: ['Luis Pérez'], q1: 'Regina' });
+    expect(guest.plusOnesRequested).toBe(1);
   });
 
   it('addGuest inserta con el event_id', async () => {

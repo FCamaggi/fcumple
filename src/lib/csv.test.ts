@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { guestsToCsv, csvTemplate, parseGuestsCsv } from './csv';
+import { guestsToCsv, csvTemplate, enrollmentToCsv, parseGuestsCsv } from './csv';
+import type { OrganizerGuest } from './organizerApi';
 import type { Guest } from '../types';
 
 const guests: Guest[] = [
@@ -146,5 +147,80 @@ describe('parseGuestsCsv', () => {
       { fullName: 'Beto Soto', plusOnesAllowed: 0 },
     ]);
     expect(result.valid[1]).not.toHaveProperty('phone');
+  });
+});
+
+describe('enrollmentToCsv', () => {
+  const guest = (over: Partial<OrganizerGuest> = {}): OrganizerGuest => ({
+    id: 'g1',
+    eventId: 'ev-1',
+    fullName: 'Ana Rojas',
+    token: 'TOKEN-SECRETO',
+    approvalStatus: 'approved',
+    status: 'pending',
+    plusOnesAllowed: 0,
+    plusOnesConfirmed: 0,
+    photoQuota: 10,
+    answers: {},
+    plusOnesRequested: 0,
+    checkedInAt: null,
+    claimedAt: '2026-10-30T00:00:00Z',
+    lastSeenAt: null,
+    ...over,
+  });
+  const config = {
+    welcome: '',
+    plusOnes: { max: 2 },
+    comment: { label: '¿Alguna alergia?', required: false },
+    questions: [{ id: 'q1' as const, label: '¿De qué te disfrazas?', required: true }],
+  };
+
+  it('arma una columna por cada pregunta configurada, con sus etiquetas', () => {
+    const [header] = enrollmentToCsv([], config).split('\r\n');
+    expect(header).toBe(
+      'Nombre,Estado,Entró,Llegó,Acompañantes,Nombres de acompañantes,¿Alguna alergia?,¿De qué te disfrazas?',
+    );
+  });
+
+  it('sin preguntas configuradas solo lleva las columnas básicas', () => {
+    const empty = { welcome: '', plusOnes: null, comment: null, questions: [] };
+    expect(enrollmentToCsv([], empty)).toBe('Nombre,Estado,Entró,Llegó,Acompañantes,Nombres de acompañantes');
+  });
+
+  it('escribe las respuestas y los acompañantes de cada invitado', () => {
+    const csv = enrollmentToCsv(
+      [
+        guest({
+          plusOnesRequested: 2,
+          checkedInAt: '2026-10-30T23:40:00Z',
+          answers: { plus_ones: ['Luis Pérez', 'Marta Soto'], comment: 'Vegana, sin gluten', q1: 'Regina George' },
+        }),
+        guest({ id: 'g2', fullName: 'Bea Soto', approvalStatus: 'pending', claimedAt: null }),
+      ],
+      config,
+    );
+    const lines = csv.split('\r\n');
+    expect(lines[1]).toBe('Ana Rojas,Aprobado,Sí,Sí,2,Luis Pérez; Marta Soto,"Vegana, sin gluten",Regina George');
+    expect(lines[2]).toBe('Bea Soto,Pendiente,No,No,0,,,');
+  });
+
+  it('nunca incluye el token del invitado', () => {
+    expect(enrollmentToCsv([guest()], config)).not.toContain('TOKEN-SECRETO');
+  });
+
+  it('neutraliza las celdas que Excel evaluaría como fórmula', () => {
+    const csv = enrollmentToCsv(
+      [guest({ fullName: '=HYPERLINK("http://malo")', answers: { comment: '+cmd|calc', q1: '@SUM(A1)' } })],
+      config,
+    );
+    const row = csv.split('\r\n')[1];
+    expect(row).toContain(`"'=HYPERLINK(""http://malo"")"`);
+    expect(row).toContain(`'+cmd|calc`);
+    expect(row).toContain(`'@SUM(A1)`);
+  });
+
+  it('también neutraliza las etiquetas de las preguntas', () => {
+    const csv = enrollmentToCsv([], { ...config, questions: [{ id: 'q1', label: '=1+1', required: false }] });
+    expect(csv.split('\r\n')[0]).toContain(`'=1+1`);
   });
 });

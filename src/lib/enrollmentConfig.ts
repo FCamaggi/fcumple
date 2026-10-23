@@ -213,3 +213,27 @@ export function enrollmentErrorMessage(code: string, config: ResolvedEnrollment)
       return 'Revisa tus respuestas e intenta de nuevo.';
   }
 }
+
+/** Lo que respondió un invitado al inscribirse (`guests.guest_answers`). */
+export interface GuestAnswers {
+  plus_ones?: string[];
+  comment?: string;
+  q1?: string;
+  q2?: string;
+  q3?: string;
+}
+
+/** Lee `guest_answers` de la base sin fiarse de su forma: lo que no encaja se ignora. */
+export function parseGuestAnswers(raw: unknown): GuestAnswers {
+  if (!isObject(raw)) return {};
+  const out: GuestAnswers = {};
+  if (Array.isArray(raw.plus_ones)) {
+    const names = raw.plus_ones.filter((n): n is string => typeof n === 'string' && n.trim() !== '');
+    if (names.length > 0) out.plus_ones = names;
+  }
+  for (const key of ['comment', ...QUESTION_IDS] as const) {
+    const value = raw[key];
+    if (typeof value === 'string' && value.trim() !== '') out[key] = value;
+  }
+  return out;
+}

@@ -4,6 +4,7 @@ import {
   cleanEnrollmentAnswers,
   emptyEnrollment,
   enrollmentErrorMessage,
+  parseGuestAnswers,
   resolveEnrollmentConfig,
   serializeEnrollmentConfig,
   validateEnrollmentConfig,
@@ -148,5 +149,22 @@ describe('enrollmentErrorMessage', () => {
     expect(enrollmentErrorMessage('question_required:q1', config)).toContain('¿De qué te disfrazas?');
     expect(enrollmentErrorMessage('plus_one_name', config)).toMatch(/nombre/i);
     expect(enrollmentErrorMessage('algo_raro', config)).toMatch(/revisa/i);
+  });
+});
+
+describe('parseGuestAnswers', () => {
+  it('lee las respuestas válidas', () => {
+    expect(parseGuestAnswers({ plus_ones: ['Ana Rojas'], comment: 'vegana', q1: 'Regina' })).toEqual({
+      plus_ones: ['Ana Rojas'],
+      comment: 'vegana',
+      q1: 'Regina',
+    });
+  });
+
+  it('ignora lo que no encaja y lo vacío, sin lanzar', () => {
+    expect(parseGuestAnswers(null)).toEqual({});
+    expect(parseGuestAnswers([])).toEqual({});
+    expect(parseGuestAnswers({ plus_ones: 'Ana', comment: 5, q1: '  ', pin: '1234' })).toEqual({});
+    expect(parseGuestAnswers({ plus_ones: ['Ana', 7, ' '] })).toEqual({ plus_ones: ['Ana'] });
   });
 });
