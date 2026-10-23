@@ -2580,10 +2580,36 @@ $$;
 
 grant execute on function public.get_guest_by_token(text) to anon, authenticated;
 
+-- El tope por evento del inicio de sesion no debe contar los fallos de activacion (clave 'act:...').
+create or replace function public._guard_attempts(p_event_id uuid, p_key text)
+returns void
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+begin
+  delete from public.identify_attempts a where a.attempted_at < now() - interval '1 hour';
+
+  if (select count(*) from public.identify_attempts a
+       where a.event_id = p_event_id and a.client_key = p_key
+         and a.attempted_at > now() - interval '10 minutes') >= 30
+     or (select count(*) from public.identify_attempts a
+          where a.event_id = p_event_id
+            and a.client_key not like 'act:%'
+            and a.attempted_at > now() - interval '10 minutes') >= 200
+  then
+    raise exception 'too many attempts, try again later' using errcode = '53400';
+  end if;
+end;
+$$;
+
 -- ---------------------------------------------------------------------------
 -- Activacion de la camara con el QR de la fiesta.
 -- Devuelve false si el codigo no corresponde (cuenta como intento fallido: frena la fuerza bruta).
 -- ---------------------------------------------------------------------------
+-- Los codigos equivocados se cuentan APARTE del inicio de sesion y la inscripcion (clave 'act:<ip>'): un QR
+-- viejo que muchos escanean desde el mismo wifi no puede bloquear a nadie para entrar. El tope es holgado
+-- (200 por IP cada 10 minutos) porque el codigo tiene 122 bits: el limite solo evita llenar la tabla.
 create or replace function public.activate_camera(p_token text, p_code text)
 returns boolean
 language plpgsql
@@ -2593,14 +2619,18 @@ as $$
 declare
   v_guest public.guests%rowtype;
   v_code text;
-  v_key text := public.request_client_key();
+  v_key text := 'act:' || public.request_client_key();
 begin
   select * into v_guest from public._approved_guest(p_token);
   if not found then
     raise exception 'no guest matches this token' using errcode = 'P0002';
   end if;
 
-  perform public._guard_attempts(v_guest.event_id, v_key);
+  if (select count(*) from public.identify_attempts a
+       where a.event_id = v_guest.event_id and a.client_key = v_key
+         and a.attempted_at > now() - interval '10 minutes') >= 200 then
+    raise exception 'too many attempts, try again later' using errcode = '53400';
+  end if;
 
   select e.activation_code into v_code from public.events e where e.id = v_guest.event_id;
   if p_code is null or p_code <> v_code then
@@ -2728,7 +2758,8 @@ as $$
   join public.photos p on p.event_id = g.event_id
   where p.status = 'approved'
     and p.published_at is not null
-  order by p.created_at;
+  order by p.created_at
+  limit 1000;
 $$;
 
 grant execute on function public.list_revealed_photos(text) to anon, authenticated;
@@ -2750,7 +2781,7 @@ as $$
 $$;
 
 -- Publica el lote: todas las fotos aprobadas que aun no se habian publicado. Devuelve cuantas fueron.
--- La primera vez tambien marca el evento como "con fotos reveladas" (lo que lee el hub).
+-- La primera vez que publica algo tambien marca el evento como "con fotos reveladas" (lo que lee el hub).
 create or replace function public.publish_photo_batch(p_event_id uuid)
 returns int
 language plpgsql
@@ -2771,9 +2802,11 @@ begin
      and p.published_at is null;
   get diagnostics v_count = row_count;
 
-  update public.events e
-     set photos_revealed_at = coalesce(e.photos_revealed_at, now())
-   where e.id = p_event_id;
+  if v_count > 0 then
+    update public.events e
+       set photos_revealed_at = coalesce(e.photos_revealed_at, now())
+     where e.id = p_event_id;
+  end if;
 
   return v_count;
 end;

@@ -187,6 +187,15 @@ describe('EventEntryPage', () => {
       expect(api.activateCamera).toHaveBeenCalledTimes(1);
     });
 
+    it('quita el código de la dirección apenas se abre la página, antes de inscribirse o activar', async () => {
+      vi.mocked(api.getEventPublic).mockResolvedValueOnce({ ...event, cameraUnlock: 'on_event_qr' });
+      renderPage(`/e/fiesta-abcd/a/${CODE}`);
+      await waitFor(() => expect(screen.getByTestId('ruta')).toHaveTextContent(/^\/e\/fiesta-abcd$/));
+      expect(screen.getByTestId('ruta').textContent).not.toContain(CODE);
+      // Y aun así lo usa cuando la persona entra.
+      expect(api.activateCamera).not.toHaveBeenCalled();
+    });
+
     it('sin sesión: primero se inscribe y recién entonces se activa con el mismo código', async () => {
       vi.mocked(api.getEventPublic).mockResolvedValueOnce({ ...event, cameraUnlock: 'on_event_qr' });
       vi.mocked(api.registerGuest).mockResolvedValueOnce({

@@ -68,15 +68,32 @@ describe('activación de la cámara con el QR del evento', () => {
     expect(attempts.rows[0].n).toBe(1);
   });
 
-  it('frena la fuerza bruta: demasiados códigos equivocados seguidos se bloquean', async () => {
+  it('frena el abuso: demasiados códigos equivocados desde una misma IP se bloquean', async () => {
     const ev = await createEvent(db, owner, { camera_unlock: 'on_event_qr' });
     const g = await newGuest(ev.id, ev.slug, 'Carla Díaz');
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < 200; i++) {
       await asAnon(db, () => db.query('select activate_camera($1, $2)', [g.token, `mal-${i}`]), '10.0.0.9');
     }
     await expect(
       asAnon(db, () => db.query('select activate_camera($1, $2)', [g.token, 'otro']), '10.0.0.9'),
     ).rejects.toMatchObject({ code: '53400' });
+  });
+
+  it('un QR viejo escaneado por muchos desde el mismo wifi NO bloquea el inicio de sesión ni la inscripción', async () => {
+    const ev = await createEvent(db, owner, { camera_unlock: 'on_event_qr' });
+    const g = await newGuest(ev.id, ev.slug, 'Iris Vera');
+    for (let i = 0; i < 60; i++) {
+      await asAnon(db, () => db.query('select activate_camera($1, $2)', [g.token, `viejo-${i}`]), '10.0.0.7');
+    }
+    // El mismo wifi sigue pudiendo inscribirse y entrar.
+    const nuevo = await asAnon(db, () => db.query('select * from register_guest($1, $2, $3)', [ev.slug, 'Hugo Paz', '1234']), '10.0.0.7');
+    expect(nuevo.rows[0].outcome).toBe('ok');
+    const login = await asAnon(db, () => db.query('select * from login_guest($1, $2, $3)', [ev.slug, 'Hugo Paz', '1234']), '10.0.0.7');
+    expect(login.rows[0].outcome).toBe('ok');
+    // Y el código correcto sigue sirviendo después de muchos intentos con el viejo.
+    const { rows: code } = await db.query<{ activation_code: string }>('select activation_code from events where id = $1', [ev.id]);
+    const ok = await asAnon(db, () => db.query('select activate_camera($1, $2) as ok', [g.token, code[0].activation_code]), '10.0.0.7');
+    expect(ok.rows[0].ok).toBe(true);
   });
 
   it('un token inválido no activa nada', async () => {
@@ -199,6 +216,13 @@ describe('fotos por lotes', () => {
     expect((await check()).rows[0].ok).toBe(false);
     await publish(ev.id);
     expect((await check()).rows[0].ok).toBe(true);
+  });
+
+  it('publicar sin nada aprobado no marca el evento como con fotos reveladas', async () => {
+    const ev = await createEvent(db, owner, { camera_unlock: 'on_identify' });
+    expect((await publish(ev.id)).rows[0].n).toBe(0);
+    const state = await db.query('select photos_revealed_at from events where id = $1', [ev.id]);
+    expect(state.rows[0].photos_revealed_at).toBeNull();
   });
 
   it('otro organizador no puede publicar, y anon tampoco', async () => {

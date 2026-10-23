@@ -46,11 +46,19 @@ function activationCodeFrom(splat: string | undefined): string | undefined {
 export default function EventEntryPage() {
   const params = useParams<{ slug: string; '*': string }>();
   const slug = params.slug ?? '';
-  const code = activationCodeFrom(params['*']);
+  // El código se guarda al montar y se quita de la dirección de inmediato: así no queda en la barra, en el
+  // historial ni viaja en un Referer mientras la persona se inscribe.
+  const [code] = useState(() => activationCodeFrom(params['*']));
   const navigate = useNavigate();
   const [state, setState] = useState<State>({ phase: 'loading' });
   const [activation, setActivation] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
   const activationTried = useRef(false);
+
+  useEffect(() => {
+    if (code) navigate(`/e/${slug}`, { replace: true });
+    // Solo al montar: el código ya quedó guardado.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -110,9 +118,8 @@ export default function EventEntryPage() {
       } catch (err) {
         setActivation({ kind: 'error', text: err instanceof Error ? err.message : 'No pudimos activar la cámara.' });
       }
-      navigate(`/e/${slug}`, { replace: true });
     })();
-  }, [code, state, slug, navigate]);
+  }, [code, state]);
 
   async function handleIdentified(event: EventPublic, session: GuestSession) {
     saveGuestSession(slug, session);
