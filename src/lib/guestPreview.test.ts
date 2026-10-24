@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
+  PREVIEW_READY_TYPE,
   PREVIEW_STATES,
   SAMPLE_PHOTOS,
   buildPreviewScenario,
   parsePreviewMessage,
+  parsePreviewNote,
+  parsePreviewState,
   toPublicPreviewEvent,
   type PreviewDraftPost,
 } from './guestPreview';
@@ -207,5 +210,39 @@ describe('parsePreviewMessage', () => {
     ['una galería con algo que no es texto', { type: 'fcumple-preview', state: 'aviso', draft: { title: '', subtitle: null, body: '', coverImagePath: null, galleryPaths: [1] } }],
   ])('rechaza %s', (_name, data) => {
     expect(parsePreviewMessage(data)).toBeNull();
+  });
+});
+
+describe('parsePreviewNote', () => {
+  it('acepta una nota o el aviso de que no hay ninguna', () => {
+    expect(parsePreviewNote({ type: 'fcumple-preview-note', note: 'Las fotos son de ejemplo.' })).toEqual({
+      note: 'Las fotos son de ejemplo.',
+    });
+    expect(parsePreviewNote({ type: 'fcumple-preview-note', note: null })).toEqual({ note: null });
+  });
+
+  it.each([
+    ['nada', undefined],
+    ['otro tipo', { type: 'fcumple-preview', note: 'x' }],
+    ['una nota que no es texto', { type: 'fcumple-preview-note', note: 3 }],
+    ['una nota sin el campo', { type: 'fcumple-preview-note' }],
+  ])('rechaza %s', (_name, data) => {
+    expect(parsePreviewNote(data)).toBeNull();
+  });
+});
+
+describe('parsePreviewState', () => {
+  it('lee un estado de la dirección y cae en «Cámara activa» si no lo conoce', () => {
+    expect(parsePreviewState('fotos')).toBe('fotos');
+    expect(parsePreviewState('aviso')).toBe('aviso');
+    expect(parsePreviewState('admin')).toBe('activa');
+    expect(parsePreviewState(null)).toBe('activa');
+  });
+});
+
+describe('PREVIEW_READY_TYPE', () => {
+  it('es un tipo distinto del que lleva el estado, para que el marco no se confunda con su propio eco', () => {
+    expect(PREVIEW_READY_TYPE).toBe('fcumple-preview-ready');
+    expect(parsePreviewMessage({ type: PREVIEW_READY_TYPE, state: 'activa', draft: null })).toBeNull();
   });
 });

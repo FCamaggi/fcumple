@@ -38,6 +38,23 @@ export interface PreviewDraftPost {
 }
 
 export const PREVIEW_MESSAGE_TYPE = 'fcumple-preview';
+/** Del iframe al marco: «ya escucho, mándame el estado». */
+export const PREVIEW_READY_TYPE = 'fcumple-preview-ready';
+/** Del iframe al marco: la nota que acompaña al estado que se ve. */
+export const PREVIEW_NOTE_TYPE = 'fcumple-preview-note';
+
+/** El estado de la dirección (`?estado=`); lo desconocido cae en «Cámara activa». */
+export function parsePreviewState(raw: string | null): PreviewState {
+  return raw !== null && STATE_IDS.includes(raw) ? (raw as PreviewState) : 'activa';
+}
+
+export function parsePreviewNote(data: unknown): { note: string | null } | null {
+  if (typeof data !== 'object' || data === null) return null;
+  const m = data as Record<string, unknown>;
+  if (m.type !== PREVIEW_NOTE_TYPE) return null;
+  if (m.note !== null && typeof m.note !== 'string') return null;
+  return { note: m.note };
+}
 
 export interface PreviewMessage {
   type: typeof PREVIEW_MESSAGE_TYPE;
