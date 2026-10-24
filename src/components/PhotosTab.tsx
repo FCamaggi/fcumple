@@ -16,7 +16,7 @@ interface PhotosTabProps {
  */
 export default function PhotosTab({ photos: state }: PhotosTabProps) {
   const [moderating, setModerating] = useState(false);
-  const { photos, counts, error, notice, publishing, reload, handlePublish, source } = state;
+  const { photos, counts, error, publishError, notice, publishing, reload, handlePublish, source } = state;
 
   // Al abrir y al cerrar la revisión se vuelve a pedir la lista: lo revisado cambia los conteos.
   function setReviewOpen(open: boolean) {
@@ -31,8 +31,10 @@ export default function PhotosTab({ photos: state }: PhotosTabProps) {
           {error}
         </PanelState>
       )}
+      {/* El de publicar no lleva «Reintentar»: volver a leer la lista no lo arregla. */}
+      {publishError && <PanelState kind="error">{publishError}</PanelState>}
       {photos === null && !error && <PanelState kind="loading">Cargando fotos...</PanelState>}
-      {photos !== null && photos.length === 0 && (
+      {photos !== null && photos.length === 0 && !error && (
         <PanelState kind="empty">Todavía no llegan fotos. Aparecerán aquí cuando los invitados las tomen.</PanelState>
       )}
       {notice && (

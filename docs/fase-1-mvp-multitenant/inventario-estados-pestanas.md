@@ -31,5 +31,12 @@ Queda fuera, por no ser carga de datos: Inscripción y Ajustes (formularios) y l
 - `src/components/PanelState.tsx`: cargando (`role="status"`), vacío y error (`role="alert"`, «Reintentar» de 44 px si se le da `onRetry`). Probado en `PanelState.test.tsx`.
 - **Hoy** lo usa sin cambiar lo que muestra (sus tests no se tocaron).
 - **Avisos:** el error de lectura ya no convive con «Todavía no hay avisos»; tiene su propio estado (`loadError`) con «Reintentar», que vuelve a mostrar «Cargando...». El error de las acciones (crear, publicar…) ahora lleva `role="alert"`.
-- **Fotos:** «Cargando fotos...», vacío («Todavía no llegan fotos…», sin el resumen en ceros) y «Reintentar» en el error. En «Fotos» el error puede venir de una publicación fallida; ahí «Reintentar» vuelve a pedir la lista, no repite la publicación (igual que en «Hoy»).
+- **Fotos:** «Cargando fotos...», vacío («Todavía no llegan fotos…», sin el resumen en ceros) y «Reintentar» en el error de lectura.
+- **Error de publicar aparte (Fotos y Hoy):** `useEventPhotos` separa `error` (lectura) de `publishError` (publicar). Solo el de lectura ofrece «Reintentar»; el de publicar se muestra sin él, porque volver a leer la lista no lo arregla (antes parecía que reintentaba y las aprobadas seguían sin publicar). Se limpia al recargar o al volver a publicar. El vacío ya no se muestra a la vez que un error de lectura.
+- **Avisos:** reintentar la lista también limpia un error viejo de una acción.
 - Pendiente para el PR B: Cámara, la página, Puerta y los QR.
+
+## Límites conocidos del PR A
+- Los mensajes de error de **Avisos** salen de `postsApi.fail()`, que incluye el texto crudo de Supabase (`No pudimos ${acción}: ${mensaje}`) en 11 puntos. Ya era así; ahora se anuncia como alerta. No se cambió aquí: afecta mensajes ajenos a esta etapa y el detalle ayuda a depurar. Pendiente de decidir.
+- Con la lista de avisos caída, «Nuevo aviso» sigue disponible y un aviso creado no se ve hasta reintentar la lectura.
+- Al pasar de error a «Cargando...» el botón con foco desaparece y el foco se pierde (igual que ya ocurría en «Hoy»).

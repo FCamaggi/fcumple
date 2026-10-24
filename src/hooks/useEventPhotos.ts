@@ -19,7 +19,10 @@ export function useEventPhotos(
   // La página lo llama antes de tener el evento: sin él no pide nada.
   const eventId = event?.id ?? null;
   const [photos, setPhotos] = useState<ModerationPhoto[] | null>(null);
+  // Dos errores distintos: `error` es de la lectura (se arregla volviendo a leer) y `publishError` es de publicar
+  // (volver a leer no lo arregla), para que ninguna pestaña ofrezca «Reintentar» donde no corresponde.
   const [error, setError] = useState<string | null>(null);
+  const [publishError, setPublishError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [publishing, setPublishing] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
@@ -69,6 +72,7 @@ export function useEventPhotos(
    */
   const reload = useCallback(() => {
     setError(null);
+    setPublishError(null);
     setNotice(null);
     if (lastLoadFailed.current) setPhotos(null);
     setReloadKey((k) => k + 1);
@@ -87,7 +91,7 @@ export function useEventPhotos(
 
   async function handlePublish() {
     if (!event) return;
-    setError(null);
+    setPublishError(null);
     setNotice(null);
     let message = `¿Publicar ${counts.unpublished} foto(s) aprobada(s)? Tus invitados las verán en la cartelera.`;
     if (counts.pending > 0) {
@@ -99,7 +103,7 @@ export function useEventPhotos(
       const count = await publish();
       setNotice(count > 0 ? `Publicaste ${count} foto(s).` : 'No había fotos aprobadas nuevas para publicar.');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No pudimos publicar las fotos.');
+      setPublishError(err instanceof Error ? err.message : 'No pudimos publicar las fotos.');
     } finally {
       setPublishing(false);
     }
@@ -121,7 +125,7 @@ export function useEventPhotos(
     [eventId, onEventChange],
   );
 
-  return { photos, counts, error, notice, publishing, reload, handlePublish, source };
+  return { photos, counts, error, publishError, notice, publishing, reload, handlePublish, source };
 }
 
 export type EventPhotos = ReturnType<typeof useEventPhotos>;

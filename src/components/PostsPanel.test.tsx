@@ -84,6 +84,24 @@ describe('PostsPanel: estados de la lista', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
+  it('reintentar la lista limpia un error viejo de una acción', async () => {
+    vi.mocked(listAllPosts).mockRejectedValueOnce(new Error('sin red')).mockResolvedValueOnce([draftPost]);
+    vi.mocked(listPostImages).mockResolvedValue([]);
+    vi.mocked(createPost).mockRejectedValueOnce(new Error('No pudimos crear el aviso.'));
+    render(<PostsPanel eventId="ev-1" />);
+    await screen.findByRole('button', { name: 'Reintentar' });
+    await userEvent.click(screen.getByRole('button', { name: 'Nuevo aviso' }));
+    await userEvent.type(screen.getByLabelText('Título'), 'X');
+    await userEvent.type(screen.getByLabelText('Cuerpo'), 'Y');
+    await userEvent.click(screen.getByRole('button', { name: 'Crear' }));
+    expect(await screen.findByText('No pudimos crear el aviso.')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Reintentar' }));
+
+    expect(await screen.findByText('Borrador sin publicar')).toBeInTheDocument();
+    expect(screen.queryByText('No pudimos crear el aviso.')).not.toBeInTheDocument();
+  });
+
   it('mientras reintenta vuelve a decir «Cargando...»', async () => {
     vi.mocked(listAllPosts)
       .mockRejectedValueOnce(new Error('sin red'))

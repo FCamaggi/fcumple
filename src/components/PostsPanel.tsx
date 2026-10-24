@@ -54,6 +54,8 @@ export default function PostsPanel({ eventId }: { eventId?: string } = {}) {
     let active = true;
     setLoading(true);
     setLoadError(null);
+    // Un error viejo de una acción no debe convivir con una lista que se está volviendo a leer.
+    setError(null);
     listAllPosts(eventId)
       .then(async (found) => {
         if (!active) return;

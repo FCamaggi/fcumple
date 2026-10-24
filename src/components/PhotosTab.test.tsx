@@ -131,6 +131,20 @@ describe('PhotosTab', () => {
     render(<PhotosTab event={event} onEventChange={vi.fn()} />);
     await userEvent.click(await screen.findByRole('button', { name: 'Publicar 1 aprobada(s)' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos publicar las fotos.');
+    // «Reintentar» solo relee la lista: ofrecerlo aquí haría creer que se vuelve a publicar.
+    expect(screen.queryByRole('button', { name: 'Reintentar' })).not.toBeInTheDocument();
+  });
+
+  it('si una recarga falla con la lista vacía no dice a la vez que no llegan fotos', async () => {
+    vi.mocked(api.listEventPhotos).mockResolvedValueOnce([]).mockRejectedValue(new Error('sin red'));
+    render(<PhotosTab event={event} onEventChange={vi.fn()} />);
+    await screen.findByText(/todavía no llegan fotos/i);
+
+    // Abrir la revisión vuelve a pedir la lista, y esa lectura falla.
+    await userEvent.click(screen.getByRole('button', { name: 'Abrir revisión de fotos' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('sin red');
+    expect(screen.queryByText(/todavía no llegan fotos/i)).not.toBeInTheDocument();
   });
 
   it('abre la revisión con las funciones de este evento, incluido publicar desde ahí', async () => {
