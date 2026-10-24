@@ -70,6 +70,8 @@ const NO_CONTROLS: CameraControlsAvailability = { torch: false };
 // de marco -- por debajo de esto es más probable que haya sido un tap o un
 // scroll accidental que una intención real de cambiar de marco.
 const SWIPE_THRESHOLD = 48;
+// Pausa entre disparar y mostrar la revisión: lo que dura el tic del dígito del rollo.
+const REVIEW_DELAY_MS = 200;
 // «Ok» de los avisos: área táctil de 44 px (antes era solo el texto).
 const dismissButton = 'tap-target shrink-0 px-3 font-mono text-xs uppercase text-paper-100';
 // Botones de la fila del pulgar: caja visible y papel pleno (antes eran gris tenue y sin caja).
@@ -155,6 +157,7 @@ export default function CameraCapture({
   const shutterRef = useRef<HTMLButtonElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const hadReviewRef = useRef(false);
+  const rootRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const trackRef = useRef<MediaStreamTrack | null>(null);
@@ -216,6 +219,36 @@ export default function CameraCapture({
   // se gasta al subir con éxito, y en ese instante `quota` ya lo cuenta: no se suma dos veces.
   const reserved = reviewUrl !== null && state.phase !== 'success';
   const shownUsed = quota.used + (reserved ? 1 : 0);
+
+  // La revisión cubre toda la pantalla y entra con un retraso breve: así se ve bajar el dígito antes de
+  // la foto, y un segundo toque sobre el obturador no cae en un «Enviar» que aún no existe. Con movimiento
+  // reducido entra al instante.
+  const [reviewShown, setReviewShown] = useState(false);
+  useEffect(() => {
+    if (!reviewUrl) {
+      setReviewShown(false);
+      return;
+    }
+    if (reduceMotion) {
+      setReviewShown(true);
+      return;
+    }
+    const timer = setTimeout(() => setReviewShown(true), REVIEW_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [reviewUrl, reduceMotion]);
+
+  // aria-modal solo cumple si lo de atrás deja de recibir foco y toques: con la revisión abierta la
+  // cámara queda inerte (Tab no la alcanza, «Cerrar» no desmonta una foto pendiente).
+  // `dialogOpen` se deriva en el mismo render en que se cierra la revisión: si dependiera solo del estado
+  // `reviewShown` (que se apaga en un efecto), el foco de vuelta al obturador caería en algo aún inerte.
+  const dialogOpen = reviewUrl !== null && reviewShown;
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    for (const child of Array.from(root.children) as Array<HTMLElement & { inert?: boolean }>) {
+      if (child.getAttribute('role') !== 'dialog') child.inert = dialogOpen;
+    }
+  }, [dialogOpen]);
 
   // Al cerrar la revisión (Repetir o envío) el foco vuelve al obturador; sin esto cae al body.
   useEffect(() => {
@@ -319,6 +352,9 @@ export default function CameraCapture({
     const video = videoRef.current;
     const canvas = canvasRef.current;
     if (!video || !canvas || video.videoWidth === 0 || video.videoHeight === 0) return;
+    // El sello de la foto anterior se queda hasta tocar «Ok»; sin descartarlo aquí, la fase seguiría en
+    // `success` y la revisión de esta foto mostraría «Enviando…» sin poder enviarse.
+    if (state.phase === 'success') reset();
 
     const scale = Math.min(1, MAX_DIMENSION / Math.max(video.videoWidth, video.videoHeight));
     canvas.width = Math.round(video.videoWidth * scale);
@@ -432,7 +468,7 @@ export default function CameraCapture({
   }
 
   return (
-    <div className="fixed inset-safe z-50 flex flex-col bg-ink-950" aria-label="Cámara de fotos">
+    <div ref={rootRef} className="fixed inset-safe z-50 flex flex-col bg-ink-950" aria-label="Cámara de fotos">
       {/* Cabecera baja: el visor es lo que manda. El rótulo «Cámara // modo carrete» solo vive en las pantallas sin cámara. */}
       <div role="group" aria-label="Estado de la cámara" className="flex items-center justify-between gap-2 bg-ink-900 px-3 py-1">
         <FilmRollCounter quota={quota.quota} used={shownUsed} compact />
@@ -599,7 +635,7 @@ export default function CameraCapture({
         </div>
       </div>
 
-      {reviewUrl && (
+      {reviewUrl && dialogOpen && (
         <ReviewScreen
           photoUrl={reviewUrl}
           remainingAfter={remaining - 1}
@@ -654,7 +690,10 @@ function ReviewScreen({
       aria-label="Revisión de la foto"
       initial={reduceMotion ? { opacity: 1 } : { opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={reduceMotion ? { duration: 0 } : { duration: 0.12, delay: 0.2 }}
+      transition={reduceMotion ? { duration: 0 } : { duration: 0.12 }}
+      onKeyDown={(event) => {
+        if (event.key === 'Escape' && !uploading) onRetake();
+      }}
       className="fixed inset-safe z-[60] flex flex-col bg-ink-950"
     >
       <div className="relative flex-1 overflow-hidden bg-ink-950">

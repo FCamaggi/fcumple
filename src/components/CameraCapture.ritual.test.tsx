@@ -114,13 +114,30 @@ describe('ritual del rollo', () => {
     expect(screen.getByRole('img', { name: '2 disparos restantes de 5' })).toBeInTheDocument();
   });
 
-  it('la revisión tapa la cámara con un retraso breve, para que se vea bajar el dígito antes de la foto', async () => {
+  it('la revisión aparece tras un retraso breve, para que se vea bajar el dígito antes de la foto', async () => {
     const { user } = await shoot({ quota: 5, used: 2 });
     await user.click(screen.getByRole('button', { name: /disparar/i }));
 
-    const dialog = await screen.findByRole('dialog', { name: /revisión de la foto/i });
-    expect(dialog.style.opacity).toBe('0');
-    await waitFor(() => expect(dialog.style.opacity).toBe('1'), { timeout: 2000 });
+    // El diálogo ni siquiera existe todavía: un segundo toque en el obturador no puede caer en «Enviar».
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByRole('img', { name: '2 disparos restantes de 5' })).toBeInTheDocument();
+    expect(await screen.findByRole('dialog', { name: /revisión de la foto/i })).toBeInTheDocument();
+  });
+
+  it('con el sello de la foto anterior aún visible, la foto siguiente se puede enviar y reserva su dígito', async () => {
+    const { user } = await shoot({ quota: 5, used: 2 });
+    vi.mocked(uploadPhoto).mockResolvedValue({ status: 'approved' } as Photo);
+    await user.click(screen.getByRole('button', { name: /disparar/i }));
+    await user.click(await screen.findByRole('button', { name: /^enviar/i }));
+    expect(await screen.findByRole('status')).toBeInTheDocument();
+
+    // Sin tocar «Ok»: se dispara otra vez.
+    await user.click(await screen.findByRole('button', { name: /disparar/i }));
+    expect(await screen.findByRole('button', { name: 'Enviar // te quedarán 1' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: '1 disparos restantes de 5' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /^enviar/i }));
+    await waitFor(() => expect(uploadPhoto).toHaveBeenCalledTimes(2));
   });
 
   it('con un fallo de subida el dígito sigue reservado (la foto sigue en la revisión)', async () => {
@@ -161,6 +178,21 @@ describe('foco y avisos', () => {
     const dialog = await screen.findByRole('dialog', { name: /revisión de la foto/i });
     expect(dialog).toHaveAttribute('aria-modal', 'true');
     expect(screen.getByRole('button', { name: /^enviar/i })).toHaveFocus();
+  });
+
+  it('con la revisión abierta la cámara de atrás queda inerte, y Escape equivale a «Repetir»', async () => {
+    const { user } = await shoot();
+    const header = screen.getByRole('group', { name: /estado de la cámara/i }) as HTMLElement & { inert?: boolean };
+    expect(header.inert).toBeFalsy();
+
+    await user.click(screen.getByRole('button', { name: /disparar/i }));
+    await screen.findByRole('dialog', { name: /revisión de la foto/i });
+    expect(header.inert).toBe(true);
+
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(header.inert).toBe(false);
+    expect(uploadPhoto).not.toHaveBeenCalled();
   });
 
   it('mientras sube, «Enviar» no pierde el foco y un segundo toque no sube otra vez', async () => {
