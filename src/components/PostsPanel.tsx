@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import PhoneFrame from './PhoneFrame';
+import type { PreviewDraftPost } from '../lib/guestPreview';
 import {
   listAllPosts,
   createPost,
@@ -292,6 +294,18 @@ export default function PostsPanel({ eventId }: { eventId?: string } = {}) {
               </div>
             )}
           </Field>
+          {eventId && (
+            <DraftPreview
+              eventId={eventId}
+              draft={{
+                title: createDraft.title,
+                subtitle: createDraft.subtitle.trim() || null,
+                body: createDraft.body,
+                coverImagePath: createCoverPath,
+                galleryPaths: createGalleryPaths,
+              }}
+            />
+          )}
           <button
             type="submit"
             disabled={uploadingCreate}
@@ -377,6 +391,19 @@ export default function PostsPanel({ eventId }: { eventId?: string } = {}) {
                       </div>
                     )}
                   </Field>
+                  {eventId && (
+                    <DraftPreview
+                      eventId={eventId}
+                      draft={{
+                        id: post.id,
+                        title: editDraft.title,
+                        subtitle: editDraft.subtitle.trim() || null,
+                        body: editDraft.body,
+                        coverImagePath: editCoverPath,
+                        galleryPaths: editGalleryImages.map((img) => img.storagePath),
+                      }}
+                    />
+                  )}
                   <div className="flex gap-2">
                     <button
                       type="submit"
@@ -490,6 +517,40 @@ function PostImageThumb({ path, alt, className }: { path: string; alt: string; c
 
   if (!url) return null;
   return <img src={url} alt={alt} className={className} />;
+}
+
+/**
+ * Cómo quedará el aviso en la cartelera del invitado (épica C2): el mismo teléfono de la pestaña «Vista previa»,
+ * alimentado con lo que se está escribiendo. No publica nada ni toca la base.
+ */
+function DraftPreview({ eventId, draft }: { eventId: string; draft: PreviewDraftPost }) {
+  const [open, setOpen] = useState(false);
+  // El marco vuelve a mandar el borrador cada vez que cambia el objeto: se mantiene el mismo mientras el contenido
+  // no cambie.
+  const key = JSON.stringify(draft);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const stable = useMemo(() => draft, [key]);
+
+  return (
+    <div className="flex flex-col gap-2">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="h-11 self-start border border-smoke-700/50 px-3 font-mono text-xs font-bold uppercase tracking-wider text-laser-500"
+      >
+        {open ? 'Ocultar vista previa' : 'Ver cómo queda'}
+      </button>
+      {open && (
+        <PhoneFrame
+          src={`/panel/e/${eventId}/vista-previa?estado=aviso`}
+          label="Aviso"
+          state="aviso"
+          draft={stable}
+        />
+      )}
+    </div>
+  );
 }
 
 function Field({ label, htmlFor, children }: { label: string; htmlFor: string; children: React.ReactNode }) {

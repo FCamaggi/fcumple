@@ -69,6 +69,12 @@ const scenes = [
   ...TABS.map((t, i) => ({ id: `o${String(i + 2).padStart(2, '0')}-panel-${t.toLowerCase().normalize('NFD').replace(/[^a-z]/g, '')}`, url: `/panel/e/${EVENT_ID}`, org: true, act: async (p) => { await p.getByRole('button', { name: t, exact: true }).click(); await p.waitForTimeout(500); } })),
   { id: 'o11-moderacion', url: `/panel/e/${EVENT_ID}`, org: true, vshot: true, act: async (p) => { await p.getByRole('button', { name: 'Fotos', exact: true }).click(); await p.waitForTimeout(500); await p.getByRole('button', { name: /revisar \d+ foto|abrir revisión/i }).first().click({ timeout: 3000 }); await p.waitForTimeout(700); } },
   { id: 'o12-escaner', url: `/panel/e/${EVENT_ID}`, org: true, vshot: true, act: async (p) => { await p.getByRole('button', { name: 'Puerta', exact: true }).click(); await p.getByRole('button', { name: /abrir escáner/i }).click(); await p.waitForTimeout(900); } },
+  // Épica C: la pestaña «Vista previa» (teléfono dentro del panel) y la página que corre dentro de su iframe.
+  { id: 'o13-vista-previa', url: `/panel/e/${EVENT_ID}`, org: true, act: async (p) => { await p.getByRole('button', { name: 'Vista previa', exact: true }).click(); await p.waitForTimeout(1500); } },
+  { id: 'o14-vista-previa-fotos', url: `/panel/e/${EVENT_ID}`, org: true, act: async (p) => { await p.getByRole('button', { name: 'Vista previa', exact: true }).click(); await p.getByRole('button', { name: 'Fotos publicadas', exact: true }).click(); await p.waitForTimeout(1500); } },
+  { id: 'o15-vista-previa-inscripcion', url: `/panel/e/${EVENT_ID}`, org: true, act: async (p) => { await p.getByRole('button', { name: 'Vista previa', exact: true }).click(); await p.getByRole('group', { name: 'Estado que quieres ver' }).getByRole('button', { name: 'Inscripción', exact: true }).click(); await p.waitForTimeout(1500); } },
+  { id: 'o17-aviso-vista-previa', url: `/panel/e/${EVENT_ID}`, org: true, act: async (p) => { await p.getByRole('button', { name: 'Avisos', exact: true }).click(); await p.getByRole('button', { name: /nuevo aviso/i }).click(); await p.getByLabel('Título', { exact: true }).fill('Pizza a las 22:00'); await p.getByLabel('Cuerpo').fill('Traigan hambre: pedimos a las diez.'); await p.getByRole('button', { name: /ver cómo queda/i }).click(); await p.waitForTimeout(2000); } },
+  { id: 'o16-pagina-vista-previa', url: `/panel/e/${EVENT_ID}/vista-previa?estado=avisos`, org: true },
 ];
 
 function measure() {
