@@ -21,6 +21,23 @@ vi.mock('../components/QrScanner', () => ({
   ),
 }));
 vi.mock('../components/PhotosTab', () => ({ default: () => <div data-testid="photos-tab" /> }));
+vi.mock('../components/PartyDayTab', () => ({
+  default: ({
+    guests,
+    onOpenTab,
+    onRefresh,
+  }: {
+    guests: unknown[];
+    onOpenTab: (tab: 'fotos' | 'activacion' | 'invitados') => void;
+    onRefresh: () => void;
+  }) => (
+    <div data-testid="party-day-tab">
+      hoy con {guests.length} invitado(s)
+      <button type="button" onClick={() => onOpenTab('activacion')}>ir a activación</button>
+      <button type="button" onClick={onRefresh}>refrescar hoy</button>
+    </div>
+  ),
+}));
 vi.mock('../components/PostsPanel', () => ({
   default: ({ eventId }: { eventId?: string }) => <div data-testid="posts-panel">avisos de {eventId}</div>,
 }));
@@ -75,6 +92,7 @@ const ana: api.OrganizerGuest = {
   checkedInAt: null,
   claimedAt: null,
   lastSeenAt: null,
+  cameraActivatedAt: null,
 };
 
 function Where() {
@@ -152,6 +170,74 @@ describe('OrganizerEventPage', () => {
 
     expect(await screen.findByRole('heading', { name: 'Fiesta de Ana' })).toBeInTheDocument();
     expect(screen.getByText('Ana Rojas')).toBeInTheDocument();
+  });
+
+  describe('pestaña «Hoy»', () => {
+    const inAnHour = () => new Date(Date.now() + 3_600_000).toISOString();
+    const inAWeek = () => new Date(Date.now() + 7 * 24 * 3_600_000).toISOString();
+
+    it('el día de la fiesta se abre en «Hoy»', async () => {
+      vi.mocked(api.getMyEvent).mockResolvedValueOnce({ ...event, startsAt: inAnHour() });
+      vi.mocked(api.listEventGuests).mockResolvedValueOnce([ana]);
+      renderEvent();
+
+      expect(await screen.findByTestId('party-day-tab')).toHaveTextContent('hoy con 1 invitado(s)');
+      expect(screen.getByRole('button', { name: 'Hoy' })).toHaveAttribute('aria-current', 'page');
+    });
+
+    it('otro día se abre en «Invitados», pero «Hoy» sigue disponible', async () => {
+      vi.mocked(api.getMyEvent).mockResolvedValueOnce({ ...event, startsAt: inAWeek() });
+      vi.mocked(api.listEventGuests).mockResolvedValueOnce([ana]);
+      renderEvent();
+
+      expect(await screen.findByText('Ana Rojas')).toBeInTheDocument();
+      expect(screen.queryByTestId('party-day-tab')).not.toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', { name: 'Hoy' }));
+      expect(screen.getByTestId('party-day-tab')).toBeInTheDocument();
+    });
+
+    it('un evento sin fecha se abre en «Invitados»', async () => {
+      vi.mocked(api.getMyEvent).mockResolvedValueOnce(event);
+      vi.mocked(api.listEventGuests).mockResolvedValueOnce([ana]);
+      renderEvent();
+
+      expect(await screen.findByText('Ana Rojas')).toBeInTheDocument();
+      expect(screen.queryByTestId('party-day-tab')).not.toBeInTheDocument();
+    });
+
+    it('«Actualizar» en «Hoy» vuelve a leer los invitados y conserva la pestaña', async () => {
+      vi.mocked(api.getMyEvent).mockResolvedValueOnce({ ...event, startsAt: inAnHour() });
+      vi.mocked(api.listEventGuests).mockResolvedValueOnce([ana]).mockResolvedValueOnce([ana, { ...ana, id: 'g2' }]);
+      renderEvent();
+      await screen.findByText('hoy con 1 invitado(s)');
+
+      await userEvent.click(screen.getByRole('button', { name: 'refrescar hoy' }));
+
+      expect(await screen.findByText('hoy con 2 invitado(s)')).toBeInTheDocument();
+      expect(api.listEventGuests).toHaveBeenCalledTimes(2);
+    });
+
+    it('si falla al actualizar conserva la lista que ya tenía', async () => {
+      vi.mocked(api.getMyEvent).mockResolvedValueOnce({ ...event, startsAt: inAnHour() });
+      vi.mocked(api.listEventGuests).mockResolvedValueOnce([ana]).mockRejectedValueOnce(new Error('sin red'));
+      renderEvent();
+      await screen.findByText('hoy con 1 invitado(s)');
+
+      await userEvent.click(screen.getByRole('button', { name: 'refrescar hoy' }));
+
+      await waitFor(() => expect(api.listEventGuests).toHaveBeenCalledTimes(2));
+      expect(screen.getByText('hoy con 1 invitado(s)')).toBeInTheDocument();
+    });
+
+    it('los atajos de «Hoy» llevan a la pestaña que piden', async () => {
+      vi.mocked(api.getMyEvent).mockResolvedValueOnce({ ...event, startsAt: inAnHour() });
+      vi.mocked(api.listEventGuests).mockResolvedValueOnce([ana]);
+      renderEvent();
+
+      await userEvent.click(await screen.findByRole('button', { name: 'ir a activación' }));
+
+      expect(screen.getByTestId('activation-tab')).toBeInTheDocument();
+    });
   });
 
   it('dice que el evento no existe si no es del organizador', async () => {

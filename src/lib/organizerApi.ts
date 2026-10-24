@@ -60,6 +60,8 @@ export interface OrganizerGuest {
   checkedInAt: string | null;
   claimedAt: string | null;
   lastSeenAt: string | null;
+  /** Cuándo escaneó el QR del evento y se le habilitó la cámara (`guests.camera_activated_at`). */
+  cameraActivatedAt: string | null;
 }
 
 interface EventRow {
@@ -98,6 +100,7 @@ interface GuestRow {
   checked_in_at: string | null;
   claimed_at: string | null;
   last_seen_at: string | null;
+  camera_activated_at?: string | null;
 }
 
 function mapEvent(row: EventRow): OrganizerEvent {
@@ -139,6 +142,7 @@ function mapGuest(row: GuestRow): OrganizerGuest {
     checkedInAt: row.checked_in_at,
     claimedAt: row.claimed_at,
     lastSeenAt: row.last_seen_at,
+    cameraActivatedAt: row.camera_activated_at ?? null,
   };
 }
 

@@ -24,6 +24,7 @@ function guest(overrides: Partial<OrganizerGuest> = {}): OrganizerGuest {
     checkedInAt: null,
     claimedAt: null,
     lastSeenAt: null,
+    cameraActivatedAt: null,
     ...overrides,
   };
 }
