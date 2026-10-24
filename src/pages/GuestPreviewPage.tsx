@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import EventHeader from '../components/EventHeader';
 import GuestHubView from '../components/GuestHubView';
@@ -53,6 +53,7 @@ export default function GuestPreviewPage() {
   const [state, setState] = useState<PreviewState>(() => parsePreviewState(search.get('estado')));
   const [draft, setDraft] = useState<PreviewDraftPost | null>(null);
   const [load, setLoad] = useState<Load>({ status: 'loading' });
+  const refreshSeq = useRef(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -79,8 +80,12 @@ export default function GuestPreviewPage() {
       if (typeof e.data === 'object' && e.data !== null && (e.data as { type?: unknown }).type === PREVIEW_REFRESH_TYPE) {
         // Se publicó o despublicó un aviso con la vista previa abierta: se vuelven a leer solo los avisos, sin pasar
         // por la pantalla de carga. Si falla, se conserva lo que ya se veía.
+        // Solo vale la respuesta del último refresco: si dos se cruzan, la vieja no pisa a la nueva.
+        const seq = ++refreshSeq.current;
         listAllPosts(eventId)
-          .then((posts) => setLoad((prev) => (prev.status === 'ready' ? { ...prev, posts } : prev)))
+          .then((posts) => {
+            if (seq === refreshSeq.current) setLoad((prev) => (prev.status === 'ready' ? { ...prev, posts } : prev));
+          })
           .catch(noop);
         return;
       }
@@ -97,7 +102,11 @@ export default function GuestPreviewPage() {
     }
     window.addEventListener('message', onMessage);
     window.parent.postMessage({ type: PREVIEW_READY_TYPE }, window.location.origin);
-    return () => window.removeEventListener('message', onMessage);
+    return () => {
+      window.removeEventListener('message', onMessage);
+      // Un refresco en vuelo de un evento anterior (o de una página ya desmontada) no escribe nada.
+      refreshSeq.current++;
+    };
   }, [eventId]);
 
   const scenario = useMemo(() => {

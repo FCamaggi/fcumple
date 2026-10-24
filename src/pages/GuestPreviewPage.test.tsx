@@ -205,6 +205,43 @@ describe('GuestPreviewPage', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
+  it('si dos refrescos se cruzan, gana el último aunque la respuesta del primero llegue después', async () => {
+    renderAt();
+    await screen.findByText('Cambio de hora');
+    let resolveOld!: (posts: Post[]) => void;
+    let resolveNew!: (posts: Post[]) => void;
+    vi.mocked(listAllPosts)
+      .mockReturnValueOnce(new Promise<Post[]>((r) => (resolveOld = r)))
+      .mockReturnValueOnce(new Promise<Post[]>((r) => (resolveNew = r)));
+
+    send({ type: 'fcumple-preview-refresh' });
+    send({ type: 'fcumple-preview-refresh' });
+    await act(async () => resolveNew([post('n', 'Aviso nuevo', '2025-10-26T12:00:00Z')]));
+    await act(async () => resolveOld([post('v', 'Aviso viejo', '2025-10-26T12:00:00Z')]));
+
+    expect(await screen.findByText('Aviso nuevo')).toBeInTheDocument();
+    expect(screen.queryByText('Aviso viejo')).not.toBeInTheDocument();
+  });
+
+  it('ignora un refresco que no viene de la ventana que la contiene', async () => {
+    renderAt();
+    await screen.findByText('Cambio de hora');
+    vi.mocked(listAllPosts).mockClear();
+
+    act(() => {
+      fireEvent(
+        window,
+        new MessageEvent('message', {
+          data: { type: 'fcumple-preview-refresh' },
+          origin: window.location.origin,
+          source: null,
+        }),
+      );
+    });
+
+    expect(listAllPosts).not.toHaveBeenCalled();
+  });
+
   it('ignora un refresco de otro origen', async () => {
     renderAt();
     await screen.findByText('Cambio de hora');
