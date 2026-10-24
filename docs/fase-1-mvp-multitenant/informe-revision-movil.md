@@ -36,7 +36,7 @@ Los números «antes» salen de la primera corrida; la pantalla del escáner y e
 | Alto | Texto de 10–11 px en 289 lugares. | Todo a `text-xs` (12 px). Un test falla si vuelve a aparecer texto fijo menor de 12 px. |
 | Medio | `min-h-screen` usa `100vh`, que en iOS es la altura con la barra del navegador escondida. | `min-h-app`: `100vh` de respaldo y `100dvh`. |
 | Medio | Ninguna pantalla respetaba áreas seguras (notch, costados en horizontal, barra de inicio) aunque `viewport-fit=cover` está activo. | `inset-safe` en la cámara, la moderación, el escáner, el visor, el QR de puerta y el aviso del hub. No se puede comprobar sin un iPhone real. |
-| Bajo | Copy en voseo en 5 mensajes («Revisá», «Probá», «Elegí»); la app habla de «tú». | Corregido; un test vigila las formas acentuadas del voseo. |
+| Bajo | Copy en voseo en 12 mensajes («Revisá», «Probá», «Intentá», «Creá», «Tocá», «cerrá»…); la app habla de «tú». | Corregido; un test vigila 56 formas acentuadas del voseo en todo `src` (`.ts` y `.tsx`). |
 
 Tres capturas del panel a 360 px, antes y después:
 
@@ -54,7 +54,7 @@ Otras pantallas, ya con los arreglos: [inscripción en iPhone](./revision-movil/
 
 ## Lo que sigue pendiente
 - **Título del documento:** todas las pantallas del invitado muestran «Inscríbete a la fiesta» como título de la pestaña, también dentro del evento. Es de baja prioridad.
-- **Editor de capas (`LayerProperties`):** conserva filas de 20 px en sus interruptores. No se tocó porque la épica B decide si se retira o se limita.
+- **Editor de capas (`LayerProperties`) y editor de marcos (`FrameEditor`):** conservan filas de 20 px en sus interruptores, y sus muestras de color miden 32 px (marcadas `data-compact`, sobre el mínimo de 24 px de WCAG 2.2 AA). No se rediseñaron porque la épica B decide qué pasa con ellos. Estas dos pantallas no entraron en el recorrido automático.
 - **`PostsPanel` y `/admin`** vienen de la Fase 0: se arregló el diseño que rompía en el teléfono, no su estética.
 - **El panel de 9 pestañas** sigue siendo largo para usarlo durante la fiesta; la épica D lo reordena.
 - **Peso de la página:** no se midió. El paquete principal pasa de 500 kB y las fuentes de Google se piden siempre.

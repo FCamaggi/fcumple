@@ -13,13 +13,14 @@ interface Props<Id extends string> {
  */
 export default function PanelTabs<Id extends string>({ tabs, active, onSelect }: Props<Id>) {
   const refs = useRef(new Map<Id, HTMLButtonElement>());
-  const firstRender = useRef(true);
+  // La pestaña de la última vez que se desplazó: solo se mueve cuando cambia, no al montar (y es idempotente bajo
+  // StrictMode, donde el efecto corre dos veces al montar).
+  const shown = useRef(active);
 
   useEffect(() => {
-    if (firstRender.current) {
-      firstRender.current = false;
-      return;
-    }
+    if (shown.current === active) return;
+    shown.current = active;
+    // jsdom y navegadores viejos no traen matchMedia ni scrollIntoView.
     const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
     refs.current.get(active)?.scrollIntoView?.({ behavior: reduced ? 'auto' : 'smooth', inline: 'center', block: 'nearest' });
   }, [active]);

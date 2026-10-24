@@ -59,7 +59,7 @@ export default function DoorQrOverlay({ token, onClose }: DoorQrOverlayProps) {
       </div>
 
       <p className="max-w-xs font-sans text-sm text-paper-100/70">
-        Cuando te reconozcan, cerrá esta pantalla con el botón de abajo.
+        Cuando te reconozcan, cierra esta pantalla con el botón de abajo.
       </p>
 
       <button

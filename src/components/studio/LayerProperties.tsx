@@ -50,7 +50,8 @@ function ColorField({ label, value, onChange }: { label: string; value: string; 
             aria-label={`${label} ${swatch}`}
             onClick={() => onChange(swatch)}
             style={{ backgroundColor: swatch }}
-            className={`h-6 w-6 border ${value.toLowerCase() === swatch ? 'border-acid-400' : 'border-smoke-700/60'}`}
+            data-compact
+                className={`h-8 w-8 border ${value.toLowerCase() === swatch ? 'border-acid-400' : 'border-smoke-700/60'}`}
           />
         ))}
       </div>

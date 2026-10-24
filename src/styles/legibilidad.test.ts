@@ -4,11 +4,11 @@ import { describe, expect, it } from 'vitest';
 
 const SRC = path.join(__dirname, '..');
 
-function archivos(dir: string): string[] {
+function archivos(dir: string, extension: RegExp = /\.tsx$/): string[] {
   return readdirSync(dir).flatMap((nombre) => {
     const ruta = path.join(dir, nombre);
-    if (statSync(ruta).isDirectory()) return archivos(ruta);
-    return /\.tsx$/.test(nombre) && !/\.test\.tsx$/.test(nombre) ? [ruta] : [];
+    if (statSync(ruta).isDirectory()) return archivos(ruta, extension);
+    return extension.test(nombre) && !/\.test\.tsx?$/.test(nombre) ? [ruta] : [];
   });
 }
 
@@ -23,14 +23,25 @@ describe('legibilidad en el teléfono', () => {
     expect(culpables).toEqual([]);
   });
 
-  // La app habla de «tú» (Escribe, Inscríbete). El voseo ("Revisá", "probá") se coló en los avisos de error.
+  // La app habla de «tú» (Escribe, Inscríbete). El voseo se coló en avisos de error y de estado, también en los
+  // de `src/lib/*.ts`. Solo cuentan las formas acentuadas: «Revisa» (tú) está bien, «Revisá» (vos) no.
   it('los textos de la interfaz usan «tú» y no voseo', () => {
-    // Solo las formas acentuadas del voseo: «Revisa» (tú) está bien, «Revisá» (vos) no.
-    const voseo = /(?<![\p{L}])(?:revisá|probá|elegí|escribí|mirá|apretá|hacé|esperá|sacá|tenés|podés|querés)(?![\p{L}])/iu;
-    const culpables = archivos(SRC).flatMap((ruta) =>
+    const voseo = new RegExp(
+      '(?<![\\p{L}])(?:' +
+        [
+          'revisá', 'probá', 'elegí', 'escribí', 'mirá', 'apretá', 'hacé', 'esperá', 'sacá', 'tenés', 'podés', 'querés',
+          'creá', 'agregá', 'intentá', 'seleccioná', 'ingresá', 'volvé', 'completá', 'subí', 'tocá', 'ponete', 'fijate',
+          'acordate', 'tené', 'andá', 'pedí', 'contá', 'dejá', 'usá', 'buscá', 'copiá', 'descargá', 'compartí', 'confirmá',
+          'cerrá', 'abrí', 'avisá', 'guardá', 'aprobá', 'rechazá', 'activá', 'cargá', 'publicá', 'editá', 'borrá', 'eliminá',
+          'pegá', 'mandá', 'enviá', 'llená', 'escaneá', 'vení', 'seguí', 'pasá', 'poné', 'decí',
+        ].join('|') +
+        ')(?![\\p{L}])',
+      'iu',
+    );
+    const culpables = archivos(SRC, /\.tsx?$/).flatMap((ruta) =>
       readFileSync(ruta, 'utf-8')
         .split('\n')
-        .flatMap((linea, i) => (/['"`>]/.test(linea) && voseo.test(linea) && !/^\s*(\/\/|\*|\/\*)/.test(linea) ? [`${path.relative(SRC, ruta)}:${i + 1}`] : [])),
+        .flatMap((linea, i) => (!/^\s*(\/\/|\*|\/\*)/.test(linea) && voseo.test(linea) ? [`${path.relative(SRC, ruta)}:${i + 1}`] : [])),
     );
     expect(culpables).toEqual([]);
   });

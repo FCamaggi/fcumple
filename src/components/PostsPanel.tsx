@@ -306,7 +306,7 @@ export default function PostsPanel({ eventId }: { eventId?: string } = {}) {
         <span className="font-mono text-xs uppercase tracking-wider text-paper-100/70">Cargando...</span>
       ) : posts.length === 0 ? (
         <p className="font-mono text-xs uppercase tracking-wider text-paper-100/70">
-          Todavía no hay avisos. Creá el primero.
+          Todavía no hay avisos. Crea el primero.
         </p>
       ) : (
         <ul className="flex flex-col gap-2">

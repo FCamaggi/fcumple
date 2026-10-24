@@ -300,7 +300,7 @@ export default function GuestPage() {
       setToast(next === 'confirmed' ? 'Quedaste dentro. Nos vemos ahí.' : 'Que penal, te vamos a extrañar. Gracias por avisar.');
     } catch (err) {
       setToastKind('error');
-      setToast(err instanceof Error ? err.message : 'No pudimos guardar tu respuesta. Intentá de nuevo.');
+      setToast(err instanceof Error ? err.message : 'No pudimos guardar tu respuesta. Intenta de nuevo.');
     } finally {
       setSubmitting(false);
     }

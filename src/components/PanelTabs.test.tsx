@@ -1,4 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
+import { StrictMode } from 'react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import PanelTabs from './PanelTabs';
@@ -8,6 +9,14 @@ const TABS = [
   { id: 'dos', label: 'Dos' },
   { id: 'tres', label: 'Tres' },
 ];
+
+const scrollOriginal = Element.prototype.scrollIntoView;
+const matchMediaOriginal = window.matchMedia;
+
+afterEach(() => {
+  Element.prototype.scrollIntoView = scrollOriginal;
+  window.matchMedia = matchMediaOriginal;
+});
 
 describe('PanelTabs', () => {
   it('marca la sección activa con aria-current y avisa al elegir otra', async () => {
@@ -51,10 +60,20 @@ describe('PanelTabs', () => {
     expect(scrollIntoView).toHaveBeenCalledWith(expect.objectContaining({ inline: 'center', block: 'nearest' }));
   });
 
+  it('no desplaza nada al montar, tampoco bajo StrictMode (que corre los efectos dos veces)', () => {
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    render(
+      <StrictMode>
+        <PanelTabs tabs={TABS} active="tres" onSelect={() => {}} />
+      </StrictMode>,
+    );
+    expect(scrollIntoView).not.toHaveBeenCalled();
+  });
+
   it('con movimiento reducido el desplazamiento es instantáneo', () => {
     const scrollIntoView = vi.fn();
     Element.prototype.scrollIntoView = scrollIntoView;
-    const original = window.matchMedia;
     window.matchMedia = ((query: string) => ({
       matches: query.includes('prefers-reduced-motion'),
       media: query,
@@ -65,12 +84,8 @@ describe('PanelTabs', () => {
       dispatchEvent: () => false,
     })) as unknown as typeof window.matchMedia;
 
-    try {
-      const { rerender } = render(<PanelTabs tabs={TABS} active="uno" onSelect={() => {}} />);
-      rerender(<PanelTabs tabs={TABS} active="dos" onSelect={() => {}} />);
-      expect(scrollIntoView).toHaveBeenLastCalledWith(expect.objectContaining({ behavior: 'auto' }));
-    } finally {
-      window.matchMedia = original;
-    }
+    const { rerender } = render(<PanelTabs tabs={TABS} active="uno" onSelect={() => {}} />);
+    rerender(<PanelTabs tabs={TABS} active="dos" onSelect={() => {}} />);
+    expect(scrollIntoView).toHaveBeenLastCalledWith(expect.objectContaining({ behavior: 'auto' }));
   });
 });

@@ -269,7 +269,7 @@ export default function GuestEditModal({ guest, onClose, onSave, onDelete }: Gue
                 onClick={() => (confirmingDelete ? onDelete(draft.id) : setConfirmingDelete(true))}
                 className="tap-target w-full border border-flame-500 px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-flame-500 transition-colors hover:bg-flame-500/10 sm:w-auto"
               >
-                {confirmingDelete ? '¿Seguro? Tocá de nuevo para eliminar' : 'Eliminar invitado'}
+                {confirmingDelete ? '¿Seguro? Toca de nuevo para eliminar' : 'Eliminar invitado'}
               </button>
               <div className="flex w-full gap-2 sm:w-auto">
                 <button

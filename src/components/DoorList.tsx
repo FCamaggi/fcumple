@@ -363,7 +363,7 @@ function EmptyState({ onCreateGuest, noResults = false }: { onCreateGuest?: () =
       <h3 className="max-w-2xl font-display text-3xl uppercase leading-tight text-paper-100">
         {noResults
           ? 'Nadie en la lista calza con este filtro'
-          : 'Todavía no hay nadie en la lista — agregá tu primer invitado'}
+          : 'Todavía no hay nadie en la lista — agrega tu primer invitado'}
       </h3>
       <p className="max-w-xl font-sans text-sm text-paper-100/70">
         {noResults

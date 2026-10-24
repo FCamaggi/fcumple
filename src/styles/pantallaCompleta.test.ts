@@ -36,6 +36,27 @@ describe('pantalla completa en el teléfono', () => {
     }
   });
 
+  // Capas que cubren la pantalla en cualquier orden de clases (`fixed inset-0`, `inset-0 fixed`, `fixed z-50 inset-0`…).
+  // Los cuatro diálogos de la lista son cuadros centrados con margen (organizador / Fase 0): no necesitan el área segura.
+  const DIALOGOS_CENTRADOS = [
+    'pages/AdminPage.tsx',
+    'components/CreateGuestModal.tsx',
+    'components/GuestEditModal.tsx',
+    'components/ImportGuestsModal.tsx',
+  ];
+
+  it('ninguna capa a pantalla completa usa inset-0: todas respetan las áreas seguras (salvo los diálogos centrados)', () => {
+    const culpables = archivos(SRC)
+      .map((r) => path.relative(SRC, r))
+      .filter((rel) => !DIALOGOS_CENTRADOS.includes(rel))
+      .filter((rel) =>
+        leer(rel)
+          .split('\n')
+          .some((linea) => /\bfixed\b/.test(linea) && /\binset-0\b/.test(linea)),
+      );
+    expect(culpables).toEqual([]);
+  });
+
   it.each([
     'components/CameraCapture.tsx',
     'components/PhotoModerationPanel.tsx',
@@ -43,9 +64,7 @@ describe('pantalla completa en el teléfono', () => {
     'components/PhotoLightbox.tsx',
     'components/DoorQrOverlay.tsx',
     'components/GuestHub.tsx',
-  ])('%s: sus capas a pantalla completa respetan las áreas seguras', (rel) => {
-    const fuente = leer(rel);
-    expect(fuente).toContain('inset-safe');
-    expect(fuente).not.toMatch(/fixed inset-0/);
+  ])('%s: sus capas a pantalla completa usan inset-safe', (rel) => {
+    expect(leer(rel)).toContain('inset-safe');
   });
 });

@@ -42,7 +42,7 @@ function translateRsvpError(error: { message?: string; code?: string }): Error {
     case 'P0002':
       return new Error('Este enlace de invitación ya no es válido.');
     default:
-      return new Error('No pudimos guardar tu respuesta. Intentá de nuevo en un momento.');
+      return new Error('No pudimos guardar tu respuesta. Intenta de nuevo en un momento.');
   }
 }
 
@@ -76,7 +76,7 @@ export async function submitRsvp(
 
   const row = data?.[0] as GuestRow | undefined;
   if (!row) {
-    throw new Error('No pudimos guardar tu respuesta. Intentá de nuevo en un momento.');
+    throw new Error('No pudimos guardar tu respuesta. Intenta de nuevo en un momento.');
   }
   return mapRow(row, token);
 }
