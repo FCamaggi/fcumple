@@ -41,6 +41,23 @@ beforeEach(() => {
   storageFrom.mockReset();
 });
 
+/**
+ * Un fallo de Supabase llega al organizador con un mensaje fijo y legible: el texto crudo (tablas, políticas,
+ * buckets) no sale en la pantalla, y queda en la consola para depurar.
+ */
+async function expectSafeFailure(call: Promise<unknown>, message: string, raw: string) {
+  const spy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+  const err = await call.then(
+    () => null,
+    (e: unknown) => e,
+  );
+  expect(err).toBeInstanceOf(Error);
+  expect((err as Error).message).toBe(message);
+  expect((err as Error).message).not.toContain(raw);
+  expect(JSON.stringify(spy.mock.calls)).toContain(raw);
+  spy.mockRestore();
+}
+
 describe('listPublishedPosts', () => {
   it('queries only published posts ordered by most recent first', async () => {
     const order = vi.fn().mockResolvedValue({ data: [row], error: null });
@@ -75,7 +92,7 @@ describe('listPublishedPosts', () => {
     const select = vi.fn().mockReturnValue({ not });
     from.mockReturnValue({ select });
 
-    await expect(listPublishedPosts()).rejects.toThrow(/network down/);
+    await expectSafeFailure(listPublishedPosts(), 'No pudimos cargar los avisos.', 'network down');
   });
 });
 
@@ -98,7 +115,7 @@ describe('listAllPosts', () => {
     const select = vi.fn().mockReturnValue({ order });
     from.mockReturnValue({ select });
 
-    await expect(listAllPosts()).rejects.toThrow(/permission denied/);
+    await expectSafeFailure(listAllPosts(), 'No pudimos cargar los avisos.', 'permission denied');
   });
 });
 
@@ -179,7 +196,7 @@ describe('createPost', () => {
     const insert = vi.fn().mockReturnValue({ select });
     from.mockReturnValue({ insert });
 
-    await expect(createPost({ title: 'x', body: 'y' })).rejects.toThrow(/permission denied/);
+    await expectSafeFailure(createPost({ title: 'x', body: 'y' }), 'No pudimos crear el aviso.', 'permission denied');
   });
 });
 
@@ -220,7 +237,7 @@ describe('updatePost', () => {
     const update = vi.fn().mockReturnValue({ eq });
     from.mockReturnValue({ update });
 
-    await expect(updatePost('p1', { title: 'x' })).rejects.toThrow(/permission denied/);
+    await expectSafeFailure(updatePost('p1', { title: 'x' }), 'No pudimos actualizar el aviso.', 'permission denied');
   });
 });
 
@@ -241,7 +258,7 @@ describe('deletePost', () => {
     const del = vi.fn().mockReturnValue({ eq });
     from.mockReturnValue({ delete: del });
 
-    await expect(deletePost('p1')).rejects.toThrow(/permission denied/);
+    await expectSafeFailure(deletePost('p1'), 'No pudimos eliminar el aviso.', 'permission denied');
   });
 });
 
@@ -322,7 +339,7 @@ describe('uploadPostImage', () => {
     storageFrom.mockReturnValue({ upload });
     const file = new File(['bytes'], 'flyer.jpg', { type: 'image/jpeg' });
 
-    await expect(uploadPostImage(file, 'p1')).rejects.toThrow(/bucket denied/);
+    await expectSafeFailure(uploadPostImage(file, 'p1'), 'No pudimos subir la imagen.', 'bucket denied');
   });
 });
 
@@ -348,7 +365,7 @@ describe('listPostImages', () => {
     const select = vi.fn().mockReturnValue({ eq });
     from.mockReturnValue({ select });
 
-    await expect(listPostImages('p1')).rejects.toThrow(/denied/);
+    await expectSafeFailure(listPostImages('p1'), 'No pudimos cargar las imágenes del aviso.', 'denied');
   });
 });
 
@@ -385,7 +402,7 @@ describe('deletePostImage', () => {
     const del = vi.fn().mockReturnValue({ eq });
     from.mockReturnValue({ delete: del });
 
-    await expect(deletePostImage('img1')).rejects.toThrow(/denied/);
+    await expectSafeFailure(deletePostImage('img1'), 'No pudimos eliminar la imagen del aviso.', 'denied');
   });
 });
 
@@ -412,6 +429,6 @@ describe('getPostImageUrl', () => {
     const createSignedUrl = vi.fn().mockResolvedValue({ data: null, error: { message: 'not found' } });
     storageFrom.mockReturnValue({ createSignedUrl });
 
-    await expect(getPostImageUrl('p1/a.jpg')).rejects.toThrow(/not found|imagen/i);
+    await expectSafeFailure(getPostImageUrl('p1/a.jpg'), 'No pudimos generar el link de la imagen.', 'not found');
   });
 });

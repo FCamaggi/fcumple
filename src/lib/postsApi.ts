@@ -42,8 +42,13 @@ function mapImageRow(row: PostImageRow): PostImage {
   };
 }
 
+/**
+ * Lo que ve la organizadora es un mensaje fijo; el detalle de Supabase (tablas, políticas, buckets) va solo a la
+ * consola, para depurar.
+ */
 function fail(action: string, error: { message?: string } | null): never {
-  throw new Error(`No pudimos ${action}: ${error?.message ?? 'error desconocido'}`);
+  console.error(`[postsApi] No pudimos ${action}:`, error?.message ?? 'error desconocido');
+  throw new Error(`No pudimos ${action}.`);
 }
 
 // For the guest-facing surface: only posts that are actually live right
