@@ -275,3 +275,22 @@ describe('CameraStudio: stickers', () => {
     await waitFor(() => expect(screen.queryByRole('switch', { name: 'Activo: 🎉' })).not.toBeInTheDocument());
   });
 });
+
+describe('CameraStudio: carga', () => {
+  it('mientras carga lo dice con role="status"', () => {
+    vi.mocked(studio.listFrames).mockReturnValue(new Promise(() => undefined));
+    setup([]);
+    expect(screen.getByRole('status')).toHaveTextContent(/cargando/i);
+  });
+
+  it('si no carga ofrece «Reintentar», que vuelve a pedir marcos y stickers', async () => {
+    vi.mocked(studio.listFrames).mockRejectedValueOnce(new Error('No pudimos cargar la cámara.')).mockResolvedValueOnce([frame('f1', 'Borde rosa')]);
+    setup([]);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos cargar la cámara.');
+    await userEvent.click(screen.getByRole('button', { name: 'Reintentar' }));
+
+    expect(await screen.findByText('Borde rosa')).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+});

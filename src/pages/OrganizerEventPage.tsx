@@ -6,6 +6,7 @@ import DoorPanel from '../components/DoorPanel';
 import ActivationTab from '../components/ActivationTab';
 import EnrollmentSettings from '../components/EnrollmentSettings';
 import GuestPreviewTab from '../components/GuestPreviewTab';
+import PanelState from '../components/PanelState';
 import PanelTabs from '../components/PanelTabs';
 import PartyDayTab from '../components/PartyDayTab';
 import PostsPanel from '../components/PostsPanel';
@@ -67,6 +68,8 @@ export default function OrganizerEventPage() {
   const [event, setEvent] = useState<OrganizerEvent | null | undefined>(undefined);
   const [guests, setGuests] = useState<OrganizerGuest[]>([]);
   const [error, setError] = useState<string | null>(null);
+  // Sube con «Reintentar» para volver a leer el evento y sus invitados.
+  const [reloadKey, setReloadKey] = useState(0);
   const [tab, setTab] = useState<Tab>('invitados');
   const [scanning, setScanning] = useState(false);
   // Las fotos viven aquí, no en cada pestaña: así la insignia de «Fotos» se ve desde cualquier pestaña y «Fotos» y
@@ -95,7 +98,13 @@ export default function OrganizerEventPage() {
     return () => {
       cancelled = true;
     };
-  }, [eventId]);
+  }, [eventId, reloadKey]);
+
+  function retryLoad() {
+    setError(null);
+    setEvent(undefined);
+    setReloadKey((k) => k + 1);
+  }
 
   // «Actualizar» de la pestaña «Hoy»: si no se puede, se queda con la lista que ya tenía.
   const refreshGuests = useCallback(() => {
@@ -111,9 +120,9 @@ export default function OrganizerEventPage() {
   if (error) {
     return (
       <div className={shell}>
-        <p role="alert" className="font-mono text-xs uppercase tracking-wider text-flame-500">
+        <PanelState kind="error" onRetry={retryLoad}>
           {error}
-        </p>
+        </PanelState>
       </div>
     );
   }
@@ -121,7 +130,7 @@ export default function OrganizerEventPage() {
   if (event === undefined) {
     return (
       <div className={shell}>
-        <p className="font-mono text-xs uppercase tracking-widest text-acid-400">Cargando...</p>
+        <PanelState kind="loading">Cargando...</PanelState>
       </div>
     );
   }
@@ -129,9 +138,8 @@ export default function OrganizerEventPage() {
   if (event === null) {
     return (
       <div className={shell}>
-        <p role="alert" className="font-mono text-xs uppercase tracking-wider">
-          Este evento no existe o no es tuyo.
-        </p>
+        {/* Sin «Reintentar»: no es un fallo de red, el evento no está. */}
+        <PanelState kind="error">Este evento no existe o no es tuyo.</PanelState>
       </div>
     );
   }

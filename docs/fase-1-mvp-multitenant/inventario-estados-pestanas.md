@@ -40,3 +40,11 @@ Queda fuera, por no ser carga de datos: Inscripción y Ajustes (formularios) y l
 - Los mensajes de error de **Avisos** salen de `postsApi.fail()`, que incluye el texto crudo de Supabase (`No pudimos ${acción}: ${mensaje}`) en 11 puntos. Ya era así; ahora se anuncia como alerta. No se cambió aquí: afecta mensajes ajenos a esta etapa y el detalle ayuda a depurar. Pendiente de decidir.
 - Con la lista de avisos caída, «Nuevo aviso» sigue disponible y un aviso creado no se ve hasta reintentar la lectura.
 - Al pasar de error a «Cargando...» el botón con foco desaparece y el foco se pierde (igual que ya ocurría en «Hoy»).
+
+## PR B: hecho
+- **Cámara:** la carga usa `PanelState` (`role="status"`) y el error de lectura ofrece «Reintentar», que vuelve a pedir marcos y stickers.
+- **Página del panel:** si falla la carga del evento o de los invitados, el error ofrece «Reintentar» y, al reintentar, vuelve a «Cargando...». «Este evento no existe o no es tuyo» sigue sin reintento: no es un fallo de red.
+- **Puerta:** sin invitados aprobados dice «Todavía no hay invitados aprobados…» (también cuando solo hay solicitudes sin aprobar).
+- **QR de Activación y de Enlace:** si no se puede generar, lo dicen («No pudimos generar el QR.») con «Reintentar», en vez de dejar un hueco. En Activación el texto es fijo a propósito: la dirección del QR lleva el código de activación y no debe mostrarse.
+
+Con esto quedan cubiertas las carencias del inventario, salvo las dos anotadas como límites del PR A y la vista previa (que tiene sus estados dentro del teléfono).

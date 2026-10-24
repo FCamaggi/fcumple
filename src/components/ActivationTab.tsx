@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
+import PanelState from './PanelState';
 import { rotateActivationCode, type OrganizerEvent } from '../lib/organizerApi';
 
 interface ActivationTabProps {
@@ -16,22 +17,29 @@ interface ActivationTabProps {
 export default function ActivationTab({ event, onEventChange }: ActivationTabProps) {
   const url = `${window.location.origin}/e/${event.slug}/a/${event.activationCode}`;
   const [qr, setQr] = useState<string | null>(null);
+  // Si el QR no se puede dibujar hay que decirlo: es lo que se imprime. El mensaje es fijo (la dirección lleva el código).
+  const [qrFailed, setQrFailed] = useState(false);
+  const [qrKey, setQrKey] = useState(0);
   const [rotating, setRotating] = useState(false);
   const [message, setMessage] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+    setQrFailed(false);
     QRCode.toDataURL(url, { margin: 4, width: 800 })
       .then((dataUrl) => {
         if (!cancelled) setQr(dataUrl);
       })
       .catch(() => {
-        if (!cancelled) setQr(null);
+        if (!cancelled) {
+          setQr(null);
+          setQrFailed(true);
+        }
       });
     return () => {
       cancelled = true;
     };
-  }, [url]);
+  }, [url, qrKey]);
 
   async function handleRotate() {
     if (
@@ -68,6 +76,12 @@ export default function ActivationTab({ event, onEventChange }: ActivationTabPro
         Imprime este código y ponlo en la fiesta (la entrada, la barra). Cada invitado lo escanea con la cámara de su
         celular y se le activa la cámara de fotos. Sin escanearlo no pueden sacar fotos, aunque ya estén inscritos.
       </p>
+
+      {qrFailed && (
+        <PanelState kind="error" onRetry={() => setQrKey((k) => k + 1)}>
+          No pudimos generar el QR.
+        </PanelState>
+      )}
 
       {qr && (
         <div className="flex flex-col items-start gap-2">

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import PanelState from './PanelState';
 import type { OrganizerGuest } from '../lib/organizerApi';
 
 interface DoorPanelProps {
@@ -61,6 +62,12 @@ export default function DoorPanel({ guests, onCheckIn, onOpenScanner }: DoorPane
           Abrir escáner
         </button>
       </div>
+
+      {approved.length === 0 && (
+        <PanelState kind="empty">
+          Todavía no hay invitados aprobados. Cuando se inscriban y los apruebes, aparecerán aquí para marcar su llegada.
+        </PanelState>
+      )}
 
       <div className="flex flex-col gap-1">
         <label htmlFor="door-search" className="font-mono text-xs uppercase tracking-wider text-paper-100/70">
