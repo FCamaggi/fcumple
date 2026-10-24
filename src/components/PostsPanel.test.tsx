@@ -74,6 +74,18 @@ describe('PostsPanel: estados de la lista', () => {
     expect(screen.queryByText('Cargando...')).not.toBeInTheDocument();
   });
 
+  it('con la lista caída no ofrece «Nuevo aviso» (no se vería hasta reintentar) y lo devuelve al recargar', async () => {
+    vi.mocked(listAllPosts).mockRejectedValueOnce(new Error('sin red')).mockResolvedValueOnce([draftPost]);
+    vi.mocked(listPostImages).mockResolvedValue([]);
+    render(<PostsPanel eventId="ev-1" />);
+
+    await screen.findByRole('button', { name: 'Reintentar' });
+    expect(screen.queryByRole('button', { name: 'Nuevo aviso' })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Reintentar' }));
+    expect(await screen.findByRole('button', { name: 'Nuevo aviso' })).toBeInTheDocument();
+  });
+
   it('«Reintentar» vuelve a pedir la lista y muestra los avisos', async () => {
     vi.mocked(listAllPosts).mockRejectedValueOnce(new Error('sin red')).mockResolvedValueOnce([draftPost]);
     vi.mocked(listPostImages).mockResolvedValue([]);
@@ -84,22 +96,32 @@ describe('PostsPanel: estados de la lista', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
-  it('reintentar la lista limpia un error viejo de una acción', async () => {
-    vi.mocked(listAllPosts).mockRejectedValueOnce(new Error('sin red')).mockResolvedValueOnce([draftPost]);
+  it('volver a leer la lista limpia un error viejo de una acción', async () => {
+    vi.mocked(listAllPosts).mockResolvedValue([draftPost]);
     vi.mocked(listPostImages).mockResolvedValue([]);
-    vi.mocked(createPost).mockRejectedValueOnce(new Error('No pudimos crear el aviso.'));
+    vi.mocked(publishPost).mockRejectedValueOnce(new Error('No pudimos cambiar el estado del aviso.'));
+    const { rerender } = render(<PostsPanel eventId="ev-1" />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Publicar' }));
+    expect(await screen.findByText('No pudimos cambiar el estado del aviso.')).toBeInTheDocument();
+
+    rerender(<PostsPanel eventId="ev-2" />);
+
+    await waitFor(() => expect(screen.queryByText('No pudimos cambiar el estado del aviso.')).not.toBeInTheDocument());
+  });
+
+  it('si el formulario estaba abierto cuando la lista falla, se cierra: no se puede crear un aviso que no se vería', async () => {
+    let failLoad: (err: Error) => void = () => {};
+    vi.mocked(listAllPosts).mockReturnValueOnce(new Promise((_, reject) => { failLoad = reject; }));
     render(<PostsPanel eventId="ev-1" />);
-    await screen.findByRole('button', { name: 'Reintentar' });
     await userEvent.click(screen.getByRole('button', { name: 'Nuevo aviso' }));
-    await userEvent.type(screen.getByLabelText('Título'), 'X');
-    await userEvent.type(screen.getByLabelText('Cuerpo'), 'Y');
-    await userEvent.click(screen.getByRole('button', { name: 'Crear' }));
-    expect(await screen.findByText('No pudimos crear el aviso.')).toBeInTheDocument();
+    expect(screen.getByLabelText('Título')).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Reintentar' }));
+    failLoad(new Error('sin red'));
 
-    expect(await screen.findByText('Borrador sin publicar')).toBeInTheDocument();
-    expect(screen.queryByText('No pudimos crear el aviso.')).not.toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Reintentar' })).toBeInTheDocument();
+    expect(screen.queryByLabelText('Título')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Nuevo aviso' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Cancelar' })).not.toBeInTheDocument();
   });
 
   it('mientras reintenta vuelve a decir «Cargando...»', async () => {
