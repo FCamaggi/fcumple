@@ -26,7 +26,82 @@ beforeEach(() => {
   vi.spyOn(window, 'confirm').mockReturnValue(true);
 });
 
+describe('useEventPhotos: estado compartido por la página', () => {
+  it('al publicar desde la revisión parte del evento más reciente, no del que había al montar', async () => {
+    vi.mocked(api.publishPhotoBatch).mockResolvedValue(1);
+    const onEventChange = vi.fn();
+    const { result, rerender } = renderHook(({ ev }) => useEventPhotos(ev, onEventChange), {
+      initialProps: { ev: { ...event, name: 'Viejo' } as api.OrganizerEvent },
+    });
+    await waitFor(() => expect(result.current.photos).toHaveLength(3));
+
+    // Guardó Ajustes: el evento cambia pero su id es el mismo.
+    rerender({ ev: { ...event, name: 'Nuevo' } as api.OrganizerEvent });
+    await act(async () => {
+      await result.current.source.publish();
+    });
+
+    expect(onEventChange).toHaveBeenCalledWith(expect.objectContaining({ name: 'Nuevo', photosRevealedAt: expect.any(String) }));
+  });
+
+  it('el aviso de una publicación no sobrevive a recargar la lista (cambio de pestaña, «Actualizar»)', async () => {
+    vi.mocked(api.publishPhotoBatch).mockResolvedValue(2);
+    const { result } = renderHook(() => useEventPhotos(event, vi.fn()));
+    await waitFor(() => expect(result.current.photos).toHaveLength(3));
+    await act(async () => {
+      await result.current.handlePublish();
+    });
+    expect(result.current.notice).toBe('Publicaste 2 foto(s).');
+
+    act(() => result.current.reload());
+
+    expect(result.current.notice).toBeNull();
+  });
+
+  it('tras un fallo, recargar no deja a la vista las fotos viejas: vuelve a «cargando» hasta que llegan las nuevas', async () => {
+    const { result } = renderHook(() => useEventPhotos(event, vi.fn()));
+    await waitFor(() => expect(result.current.photos).toHaveLength(3));
+
+    vi.mocked(api.listEventPhotos).mockRejectedValueOnce(new Error('sin red'));
+    act(() => result.current.reload());
+    await waitFor(() => expect(result.current.error).toBe('sin red'));
+
+    let resolve: (v: Awaited<ReturnType<typeof api.listEventPhotos>>) => void = () => undefined;
+    vi.mocked(api.listEventPhotos).mockReturnValueOnce(new Promise((r) => (resolve = r)));
+    act(() => result.current.reload());
+
+    expect(result.current.photos).toBeNull();
+    expect(result.current.error).toBeNull();
+    await act(async () => resolve([photo('z', 'pending')]));
+    expect(result.current.photos).toHaveLength(1);
+  });
+});
+
 describe('useEventPhotos', () => {
+  it('sin evento todavía no pide nada, y al llegar el evento carga sus fotos', async () => {
+    const { result, rerender } = renderHook(({ ev }: { ev: api.OrganizerEvent | null }) => useEventPhotos(ev, vi.fn()), {
+      initialProps: { ev: null as api.OrganizerEvent | null },
+    });
+
+    expect(api.listEventPhotos).not.toHaveBeenCalled();
+    expect(result.current.photos).toBeNull();
+
+    rerender({ ev: event });
+    await waitFor(() => expect(result.current.photos).toHaveLength(3));
+    expect(api.listEventPhotos).toHaveBeenCalledWith('ev-1');
+  });
+
+  it('al recargar conserva las fotos que ya tenía hasta que llegan las nuevas', async () => {
+    const { result } = renderHook(() => useEventPhotos(event, vi.fn()));
+    await waitFor(() => expect(result.current.photos).toHaveLength(3));
+
+    vi.mocked(api.listEventPhotos).mockResolvedValueOnce([photo('a', 'pending')]);
+    act(() => result.current.reload());
+
+    expect(result.current.photos).toHaveLength(3);
+    await waitFor(() => expect(result.current.photos).toHaveLength(1));
+  });
+
   it('carga las fotos del evento y las cuenta', async () => {
     const { result } = renderHook(() => useEventPhotos(event, vi.fn()));
 

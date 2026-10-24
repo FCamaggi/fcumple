@@ -33,7 +33,14 @@ vi.mock('./PhotoModerationPanel', () => ({
 }));
 
 import * as api from '../lib/organizerApi';
-import PhotosTab from './PhotosTab';
+import PhotosTabView from './PhotosTab';
+import { useEventPhotos } from '../hooks/useEventPhotos';
+
+/** La pestaña recibe el estado de las fotos de la página; aquí lo arma el mismo hook. */
+function PhotosTab(props: { event: api.OrganizerEvent; onEventChange: (e: api.OrganizerEvent) => void }) {
+  const photos = useEventPhotos(props.event, props.onEventChange);
+  return <PhotosTabView photos={photos} />;
+}
 
 const event: api.OrganizerEvent = {
   id: 'ev-1',

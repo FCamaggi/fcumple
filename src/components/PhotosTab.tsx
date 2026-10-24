@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import PhotoModerationPanel from './PhotoModerationPanel';
-import { useEventPhotos } from '../hooks/useEventPhotos';
-import type { OrganizerEvent } from '../lib/organizerApi';
+import type { EventPhotos } from '../hooks/useEventPhotos';
 
 interface PhotosTabProps {
-  event: OrganizerEvent;
-  onEventChange: (event: OrganizerEvent) => void;
+  /** Las fotos del evento: las pide la página del panel y las comparte con «Hoy» y con la insignia de «Fotos». */
+  photos: EventPhotos;
 }
 
 /**
@@ -14,14 +13,15 @@ interface PhotosTabProps {
  * todas las aprobadas que faltaban. Reutiliza `PhotoModerationPanel` con las funciones de la Fase 1 (que
  * trabajan sobre ESTE evento).
  */
-export default function PhotosTab({ event, onEventChange }: PhotosTabProps) {
+export default function PhotosTab({ photos: state }: PhotosTabProps) {
   const [moderating, setModerating] = useState(false);
+  const { photos, counts, error, notice, publishing, reload, handlePublish, source } = state;
+
   // Al abrir y al cerrar la revisión se vuelve a pedir la lista: lo revisado cambia los conteos.
-  const { photos, counts, error, notice, publishing, handlePublish, source } = useEventPhotos(
-    event,
-    onEventChange,
-    moderating ? 1 : 0,
-  );
+  function setReviewOpen(open: boolean) {
+    setModerating(open);
+    reload();
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -51,7 +51,7 @@ export default function PhotosTab({ event, onEventChange }: PhotosTabProps) {
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
-          onClick={() => setModerating(true)}
+          onClick={() => setReviewOpen(true)}
           className="h-11 bg-acid-400 px-5 font-display text-sm uppercase tracking-wider text-ink-950"
         >
           {counts.pending > 0 ? `Revisar ${counts.pending} foto(s)` : 'Abrir revisión de fotos'}
@@ -66,7 +66,7 @@ export default function PhotosTab({ event, onEventChange }: PhotosTabProps) {
         </button>
       </div>
 
-      {moderating && <PhotoModerationPanel onClose={() => setModerating(false)} source={source} />}
+      {moderating && <PhotoModerationPanel onClose={() => setReviewOpen(false)} source={source} />}
     </div>
   );
 }

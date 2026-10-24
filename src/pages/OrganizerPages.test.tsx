@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 
 vi.mock('../lib/organizerApi', () => ({
   listMyEvents: vi.fn(),
@@ -13,6 +13,9 @@ vi.mock('../lib/organizerApi', () => ({
   removeGuest: vi.fn(),
   regenerateGuestToken: vi.fn(),
   updateEvent: vi.fn(),
+  listEventPhotos: vi.fn(),
+  moderateEventPhoto: vi.fn(),
+  publishPhotoBatch: vi.fn(),
 }));
 vi.mock('../lib/adminApi', () => ({ checkInGuest: vi.fn() }));
 vi.mock('../components/QrScanner', () => ({
@@ -20,7 +23,11 @@ vi.mock('../components/QrScanner', () => ({
     <div data-testid="scanner">escáner con {guests.map((g) => g.token).join(',')}<button type="button" onClick={onClose}>cerrar escáner</button></div>
   ),
 }));
-vi.mock('../components/PhotosTab', () => ({ default: () => <div data-testid="photos-tab" /> }));
+vi.mock('../components/PhotosTab', () => ({
+  default: ({ photos }: { photos: { photos: unknown[] | null } }) => (
+    <div data-testid="photos-tab">{photos.photos?.length ?? 0} fotos</div>
+  ),
+}));
 vi.mock('../components/PartyDayTab', () => ({
   default: ({
     guests,
@@ -101,6 +108,7 @@ function Where() {
 
 beforeEach(() => {
   for (const fn of Object.values(api)) (fn as ReturnType<typeof vi.fn>).mockReset();
+  vi.mocked(api.listEventPhotos).mockResolvedValue([]);
 });
 
 describe('OrganizerEventsPage', () => {
@@ -170,6 +178,99 @@ describe('OrganizerEventPage', () => {
 
     expect(await screen.findByRole('heading', { name: 'Fiesta de Ana' })).toBeInTheDocument();
     expect(screen.getByText('Ana Rojas')).toBeInTheDocument();
+  });
+
+  describe('insignia de fotos por revisar', () => {
+    const pendingPhoto = (id: string) =>
+      ({ id, status: 'pending', publishedAt: null, guestFullName: 'Ana Rojas' }) as unknown as Awaited<
+        ReturnType<typeof api.listEventPhotos>
+      >[number];
+
+    function openEvent() {
+      vi.mocked(api.getMyEvent).mockResolvedValueOnce(event);
+      vi.mocked(api.listEventGuests).mockResolvedValueOnce([ana]);
+      renderEvent();
+    }
+
+    it('se ve en «Fotos» desde cualquier pestaña, con la cuenta de las pendientes', async () => {
+      vi.mocked(api.listEventPhotos).mockResolvedValue([pendingPhoto('a'), pendingPhoto('b'), pendingPhoto('c')]);
+      openEvent();
+
+      expect(await screen.findByText('Ana Rojas')).toBeInTheDocument();
+      expect(await screen.findByRole('button', { name: /Fotos.*3 por revisar/ })).toBeInTheDocument();
+    });
+
+    it('al pasar a otro evento no se ve la insignia del anterior', async () => {
+      vi.mocked(api.listEventPhotos).mockResolvedValueOnce([pendingPhoto('a'), pendingPhoto('b')]);
+      vi.mocked(api.getMyEvent).mockResolvedValueOnce(event).mockResolvedValueOnce({ ...event, id: 'ev-2', name: 'Otra fiesta' });
+      vi.mocked(api.listEventGuests).mockResolvedValue([ana]);
+      function GoToOther() {
+        const navigate = useNavigate();
+        return (
+          <button type="button" onClick={() => navigate('/panel/e/ev-2')}>
+            ir al otro evento
+          </button>
+        );
+      }
+      render(
+        <MemoryRouter initialEntries={['/panel/e/ev-1']}>
+          <GoToOther />
+          <Routes>
+            <Route path="/panel/e/:eventId" element={<OrganizerEventPage />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+      expect(await screen.findByRole('button', { name: /Fotos.*2 por revisar/ })).toBeInTheDocument();
+
+      vi.mocked(api.listEventPhotos).mockReturnValueOnce(new Promise(() => undefined));
+      await userEvent.click(screen.getByRole('button', { name: 'ir al otro evento' }));
+
+      expect(await screen.findByText('Otra fiesta')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Fotos' })).toHaveTextContent(/^Fotos$/);
+    });
+
+    it('sin fotos por revisar no hay insignia', async () => {
+      openEvent();
+      await screen.findByText('Ana Rojas');
+
+      await waitFor(() => expect(api.listEventPhotos).toHaveBeenCalled());
+      expect(screen.getByRole('button', { name: 'Fotos' })).toHaveTextContent(/^Fotos$/);
+    });
+
+    it('no hay sondeo: pide las fotos una vez y otra por cada cambio de pestaña', async () => {
+      vi.mocked(api.listEventPhotos).mockResolvedValueOnce([pendingPhoto('a')]).mockResolvedValueOnce([
+        pendingPhoto('a'),
+        pendingPhoto('b'),
+      ]);
+      openEvent();
+      expect(await screen.findByRole('button', { name: /Fotos.*1 por revisar/ })).toBeInTheDocument();
+      expect(api.listEventPhotos).toHaveBeenCalledTimes(1);
+
+      await userEvent.click(screen.getByRole('button', { name: 'Avisos' }));
+
+      expect(await screen.findByRole('button', { name: /Fotos.*2 por revisar/ })).toBeInTheDocument();
+      expect(api.listEventPhotos).toHaveBeenCalledTimes(2);
+    });
+
+    it('si no puede leer las fotos, no muestra una cuenta que podría ser falsa', async () => {
+      vi.mocked(api.listEventPhotos).mockResolvedValueOnce([pendingPhoto('a')]).mockRejectedValueOnce(new Error('sin red'));
+      openEvent();
+      expect(await screen.findByRole('button', { name: /Fotos.*1 por revisar/ })).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', { name: 'Avisos' }));
+
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Fotos' })).toHaveTextContent(/^Fotos$/));
+    });
+
+    it('la pestaña «Fotos» recibe las mismas fotos, sin pedirlas otra vez', async () => {
+      vi.mocked(api.listEventPhotos).mockResolvedValue([pendingPhoto('a')]);
+      openEvent();
+      await screen.findByRole('button', { name: /Fotos.*1 por revisar/ });
+
+      await userEvent.click(screen.getByRole('button', { name: /^Fotos/ }));
+
+      expect(await screen.findByTestId('photos-tab')).toHaveTextContent('1 fotos');
+    });
   });
 
   describe('pestaña «Hoy»', () => {

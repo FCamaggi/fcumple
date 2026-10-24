@@ -18,7 +18,8 @@ vi.mock('./PhotoModerationPanel', () => ({
 }));
 
 import * as api from '../lib/organizerApi';
-import PartyDayTab from './PartyDayTab';
+import PartyDayTabView from './PartyDayTab';
+import { useEventPhotos } from '../hooks/useEventPhotos';
 
 const event = {
   id: 'ev-1',
@@ -59,6 +60,15 @@ const guests = [
   guest('dos'),
   guest('tres'),
 ];
+
+/** La pestaña recibe el estado de las fotos de la página; aquí lo arma el mismo hook. */
+function PartyDayTab({
+  onEventChange,
+  ...props
+}: Omit<React.ComponentProps<typeof PartyDayTabView>, 'photos'> & { onEventChange: (e: api.OrganizerEvent) => void }) {
+  const photos = useEventPhotos(props.event, onEventChange);
+  return <PartyDayTabView {...props} photos={photos} />;
+}
 
 function renderTab(over: { event?: api.OrganizerEvent; guests?: api.OrganizerGuest[]; onOpenTab?: () => void } = {}) {
   const onOpenTab = over.onOpenTab ?? vi.fn();

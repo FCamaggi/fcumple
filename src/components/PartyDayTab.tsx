@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import PhotoModerationPanel from './PhotoModerationPanel';
-import { useEventPhotos } from '../hooks/useEventPhotos';
+import type { EventPhotos } from '../hooks/useEventPhotos';
 import type { CameraUnlock, OrganizerEvent, OrganizerGuest } from '../lib/organizerApi';
 import { summarizeCamera } from '../lib/partyDay';
 
@@ -9,7 +9,8 @@ export type PartyDayShortcut = 'fotos' | 'activacion' | 'invitados';
 interface PartyDayTabProps {
   event: OrganizerEvent;
   guests: OrganizerGuest[];
-  onEventChange: (event: OrganizerEvent) => void;
+  /** Las fotos del evento: las pide la página del panel y las comparte con «Fotos» y con la insignia. */
+  photos: EventPhotos;
   /** Lleva a otra pestaña del panel (los atajos de esta). */
   onOpenTab: (tab: PartyDayShortcut) => void;
   /** Vuelve a leer la lista de invitados (las fotos las relee esta pestaña). */
@@ -35,13 +36,15 @@ const secondary =
  * revisión y la publicación del lote ahí mismo) y quiénes ya activaron la cámara. Solo muestra y atajos: no guarda
  * nada propio, usa lo mismo que las pestañas «Fotos», «Activación» e «Invitados».
  */
-export default function PartyDayTab({ event, guests, onEventChange, onOpenTab, onRefresh }: PartyDayTabProps) {
+export default function PartyDayTab({ event, guests, photos: state, onOpenTab, onRefresh }: PartyDayTabProps) {
   const [moderating, setModerating] = useState(false);
-  const { photos, counts, error, notice, publishing, reload, handlePublish, source } = useEventPhotos(
-    event,
-    onEventChange,
-    moderating ? 1 : 0,
-  );
+  const { photos, counts, error, notice, publishing, reload, handlePublish, source } = state;
+
+  // Al abrir y al cerrar la revisión se vuelve a pedir la lista: lo revisado cambia los conteos.
+  function setReviewOpen(open: boolean) {
+    setModerating(open);
+    reload();
+  }
   const camera = useMemo(() => summarizeCamera(event.cameraUnlock, guests), [event.cameraUnlock, guests]);
   const listed = camera.missing.slice(0, MAX_LISTED);
 
@@ -95,7 +98,7 @@ export default function PartyDayTab({ event, guests, onEventChange, onOpenTab, o
             )}
             <div className="flex flex-wrap gap-2">
               {counts.pending > 0 && (
-                <button type="button" onClick={() => setModerating(true)} className={primary}>
+                <button type="button" onClick={() => setReviewOpen(true)} className={primary}>
                   Revisar {counts.pending} foto(s)
                 </button>
               )}
@@ -152,7 +155,7 @@ export default function PartyDayTab({ event, guests, onEventChange, onOpenTab, o
         </div>
       </section>
 
-      {moderating && <PhotoModerationPanel onClose={() => setModerating(false)} source={source} />}
+      {moderating && <PhotoModerationPanel onClose={() => setReviewOpen(false)} source={source} />}
     </div>
   );
 }

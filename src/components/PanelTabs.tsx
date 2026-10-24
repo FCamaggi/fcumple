@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react';
 
 interface Props<Id extends string> {
-  tabs: ReadonlyArray<{ id: Id; label: string }>;
+  /** `badge`: una cuenta que se dibuja en la pestaña (con cero no se dibuja) y su explicación para lectores de pantalla. */
+  tabs: ReadonlyArray<{ id: Id; label: string; badge?: { count: number; hint: string } }>;
   active: Id;
   onSelect: (id: Id) => void;
 }
@@ -43,6 +44,19 @@ export default function PanelTabs<Id extends string>({ tabs, active, onSelect }:
             }`}
           >
             {t.label}
+            {t.badge && t.badge.count > 0 && (
+              <>
+                <span
+                  aria-hidden="true"
+                  className={`ml-2 inline-block min-w-5 px-1.5 text-center text-xs leading-5 ${
+                    active === t.id ? 'bg-ink-950 text-acid-400' : 'bg-acid-400 text-ink-950'
+                  }`}
+                >
+                  {t.badge.count > 99 ? '99+' : t.badge.count}
+                </span>
+                <span className="sr-only">{`, ${t.badge.count} ${t.badge.hint}`}</span>
+              </>
+            )}
           </button>
         ))}
       </div>
