@@ -48,3 +48,6 @@ Una cámara desechable digital para eventos festivos e informales (cumpleaños, 
 - Lo propio de un cliente va como datos en la base y su material personal fuera del repo (`docs/clientes/` está en `.gitignore`: el repo es público).
 - Los directorios de trabajo extra (`git worktree`) se crean por tarea en `~/code/fcumple-wt/<tarea>` y se quitan al fusionar.
 - Lo que llega a `main` se despliega (el Deploy aplica las migraciones y publica en Vercel): se verifica en producción, no solo en local.
+
+## Mensajes de error de los avisos
+Desde 2026-10-24, `postsApi` muestra a la organizadora un mensaje fijo («No pudimos crear el aviso.») y manda el detalle de Supabase (tablas, políticas, buckets) solo a la consola, con el prefijo `[postsApi]`. Antes el texto crudo se mostraba en pantalla. Cubierto por `expectSafeFailure` en `src/lib/postsApi.test.ts`. `organizerApi` ya trabajaba con mensajes fijos.
