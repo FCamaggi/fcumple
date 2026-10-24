@@ -6,7 +6,8 @@ Fecha: 2026-10-24. Rama `feat/vistas-previas`. Origen: [`backlog-diseno-y-marcos
 - **C1, pestaña «Vista previa» del panel.** Un teléfono de 390×844 con la pantalla del invitado y siete estados elegibles: inscripción, cámara bloqueada, cámara activa, avisos, fotos publicadas, cartelera vacía y cupo agotado.
 - **C2, «Ver cómo queda» al redactar un aviso.** En los formularios de crear y de editar (solo con evento), el mismo teléfono muestra el borrador, con portada, subtítulo, cuerpo y galería, arriba de los avisos ya publicados y sin repetir el que se edita.
 - **C4, «Ver cómo queda» en Ajustes.** Bajo «Estilo del evento» hay un botón que abre el mismo teléfono (cerrado por defecto: no carga nada hasta que se pide). Al elegir otro preset en la lista, el teléfono lo pinta al instante, sin guardar; el guardado sigue siendo el botón «Guardar ajustes».
-- No existen todavía C3 (marcos), C5 (tarjeta del enlace) ni C6 (flujo del QR simulado).
+- **C5, tarjeta del enlace (2026-10-24).** En la pestaña «Enlace», «Así se verá en WhatsApp» dibuja la tarjeta con título (el nombre del evento), descripción, imagen y dominio. La descripción sale de `describeEvent`, la misma función que usa `api/event-meta.ts` para los rastreadores, así que no se desalinean. La imagen es `public/og/<slug>.jpg`; si no existe (el sitio devuelve `index.html` y la imagen falla) la tarjeta se muestra sin imagen y lo dice. Avisa que WhatsApp puede tardar en actualizarla. Solo dibuja: no manda nada ni crea datos. Verificado con `o07` a 360 px (sin desbordes, sin campos <16 px ni botones <44 px); **no** se comprobó contra WhatsApp real ni en teléfono real.
+- No existen todavía C3 (marcos) ni C6 (flujo del QR simulado).
 
 ## Cómo está hecho
 - `GuestHubView` es la cartelera del invitado sin estado ni llamadas; `GuestHub` (el real) y la vista previa la alimentan. `EventHeader` es la cabecera compartida. Lo que ve la organizadora es el mismo código que ve el invitado.

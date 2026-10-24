@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
+import LinkCardPreview from './LinkCardPreview';
 import PanelState from './PanelState';
 import { eventUrl, whatsappMessage, whatsappShareUrl } from '../lib/eventLink';
 import type { OrganizerEvent } from '../lib/organizerApi';
 
 interface ShareEventLinkProps {
-  event: Pick<OrganizerEvent, 'name' | 'slug'>;
+  // El subtítulo, la fecha y el lugar arman la descripción de la tarjeta del enlace (`LinkCardPreview`).
+  event: Pick<OrganizerEvent, 'name' | 'slug'> & Partial<Pick<OrganizerEvent, 'subtitle' | 'startsAt' | 'location'>>;
 }
 
 /**
@@ -84,6 +86,11 @@ export default function ShareEventLink({ event }: ShareEventLinkProps) {
       <p className="font-sans text-xs text-paper-100/60">
         Manda el mismo enlace a todos (por ejemplo al grupo). Cada persona escribe su nombre y apellido y elige un PIN de 4 a 6 números para entrar. Con «Probar el enlace» ves lo mismo que verán tus invitados.
       </p>
+
+      <div className="flex flex-col gap-2">
+        <span className="font-mono text-xs uppercase tracking-wider text-paper-100/70">Así se verá en WhatsApp</span>
+        <LinkCardPreview event={event} origin={window.location.origin} />
+      </div>
 
       {qrFailed && (
         <PanelState kind="error" onRetry={() => setQrKey((k) => k + 1)}>

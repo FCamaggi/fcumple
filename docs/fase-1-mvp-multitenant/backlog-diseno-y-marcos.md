@@ -75,7 +75,7 @@ Objetivo: que la organizadora vea, desde su panel y en formato teléfono, lo que
 - **C2. Vista previa al redactar un aviso**: cómo se verá el aviso nuevo (portada, subtítulo, cuerpo, galería) en la cartelera móvil, antes de publicarlo.
 - **C3. Vista previa de marcos** con una foto de ejemplo, en vertical y horizontal, con el marco y los stickers del evento.
 - **C4. Vista previa del estilo** al elegir un preset en Ajustes, antes de guardar. *Hecha (2026-10-24), ver [`vistas-previas.md`](./vistas-previas.md).*
-- **C5. Vista previa de la tarjeta del enlace** (WhatsApp) con el título, el subtítulo, la descripción y la imagen del evento.
+- **C5. Vista previa de la tarjeta del enlace** (WhatsApp) con el título, el subtítulo, la descripción y la imagen del evento. *Hecha (2026-10-24), ver [`vistas-previas.md`](./vistas-previas.md).*
 - **C6. Flujo del QR simulado**: qué ve un invitado al escanear el código (sin usar el código real).
 - **Técnica propuesta:** componentes de presentación puros alimentados por datos (el evento real de la organizadora y datos de ejemplo), renderizados dentro del panel; sin llamadas a RPC de invitado ni tokens; sin exponer `activation_code`. Reutilizar `IdentifyForm`, `GuestHub`, `AnnouncementFeed`, `PhotoCarousel`, `CameraSection` en lugar de duplicarlos.
 - **Criterio de listo:** la organizadora puede recorrer los estados C1–C6 desde el panel, en el celular y en el computador, y lo que ve coincide con lo que ve un invitado.

@@ -21,6 +21,14 @@ describe('ShareEventLink', () => {
     expect(screen.getByText(`${window.location.origin}/e/cumple-abcd`)).toBeInTheDocument();
   });
 
+  it('muestra cómo se verá el enlace en WhatsApp, con el subtítulo y el lugar del evento', () => {
+    render(<ShareEventLink event={{ ...event, subtitle: 'Noche de Halloween', location: 'Los Pozos 6855' }} />);
+    const card = screen.getByRole('group', { name: /así se verá el enlace en whatsapp/i });
+    expect(card).toHaveTextContent('Cumple de Fabrizio');
+    expect(card).toHaveTextContent('Noche de Halloween · Los Pozos 6855');
+    expect(card).toHaveTextContent(window.location.host);
+  });
+
   it('genera el QR del mismo enlace y ofrece descargarlo', async () => {
     render(<ShareEventLink event={event} />);
     const image = await screen.findByAltText('Código QR de Cumple de Fabrizio');
