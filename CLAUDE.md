@@ -10,16 +10,16 @@ React 18, TypeScript, Vite 5, Tailwind 3, react-router 6 y framer-motion. Supaba
 
 ## Comandos
 
-Verificados el 2026-10-23 con Node 22.
+Verificados el 2026-10-25 (cifras de tests: CI de main).
 
 | Comando | Qué hace |
 |---|---|
 | `npm run dev` | Servidor de desarrollo de Vite. |
 | `npm run typecheck` | `tsc --noEmit`. Pasa, unos 30 s. |
-| `npm test` | Vitest con jsdom: 95 archivos, 1161 tests, cerca de 1 min. |
+| `npm test` | Vitest con jsdom: 109 archivos, 1427 tests, cerca de 1 min (cifras del CI con Node 20; con Node 22 falla 1, ver la línea base). |
 | `npm run test:coverage` | Lo que corre el CI. |
 | `npm run build` | `tsc` y `vite build`. Pasa; avisa de chunks de más de 500 kB. |
-| `npm run test:db` | 297 tests contra un Postgres real. Levanta Postgres 16 en Docker (puerto 55433). |
+| `npm run test:db` | 345 tests contra un Postgres real. Levanta Postgres 16 en Docker (puerto 55433). |
 | `npm run build:setup-sql` | Regenera `supabase/setup-fase-1.sql` a partir de las migraciones. |
 | `node scripts/qa-movil/audit.mjs` | Auditoría móvil con capturas (WebKit y Chromium simulados, Supabase simulado). Necesita el servidor de Vite y `playwright-cli`; ver `scripts/qa-movil/README.md`. |
 
