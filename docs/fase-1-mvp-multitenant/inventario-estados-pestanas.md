@@ -38,7 +38,7 @@ Queda fuera, por no ser carga de datos: Inscripción y Ajustes (formularios) y l
 
 ## Límites conocidos del PR A
 - Los mensajes de error de **Avisos** salen de `postsApi.fail()`, que incluye el texto crudo de Supabase (`No pudimos ${acción}: ${mensaje}`) en 11 puntos. Ya era así; ahora se anuncia como alerta. No se cambió aquí: afecta mensajes ajenos a esta etapa y el detalle ayuda a depurar. Pendiente de decidir.
-- **Corregido el 2026-10-24:** con la lista de avisos caída, «Nuevo aviso» ya no se ofrece (un aviso creado no se veía hasta reintentar la lectura); vuelve al recargar la lista. Si el formulario ya estaba abierto, «Cancelar» sigue disponible. Tests en `PostsPanel.test.tsx`; el antiguo «reintentar la lista limpia un error viejo de una acción» se reescribió porque ya no se puede crear con la lista caída: ahora cubre que volver a leer la lista (otro evento) limpia el error de una acción.
+- **Corregido el 2026-10-24:** con la lista de avisos caída, «Nuevo aviso» ya no se ofrece (un aviso creado no se veía hasta reintentar la lectura); vuelve al recargar la lista. Si el formulario estaba abierto cuando la lista falla, se cierra (se pierde el borrador): crear con la lista caída dejaría un aviso invisible. Tests en `PostsPanel.test.tsx`; el antiguo «reintentar la lista limpia un error viejo de una acción» se reescribió porque ya no se puede crear con la lista caída: ahora cubre que volver a leer la lista (otro evento) limpia el error de una acción.
 - Al pasar de error a «Cargando...» el botón con foco desaparece y el foco se pierde (igual que ya ocurría en «Hoy»).
 
 ## PR B: hecho

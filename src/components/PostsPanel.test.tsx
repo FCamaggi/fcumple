@@ -109,6 +109,21 @@ describe('PostsPanel: estados de la lista', () => {
     await waitFor(() => expect(screen.queryByText('No pudimos cambiar el estado del aviso.')).not.toBeInTheDocument());
   });
 
+  it('si el formulario estaba abierto cuando la lista falla, se cierra: no se puede crear un aviso que no se vería', async () => {
+    let failLoad: (err: Error) => void = () => {};
+    vi.mocked(listAllPosts).mockReturnValueOnce(new Promise((_, reject) => { failLoad = reject; }));
+    render(<PostsPanel eventId="ev-1" />);
+    await userEvent.click(screen.getByRole('button', { name: 'Nuevo aviso' }));
+    expect(screen.getByLabelText('Título')).toBeInTheDocument();
+
+    failLoad(new Error('sin red'));
+
+    expect(await screen.findByRole('button', { name: 'Reintentar' })).toBeInTheDocument();
+    expect(screen.queryByLabelText('Título')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Nuevo aviso' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Cancelar' })).not.toBeInTheDocument();
+  });
+
   it('mientras reintenta vuelve a decir «Cargando...»', async () => {
     vi.mocked(listAllPosts)
       .mockRejectedValueOnce(new Error('sin red'))
