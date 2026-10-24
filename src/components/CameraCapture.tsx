@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { motion, AnimatePresence, useReducedMotion, type PanInfo } from 'framer-motion';
 import { usePhotoCapture, type PhotoUploader } from '../hooks/usePhotoCapture';
 import { useOrientation } from '../hooks/useOrientation';
@@ -47,6 +47,8 @@ interface CameraCaptureProps {
   stickers?: CameraStickerOption[];
   /** Marco con el que arranca el carrusel (el marco por defecto del evento). */
   initialFrameId?: string | null;
+  /** Nombre del evento: el boleto que acompaña al marco. Sin nombre no hay boleto. */
+  eventName?: string;
 }
 
 const NO_FRAME: CameraFrameOption = { id: 'none', label: 'Sin marco', draw: null };
@@ -68,6 +70,8 @@ const NO_CONTROLS: CameraControlsAvailability = { torch: false };
 // de marco -- por debajo de esto es más probable que haya sido un tap o un
 // scroll accidental que una intención real de cambiar de marco.
 const SWIPE_THRESHOLD = 48;
+// «Ok» de los avisos: área táctil de 44 px (antes era solo el texto).
+const dismissButton = 'tap-target shrink-0 px-3 font-mono text-xs uppercase text-paper-100';
 // Botones de la fila del pulgar: caja visible y papel pleno (antes eran gris tenue y sin caja).
 const thumbButton =
   'tap-target flex items-center justify-center bg-smoke-700/40 text-paper-100 transition-colors hover:bg-smoke-700/60';
@@ -143,10 +147,14 @@ export default function CameraCapture({
   frames,
   stickers,
   initialFrameId,
+  eventName,
 }: CameraCaptureProps) {
   const reduceMotion = useReducedMotion() ?? false;
   const orientation = useOrientation();
   const { state, capture, reset } = usePhotoCapture(token, quota, onQuotaChange, upload);
+  const shutterRef = useRef<HTMLButtonElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const hadReviewRef = useRef(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const trackRef = useRef<MediaStreamTrack | null>(null);
@@ -203,6 +211,28 @@ export default function CameraCapture({
 
   const remaining = Math.max(0, quota.quota - quota.used);
   const outOfShots = remaining <= 0;
+  // Ritual del rollo: el dígito baja al disparar, no al enviar. Mientras la foto espera en la
+  // revisión el disparo está reservado; «Repetir» lo devuelve. El cupo real (`quota.used`) solo
+  // se gasta al subir con éxito, y en ese instante `quota` ya lo cuenta: no se suma dos veces.
+  const reserved = reviewUrl !== null && state.phase !== 'success';
+  const shownUsed = quota.used + (reserved ? 1 : 0);
+
+  // Al cerrar la revisión (Repetir o envío) el foco vuelve al obturador; sin esto cae al body.
+  useEffect(() => {
+    if (reviewUrl) {
+      hadReviewRef.current = true;
+      return;
+    }
+    if (!hadReviewRef.current) return;
+    hadReviewRef.current = false;
+    shutterRef.current?.focus();
+  }, [reviewUrl]);
+
+  // Si el último disparo agota el rollo la cámara se reemplaza por «Se acabó tu rollo»: el foco
+  // va a «Cerrar», la única acción de esa pantalla.
+  useEffect(() => {
+    if (outOfShots) closeRef.current?.focus();
+  }, [outOfShots]);
 
   useEffect(() => {
     if (outOfShots) return; // no point opening the camera with nothing left to shoot
@@ -385,9 +415,13 @@ export default function CameraCapture({
   if (outOfShots) {
     return (
       <div className="fixed inset-safe z-50 flex flex-col bg-ink-950" aria-label="Cámara de fotos">
-        <CameraHeader onClose={onClose} />
+        <CameraHeader onClose={onClose} closeRef={closeRef} />
         <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
-          <span className="font-mono text-xs uppercase tracking-widest text-flame-500">Rollo terminado</span>
+          {/* El sello de la última foto no se pierde: sin esto el rollo agotado lo tapaba al instante. */}
+          {state.phase === 'success' && (
+            <ConfirmationBanner status={state.status} reduceMotion={reduceMotion} onDismiss={reset} />
+          )}
+          <span className="font-mono text-xs uppercase tracking-widest text-paper-100">Rollo terminado</span>
           <FilmRollCounter quota={quota.quota} used={quota.used} />
           <p className="font-sans text-sm text-paper-100/70">
             Se acabó tu rollo. Ya diste todos tus disparos para esta noche.
@@ -401,7 +435,7 @@ export default function CameraCapture({
     <div className="fixed inset-safe z-50 flex flex-col bg-ink-950" aria-label="Cámara de fotos">
       {/* Cabecera baja: el visor es lo que manda. El rótulo «Cámara // modo carrete» solo vive en las pantallas sin cámara. */}
       <div role="group" aria-label="Estado de la cámara" className="flex items-center justify-between gap-2 bg-ink-900 px-3 py-1">
-        <FilmRollCounter quota={quota.quota} used={quota.used} compact />
+        <FilmRollCounter quota={quota.quota} used={shownUsed} compact />
         <div className="flex items-center gap-2">
           {controls.torch && (
             <button
@@ -409,7 +443,7 @@ export default function CameraCapture({
               onClick={handleTorchToggle}
               aria-pressed={torchOn}
               className={`tap-target px-3 font-mono text-xs font-bold uppercase tracking-wider ${
-                torchOn ? 'bg-acid-400 text-ink-950 shadow-glow-acid' : 'bg-smoke-700/40 text-paper-100'
+                torchOn ? 'bg-paper-100 text-ink-950' : 'bg-smoke-700/40 text-paper-100'
               }`}
             >
               Flash {torchOn ? 'activado' : 'apagado'}
@@ -517,9 +551,23 @@ export default function CameraCapture({
             />
           )}
 
-          <span className="self-center bg-smoke-700/40 px-3 py-1 font-mono text-xs uppercase tracking-widest text-paper-100">
-            Marco // {currentFrame ? currentFrame.label : FRAME_LABELS[frameId]}
-          </span>
+          {/* Boleto: el marco a la izquierda (región viva: el cambio se anuncia) y el evento tras una perforación. */}
+          <div className="flex max-w-full items-center gap-2 self-center">
+            <span
+              aria-live="polite"
+              className="shrink-0 bg-smoke-700/40 px-3 py-1 font-mono text-xs uppercase tracking-widest text-paper-100"
+            >
+              Marco // {currentFrame ? currentFrame.label : FRAME_LABELS[frameId]}
+            </span>
+            {eventName && (
+              <span
+                data-testid="boleto-evento"
+                className="min-w-0 truncate border-l border-dashed border-smoke-700 pl-2 font-mono text-xs uppercase tracking-wider text-paper-100/70"
+              >
+                {eventName}
+              </span>
+            )}
+          </div>
           {/* Todo lo que se toca con el pulgar, en una sola fila junto al obturador. */}
           <div className="flex items-center justify-between gap-2 short:flex-wrap short:justify-center">
             <button type="button" onClick={onClose} className={`${thumbButton} w-[4.5rem] font-mono text-xs font-bold uppercase tracking-wider`}>
@@ -530,6 +578,7 @@ export default function CameraCapture({
             </button>
 
             <ShutterButton
+              buttonRef={shutterRef}
               disabled={!cameraReady || !!cameraError || state.phase === 'uploading' || !!reviewUrl}
               uploading={state.phase === 'uploading'}
               onClick={handleShoot}
@@ -587,9 +636,27 @@ function ReviewScreen({
   onSend: () => void;
 }) {
   const sendLabel = errorMessage ? 'Reintentar' : uploading ? 'Enviando…' : `Enviar // te quedarán ${remainingAfter}`;
+  const sendRef = useRef<HTMLButtonElement>(null);
+  const reduceMotion = useReducedMotion() ?? false;
+
+  // El foco entra al abrir la revisión y vuelve al botón principal si la subida falla
+  // (cambia a «Reintentar»): quien navega con teclado o lector de pantalla no se queda en el vacío.
+  useEffect(() => {
+    sendRef.current?.focus();
+  }, [errorMessage]);
 
   return (
-    <div className="fixed inset-safe z-[60] flex flex-col bg-ink-950" aria-label="Revisión de la foto">
+    // Entra con un retraso breve: la revisión cubre toda la pantalla y, sin él, el dígito del rollo
+    // bajaría detrás de ella sin que nadie lo viera. Con movimiento reducido entra al instante.
+    <motion.div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Revisión de la foto"
+      initial={reduceMotion ? { opacity: 1 } : { opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={reduceMotion ? { duration: 0 } : { duration: 0.12, delay: 0.2 }}
+      className="fixed inset-safe z-[60] flex flex-col bg-ink-950"
+    >
       <div className="relative flex-1 overflow-hidden bg-ink-950">
         <img src={photoUrl} alt="Foto recién sacada, todavía sin enviar" className="h-full w-full object-contain" />
       </div>
@@ -607,25 +674,42 @@ function ReviewScreen({
             type="button"
             onClick={onRetake}
             disabled={uploading}
-            className="tap-target flex-1 bg-smoke-700/30 px-4 py-3 font-mono text-xs font-bold uppercase tracking-wider text-paper-100 transition-colors hover:bg-smoke-700/50 disabled:opacity-40"
+            className="tap-target flex-1 bg-smoke-700/30 px-4 py-3 font-mono text-xs font-bold uppercase tracking-wider text-paper-100 transition active:scale-[0.97] hover:bg-smoke-700/50 disabled:opacity-40"
           >
             Repetir
           </button>
+          {/* aria-disabled y no disabled: un botón deshabilitado suelta el foco y este caería al body. */}
           <button
+            ref={sendRef}
             type="button"
-            onClick={onSend}
-            disabled={uploading}
-            className="tap-target flex-1 bg-hotpink-500 px-4 py-3 font-mono text-xs font-bold uppercase tracking-wider text-ink-950 shadow-glow-hotpink transition-colors disabled:opacity-60"
+            onClick={() => {
+              if (!uploading) onSend();
+            }}
+            aria-disabled={uploading}
+            className={`tap-target flex-1 bg-hotpink-500 px-4 py-3 font-mono text-xs font-bold uppercase tracking-wider text-ink-950 shadow-glow-hotpink transition active:scale-[0.97] ${
+              uploading ? 'cursor-not-allowed opacity-60' : ''
+            }`}
           >
             {sendLabel}
           </button>
         </div>
+        <p className="sr-only" aria-live="polite">
+          {uploading ? 'Enviando la foto…' : ''}
+        </p>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
-function CameraHeader({ onClose, children }: { onClose: () => void; children?: ReactNode }) {
+function CameraHeader({
+  onClose,
+  closeRef,
+  children,
+}: {
+  onClose: () => void;
+  closeRef?: RefObject<HTMLButtonElement>;
+  children?: ReactNode;
+}) {
   return (
     <header className="flex items-center justify-between gap-3 bg-ink-900 px-4 py-3 shadow-lg">
       <span className="font-mono text-xs font-bold uppercase tracking-wider text-hotpink-500">
@@ -634,6 +718,7 @@ function CameraHeader({ onClose, children }: { onClose: () => void; children?: R
       <div className="flex items-center gap-3">
         {children}
         <button
+          ref={closeRef}
           type="button"
           onClick={onClose}
           className="tap-target flex items-center justify-center bg-smoke-700/30 px-3 py-1.5 font-mono text-xs font-bold uppercase tracking-wider text-paper-100 transition-colors hover:bg-smoke-700/50"
@@ -652,16 +737,19 @@ function CameraHeader({ onClose, children }: { onClose: () => void; children?: R
  * desproporcionado. Mismo criterio para FlipCameraIcon/ChevronIcon.
  */
 function ShutterButton({
+  buttonRef,
   disabled,
   uploading,
   onClick,
 }: {
+  buttonRef: RefObject<HTMLButtonElement>;
   disabled: boolean;
   uploading: boolean;
   onClick: () => void;
 }) {
   return (
     <button
+      ref={buttonRef}
       type="button"
       disabled={disabled}
       onClick={onClick}
@@ -726,14 +814,14 @@ function FramingGuide({ orientation }: { orientation: 'portrait' | 'landscape' }
   return (
     <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-6" aria-hidden>
       <div
-        className={`relative border-2 border-acid-400/40 ${
+        className={`relative border-2 border-paper-100/40 ${
           orientation === 'portrait' ? 'aspect-[3/4] h-4/5 max-h-full' : 'aspect-[4/3] w-4/5 max-w-full'
         }`}
       >
-        <span className="absolute -left-px -top-px h-6 w-6 border-l-2 border-t-2 border-acid-400" />
-        <span className="absolute -right-px -top-px h-6 w-6 border-r-2 border-t-2 border-acid-400" />
-        <span className="absolute -bottom-px -left-px h-6 w-6 border-b-2 border-l-2 border-acid-400" />
-        <span className="absolute -bottom-px -right-px h-6 w-6 border-b-2 border-r-2 border-acid-400" />
+        <span className="absolute -left-px -top-px h-6 w-6 border-l-2 border-t-2 border-paper-100" />
+        <span className="absolute -right-px -top-px h-6 w-6 border-r-2 border-t-2 border-paper-100" />
+        <span className="absolute -bottom-px -left-px h-6 w-6 border-b-2 border-l-2 border-paper-100" />
+        <span className="absolute -bottom-px -right-px h-6 w-6 border-b-2 border-r-2 border-paper-100" />
       </div>
     </div>
   );
@@ -771,20 +859,23 @@ function ConfirmationBanner({
   reduceMotion: boolean;
   onDismiss: () => void;
 }) {
-  const message =
-    status === 'approved' ? 'Quedó en el rollo.' : 'Quedó en el rollo. Pasa por moderación antes de revelarse.';
-
+  // El sello: se «estampa» (baja de tamaño y se asienta) y deja el rollo como el lugar de la foto.
   return (
     <motion.div
       role="status"
-      initial={reduceMotion ? { opacity: 1 } : { opacity: 0 }}
-      animate={{ opacity: 1 }}
+      initial={reduceMotion ? { opacity: 1 } : { opacity: 0, scale: 1.12 }}
+      animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0 }}
-      transition={reduceMotion ? { duration: 0 } : { duration: 0.3 }}
-      className="flex items-center justify-between gap-3 bg-acid-400/10 px-3 py-2"
+      transition={reduceMotion ? { duration: 0 } : { duration: 0.22, ease: [0.2, 0, 0, 1] }}
+      className="flex items-center justify-between gap-3 border-2 border-hotpink-500 px-3 py-1"
     >
-      <p className="font-sans text-sm text-acid-400">{message}</p>
-      <button type="button" onClick={onDismiss} className="font-mono text-xs uppercase text-paper-100/70">
+      <div className="flex flex-col">
+        <p className="font-mono text-xs font-bold uppercase tracking-wider text-hotpink-500">Quedó en el rollo</p>
+        {status !== 'approved' && (
+          <p className="font-sans text-sm text-paper-100">Pasa por moderación antes de revelarse.</p>
+        )}
+      </div>
+      <button type="button" onClick={onDismiss} className={dismissButton}>
         Ok
       </button>
     </motion.div>
@@ -793,9 +884,9 @@ function ConfirmationBanner({
 
 function ErrorBanner({ message, onDismiss }: { message: string; onDismiss: () => void }) {
   return (
-    <div role="alert" className="flex items-center justify-between gap-3 bg-flame-500/10 px-3 py-2">
+    <div role="alert" className="flex items-center justify-between gap-3 bg-flame-500/10 px-3 py-1">
       <p className="font-sans text-sm text-flame-500">{message}</p>
-      <button type="button" onClick={onDismiss} className="font-mono text-xs uppercase text-paper-100/70">
+      <button type="button" onClick={onDismiss} className={dismissButton}>
         Ok
       </button>
     </div>

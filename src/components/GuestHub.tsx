@@ -137,6 +137,7 @@ export default function GuestHub({ slug, token, event, guest, onGuestChange }: G
           frames={cameraAssets.frames}
           stickers={cameraAssets.stickers}
           initialFrameId={cameraAssets.initialFrameId}
+          eventName={event.name}
         />
       )}
 

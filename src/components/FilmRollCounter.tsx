@@ -3,7 +3,10 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 interface FilmRollCounterProps {
   quota: number;
   used: number;
-  /** Versión baja para la cabecera de la cámara: solo la ventanita y «de N», sin dientes ni rótulo. */
+  /**
+   * Versión baja para la cabecera de la cámara: solo la ventanita y «de N», sin dientes ni rótulo. El
+   * dígito va en papel y no en el acento: en la cámara el acento es solo del obturador.
+   */
   compact?: boolean;
 }
 
@@ -48,9 +51,9 @@ export default function FilmRollCounter({ quota, used, compact = false }: FilmRo
               initial={reduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: -14 }}
               animate={{ opacity: 1, y: 0 }}
               exit={reduceMotion ? { opacity: 1 } : { opacity: 0, y: 14 }}
-              transition={reduceMotion ? { duration: 0 } : { duration: 0.18, ease: 'linear' }}
+              transition={reduceMotion ? { duration: 0 } : { duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
               className={`font-mono font-bold tabular-nums ${compact ? 'text-xl' : 'text-2xl'} ${
-                empty ? 'text-flame-500' : 'text-acid-400'
+                empty ? 'text-flame-500' : compact ? 'text-paper-100' : 'text-acid-400'
               }`}
             >
               {remaining}
