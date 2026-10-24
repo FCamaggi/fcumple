@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import PanelState from './PanelState';
 import PhoneFrame from './PhoneFrame';
 import type { PreviewDraftPost } from '../lib/guestPreview';
 import {
@@ -30,6 +31,9 @@ export default function PostsPanel({ eventId }: { eventId?: string } = {}) {
   const [imagesByPostId, setImagesByPostId] = useState<Record<string, PostImage[]>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Aparte de `error` (el de las acciones): si la lista no carga, no se debe decir que «no hay avisos».
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   // Sube cada vez que se publica o despublica un aviso: el teléfono de «Ver cómo queda» vuelve a leer la cartelera.
   const [previewRefresh, setPreviewRefresh] = useState(0);
 
@@ -48,6 +52,10 @@ export default function PostsPanel({ eventId }: { eventId?: string } = {}) {
 
   useEffect(() => {
     let active = true;
+    setLoading(true);
+    setLoadError(null);
+    // Un error viejo de una acción no debe convivir con una lista que se está volviendo a leer.
+    setError(null);
     listAllPosts(eventId)
       .then(async (found) => {
         if (!active) return;
@@ -58,7 +66,7 @@ export default function PostsPanel({ eventId }: { eventId?: string } = {}) {
         if (active) setImagesByPostId(Object.fromEntries(entries));
       })
       .catch((err) => {
-        if (active) setError(err instanceof Error ? err.message : 'No pudimos cargar los avisos.');
+        if (active) setLoadError(err instanceof Error ? err.message : 'No pudimos cargar los avisos.');
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -66,7 +74,7 @@ export default function PostsPanel({ eventId }: { eventId?: string } = {}) {
     return () => {
       active = false;
     };
-  }, [eventId]);
+  }, [eventId, reloadKey]);
 
   function notifyError(action: string, err: unknown) {
     setError(err instanceof Error ? err.message : `No pudimos ${action}.`);
@@ -235,7 +243,7 @@ export default function PostsPanel({ eventId }: { eventId?: string } = {}) {
         </button>
       </div>
 
-      {error && <p className="font-mono text-xs uppercase tracking-wider text-flame-500">{error}</p>}
+      {error && <PanelState kind="error">{error}</PanelState>}
 
       {creating && (
         <form onSubmit={handleCreate} className="flex flex-col gap-3 bg-ink-950 p-4">
@@ -321,11 +329,13 @@ export default function PostsPanel({ eventId }: { eventId?: string } = {}) {
       )}
 
       {loading ? (
-        <span className="font-mono text-xs uppercase tracking-wider text-paper-100/70">Cargando...</span>
+        <PanelState kind="loading">Cargando...</PanelState>
+      ) : loadError ? (
+        <PanelState kind="error" onRetry={() => setReloadKey((k) => k + 1)}>
+          {loadError}
+        </PanelState>
       ) : posts.length === 0 ? (
-        <p className="font-mono text-xs uppercase tracking-wider text-paper-100/70">
-          Todavía no hay avisos. Crea el primero.
-        </p>
+        <PanelState kind="empty">Todavía no hay avisos. Crea el primero.</PanelState>
       ) : (
         <ul className="flex flex-col gap-2">
           {posts.map((post) =>

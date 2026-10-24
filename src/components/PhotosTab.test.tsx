@@ -131,6 +131,20 @@ describe('PhotosTab', () => {
     render(<PhotosTab event={event} onEventChange={vi.fn()} />);
     await userEvent.click(await screen.findByRole('button', { name: 'Publicar 1 aprobada(s)' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos publicar las fotos.');
+    // «Reintentar» solo relee la lista: ofrecerlo aquí haría creer que se vuelve a publicar.
+    expect(screen.queryByRole('button', { name: 'Reintentar' })).not.toBeInTheDocument();
+  });
+
+  it('si una recarga falla con la lista vacía no dice a la vez que no llegan fotos', async () => {
+    vi.mocked(api.listEventPhotos).mockResolvedValueOnce([]).mockRejectedValue(new Error('sin red'));
+    render(<PhotosTab event={event} onEventChange={vi.fn()} />);
+    await screen.findByText(/todavía no llegan fotos/i);
+
+    // Abrir la revisión vuelve a pedir la lista, y esa lectura falla.
+    await userEvent.click(screen.getByRole('button', { name: 'Abrir revisión de fotos' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('sin red');
+    expect(screen.queryByText(/todavía no llegan fotos/i)).not.toBeInTheDocument();
   });
 
   it('abre la revisión con las funciones de este evento, incluido publicar desde ahí', async () => {
@@ -151,6 +165,30 @@ describe('PhotosTab', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'cerrar' }));
     expect(screen.queryByTestId('moderation')).not.toBeInTheDocument();
+  });
+
+  it('mientras carga lo dice, en vez de quedarse en blanco', () => {
+    vi.mocked(api.listEventPhotos).mockReturnValue(new Promise(() => undefined));
+    render(<PhotosTab event={event} onEventChange={vi.fn()} />);
+    expect(screen.getByRole('status')).toHaveTextContent(/cargando fotos/i);
+  });
+
+  it('sin fotos todavía lo explica y no muestra el resumen en cero', async () => {
+    vi.mocked(api.listEventPhotos).mockResolvedValue([]);
+    render(<PhotosTab event={event} onEventChange={vi.fn()} />);
+
+    expect(await screen.findByText(/todavía no llegan fotos/i)).toBeInTheDocument();
+    expect(screen.queryByText(/0 fotos ·/)).not.toBeInTheDocument();
+  });
+
+  it('si no puede cargar ofrece «Reintentar», que vuelve a pedir las fotos', async () => {
+    vi.mocked(api.listEventPhotos).mockRejectedValueOnce(new Error('sin red')).mockResolvedValueOnce([photo('a', 'pending')]);
+    render(<PhotosTab event={event} onEventChange={vi.fn()} />);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Reintentar' }));
+
+    expect(await screen.findByText('1 fotos · 1 por revisar · 0 aprobadas · 0 rechazadas')).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
   it('muestra el error si no se pueden cargar las fotos', async () => {

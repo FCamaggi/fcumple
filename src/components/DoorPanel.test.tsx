@@ -78,3 +78,28 @@ describe('DoorPanel', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos registrar el check-in.');
   });
 });
+
+describe('DoorPanel: sin invitados', () => {
+  it('sin invitados aprobados lo dice y explica cuándo aparecerán', () => {
+    render(<DoorPanel guests={[]} onCheckIn={vi.fn()} onOpenScanner={vi.fn()} />);
+    expect(screen.getByText(/todavía no hay invitados aprobados/i)).toBeInTheDocument();
+  });
+
+  it('si solo hay solicitudes sin aprobar, también lo dice', () => {
+    render(<DoorPanel guests={[guest({ approvalStatus: 'pending' })]} onCheckIn={vi.fn()} onOpenScanner={vi.fn()} />);
+    expect(screen.getByText(/todavía no hay invitados aprobados/i)).toBeInTheDocument();
+  });
+
+  it('sin invitados aprobados no suma un «no encontramos a nadie» al buscar', async () => {
+    render(<DoorPanel guests={[]} onCheckIn={vi.fn()} onOpenScanner={vi.fn()} />);
+    await userEvent.type(screen.getByLabelText('Buscar por nombre'), 'ana');
+
+    expect(screen.getByText(/todavía no hay invitados aprobados/i)).toBeInTheDocument();
+    expect(screen.queryByText(/no encontramos a nadie/i)).not.toBeInTheDocument();
+  });
+
+  it('con invitados aprobados no lo dice', () => {
+    render(<DoorPanel guests={[guest()]} onCheckIn={vi.fn()} onOpenScanner={vi.fn()} />);
+    expect(screen.queryByText(/todavía no hay invitados aprobados/i)).not.toBeInTheDocument();
+  });
+});

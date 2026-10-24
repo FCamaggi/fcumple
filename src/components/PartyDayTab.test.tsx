@@ -147,6 +147,15 @@ describe('PartyDayTab: fotos', () => {
     expect(screen.queryByRole('button', { name: /revisar/i })).not.toBeInTheDocument();
   });
 
+  it('si publicar falla muestra el error sin «Reintentar», que solo releería la lista', async () => {
+    vi.mocked(api.publishPhotoBatch).mockRejectedValue(new Error('No pudimos publicar las fotos.'));
+    renderTab();
+    await userEvent.click(await screen.findByRole('button', { name: /publicar 1 aprobada/i }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos publicar las fotos.');
+    expect(screen.queryByRole('button', { name: 'Reintentar' })).not.toBeInTheDocument();
+  });
+
   it('si no carga muestra el error y «Reintentar» vuelve a pedirlas', async () => {
     vi.mocked(api.listEventPhotos).mockRejectedValueOnce(new Error('sin red'));
     renderTab();

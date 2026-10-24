@@ -119,3 +119,18 @@ describe('ActivationTab', () => {
     expect(screen.queryByAltText(/Código QR/)).not.toBeInTheDocument();
   });
 });
+
+describe('ActivationTab: si el QR no se puede generar', () => {
+  it('lo avisa con «Reintentar» en vez de dejar un hueco, y al reintentar muestra el QR', async () => {
+    vi.mocked(QRCode.toDataURL).mockRejectedValueOnce(new Error('canvas'));
+    render(<ActivationTab event={event} onEventChange={vi.fn()} />);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/no pudimos generar el qr/i);
+    expect(screen.queryByAltText(/código qr/i)).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Reintentar' }));
+
+    expect(await screen.findByAltText(/código qr de activación/i)).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+});

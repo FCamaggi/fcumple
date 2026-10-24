@@ -1,4 +1,5 @@
 import { useId, useMemo, useState } from 'react';
+import PanelState from './PanelState';
 import PhotoModerationPanel from './PhotoModerationPanel';
 import type { EventPhotos } from '../hooks/useEventPhotos';
 import type { CameraUnlock, OrganizerEvent, OrganizerGuest } from '../lib/organizerApi';
@@ -40,7 +41,7 @@ export default function PartyDayTab({ event, guests, photos: state, onOpenTab, o
   const [moderating, setModerating] = useState(false);
   // Único por instancia: si algún día hay dos «Hoy» a la vez, cada lista apunta a su propio rótulo.
   const missingLabelId = useId();
-  const { photos, counts, error, notice, publishing, reload, handlePublish, source } = state;
+  const { photos, counts, error, publishError, notice, publishing, reload, handlePublish, source } = state;
 
   // Al abrir y al cerrar la revisión se vuelve a pedir la lista: lo revisado cambia los conteos.
   function setReviewOpen(open: boolean) {
@@ -66,25 +67,19 @@ export default function PartyDayTab({ event, guests, photos: state, onOpenTab, o
       <section aria-label="Fotos" className={card}>
         <span className={label}>Fotos // por revisar</span>
 
-        {photos === null && !error && (
-          <p role="status" className="font-mono text-xs uppercase tracking-widest text-paper-100/70">
-            Cargando fotos...
-          </p>
-        )}
+        {photos === null && !error && <PanelState kind="loading">Cargando fotos...</PanelState>}
 
         {error && (
-          <div className="flex flex-col items-start gap-2">
-            <p role="alert" className="font-mono text-xs uppercase tracking-wide text-flame-500">
-              {error}
-            </p>
-            <button type="button" onClick={reload} className={secondary}>
-              Reintentar
-            </button>
-          </div>
+          <PanelState kind="error" onRetry={reload}>
+            {error}
+          </PanelState>
         )}
 
-        {photos !== null && photos.length === 0 && (
-          <p className="font-sans text-sm text-paper-100/80">Todavía no llegan fotos. Aparecerán aquí cuando los invitados las tomen.</p>
+        {/* El de publicar no lleva «Reintentar»: volver a leer la lista no lo arregla. */}
+        {publishError && <PanelState kind="error">{publishError}</PanelState>}
+
+        {photos !== null && photos.length === 0 && !error && (
+          <PanelState kind="empty">Todavía no llegan fotos. Aparecerán aquí cuando los invitados las tomen.</PanelState>
         )}
 
         {photos !== null && photos.length > 0 && (
