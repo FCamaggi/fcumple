@@ -37,6 +37,20 @@ describe('EnrollmentSettings', () => {
     expect(await screen.findByRole('status')).toHaveTextContent('Inscripción guardada.');
   });
 
+  it('«Guardar inscripción» queda fijo abajo (el formulario mide ~2600 px en el teléfono) y respeta el área segura', () => {
+    render(<EnrollmentSettings event={event} onSave={vi.fn()} />);
+    const bar = save().parentElement as HTMLElement;
+    expect(bar).toHaveClass('sticky', 'bottom-0');
+    expect(bar.className).toContain('safe-area-inset-bottom');
+  });
+
+  it('el resultado de guardar aparece en la misma barra fija, a la vista del botón', async () => {
+    render(<EnrollmentSettings event={event} onSave={vi.fn().mockResolvedValue(undefined)} />);
+    await userEvent.click(save());
+    const bar = save().parentElement as HTMLElement;
+    expect(within(bar).getByRole('status')).toHaveTextContent('Inscripción guardada.');
+  });
+
   it('activa los acompañantes con un máximo', async () => {
     const onSave = vi.fn().mockResolvedValue(undefined);
     render(<EnrollmentSettings event={event} onSave={onSave} />);

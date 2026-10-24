@@ -256,24 +256,27 @@ export default function EnrollmentSettings({ event, onSave, usedQuestionIds = []
         )}
       </fieldset>
 
-      {message && (
-        <p
-          role={message.kind === 'error' ? 'alert' : 'status'}
-          className={`font-mono text-xs uppercase tracking-wide ${
-            message.kind === 'error' ? 'text-flame-500' : 'text-acid-400'
-          }`}
-        >
-          {message.text}
-        </p>
-      )}
+      {/* Fijo abajo: el formulario mide unos 2600 px en el teléfono. El resultado va en la misma barra para verlo sin desplazarse. */}
+      <div className="sticky bottom-0 z-10 flex flex-col gap-2 border-t border-smoke-700/50 bg-ink-950 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3">
+        {message && (
+          <p
+            role={message.kind === 'error' ? 'alert' : 'status'}
+            className={`font-mono text-xs uppercase tracking-wide ${
+              message.kind === 'error' ? 'text-flame-500' : 'text-acid-400'
+            }`}
+          >
+            {message.text}
+          </p>
+        )}
 
-      <button
-        type="submit"
-        disabled={saving}
-        className="h-11 bg-acid-400 font-display text-sm uppercase tracking-wider text-ink-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-paper-100 disabled:opacity-60"
-      >
-        {saving ? 'Guardando...' : 'Guardar inscripción'}
-      </button>
+        <button
+          type="submit"
+          disabled={saving}
+          className="h-11 bg-acid-400 font-display text-sm uppercase tracking-wider text-ink-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-paper-100 disabled:opacity-60"
+        >
+          {saving ? 'Guardando...' : 'Guardar inscripción'}
+        </button>
+      </div>
     </form>
   );
 }
