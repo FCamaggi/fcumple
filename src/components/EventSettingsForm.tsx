@@ -106,10 +106,10 @@ export default function EventSettingsForm({ onSaved }: EventSettingsFormProps) {
       onSubmit={handleSubmit}
       className="flex flex-col gap-4 border border-smoke-700/50 bg-ink-900 p-6 shadow-2xl"
     >
-      <span className="font-mono text-[11px] uppercase tracking-widest text-acid-400">Configuración del evento</span>
+      <span className="font-mono text-xs uppercase tracking-widest text-acid-400">Configuración del evento</span>
 
       {loading ? (
-        <span className="font-mono text-[11px] uppercase tracking-wider text-paper-100/70">Cargando...</span>
+        <span className="font-mono text-xs uppercase tracking-wider text-paper-100/70">Cargando...</span>
       ) : (
         <>
           <Field label="Nombre del evento" htmlFor="event-name">
@@ -153,16 +153,16 @@ export default function EventSettingsForm({ onSaved }: EventSettingsFormProps) {
           </Field>
 
           {error && (
-            <p className="font-mono text-[11px] uppercase tracking-wider text-flame-500">{error}</p>
+            <p className="font-mono text-xs uppercase tracking-wider text-flame-500">{error}</p>
           )}
           {saved && !error && (
-            <p className="font-mono text-[11px] uppercase tracking-wider text-acid-400">Guardado</p>
+            <p className="font-mono text-xs uppercase tracking-wider text-acid-400">Guardado</p>
           )}
 
           <button
             type="submit"
             disabled={saving}
-            className="self-start bg-acid-400 px-4 py-2 font-mono text-[11px] font-bold uppercase tracking-wider text-ink-950 disabled:cursor-not-allowed disabled:opacity-60"
+            className="self-start bg-acid-400 px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-ink-950 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {saving ? 'Guardando...' : 'Guardar'}
           </button>
@@ -175,7 +175,7 @@ export default function EventSettingsForm({ onSaved }: EventSettingsFormProps) {
 function Field({ label, htmlFor, children }: { label: string; htmlFor: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1">
-      <label htmlFor={htmlFor} className="font-mono text-[11px] uppercase tracking-wider text-paper-100/70">
+      <label htmlFor={htmlFor} className="font-mono text-xs uppercase tracking-wider text-paper-100/70">
         {label}
       </label>
       {children}

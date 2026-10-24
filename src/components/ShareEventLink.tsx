@@ -44,7 +44,7 @@ export default function ShareEventLink({ event }: ShareEventLinkProps) {
   return (
     <section className="flex flex-col gap-4" aria-label="Enlace del evento">
       <div className="flex flex-col gap-1">
-        <span className="font-mono text-[11px] uppercase tracking-wider text-paper-100/70">Enlace único del evento</span>
+        <span className="font-mono text-xs uppercase tracking-wider text-paper-100/70">Enlace único del evento</span>
         <code className="break-all bg-ink-950 px-3 py-2 font-mono text-sm text-acid-400">{url}</code>
       </div>
 
@@ -60,7 +60,7 @@ export default function ShareEventLink({ event }: ShareEventLinkProps) {
           href={whatsappShareUrl(whatsappMessage(event.name, url))}
           target="_blank"
           rel="noreferrer"
-          className="flex h-10 items-center border border-acid-400 px-4 font-display text-xs uppercase tracking-wider text-acid-400"
+          className="flex min-h-11 items-center border border-acid-400 px-4 font-display text-xs uppercase tracking-wider text-acid-400"
         >
           Compartir por WhatsApp
         </a>
@@ -68,7 +68,7 @@ export default function ShareEventLink({ event }: ShareEventLinkProps) {
           href={url}
           target="_blank"
           rel="noreferrer"
-          className="flex h-10 items-center border border-smoke-700/60 px-4 font-display text-xs uppercase tracking-wider text-paper-100"
+          className="flex min-h-11 items-center border border-smoke-700/60 px-4 font-display text-xs uppercase tracking-wider text-paper-100"
         >
           Probar el enlace
         </a>
@@ -84,7 +84,7 @@ export default function ShareEventLink({ event }: ShareEventLinkProps) {
           <a
             href={qr}
             download={`qr-${event.slug}.png`}
-            className="font-mono text-[11px] uppercase tracking-wider text-laser-500 underline"
+            className="inline-flex min-h-11 items-center font-mono text-xs uppercase tracking-wider text-laser-500 underline"
           >
             Descargar QR
           </a>

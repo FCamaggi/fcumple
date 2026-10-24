@@ -90,10 +90,10 @@ export default function CreateGuestModal({ open, onClose, onCreate }: CreateGues
             onSubmit={handleSubmit}
             className="flex w-full max-w-sm flex-col gap-4 border border-smoke-700/50 bg-ink-900 p-6 shadow-2xl"
           >
-            <span className="font-mono text-[11px] uppercase tracking-widest text-acid-400">Alta de invitado</span>
+            <span className="font-mono text-xs uppercase tracking-widest text-acid-400">Alta de invitado</span>
 
             <div className="flex flex-col gap-1">
-              <label htmlFor="new-guest-name" className="font-mono text-[11px] uppercase tracking-wider text-paper-100/70">
+              <label htmlFor="new-guest-name" className="font-mono text-xs uppercase tracking-wider text-paper-100/70">
                 Nombre completo
               </label>
               <input
@@ -107,7 +107,7 @@ export default function CreateGuestModal({ open, onClose, onCreate }: CreateGues
             </div>
 
             <div className="flex flex-col gap-1">
-              <label htmlFor="new-guest-plusones" className="font-mono text-[11px] uppercase tracking-wider text-paper-100/70">
+              <label htmlFor="new-guest-plusones" className="font-mono text-xs uppercase tracking-wider text-paper-100/70">
                 Cupo de acompañantes
               </label>
               <input
@@ -125,7 +125,7 @@ export default function CreateGuestModal({ open, onClose, onCreate }: CreateGues
             </div>
 
             <div className="flex flex-col gap-1">
-              <label htmlFor="new-guest-photoquota" className="font-mono text-[11px] uppercase tracking-wider text-paper-100/70">
+              <label htmlFor="new-guest-photoquota" className="font-mono text-xs uppercase tracking-wider text-paper-100/70">
                 Cupo de fotos
               </label>
               <input
@@ -142,7 +142,7 @@ export default function CreateGuestModal({ open, onClose, onCreate }: CreateGues
             </div>
 
             <div className="flex flex-col gap-1">
-              <label htmlFor="new-guest-phone" className="font-mono text-[11px] uppercase tracking-wider text-paper-100/70">
+              <label htmlFor="new-guest-phone" className="font-mono text-xs uppercase tracking-wider text-paper-100/70">
                 Teléfono (WhatsApp, opcional)
               </label>
               <input
@@ -155,7 +155,7 @@ export default function CreateGuestModal({ open, onClose, onCreate }: CreateGues
               />
             </div>
             <div className="flex flex-col gap-1">
-              <span className="font-mono text-[11px] uppercase tracking-wider text-paper-100/70">
+              <span className="font-mono text-xs uppercase tracking-wider text-paper-100/70">
                 Estado del RSVP
               </span>
               <div className="flex gap-2">
@@ -164,7 +164,7 @@ export default function CreateGuestModal({ open, onClose, onCreate }: CreateGues
                     key={opt}
                     type="button"
                     onClick={() => setStatus(opt)}
-                    className={`flex-1 border px-2 py-1 text-center font-mono text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                    className={`flex-1 border px-2 py-1 text-center font-mono text-xs font-bold uppercase tracking-wider transition-colors ${
                       status === opt
                         ? opt === 'confirmed'
                           ? 'border-acid-400 bg-acid-400/10 text-acid-400'
@@ -181,7 +181,7 @@ export default function CreateGuestModal({ open, onClose, onCreate }: CreateGues
             </div>
 
             <div className="flex flex-col gap-1">
-              <label htmlFor="new-guest-plusonesconfirmed" className="font-mono text-[11px] uppercase tracking-wider text-paper-100/70">
+              <label htmlFor="new-guest-plusonesconfirmed" className="font-mono text-xs uppercase tracking-wider text-paper-100/70">
                 Acompañantes confirmados
               </label>
               <input
@@ -196,7 +196,7 @@ export default function CreateGuestModal({ open, onClose, onCreate }: CreateGues
             </div>
 
             <div className="flex flex-col gap-1">
-              <label htmlFor="new-guest-note" className="font-mono text-[11px] uppercase tracking-wider text-paper-100/70">
+              <label htmlFor="new-guest-note" className="font-mono text-xs uppercase tracking-wider text-paper-100/70">
                 Nota del invitado
               </label>
               <textarea
@@ -209,7 +209,7 @@ export default function CreateGuestModal({ open, onClose, onCreate }: CreateGues
             </div>
 
             <div className="flex flex-col gap-1">
-              <label htmlFor="new-guest-admin-note" className="font-mono text-[11px] uppercase tracking-wider text-hotpink-500/70">
+              <label htmlFor="new-guest-admin-note" className="font-mono text-xs uppercase tracking-wider text-hotpink-500/70">
                 Nota privada
               </label>
               <textarea
@@ -226,13 +226,13 @@ export default function CreateGuestModal({ open, onClose, onCreate }: CreateGues
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 bg-smoke-700/30 px-4 py-2 font-mono text-[11px] uppercase tracking-wider text-paper-100 hover:bg-smoke-700/50"
+                className="flex-1 bg-smoke-700/30 px-4 py-2 font-mono text-xs uppercase tracking-wider text-paper-100 hover:bg-smoke-700/50"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
-                className="flex-1 bg-acid-400 px-4 py-2 font-mono text-[11px] font-bold uppercase tracking-wider text-ink-950 shadow-glow-acid active:scale-95"
+                className="flex-1 bg-acid-400 px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-ink-950 shadow-glow-acid active:scale-95"
               >
                 Crear
               </button>

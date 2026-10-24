@@ -30,12 +30,12 @@ export default function WristbandCard({ guest, event, compact = false }: Wristba
       <div className="relative flex w-full flex-col overflow-hidden rounded bg-ink-900 shadow-2xl">
         <div className="flex items-center justify-between bg-ink-950 px-4 py-2">
           <div className="flex items-center gap-2">
-            <span className="bg-ink-900 px-2 py-0.5 font-mono text-[11px] font-bold uppercase tracking-wider text-acid-400">
+            <span className="bg-ink-900 px-2 py-0.5 font-mono text-xs font-bold uppercase tracking-wider text-acid-400">
               GUEST PASS
             </span>
-            <span className="font-mono text-[11px] uppercase tracking-widest text-paper-100/70">Lista privada</span>
+            <span className="font-mono text-xs uppercase tracking-widest text-paper-100/70">Lista privada</span>
           </div>
-          <span className="font-mono text-[11px] font-bold uppercase tracking-widest text-hotpink-500">
+          <span className="font-mono text-xs font-bold uppercase tracking-widest text-hotpink-500">
             Folio {(guest.token ?? guest.id).toUpperCase()}
           </span>
         </div>
@@ -43,25 +43,25 @@ export default function WristbandCard({ guest, event, compact = false }: Wristba
         <div className="flex flex-col gap-4 p-4">
           <div className="flex justify-between items-end">
             <div className="flex flex-col">
-              <span className="font-mono text-[11px] uppercase tracking-widest text-paper-100/70">Invitado nominal</span>
+              <span className="font-mono text-xs uppercase tracking-widest text-paper-100/70">Invitado nominal</span>
               <span className="font-sans text-sm font-bold text-paper-100/70">Código intransferible</span>
             </div>
             <div className="flex items-center gap-1 bg-ink-950 px-2 py-0.5">
-              <span className="font-mono text-[11px] text-acid-400">Validado</span>
+              <span className="font-mono text-xs text-acid-400">Validado</span>
             </div>
           </div>
 
           <div className="flex flex-col gap-1 rounded bg-ink-950 p-3">
-            <span className="font-mono text-[11px] uppercase tracking-widest text-laser-500">
+            <span className="font-mono text-xs uppercase tracking-widest text-laser-500">
               // Invitación exclusiva para
             </span>
             <h1 className="break-words font-display text-4xl uppercase leading-none tracking-tight text-paper-100 sm:text-5xl">
               {guest.fullName}
             </h1>
             <div className="mt-1 flex items-center justify-between">
-              <span className="font-mono text-[11px] uppercase tracking-wider text-paper-100/70">Pasaporte underground</span>
+              <span className="font-mono text-xs uppercase tracking-wider text-paper-100/70">Pasaporte underground</span>
               {guest.plusOnesAllowed > 0 && (
-                <span className="font-mono text-[11px] font-bold text-acid-400">
+                <span className="font-mono text-xs font-bold text-acid-400">
                   Cupo: +{guest.plusOnesAllowed} incluido
                 </span>
               )}
@@ -80,14 +80,14 @@ export default function WristbandCard({ guest, event, compact = false }: Wristba
             <div className="perforation relative h-6 bg-ink-950" aria-hidden />
             <div className="flex flex-col gap-2 bg-ink-950 p-4">
               <div className="flex items-center justify-between">
-                <span className="font-mono text-[11px] font-bold uppercase tracking-widest text-acid-400">
+                <span className="font-mono text-xs font-bold uppercase tracking-widest text-acid-400">
                   Talón de control
                 </span>
-                <span className="rounded bg-flame-500/15 px-2 py-0.5 font-mono text-[11px] font-bold uppercase text-flame-500">
+                <span className="rounded bg-flame-500/15 px-2 py-0.5 font-mono text-xs font-bold uppercase text-flame-500">
                   +18 only
                 </span>
               </div>
-              <p className="font-mono text-[11px] uppercase tracking-wider text-paper-100/70">
+              <p className="font-mono text-xs uppercase tracking-wider text-paper-100/70">
                 Te van a reconocer con tu link personal en la puerta.
               </p>
             </div>
@@ -113,9 +113,9 @@ function Spec({
 }) {
   return (
     <div className="flex flex-col">
-      <span className="font-mono text-[10px] uppercase tracking-wider text-paper-100/70">{label}</span>
+      <span className="font-mono text-xs uppercase tracking-wider text-paper-100/70">{label}</span>
       <span className={`font-sans text-sm font-bold uppercase tracking-tight text-paper-100 ${accent ?? ''}`}>{value}</span>
-      {sub && <span className={`font-mono text-[10px] ${accentSub ?? 'text-laser-500'}`}>{sub}</span>}
+      {sub && <span className={`font-mono text-xs ${accentSub ?? 'text-laser-500'}`}>{sub}</span>}
     </div>
   );
 }

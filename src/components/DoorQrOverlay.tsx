@@ -44,9 +44,9 @@ export default function DoorQrOverlay({ token, onClose }: DoorQrOverlayProps) {
     <div
       role="dialog"
       aria-label="Tu QR de puerta"
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-6 bg-ink-950 px-4 text-center"
+      className="fixed inset-safe z-50 flex flex-col items-center justify-center gap-6 bg-ink-950 px-4 text-center"
     >
-      <span className="font-mono text-[11px] uppercase tracking-widest text-laser-500">
+      <span className="font-mono text-xs uppercase tracking-widest text-laser-500">
         Mostrale esto a la puerta
       </span>
 
@@ -59,7 +59,7 @@ export default function DoorQrOverlay({ token, onClose }: DoorQrOverlayProps) {
       </div>
 
       <p className="max-w-xs font-sans text-sm text-paper-100/70">
-        Cuando te reconozcan, cerrá esta pantalla con el botón de abajo.
+        Cuando te reconozcan, cierra esta pantalla con el botón de abajo.
       </p>
 
       <button

@@ -74,7 +74,7 @@ function answersAsText(brief: BriefDefinition, respondent: string, answers: Brie
   const lines = [`${brief.title}${respondent ? ` — ${respondent}` : ''}`, ''];
   for (const a of Object.values(answers)) {
     lines.push(a.pregunta);
-    if (a.elegidas.length) lines.push(`  Elegí: ${a.elegidas.join(', ')}`);
+    if (a.elegidas.length) lines.push(`  Elige: ${a.elegidas.join(', ')}`);
     if (a.campos) {
       for (const [key, value] of Object.entries(a.campos)) lines.push(`  ${key}: ${value}`);
     }
@@ -105,7 +105,7 @@ export default function ClientBriefPage() {
 
   if (!brief) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-ink-950 px-4 text-paper-100">
+      <main className="flex min-h-app items-center justify-center bg-ink-950 px-4 text-paper-100">
         <p className="font-mono text-xs uppercase tracking-widest text-paper-100/70">
           Este formulario no existe.
         </p>
@@ -165,7 +165,7 @@ export default function ClientBriefPage() {
 
   if (status === 'sent') {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-ink-950 px-4 text-paper-100">
+      <main className="flex min-h-app items-center justify-center bg-ink-950 px-4 text-paper-100">
         <div className="flex max-w-sm flex-col gap-3 border border-smoke-700/40 bg-ink-900 p-6">
           <h1 className="font-display text-2xl uppercase tracking-wide">Listo, recibido</h1>
           <p className="font-sans text-sm text-paper-100/80">
@@ -177,15 +177,15 @@ export default function ClientBriefPage() {
     );
   }
 
-  const labelClass = 'font-mono text-[11px] uppercase tracking-wider text-paper-100/70';
+  const labelClass = 'font-mono text-xs uppercase tracking-wider text-paper-100/70';
   const fieldClass =
     'border border-smoke-700/60 bg-ink-900 px-3 py-2 font-sans text-sm text-paper-100 outline-none placeholder:text-paper-100/40 focus-visible:border-paper-100 focus-visible:ring-1 focus-visible:ring-paper-100';
 
   return (
-    <main className="min-h-screen bg-ink-950 px-4 py-10 text-paper-100">
+    <main className="min-h-app bg-ink-950 px-4 py-10 text-paper-100">
       <form onSubmit={handleSubmit} className="mx-auto flex w-full max-w-2xl flex-col gap-10">
         <header className="flex flex-col gap-3">
-          <span className="font-mono text-[11px] uppercase tracking-widest text-paper-100/70">
+          <span className="font-mono text-xs uppercase tracking-widest text-paper-100/70">
             Formulario de estilo
           </span>
           <h1 className="font-display text-4xl uppercase tracking-wide">{brief.title}</h1>
@@ -295,7 +295,7 @@ export default function ClientBriefPage() {
         })}
 
         {error && (
-          <p role="alert" className="font-mono text-[11px] uppercase tracking-wide text-flame-500">
+          <p role="alert" className="font-mono text-xs uppercase tracking-wide text-flame-500">
             {error}
           </p>
         )}
@@ -312,11 +312,11 @@ export default function ClientBriefPage() {
             type="button"
             onClick={handleCopy}
             disabled={answered === 0}
-            className="h-9 border border-smoke-700/60 font-mono text-[11px] uppercase tracking-wider text-paper-100 disabled:opacity-60"
+            className="h-9 border border-smoke-700/60 font-mono text-xs uppercase tracking-wider text-paper-100 disabled:opacity-60"
           >
             {copied ? 'Copiado' : 'Copiar mis respuestas'}
           </button>
-          <p className="font-mono text-[10px] tracking-wide text-paper-100/50">
+          <p className="font-mono text-xs tracking-wide text-paper-100/50">
             {answered} de {brief.questions.length} preguntas respondidas. Tu avance se guarda en este
             navegador.
           </p>

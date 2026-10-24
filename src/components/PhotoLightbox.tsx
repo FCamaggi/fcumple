@@ -193,7 +193,7 @@ export default function PhotoLightbox({ photos, startIndex, onClose }: PhotoLigh
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink-950/95 p-4"
+      className="fixed inset-safe z-50 flex items-center justify-center bg-ink-950/95 p-4"
       onClick={onClose}
     >
       <motion.div
@@ -208,7 +208,7 @@ export default function PhotoLightbox({ photos, startIndex, onClose }: PhotoLigh
         className="relative flex h-full w-full max-w-3xl flex-col items-center justify-center gap-3 outline-none"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex w-full items-center justify-between font-mono text-[11px] uppercase tracking-widest text-paper-100/70">
+        <div className="flex w-full items-center justify-between font-mono text-xs uppercase tracking-widest text-paper-100/70">
           <span>
             {index + 1} / {total}
           </span>
@@ -245,7 +245,7 @@ export default function PhotoLightbox({ photos, startIndex, onClose }: PhotoLigh
               className="max-h-full max-w-full touch-none select-none object-contain"
             />
           ) : (
-            <span className="font-mono text-[11px] uppercase tracking-widest text-paper-100/50">Cargando…</span>
+            <span className="font-mono text-xs uppercase tracking-widest text-paper-100/50">Cargando…</span>
           )}
           {total > 1 && (
             <button
@@ -263,7 +263,7 @@ export default function PhotoLightbox({ photos, startIndex, onClose }: PhotoLigh
           type="button"
           onClick={handleDownload}
           disabled={downloading}
-          className="tap-target border border-acid-400 px-4 py-2 font-mono text-[11px] font-bold uppercase tracking-wider text-acid-400 shadow-glow-acid transition-transform active:scale-95 disabled:opacity-50"
+          className="tap-target border border-acid-400 px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-acid-400 shadow-glow-acid transition-transform active:scale-95 disabled:opacity-50"
         >
           {downloading ? 'Generando…' : 'Descargar'}
         </button>

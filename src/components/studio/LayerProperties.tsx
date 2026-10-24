@@ -20,7 +20,7 @@ const ANCHOR_LABELS: Record<LayerAnchor, string> = {
 };
 
 const inputClass = 'bg-ink-950 px-3 py-2 font-sans text-sm text-paper-100 outline-none';
-const labelClass = 'font-mono text-[11px] uppercase tracking-wider text-paper-100/70';
+const labelClass = 'font-mono text-xs uppercase tracking-wider text-paper-100/70';
 
 /** Copia de la capa sin una clave opcional (`undefined` no es lo mismo que ausente para la validación). */
 function without<K extends string>(layer: FrameLayer, key: K): FrameLayer {
@@ -50,7 +50,8 @@ function ColorField({ label, value, onChange }: { label: string; value: string; 
             aria-label={`${label} ${swatch}`}
             onClick={() => onChange(swatch)}
             style={{ backgroundColor: swatch }}
-            className={`h-6 w-6 border ${value.toLowerCase() === swatch ? 'border-acid-400' : 'border-smoke-700/60'}`}
+            data-compact
+                className={`h-8 w-8 border ${value.toLowerCase() === swatch ? 'border-acid-400' : 'border-smoke-700/60'}`}
           />
         ))}
       </div>
@@ -113,7 +114,7 @@ function DraftField(props: {
         className={inputClass}
       />
       {error && (
-        <p role="alert" className="font-mono text-[11px] uppercase tracking-wide text-flame-500">
+        <p role="alert" className="font-mono text-xs uppercase tracking-wide text-flame-500">
           {error}
         </p>
       )}

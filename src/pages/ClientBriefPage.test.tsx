@@ -209,7 +209,7 @@ describe('ClientBriefPage', () => {
     await user.click(screen.getByRole('button', { name: 'Copiar mis respuestas' }));
 
     await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1));
-    expect(writeText.mock.calls[0][0]).toContain('Elegí: Club de noche');
+    expect(writeText.mock.calls[0][0]).toContain('Elige: Club de noche');
     expect(writeText.mock.calls[0][0]).toContain('nombre: Fran');
     expect(await screen.findByRole('button', { name: 'Copiado' })).toBeInTheDocument();
   });

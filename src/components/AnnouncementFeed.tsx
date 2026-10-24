@@ -33,7 +33,7 @@ export default function AnnouncementFeed({ posts }: AnnouncementFeedProps) {
 
   return (
     <section className="flex flex-col gap-3" aria-label="Avisos del evento">
-      <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-laser-500">
+      <span className="font-mono text-xs font-bold uppercase tracking-wider text-laser-500">
         On air // avisos
       </span>
       <div className="relative flex flex-col gap-4 pl-5">
@@ -132,7 +132,7 @@ function AnnouncementCard({ post }: { post: Post }) {
       )}
       <div className="flex items-start justify-between gap-2">
         <h3 className="font-display text-xl uppercase leading-tight text-paper-100">{post.title}</h3>
-        <span className="flex shrink-0 flex-col items-end gap-0.5 font-mono text-[10px] uppercase tracking-wider text-paper-100/50">
+        <span className="flex shrink-0 flex-col items-end gap-0.5 font-mono text-xs uppercase tracking-wider text-paper-100/50">
           <span>{formatAbsoluteTime(post.publishedAt)}</span>
           <span>{formatRelativeTime(post.publishedAt)}</span>
         </span>

@@ -4,6 +4,10 @@ export default {
   darkMode: 'class',
   theme: {
     extend: {
+      // Teléfono en horizontal: poca altura. Las pantallas de cámara pasan a dos columnas (ver CameraCapture).
+      screens: {
+        short: { raw: '(orientation: landscape) and (max-height: 500px)' },
+      },
       // Los colores son variables CSS (canales "r g b") para que cada evento tenga su piel: ver src/lib/theme.ts.
       // Los valores por defecto (el neón de siempre) están en :root, en src/styles/globals.css.
       // `<alpha-value>` mantiene funcionando `bg-acid-400/50`, `text-paper-100/70`, etc.

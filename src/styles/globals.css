@@ -73,6 +73,39 @@
     min-height: 44px;
     min-width: 44px;
   }
+
+  /* Alto de pantalla que sigue a la barra del navegador móvil (`min-h-screen` usa 100vh, la altura con la barra escondida). */
+  .min-h-app {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  /* Capa a pantalla completa que respeta el notch, los costados en horizontal y la barra de inicio (0 donde no hay). */
+  .inset-safe {
+    top: env(safe-area-inset-top, 0px);
+    right: env(safe-area-inset-right, 0px);
+    bottom: env(safe-area-inset-bottom, 0px);
+    left: env(safe-area-inset-left, 0px);
+  }
+}
+
+/*
+ * Safari en iPhone amplía la página al enfocar un campo de menos de 16 px y no la devuelve sola.
+ * Va con `:not(…)` para ganarle en especificidad a `text-sm`/`text-xs` sin recurrir a `!important`.
+ * Solo en pantallas táctiles: en el computador los campos siguen a 14 px.
+ */
+@media (pointer: coarse) {
+  input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']):not([type='color']),
+  textarea:not([hidden]),
+  select:not([hidden]) {
+    font-size: 16px;
+  }
+
+  /* Objetivo táctil mínimo de 44 px. `data-compact` es la salida para un botón que lo justifique. */
+  button:not([data-compact]),
+  [role='button']:not([data-compact]) {
+    min-height: 44px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

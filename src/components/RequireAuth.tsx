@@ -17,8 +17,8 @@ export default function RequireAuth({ children, login }: RequireAuthProps) {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-ink-950">
-        <span className="font-mono text-[11px] uppercase tracking-widest text-laser-500">Verificando sesión...</span>
+      <div className="flex min-h-app items-center justify-center bg-ink-950">
+        <span className="font-mono text-xs uppercase tracking-widest text-laser-500">Verificando sesión...</span>
       </div>
     );
   }

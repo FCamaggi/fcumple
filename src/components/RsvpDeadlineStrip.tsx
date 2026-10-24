@@ -27,7 +27,7 @@ export default function RsvpDeadlineStrip({ deadline }: RsvpDeadlineStripProps) 
 
   return (
     <div
-      className={`flex items-center justify-between rounded border px-3 py-2 font-mono text-[11px] uppercase tracking-widest ${
+      className={`flex items-center justify-between rounded border px-3 py-2 font-mono text-xs uppercase tracking-widest ${
         expired
           ? 'border-flame-500/50 text-flame-500'
           : isUrgent

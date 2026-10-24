@@ -217,20 +217,20 @@ export default function PostsPanel({ eventId }: { eventId?: string } = {}) {
   return (
     <section className="flex flex-col gap-4 border border-smoke-700/50 bg-ink-900 p-6 shadow-2xl">
       <div className="flex items-center justify-between">
-        <span className="font-mono text-[11px] uppercase tracking-widest text-acid-400">Avisos // cartelera</span>
+        <span className="font-mono text-xs uppercase tracking-widest text-acid-400">Avisos // cartelera</span>
         <button
           type="button"
           onClick={() => {
             setCreating((v) => !v);
             resetCreateForm();
           }}
-          className="border border-smoke-700/50 px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-acid-400 transition-colors hover:bg-acid-400/10"
+          className="border border-smoke-700/50 px-3 py-1.5 font-mono text-xs font-bold uppercase tracking-wider text-acid-400 transition-colors hover:bg-acid-400/10"
         >
           {creating ? 'Cancelar' : 'Nuevo aviso'}
         </button>
       </div>
 
-      {error && <p className="font-mono text-[11px] uppercase tracking-wider text-flame-500">{error}</p>}
+      {error && <p className="font-mono text-xs uppercase tracking-wider text-flame-500">{error}</p>}
 
       {creating && (
         <form onSubmit={handleCreate} className="flex flex-col gap-3 bg-ink-950 p-4">
@@ -295,7 +295,7 @@ export default function PostsPanel({ eventId }: { eventId?: string } = {}) {
           <button
             type="submit"
             disabled={uploadingCreate}
-            className="self-start bg-acid-400 px-4 py-2 font-mono text-[11px] font-bold uppercase tracking-wider text-ink-950 disabled:opacity-50"
+            className="self-start bg-acid-400 px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-ink-950 disabled:opacity-50"
           >
             {uploadingCreate ? 'Subiendo...' : 'Crear'}
           </button>
@@ -303,10 +303,10 @@ export default function PostsPanel({ eventId }: { eventId?: string } = {}) {
       )}
 
       {loading ? (
-        <span className="font-mono text-[11px] uppercase tracking-wider text-paper-100/70">Cargando...</span>
+        <span className="font-mono text-xs uppercase tracking-wider text-paper-100/70">Cargando...</span>
       ) : posts.length === 0 ? (
-        <p className="font-mono text-[11px] uppercase tracking-wider text-paper-100/70">
-          Todavía no hay avisos. Creá el primero.
+        <p className="font-mono text-xs uppercase tracking-wider text-paper-100/70">
+          Todavía no hay avisos. Crea el primero.
         </p>
       ) : (
         <ul className="flex flex-col gap-2">
@@ -381,14 +381,14 @@ export default function PostsPanel({ eventId }: { eventId?: string } = {}) {
                     <button
                       type="submit"
                       disabled={uploadingEdit}
-                      className="bg-acid-400 px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-ink-950 disabled:opacity-50"
+                      className="bg-acid-400 px-3 py-1.5 font-mono text-xs font-bold uppercase tracking-wider text-ink-950 disabled:opacity-50"
                     >
                       Guardar
                     </button>
                     <button
                       type="button"
                       onClick={() => setEditingId(null)}
-                      className="border border-smoke-700/50 px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-paper-100"
+                      className="border border-smoke-700/50 px-3 py-1.5 font-mono text-xs font-bold uppercase tracking-wider text-paper-100"
                     >
                       Cancelar
                     </button>
@@ -396,8 +396,8 @@ export default function PostsPanel({ eventId }: { eventId?: string } = {}) {
                 </form>
               </li>
             ) : (
-              <li key={post.id} className="flex items-start justify-between gap-3 bg-ink-950 p-4">
-                <div className="flex gap-3">
+              <li key={post.id} className="flex flex-col gap-3 bg-ink-950 p-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex min-w-0 gap-3">
                   {post.coverImagePath && (
                     <PostImageThumb
                       path={post.coverImagePath}
@@ -405,23 +405,23 @@ export default function PostsPanel({ eventId }: { eventId?: string } = {}) {
                       className="h-16 w-16 shrink-0 object-cover"
                     />
                   )}
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-2">
+                  <div className="flex min-w-0 flex-col gap-1">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span
-                        className={`px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider ${
+                        className={`px-2 py-0.5 font-mono text-xs font-bold uppercase tracking-wider ${
                           post.publishedAt ? 'bg-acid-400/10 text-acid-400' : 'bg-smoke-700/30 text-paper-100/70'
                         }`}
                       >
                         {post.publishedAt ? 'Publicado' : 'Borrador'}
                       </span>
-                      <h3 className="font-display text-lg uppercase leading-none text-paper-100">{post.title}</h3>
+                      <h3 className="min-w-0 break-words font-display text-lg uppercase leading-none text-paper-100">{post.title}</h3>
                     </div>
                     {post.subtitle && (
-                      <p className="font-mono text-xs uppercase tracking-wider text-laser-500">{post.subtitle}</p>
+                      <p className="break-words font-mono text-xs uppercase tracking-wider text-laser-500">{post.subtitle}</p>
                     )}
-                    <p className="font-sans text-sm text-paper-100/70">{post.body}</p>
+                    <p className="break-words font-sans text-sm text-paper-100/70">{post.body}</p>
                     {(imagesByPostId[post.id]?.length ?? 0) > 0 && (
-                      <div className="mt-1 flex gap-1">
+                      <div className="mt-1 flex flex-wrap gap-1">
                         {imagesByPostId[post.id].map((img) => (
                           <PostImageThumb
                             key={img.id}
@@ -434,25 +434,25 @@ export default function PostsPanel({ eventId }: { eventId?: string } = {}) {
                     )}
                   </div>
                 </div>
-                <div className="flex shrink-0 flex-col gap-1.5">
+                <div className="flex flex-wrap gap-2 sm:shrink-0 sm:flex-col sm:gap-1.5">
                   <button
                     type="button"
                     onClick={() => handleTogglePublish(post)}
-                    className="border border-smoke-700/50 px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-laser-500 transition-colors hover:bg-laser-500/10"
+                    className="min-h-11 border border-smoke-700/50 px-3 font-mono text-xs font-bold uppercase tracking-wider text-laser-500 transition-colors hover:bg-laser-500/10 sm:min-h-0 sm:py-1"
                   >
                     {post.publishedAt ? 'Despublicar' : 'Publicar'}
                   </button>
                   <button
                     type="button"
                     onClick={() => startEdit(post)}
-                    className="border border-smoke-700/50 px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-paper-100 transition-colors hover:bg-smoke-700/30"
+                    className="min-h-11 border border-smoke-700/50 px-3 font-mono text-xs font-bold uppercase tracking-wider text-paper-100 transition-colors hover:bg-smoke-700/30 sm:min-h-0 sm:py-1"
                   >
                     Editar
                   </button>
                   <button
                     type="button"
                     onClick={() => handleDelete(post.id)}
-                    className="border border-smoke-700/50 px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-flame-500 transition-colors hover:bg-flame-500/10"
+                    className="min-h-11 border border-smoke-700/50 px-3 font-mono text-xs font-bold uppercase tracking-wider text-flame-500 transition-colors hover:bg-flame-500/10 sm:min-h-0 sm:py-1"
                   >
                     Eliminar
                   </button>
@@ -495,7 +495,7 @@ function PostImageThumb({ path, alt, className }: { path: string; alt: string; c
 function Field({ label, htmlFor, children }: { label: string; htmlFor: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1">
-      <label htmlFor={htmlFor} className="font-mono text-[11px] uppercase tracking-wider text-paper-100/70">
+      <label htmlFor={htmlFor} className="font-mono text-xs uppercase tracking-wider text-paper-100/70">
         {label}
       </label>
       {children}

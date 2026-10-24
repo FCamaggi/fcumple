@@ -300,14 +300,14 @@ export default function GuestPage() {
       setToast(next === 'confirmed' ? 'Quedaste dentro. Nos vemos ahí.' : 'Que penal, te vamos a extrañar. Gracias por avisar.');
     } catch (err) {
       setToastKind('error');
-      setToast(err instanceof Error ? err.message : 'No pudimos guardar tu respuesta. Intentá de nuevo.');
+      setToast(err instanceof Error ? err.message : 'No pudimos guardar tu respuesta. Intenta de nuevo.');
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-ink-950 px-4 pb-16 pt-8">
+    <div className="relative min-h-app overflow-hidden bg-ink-950 px-4 pb-16 pt-8">
       <div
         className="pointer-events-none absolute -top-16 left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-hotpink-500/20 blur-[90px]"
         aria-hidden
@@ -342,7 +342,7 @@ export default function GuestPage() {
               <WristbandCard guest={{ ...guest, plusOnesConfirmed: plusOne }} event={event} />
 
               <section className="flex flex-col gap-2 bg-ink-900 p-4 shadow-xl">
-                <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-laser-500">
+                <span className="font-mono text-xs font-bold uppercase tracking-wider text-laser-500">
                   Crossfader master // RSVP
                 </span>
                 <FaderToggle value={fader} onChange={setFader} />
@@ -350,7 +350,7 @@ export default function GuestPage() {
 
               {guest.plusOnesAllowed > 0 && (
                 <section className="flex flex-col gap-2 bg-ink-900 p-4 shadow-xl">
-                  <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-hotpink-500">
+                  <span className="font-mono text-xs font-bold uppercase tracking-wider text-hotpink-500">
                     Acompañantes (+1)
                   </span>
                   <div className="flex items-center justify-between gap-4 bg-ink-950 p-3">
@@ -363,7 +363,7 @@ export default function GuestPage() {
                     </button>
                     <div className="flex flex-col items-center">
                       <span className="font-display text-3xl text-hotpink-500">+{plusOne}</span>
-                      <span className="font-mono text-[10px] uppercase tracking-wider text-paper-100/70">
+                      <span className="font-mono text-xs uppercase tracking-wider text-paper-100/70">
                         / máx {guest.plusOnesAllowed}
                       </span>
                     </div>
@@ -381,7 +381,7 @@ export default function GuestPage() {
               <section className="flex flex-col gap-2 bg-ink-900 p-4 shadow-xl">
                 <label
                   htmlFor="guest-note"
-                  className="font-mono text-[11px] font-bold uppercase tracking-wider text-paper-100/70"
+                  className="font-mono text-xs font-bold uppercase tracking-wider text-paper-100/70"
                 >
                   Mensaje a puerta // nota privada
                 </label>
@@ -394,7 +394,7 @@ export default function GuestPage() {
                   placeholder="Avisale algo a la puerta o a la cabina..."
                   className="resize-none bg-ink-950 p-3 font-sans text-sm text-paper-100 outline-none placeholder-smoke-700"
                 />
-                <span className="self-end font-mono text-[10px] text-paper-100/70">{note.length} / 200</span>
+                <span className="self-end font-mono text-xs text-paper-100/70">{note.length} / 200</span>
               </section>
 
               <button
@@ -471,7 +471,7 @@ function EventHubChip() {
   return (
     <Link
       to="/evento"
-      className="tap-target flex items-center justify-center gap-2 bg-ink-900 px-4 py-3 font-mono text-[11px] font-bold uppercase tracking-wider text-laser-500 shadow-xl transition-colors hover:bg-laser-500/10"
+      className="tap-target flex items-center justify-center gap-2 bg-ink-900 px-4 py-3 font-mono text-xs font-bold uppercase tracking-wider text-laser-500 shadow-xl transition-colors hover:bg-laser-500/10"
     >
       Ver la cartelera del evento
     </Link>
@@ -482,7 +482,7 @@ function HowToGetThereLink() {
   return (
     <Link
       to="/como-llegar"
-      className="tap-target flex items-center justify-center gap-2 bg-ink-900 px-4 py-3 font-mono text-[11px] font-bold uppercase tracking-wider text-acid-400 shadow-xl transition-colors hover:bg-acid-400/10"
+      className="tap-target flex items-center justify-center gap-2 bg-ink-900 px-4 py-3 font-mono text-xs font-bold uppercase tracking-wider text-acid-400 shadow-xl transition-colors hover:bg-acid-400/10"
     >
       Cómo llegar
     </Link>
@@ -498,7 +498,7 @@ function LoadingLights({ reduceMotion }: { reduceMotion: boolean }) {
       exit={{ opacity: 0 }}
       className="flex min-h-[70vh] flex-col items-center justify-center gap-3 text-center"
     >
-      <span className="font-mono text-[11px] uppercase tracking-widest text-laser-500">Encendiendo la puerta...</span>
+      <span className="font-mono text-xs uppercase tracking-widest text-laser-500">Encendiendo la puerta...</span>
       <motion.h1
         className="font-display text-3xl uppercase tracking-wide text-paper-100"
         animate={reduceMotion ? { opacity: 1 } : { opacity: [0.2, 1, 0.3, 1, 1] }}
@@ -531,7 +531,7 @@ function ConfirmedScreen({
       animate={{ opacity: 1, scale: 1 }}
       className="flex flex-col items-center gap-4 py-6 text-center"
     >
-      <span className="bg-ink-950 px-3 py-1 font-mono text-[11px] uppercase tracking-widest text-acid-400 shadow-glow-acid">
+      <span className="bg-ink-950 px-3 py-1 font-mono text-xs uppercase tracking-widest text-acid-400 shadow-glow-acid">
         [ Access granted ]
       </span>
       <h1 className="font-display text-5xl uppercase leading-none tracking-wide text-paper-100">
@@ -544,10 +544,10 @@ function ConfirmedScreen({
       <div className="mt-4 w-full bg-ink-900 p-4 shadow-2xl">
         <div className="flex items-center justify-between">
           <div className="flex flex-col text-left">
-            <span className="font-mono text-[10px] uppercase tracking-widest text-paper-100/70">Pass identifier</span>
+            <span className="font-mono text-xs uppercase tracking-widest text-paper-100/70">Pass identifier</span>
             <span className="font-mono text-sm text-acid-400">{token.toUpperCase()}</span>
           </div>
-          <span className="bg-ink-950 px-2 py-0.5 font-mono text-[10px] font-bold uppercase text-hotpink-500">
+          <span className="bg-ink-950 px-2 py-0.5 font-mono text-xs font-bold uppercase text-hotpink-500">
             Acceso confirmado
           </span>
         </div>
@@ -561,9 +561,9 @@ function ConfirmedScreen({
 
       <div className="w-full bg-ink-900 p-4 text-left shadow-2xl">
         <div className="flex items-center justify-between">
-          <span className="font-mono text-[10px] uppercase tracking-widest text-paper-100/70">Cámara // acceso</span>
+          <span className="font-mono text-xs uppercase tracking-widest text-paper-100/70">Cámara // acceso</span>
           <span
-            className={`bg-ink-950 px-2 py-0.5 font-mono text-[10px] font-bold uppercase ${
+            className={`bg-ink-950 px-2 py-0.5 font-mono text-xs font-bold uppercase ${
               checkedIn ? 'text-acid-400' : 'text-laser-500'
             }`}
           >
@@ -579,7 +579,7 @@ function ConfirmedScreen({
           <button
             type="button"
             onClick={onShowQr}
-            className="tap-target mt-3 flex w-full items-center justify-center bg-laser-500/10 px-4 py-3 font-mono text-[11px] font-bold uppercase tracking-wider text-laser-500"
+            className="tap-target mt-3 flex w-full items-center justify-center bg-laser-500/10 px-4 py-3 font-mono text-xs font-bold uppercase tracking-wider text-laser-500"
           >
             Mostrar mi QR en la puerta
           </button>
@@ -589,20 +589,20 @@ function ConfirmedScreen({
       <div className="flex w-full flex-col gap-2">
         <Link
           to="/evento"
-          className="tap-target flex items-center justify-center bg-laser-500/10 px-4 py-3 font-mono text-[11px] font-bold uppercase tracking-wider text-laser-500"
+          className="tap-target flex items-center justify-center bg-laser-500/10 px-4 py-3 font-mono text-xs font-bold uppercase tracking-wider text-laser-500"
         >
           Ver la cartelera del evento
         </Link>
         <Link
           to="/como-llegar"
-          className="tap-target flex items-center justify-center bg-acid-400/10 px-4 py-3 font-mono text-[11px] font-bold uppercase tracking-wider text-acid-400"
+          className="tap-target flex items-center justify-center bg-acid-400/10 px-4 py-3 font-mono text-xs font-bold uppercase tracking-wider text-acid-400"
         >
           Cómo llegar
         </Link>
         <button
           type="button"
           onClick={onEdit}
-          className="tap-target font-mono text-[11px] uppercase tracking-wider text-paper-100/70 underline underline-offset-4"
+          className="tap-target font-mono text-xs uppercase tracking-wider text-paper-100/70 underline underline-offset-4"
         >
           Editar mi respuesta
         </button>
@@ -619,7 +619,7 @@ function DeclinedScreen({ guestName, onEdit }: { guestName: string; onEdit: () =
       transition={{ duration: 0.6 }}
       className="flex min-h-[70vh] flex-col items-center justify-center gap-3 text-center"
     >
-      <span className="font-mono text-[11px] uppercase tracking-widest text-flame-500">Cupo liberado</span>
+      <span className="font-mono text-xs uppercase tracking-widest text-flame-500">Cupo liberado</span>
       <h1 className="font-display text-3xl uppercase leading-tight text-paper-100">
         Que penal, {guestName.split(' ')[0]}.
       </h1>
@@ -628,7 +628,7 @@ function DeclinedScreen({ guestName, onEdit }: { guestName: string; onEdit: () =
       <button
         type="button"
         onClick={onEdit}
-        className="tap-target font-mono text-[11px] uppercase tracking-wider text-paper-100/70 underline underline-offset-4"
+        className="tap-target font-mono text-xs uppercase tracking-wider text-paper-100/70 underline underline-offset-4"
       >
         Editar mi respuesta
       </button>
@@ -638,26 +638,26 @@ function DeclinedScreen({ guestName, onEdit }: { guestName: string; onEdit: () =
 
 function InvalidTokenScreen({ token }: { token?: string }) {
   return (
-    <div className="relative min-h-screen bg-ink-950 px-4 pb-16 pt-8">
+    <div className="relative min-h-app bg-ink-950 px-4 pb-16 pt-8">
       <div className="mx-auto flex max-w-md flex-col gap-4">
         <div className="flex items-center justify-between bg-ink-900 px-3 py-2">
-          <span className="font-mono text-[11px] uppercase tracking-widest text-flame-500">Error // hard-refusal</span>
-          <span className="font-mono text-[10px] text-paper-100/70">SCANNER_SYS.09</span>
+          <span className="font-mono text-xs uppercase tracking-widest text-flame-500">Error // hard-refusal</span>
+          <span className="font-mono text-xs text-paper-100/70">SCANNER_SYS.09</span>
         </div>
 
         <div className="flex flex-col gap-2">
-          <span className="inline-flex w-fit items-center gap-1 bg-flame-500/20 px-2 py-1 font-mono text-[11px] font-bold uppercase tracking-wider text-flame-500">
+          <span className="inline-flex w-fit items-center gap-1 bg-flame-500/20 px-2 py-1 font-mono text-xs font-bold uppercase tracking-wider text-flame-500">
             Access denied
           </span>
           <h1 className="font-display text-4xl uppercase leading-none text-paper-100">No estás en lista</h1>
           <p className="font-sans text-sm text-paper-100/70">
-            Esta entrada no es válida. Revisá el link que te mandaron por WhatsApp.
+            Esta entrada no es válida. Revisa el enlace que te mandaron por WhatsApp.
           </p>
         </div>
 
         <div className="flex flex-col gap-2 bg-ink-900 p-4 shadow-2xl">
-          <span className="font-mono text-[11px] uppercase tracking-widest text-flame-500">Pase corrupto</span>
-          <p className="font-mono text-[11px] uppercase tracking-widest text-paper-100/70">
+          <span className="font-mono text-xs uppercase tracking-widest text-flame-500">Pase corrupto</span>
+          <p className="font-mono text-xs uppercase tracking-widest text-paper-100/70">
             Hash: 0x000000000000 // unresolved{token ? ` // token "${token}"` : ''}
           </p>
         </div>

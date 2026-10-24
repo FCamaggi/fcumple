@@ -215,18 +215,18 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-ink-950 text-paper-100">
+    <div className="min-h-app bg-ink-950 text-paper-100">
       <header className="flex flex-col gap-3 bg-ink-900 px-4 py-3 shadow-lg sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4">
         <div className="flex items-center gap-2 sm:gap-3">
           <span className="h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-acid-400" aria-hidden />
           <span className="font-display text-lg uppercase tracking-wider text-paper-100">Nocturne</span>
-          <span className="ml-1 bg-ink-950 px-2 py-1 font-mono text-[10px] uppercase text-acid-400 sm:ml-2">
+          <span className="ml-1 bg-ink-950 px-2 py-1 font-mono text-xs uppercase text-acid-400 sm:ml-2">
             Deck-01 // live ctrl
           </span>
         </div>
         <div
           data-testid="admin-header-actions"
-          className="flex flex-wrap items-center gap-2 font-mono text-[11px] uppercase text-paper-100/70 sm:gap-3"
+          className="flex flex-wrap items-center gap-2 font-mono text-xs uppercase text-paper-100/70 sm:gap-3"
         >
           {!doorMode && <span>Corte lista: {formatTime(eventConfig?.rsvpDeadline ?? null)}</span>}
           {!doorMode && (
@@ -234,14 +234,14 @@ export default function AdminPage() {
               <button
                 type="button"
                 onClick={() => setShowEventSettings((v) => !v)}
-                className="border border-smoke-700/50 px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-acid-400 transition-colors hover:bg-acid-400/10"
+                className="border border-smoke-700/50 px-3 py-1.5 font-mono text-xs font-bold uppercase tracking-wider text-acid-400 transition-colors hover:bg-acid-400/10"
               >
                 Evento
               </button>
               <button
                 type="button"
                 onClick={() => setShowPosts((v) => !v)}
-                className="border border-smoke-700/50 px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-acid-400 transition-colors hover:bg-acid-400/10"
+                className="border border-smoke-700/50 px-3 py-1.5 font-mono text-xs font-bold uppercase tracking-wider text-acid-400 transition-colors hover:bg-acid-400/10"
               >
                 Avisos
               </button>
@@ -250,7 +250,7 @@ export default function AdminPage() {
           <button
             type="button"
             onClick={() => setShowScanner((v) => !v)}
-            className="border border-smoke-700/50 px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-hotpink-500 transition-colors hover:bg-hotpink-500/10"
+            className="border border-smoke-700/50 px-3 py-1.5 font-mono text-xs font-bold uppercase tracking-wider text-hotpink-500 transition-colors hover:bg-hotpink-500/10"
           >
             Escáner
           </button>
@@ -258,7 +258,7 @@ export default function AdminPage() {
             <button
               type="button"
               onClick={() => setShowPhotos((v) => !v)}
-              className="border border-smoke-700/50 px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-acid-400 transition-colors hover:bg-acid-400/10"
+              className="border border-smoke-700/50 px-3 py-1.5 font-mono text-xs font-bold uppercase tracking-wider text-acid-400 transition-colors hover:bg-acid-400/10"
             >
               Fotos
             </button>
@@ -267,7 +267,7 @@ export default function AdminPage() {
             <button
               type="button"
               onClick={() => setFullConsoleOnMobile(true)}
-              className="border border-smoke-700/50 px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-laser-500 transition-colors hover:bg-laser-500/10"
+              className="border border-smoke-700/50 px-3 py-1.5 font-mono text-xs font-bold uppercase tracking-wider text-laser-500 transition-colors hover:bg-laser-500/10"
             >
               Ver consola completa
             </button>
@@ -276,7 +276,7 @@ export default function AdminPage() {
             <button
               type="button"
               onClick={() => setFullConsoleOnMobile(false)}
-              className="border border-smoke-700/50 px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-laser-500 transition-colors hover:bg-laser-500/10"
+              className="border border-smoke-700/50 px-3 py-1.5 font-mono text-xs font-bold uppercase tracking-wider text-laser-500 transition-colors hover:bg-laser-500/10"
             >
               Volver al modo puerta
             </button>
@@ -284,7 +284,7 @@ export default function AdminPage() {
           <button
             type="button"
             onClick={handleLogout}
-            className="border border-smoke-700/50 px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-flame-500 transition-colors hover:bg-flame-500/10"
+            className="border border-smoke-700/50 px-3 py-1.5 font-mono text-xs font-bold uppercase tracking-wider text-flame-500 transition-colors hover:bg-flame-500/10"
           >
             Cerrar sesión
           </button>
@@ -309,7 +309,7 @@ export default function AdminPage() {
               <HeadcountMeter confirmed={confirmed} total={realGuests.length} pending={pending} declined={declined} />
             </div>
             <div className="flex flex-col justify-between gap-2 bg-ink-950 p-4">
-              <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-hotpink-500">
+              <span className="font-mono text-xs font-bold uppercase tracking-wider text-hotpink-500">
                 Live tally
               </span>
               <TallyRow color="bg-acid-400" label="Confirmados" value={confirmed} valueClass="text-acid-400" />
@@ -325,14 +325,14 @@ export default function AdminPage() {
                         <button
               type="button"
               onClick={() => setCreating(true)}
-              className="border border-acid-400/50 bg-acid-400/10 px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-acid-400 transition-colors hover:bg-acid-400/20"
+              className="border border-acid-400/50 bg-acid-400/10 px-3 py-1.5 font-mono text-xs font-bold uppercase tracking-wider text-acid-400 transition-colors hover:bg-acid-400/20"
             >
               Añadir invitado
             </button>
             <button
               type="button"
               onClick={() => setShowGlobalQuotaModal(true)}
-              className="border border-smoke-700/50 px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-hotpink-500 transition-colors hover:bg-smoke-700/30"
+              className="border border-smoke-700/50 px-3 py-1.5 font-mono text-xs font-bold uppercase tracking-wider text-hotpink-500 transition-colors hover:bg-smoke-700/30"
             >
               Asignar cupo fotos
             </button>
@@ -340,7 +340,7 @@ export default function AdminPage() {
             <button
               type="button"
               onClick={() => setImporting(true)}
-              className="border border-smoke-700/50 px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-paper-100 transition-colors hover:bg-smoke-700/30"
+              className="border border-smoke-700/50 px-3 py-1.5 font-mono text-xs font-bold uppercase tracking-wider text-paper-100 transition-colors hover:bg-smoke-700/30"
             >
               Importar CSV
             </button>
@@ -386,10 +386,10 @@ export default function AdminPage() {
               onClick={(e) => e.stopPropagation()}
               className="flex w-full max-w-sm flex-col gap-4 border border-smoke-700/50 bg-ink-900 p-6 shadow-2xl"
             >
-              <span className="font-mono text-[11px] uppercase tracking-widest text-hotpink-500">Cupo global de fotos</span>
+              <span className="font-mono text-xs uppercase tracking-widest text-hotpink-500">Cupo global de fotos</span>
 
               <div className="flex flex-col gap-1">
-                <label htmlFor="global-quota" className="font-mono text-[11px] uppercase tracking-wider text-paper-100/70">
+                <label htmlFor="global-quota" className="font-mono text-xs uppercase tracking-wider text-paper-100/70">
                   Nuevo cupo para TODOS
                 </label>
                 <input
@@ -408,14 +408,14 @@ export default function AdminPage() {
                 <button
                   type="button"
                   onClick={() => setShowGlobalQuotaModal(false)}
-                  className="flex-1 bg-smoke-700/30 px-4 py-2 font-mono text-[11px] uppercase tracking-wider text-paper-100 hover:bg-smoke-700/50"
+                  className="flex-1 bg-smoke-700/30 px-4 py-2 font-mono text-xs uppercase tracking-wider text-paper-100 hover:bg-smoke-700/50"
                 >
                   Cancelar
                 </button>
                 <button
                   type="button"
                   onClick={handleSetGlobalPhotoQuota}
-                  className="flex-1 bg-hotpink-500 px-4 py-2 font-mono text-[11px] font-bold uppercase tracking-wider text-ink-950 transition-transform active:scale-95"
+                  className="flex-1 bg-hotpink-500 px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-ink-950 transition-transform active:scale-95"
                 >
                   Aplicar
                 </button>
@@ -445,7 +445,7 @@ function TallyRow({
     <div className="flex items-center justify-between bg-ink-900 px-3 py-1.5">
       <div className="flex items-center gap-2">
         <span className={`h-2 w-2 ${color}`} aria-hidden />
-        <span className="font-mono text-[11px] uppercase tracking-wider text-paper-100">{label}</span>
+        <span className="font-mono text-xs uppercase tracking-wider text-paper-100">{label}</span>
       </div>
       <span className={`font-display text-xl leading-none ${valueClass}`}>{value}</span>
     </div>

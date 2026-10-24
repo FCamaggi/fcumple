@@ -235,7 +235,7 @@ export default function CameraCapture({
         const caps = (track?.getCapabilities?.() ?? null) as CameraTrackCapabilities | null;
         setControls(getCameraControlsAvailability(caps));
       } catch {
-        setCameraError('No pudimos acceder a la cámara. Revisá los permisos del navegador.');
+        setCameraError('No pudimos acceder a la cámara. Revisa los permisos del navegador.');
       }
     }
 
@@ -366,10 +366,10 @@ export default function CameraCapture({
 
   if (outOfShots) {
     return (
-      <div className="fixed inset-0 z-50 flex flex-col bg-ink-950" aria-label="Cámara de fotos">
+      <div className="fixed inset-safe z-50 flex flex-col bg-ink-950" aria-label="Cámara de fotos">
         <CameraHeader onClose={onClose} />
         <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
-          <span className="font-mono text-[11px] uppercase tracking-widest text-flame-500">Rollo terminado</span>
+          <span className="font-mono text-xs uppercase tracking-widest text-flame-500">Rollo terminado</span>
           <FilmRollCounter quota={quota.quota} used={quota.used} />
           <p className="font-sans text-sm text-paper-100/70">
             Se acabó tu rollo. Ya diste todos tus disparos para esta noche.
@@ -380,7 +380,7 @@ export default function CameraCapture({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-ink-950" aria-label="Cámara de fotos">
+    <div className="fixed inset-safe z-50 flex flex-col bg-ink-950" aria-label="Cámara de fotos">
       <CameraHeader onClose={onClose}>
         <button
           type="button"
@@ -392,10 +392,10 @@ export default function CameraCapture({
         </button>
       </CameraHeader>
 
-      <div className="relative flex flex-1 flex-col overflow-hidden">
+      <div className="relative flex flex-1 flex-col overflow-hidden short:flex-row">
         {cameraError ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center">
-            <span className="font-mono text-[11px] uppercase tracking-widest text-flame-500">Cámara no disponible</span>
+            <span className="font-mono text-xs uppercase tracking-widest text-flame-500">Cámara no disponible</span>
             <p className="font-sans text-sm text-paper-100/80">{cameraError}</p>
           </div>
         ) : composer ? (
@@ -443,7 +443,11 @@ export default function CameraCapture({
           </motion.div>
         )}
 
-        <div className="flex flex-col gap-2 bg-ink-900 p-2.5">
+        <div
+          role="group"
+          aria-label="Controles de la cámara"
+          className="flex flex-col gap-2 bg-ink-900 p-2.5 short:w-60 short:shrink-0 short:justify-center short:overflow-y-auto"
+        >
           <div className="flex items-center gap-2">
             <FilmRollCounter quota={quota.quota} used={quota.used} />
 
@@ -453,7 +457,7 @@ export default function CameraCapture({
                   type="button"
                   onClick={handleTorchToggle}
                   aria-pressed={torchOn}
-                  className={`tap-target self-start px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-wider ${
+                  className={`tap-target self-start px-3 py-1.5 font-mono text-xs font-bold uppercase tracking-wider ${
                     torchOn ? 'bg-acid-400 text-ink-950 shadow-glow-acid' : 'bg-smoke-700/30 text-paper-100'
                   }`}
                 >
@@ -517,7 +521,7 @@ export default function CameraCapture({
               <ChevronIcon direction="right" />
             </button>
           </div>
-          <span className="text-center font-mono text-[10px] uppercase tracking-widest text-paper-100/60">
+          <span className="text-center font-mono text-xs uppercase tracking-widest text-paper-100/60">
             Marco // {currentFrame ? currentFrame.label : FRAME_LABELS[frameId]}
           </span>
         </div>
@@ -545,7 +549,7 @@ function ReviewScreen({
   onSend: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-[60] flex flex-col bg-ink-950" aria-label="Revisión de la foto">
+    <div className="fixed inset-safe z-[60] flex flex-col bg-ink-950" aria-label="Revisión de la foto">
       <div className="relative flex-1 overflow-hidden bg-ink-950">
         <img src={photoUrl} alt="Foto recién sacada, todavía sin enviar" className="h-full w-full object-contain" />
       </div>
@@ -553,14 +557,14 @@ function ReviewScreen({
         <button
           type="button"
           onClick={onRetake}
-          className="tap-target flex-1 bg-smoke-700/30 px-4 py-3 font-mono text-[11px] font-bold uppercase tracking-wider text-paper-100 transition-colors hover:bg-smoke-700/50"
+          className="tap-target flex-1 bg-smoke-700/30 px-4 py-3 font-mono text-xs font-bold uppercase tracking-wider text-paper-100 transition-colors hover:bg-smoke-700/50"
         >
           Repetir
         </button>
         <button
           type="button"
           onClick={onSend}
-          className="tap-target flex-1 bg-hotpink-500 px-4 py-3 font-mono text-[11px] font-bold uppercase tracking-wider text-ink-950 shadow-glow-hotpink transition-colors"
+          className="tap-target flex-1 bg-hotpink-500 px-4 py-3 font-mono text-xs font-bold uppercase tracking-wider text-ink-950 shadow-glow-hotpink transition-colors"
         >
           Enviar
         </button>
@@ -572,7 +576,7 @@ function ReviewScreen({
 function CameraHeader({ onClose, children }: { onClose: () => void; children?: ReactNode }) {
   return (
     <header className="flex items-center justify-between gap-3 bg-ink-900 px-4 py-3 shadow-lg">
-      <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-hotpink-500">
+      <span className="font-mono text-xs font-bold uppercase tracking-wider text-hotpink-500">
         Cámara // modo carrete
       </span>
       <div className="flex items-center gap-3">
@@ -580,7 +584,7 @@ function CameraHeader({ onClose, children }: { onClose: () => void; children?: R
         <button
           type="button"
           onClick={onClose}
-          className="tap-target flex items-center justify-center bg-smoke-700/30 px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-paper-100 transition-colors hover:bg-smoke-700/50"
+          className="tap-target flex items-center justify-center bg-smoke-700/30 px-3 py-1.5 font-mono text-xs font-bold uppercase tracking-wider text-paper-100 transition-colors hover:bg-smoke-700/50"
         >
           Cerrar
         </button>
@@ -728,7 +732,7 @@ function ConfirmationBanner({
       className="flex items-center justify-between gap-3 bg-acid-400/10 px-3 py-2"
     >
       <p className="font-sans text-sm text-acid-400">{message}</p>
-      <button type="button" onClick={onDismiss} className="font-mono text-[10px] uppercase text-paper-100/70">
+      <button type="button" onClick={onDismiss} className="font-mono text-xs uppercase text-paper-100/70">
         Ok
       </button>
     </motion.div>
@@ -739,7 +743,7 @@ function ErrorBanner({ message, onDismiss }: { message: string; onDismiss: () =>
   return (
     <div role="alert" className="flex items-center justify-between gap-3 bg-flame-500/10 px-3 py-2">
       <p className="font-sans text-sm text-flame-500">{message}</p>
-      <button type="button" onClick={onDismiss} className="font-mono text-[10px] uppercase text-paper-100/70">
+      <button type="button" onClick={onDismiss} className="font-mono text-xs uppercase text-paper-100/70">
         Ok
       </button>
     </div>

@@ -257,4 +257,35 @@ describe('PostsPanel', () => {
       await waitFor(() => expect(createPost).toHaveBeenCalledWith(expect.objectContaining({ eventId: 'ev-1' })));
     });
   });
+
+  // Revisión móvil: a 360 px los botones (shrink-0) aplastaban el texto del aviso y se salían del borde.
+  describe('en una pantalla angosta', () => {
+    async function fila() {
+      vi.mocked(listAllPosts).mockResolvedValueOnce([publishedPost]);
+      render(<PostsPanel />);
+      return (await screen.findByText('Ya salió la lista')).closest('li') as HTMLElement;
+    }
+
+    it('apila el contenido y las acciones, y las pone en fila solo desde sm', async () => {
+      const li = await fila();
+      expect(li.className).toContain('flex-col');
+      expect(li.className).toContain('sm:flex-row');
+    });
+
+    it('deja que el texto se encoja y se parta en vez de empujar los botones fuera de la pantalla', async () => {
+      const li = await fila();
+      const contenido = li.firstElementChild as HTMLElement;
+      expect(contenido.className).toContain('min-w-0');
+      expect(screen.getByText('Ya salió la lista').className).toContain('break-words');
+    });
+
+    it('las acciones miden al menos 44 px de alto y su texto 12 px', async () => {
+      await fila();
+      for (const nombre of [/despublicar/i, /editar/i, /eliminar/i]) {
+        const boton = screen.getByRole('button', { name: nombre });
+        expect(boton.className).toContain('min-h-11');
+        expect(boton.className).not.toMatch(/text-\[(9|10|11)px\]/);
+      }
+    });
+  });
 });

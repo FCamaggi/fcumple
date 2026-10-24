@@ -16,7 +16,7 @@ export default function CameraSection({ quota, onOpen }: CameraSectionProps) {
 
   return (
     <section className="flex flex-col gap-3 bg-ink-900 p-4 shadow-2xl" aria-label="Cámara">
-      <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-hotpink-500">
+      <span className="font-mono text-xs font-bold uppercase tracking-wider text-hotpink-500">
         Cámara // modo carrete
       </span>
       <FilmRollCounter quota={quota.quota} used={quota.used} />

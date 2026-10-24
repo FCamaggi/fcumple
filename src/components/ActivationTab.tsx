@@ -76,7 +76,7 @@ export default function ActivationTab({ event, onEventChange }: ActivationTabPro
             <a
               href={qr}
               download={`qr-activacion-${event.slug}.png`}
-              className="font-mono text-[11px] uppercase tracking-wider text-laser-500 underline"
+              className="inline-flex min-h-11 items-center font-mono text-xs uppercase tracking-wider text-laser-500 underline"
             >
               Descargar QR
             </a>
@@ -84,7 +84,7 @@ export default function ActivationTab({ event, onEventChange }: ActivationTabPro
               href={url}
               target="_blank"
               rel="noreferrer"
-              className="font-mono text-[11px] uppercase tracking-wider text-laser-500 underline"
+              className="inline-flex min-h-11 items-center font-mono text-xs uppercase tracking-wider text-laser-500 underline"
             >
               Probar el QR
             </a>
@@ -95,7 +95,7 @@ export default function ActivationTab({ event, onEventChange }: ActivationTabPro
       {message && (
         <p
           role={message.kind === 'error' ? 'alert' : 'status'}
-          className={`font-mono text-[11px] uppercase tracking-wide ${
+          className={`font-mono text-xs uppercase tracking-wide ${
             message.kind === 'error' ? 'text-flame-500' : 'text-acid-400'
           }`}
         >
@@ -108,7 +108,7 @@ export default function ActivationTab({ event, onEventChange }: ActivationTabPro
           type="button"
           onClick={() => void handleRotate()}
           disabled={rotating}
-          className="h-10 w-fit border border-smoke-700/60 px-4 font-mono text-[11px] uppercase tracking-wider text-paper-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acid-400 disabled:opacity-60"
+          className="h-10 w-fit border border-smoke-700/60 px-4 font-mono text-xs uppercase tracking-wider text-paper-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acid-400 disabled:opacity-60"
         >
           {rotating ? 'Cambiando...' : 'Cambiar el código'}
         </button>

@@ -143,10 +143,10 @@ export default function ImportGuestsModal({ open, guests, onClose, onImported, o
             onClick={(e) => e.stopPropagation()}
             className="flex w-full max-w-lg flex-col gap-4 border border-smoke-700/50 bg-ink-900 p-6 shadow-2xl"
           >
-            <span className="font-mono text-[11px] uppercase tracking-widest text-acid-400">Importar CSV</span>
+            <span className="font-mono text-xs uppercase tracking-widest text-acid-400">Importar CSV</span>
 
             <div className="flex flex-col gap-1">
-              <label htmlFor="import-csv-text" className="font-mono text-[11px] uppercase tracking-wider text-paper-100/70">
+              <label htmlFor="import-csv-text" className="font-mono text-xs uppercase tracking-wider text-paper-100/70">
                 Pegar CSV
               </label>
               <textarea
@@ -163,21 +163,21 @@ export default function ImportGuestsModal({ open, guests, onClose, onImported, o
               <button
                 type="button"
                 onClick={downloadTemplate}
-                className="flex-1 bg-smoke-700/30 px-4 py-2 font-mono text-[11px] uppercase tracking-wider text-paper-100 hover:bg-smoke-700/50"
+                className="flex-1 bg-smoke-700/30 px-4 py-2 font-mono text-xs uppercase tracking-wider text-paper-100 hover:bg-smoke-700/50"
               >
                 Descargar plantilla
               </button>
               <button
                 type="button"
                 onClick={handlePreview}
-                className="flex-1 bg-laser-500/80 px-4 py-2 font-mono text-[11px] font-bold uppercase tracking-wider text-ink-950"
+                className="flex-1 bg-laser-500/80 px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-ink-950"
               >
                 Previsualizar
               </button>
             </div>
 
             {preview && (
-              <div className="flex flex-col gap-2 bg-ink-950 p-3 font-mono text-[11px] text-paper-100/80">
+              <div className="flex flex-col gap-2 bg-ink-950 p-3 font-mono text-xs text-paper-100/80">
                 <span>
                   {preview.toCreate.length} a crear · {preview.toUpdate.length} a actualizar · {preview.errors.length} error
                   {preview.errors.length === 1 ? '' : 'es'}
@@ -195,7 +195,7 @@ export default function ImportGuestsModal({ open, guests, onClose, onImported, o
             )}
 
             {summary && (
-              <div className="bg-ink-950 p-3 font-mono text-[11px] text-paper-100/80">
+              <div className="bg-ink-950 p-3 font-mono text-xs text-paper-100/80">
                 {summary.created} creado{summary.created === 1 ? '' : 's'} · {summary.updated} actualizado
                 {summary.updated === 1 ? '' : 's'}
                 {summary.failed > 0 && (
@@ -211,7 +211,7 @@ export default function ImportGuestsModal({ open, guests, onClose, onImported, o
               <button
                 type="button"
                 onClick={handleClose}
-                className="flex-1 bg-smoke-700/30 px-4 py-2 font-mono text-[11px] uppercase tracking-wider text-paper-100 hover:bg-smoke-700/50"
+                className="flex-1 bg-smoke-700/30 px-4 py-2 font-mono text-xs uppercase tracking-wider text-paper-100 hover:bg-smoke-700/50"
               >
                 Cerrar
               </button>
@@ -220,7 +220,7 @@ export default function ImportGuestsModal({ open, guests, onClose, onImported, o
                   type="button"
                   onClick={handleConfirm}
                   disabled={importing}
-                  className="flex-1 bg-acid-400 px-4 py-2 font-mono text-[11px] font-bold uppercase tracking-wider text-ink-950 shadow-glow-acid active:scale-95 disabled:opacity-50"
+                  className="flex-1 bg-acid-400 px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-ink-950 shadow-glow-acid active:scale-95 disabled:opacity-50"
                 >
                   {importing ? 'Importando…' : `Confirmar (${preview.toCreate.length + preview.toUpdate.length})`}
                 </button>

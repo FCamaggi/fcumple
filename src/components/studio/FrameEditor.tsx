@@ -44,7 +44,7 @@ const FIELD_LABELS: Record<FrameField, string> = {
 };
 
 const inputClass = 'bg-ink-950 px-3 py-2 font-sans text-sm text-paper-100 outline-none';
-const labelClass = 'font-mono text-[11px] uppercase tracking-wider text-paper-100/70';
+const labelClass = 'font-mono text-xs uppercase tracking-wider text-paper-100/70';
 
 /** Rango práctico de los controles deslizantes (la base acepta de 0 a 1). */
 const SLIDER_MAX: Partial<Record<FrameField, number>> = { thickness: 0.3, radius: 0.2 };
@@ -121,7 +121,8 @@ export default function FrameEditor({
                 aria-label={`${FIELD_LABELS[key]} ${swatch}`}
                 onClick={() => set(key, swatch)}
                 style={{ backgroundColor: swatch }}
-                className={`h-6 w-6 border ${value.toLowerCase() === swatch ? 'border-acid-400' : 'border-smoke-700/60'}`}
+                data-compact
+                className={`h-8 w-8 border ${value.toLowerCase() === swatch ? 'border-acid-400' : 'border-smoke-700/60'}`}
               />
             ))}
           </div>
@@ -251,7 +252,7 @@ export default function FrameEditor({
       </div>
 
       {error && (
-        <p role="alert" className="font-mono text-[11px] uppercase tracking-wide text-flame-500">
+        <p role="alert" className="font-mono text-xs uppercase tracking-wide text-flame-500">
           {error}
         </p>
       )}
@@ -267,7 +268,7 @@ export default function FrameEditor({
         <button
           type="button"
           onClick={onCancel}
-          className="h-10 border border-smoke-700/60 px-5 font-mono text-[11px] uppercase tracking-wider text-paper-100"
+          className="h-10 border border-smoke-700/60 px-5 font-mono text-xs uppercase tracking-wider text-paper-100"
         >
           Cancelar
         </button>

@@ -18,7 +18,7 @@ interface GuestListPanelProps {
   onRegenerate: (guest: OrganizerGuest) => Promise<void>;
 }
 
-const buttonClass = 'h-8 border border-smoke-700/60 px-3 font-mono text-[11px] uppercase tracking-wider text-paper-100';
+const buttonClass = 'h-8 border border-smoke-700/60 px-3 font-mono text-xs uppercase tracking-wider text-paper-100';
 
 /** Pares «pregunta → respuesta» de un invitado, con las preguntas del organizador. */
 function answerRows(guest: OrganizerGuest, enrollment: ResolvedEnrollment): Array<{ key: string; question: string; answer: string }> {
@@ -42,7 +42,7 @@ function PlusOnesBadge({ guest }: { guest: OrganizerGuest }) {
   if (pending) {
     return (
       <span
-        className="font-mono text-[11px] uppercase tracking-wide text-hotpink-500"
+        className="font-mono text-xs uppercase tracking-wide text-hotpink-500"
         aria-label={`Solicita ${guest.plusOnesRequested} acompañante${guest.plusOnesRequested === 1 ? '' : 's'}, sin aprobar`}
       >
         Solicita +{guest.plusOnesRequested}
@@ -52,7 +52,7 @@ function PlusOnesBadge({ guest }: { guest: OrganizerGuest }) {
   if (guest.plusOnesConfirmed > 0) {
     return (
       <span
-        className="font-mono text-[11px] text-laser-500"
+        className="font-mono text-xs text-laser-500"
         aria-label={`${guest.plusOnesConfirmed} acompañante${guest.plusOnesConfirmed === 1 ? '' : 's'} aprobado${guest.plusOnesConfirmed === 1 ? '' : 's'}`}
       >
         +{guest.plusOnesConfirmed}
@@ -67,13 +67,13 @@ function AnswersDetail({ guest, enrollment }: { guest: OrganizerGuest; enrollmen
   if (rows.length === 0) return null;
   return (
     <details className="w-full">
-      <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-wide text-paper-100/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-acid-400">
+      <summary className="flex min-h-11 cursor-pointer items-center font-mono text-xs uppercase tracking-wide text-paper-100/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-acid-400">
         Ver respuestas ({rows.length})
       </summary>
       <dl className="mt-2 flex flex-col gap-2">
         {rows.map(({ key, question, answer }) => (
           <div key={key} className="flex flex-col">
-            <dt className="font-mono text-[10px] uppercase tracking-wide text-paper-100/50">{question}</dt>
+            <dt className="font-mono text-xs uppercase tracking-wide text-paper-100/50">{question}</dt>
             <dd className="whitespace-pre-line font-sans text-sm text-paper-100">{answer}</dd>
           </div>
         ))}
@@ -149,7 +149,7 @@ export default function GuestListPanel({
     <div className="flex flex-col gap-6">
       {pending.length > 0 && (
         <section aria-label="Solicitudes de acceso" className="flex flex-col gap-2">
-          <h2 className="font-mono text-[11px] font-bold uppercase tracking-widest text-hotpink-500">
+          <h2 className="font-mono text-xs font-bold uppercase tracking-widest text-hotpink-500">
             Solicitudes de acceso ({pending.length})
           </h2>
           <ul className="flex flex-col gap-2">
@@ -175,7 +175,7 @@ export default function GuestListPanel({
       )}
 
       <form onSubmit={handleAdd} className="flex flex-col gap-2" aria-label="Alta de invitados">
-        <label htmlFor="guest-names" className="font-mono text-[11px] uppercase tracking-wider text-paper-100/70">
+        <label htmlFor="guest-names" className="font-mono text-xs uppercase tracking-wider text-paper-100/70">
           Agregar invitados a mano (opcional; un nombre y apellido por línea)
         </label>
         <textarea
@@ -198,7 +198,7 @@ export default function GuestListPanel({
       {feedback && (
         <div
           role={feedback.kind === 'error' ? 'alert' : 'status'}
-          className={`flex flex-col gap-1 font-mono text-[11px] uppercase tracking-wide ${
+          className={`flex flex-col gap-1 font-mono text-xs uppercase tracking-wide ${
             feedback.kind === 'error' ? 'text-flame-500' : 'text-acid-400'
           }`}
         >
@@ -210,7 +210,7 @@ export default function GuestListPanel({
 
       <section aria-label="Invitados" className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="font-mono text-[11px] font-bold uppercase tracking-widest text-laser-500">
+          <h2 className="font-mono text-xs font-bold uppercase tracking-widest text-laser-500">
             Invitados: {members.length} · han entrado: {entered}
           </h2>
           {guests.length > 0 && (
@@ -234,7 +234,7 @@ export default function GuestListPanel({
                     <span className="font-sans text-sm text-paper-100">{guest.fullName}</span>
                     <PlusOnesBadge guest={guest} />
                   </span>
-                  <span className="font-mono text-[10px] uppercase tracking-wide text-paper-100/50">
+                  <span className="font-mono text-xs uppercase tracking-wide text-paper-100/50">
                     {guest.approvalStatus === 'rejected'
                       ? 'Rechazado'
                       : guest.checkedInAt

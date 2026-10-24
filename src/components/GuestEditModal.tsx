@@ -56,15 +56,15 @@ export default function GuestEditModal({ guest, onClose, onSave, onDelete }: Gue
           >
             <div className="flex items-center justify-between border-b border-smoke-700/40 bg-ink-950 px-4 py-2">
               <div className="flex items-center gap-2">
-                <span className="font-mono text-[11px] uppercase tracking-widest text-acid-400">
+                <span className="font-mono text-xs uppercase tracking-widest text-acid-400">
                   Editar invitado
                 </span>
-                <span className="font-mono text-[11px] uppercase text-hotpink-500">{draft.token ?? draft.id}</span>
+                <span className="font-mono text-xs uppercase text-hotpink-500">{draft.token ?? draft.id}</span>
               </div>
               <button
                 type="button"
                 onClick={handleClose}
-                className="tap-target flex items-center gap-1 border border-smoke-700/50 px-3 py-1 font-mono text-[11px] uppercase tracking-wider text-flame-500 transition-colors hover:bg-flame-500/10"
+                className="tap-target flex items-center gap-1 border border-smoke-700/50 px-3 py-1 font-mono text-xs uppercase tracking-wider text-flame-500 transition-colors hover:bg-flame-500/10"
               >
                 Cerrar
               </button>
@@ -74,7 +74,7 @@ export default function GuestEditModal({ guest, onClose, onSave, onDelete }: Gue
               <div className="flex flex-col gap-1 border border-smoke-700/40 bg-ink-900 p-4">
                 <label
                   htmlFor="guest-fullname"
-                  className="font-mono text-[11px] font-bold uppercase tracking-wider text-paper-100"
+                  className="font-mono text-xs font-bold uppercase tracking-wider text-paper-100"
                 >
                   Nombre del invitado
                 </label>
@@ -89,7 +89,7 @@ export default function GuestEditModal({ guest, onClose, onSave, onDelete }: Gue
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
                 <div className="flex flex-col justify-between border border-smoke-700/40 bg-ink-900 p-4 md:col-span-7">
-                  <div className="mb-2 flex items-center justify-between font-mono text-[11px] font-bold uppercase tracking-wider text-paper-100">
+                  <div className="mb-2 flex items-center justify-between font-mono text-xs font-bold uppercase tracking-wider text-paper-100">
                     <span>Cupo máximo de acompañantes</span>
                   </div>
                   <div className="flex items-center justify-between gap-4 bg-ink-950 p-3">
@@ -105,7 +105,7 @@ export default function GuestEditModal({ guest, onClose, onSave, onDelete }: Gue
                     </button>
                     <div className="flex flex-col items-center">
                       <span className="font-display text-4xl text-acid-400">+{draft.plusOnesAllowed}</span>
-                      <span className="font-mono text-[10px] uppercase tracking-widest text-paper-100/70">
+                      <span className="font-mono text-xs uppercase tracking-widest text-paper-100/70">
                         Pases extra
                       </span>
                     </div>
@@ -121,7 +121,7 @@ export default function GuestEditModal({ guest, onClose, onSave, onDelete }: Gue
                 </div>
 
                 <div className="flex flex-col justify-between border border-smoke-700/40 bg-ink-900 p-4 md:col-span-7">
-                  <div className="mb-2 flex items-center justify-between font-mono text-[11px] font-bold uppercase tracking-wider text-paper-100">
+                  <div className="mb-2 flex items-center justify-between font-mono text-xs font-bold uppercase tracking-wider text-paper-100">
                     <span>Acompañantes confirmados</span>
                   </div>
                   <div className="flex items-center justify-between gap-4 bg-ink-950 p-3">
@@ -137,7 +137,7 @@ export default function GuestEditModal({ guest, onClose, onSave, onDelete }: Gue
                     </button>
                     <div className="flex flex-col items-center">
                       <span className="font-display text-4xl text-acid-400">+{draft.plusOnesConfirmed}</span>
-                      <span className="font-mono text-[10px] uppercase tracking-widest text-paper-100/70">
+                      <span className="font-mono text-xs uppercase tracking-widest text-paper-100/70">
                         Confirmados
                       </span>
                     </div>
@@ -156,7 +156,7 @@ export default function GuestEditModal({ guest, onClose, onSave, onDelete }: Gue
                   <div className="flex flex-col gap-1">
                     <label
                       htmlFor="guest-photo-quota"
-                      className="font-mono text-[11px] font-bold uppercase tracking-wider text-paper-100"
+                      className="font-mono text-xs font-bold uppercase tracking-wider text-paper-100"
                     >
                       Cupo de fotos
                     </label>
@@ -169,7 +169,7 @@ export default function GuestEditModal({ guest, onClose, onSave, onDelete }: Gue
                       className="bg-ink-950 px-3 py-2 font-sans text-sm text-paper-100 outline-none"
                     />
                   </div>
-                  <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-paper-100">
+                  <span className="font-mono text-xs font-bold uppercase tracking-wider text-paper-100">
                     Estado del RSVP
                   </span>
                   <div className="flex flex-col gap-1.5">
@@ -179,7 +179,7 @@ export default function GuestEditModal({ guest, onClose, onSave, onDelete }: Gue
                         type="button"
                         aria-pressed={draft.status === opt.value}
                         onClick={() => setDraft({ ...draft, status: opt.value })}
-                        className={`border px-2 py-1.5 text-left font-mono text-[11px] font-bold uppercase tracking-wider transition-colors ${
+                        className={`border px-2 py-1.5 text-left font-mono text-xs font-bold uppercase tracking-wider transition-colors ${
                           draft.status === opt.value ? `${opt.accent} bg-current/10` : 'border-smoke-700/50 text-paper-100/70'
                         }`}
                       >
@@ -193,7 +193,7 @@ export default function GuestEditModal({ guest, onClose, onSave, onDelete }: Gue
               <div className="flex flex-col gap-1 border border-smoke-700/40 bg-ink-900 p-4">
                 <label
                   htmlFor="guest-phone"
-                  className="font-mono text-[11px] font-bold uppercase tracking-wider text-paper-100"
+                  className="font-mono text-xs font-bold uppercase tracking-wider text-paper-100"
                 >
                   Teléfono (WhatsApp, opcional)
                 </label>
@@ -211,7 +211,7 @@ export default function GuestEditModal({ guest, onClose, onSave, onDelete }: Gue
                 <div className="flex flex-col gap-0.5">
                   <label
                     htmlFor="guest-auto-approve-photos"
-                    className="font-mono text-[11px] font-bold uppercase tracking-wider text-paper-100"
+                    className="font-mono text-xs font-bold uppercase tracking-wider text-paper-100"
                   >
                     Auto-aprobar sus fotos
                   </label>
@@ -231,7 +231,7 @@ export default function GuestEditModal({ guest, onClose, onSave, onDelete }: Gue
               <div className="relative border border-smoke-700/40 bg-ink-900 p-4">
                 <label
                   htmlFor="guest-note"
-                  className="absolute -top-3 left-4 bg-ink-900 px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-widest text-paper-100"
+                  className="absolute -top-3 left-4 bg-ink-900 px-2 py-0.5 font-mono text-xs font-bold uppercase tracking-widest text-paper-100"
                 >
                   Nota del invitado
                 </label>
@@ -248,7 +248,7 @@ export default function GuestEditModal({ guest, onClose, onSave, onDelete }: Gue
               <div className="relative border-2 border-dashed border-hotpink-500/50 bg-ink-900 p-4">
                 <label
                   htmlFor="guest-admin-note"
-                  className="absolute -top-3 left-4 bg-hotpink-500 px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-widest text-ink-950"
+                  className="absolute -top-3 left-4 bg-hotpink-500 px-2 py-0.5 font-mono text-xs font-bold uppercase tracking-widest text-ink-950"
                 >
                   Nota privada // clasificado cabina
                 </label>
@@ -267,22 +267,22 @@ export default function GuestEditModal({ guest, onClose, onSave, onDelete }: Gue
               <button
                 type="button"
                 onClick={() => (confirmingDelete ? onDelete(draft.id) : setConfirmingDelete(true))}
-                className="tap-target w-full border border-flame-500 px-4 py-2 font-mono text-[11px] font-bold uppercase tracking-wider text-flame-500 transition-colors hover:bg-flame-500/10 sm:w-auto"
+                className="tap-target w-full border border-flame-500 px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-flame-500 transition-colors hover:bg-flame-500/10 sm:w-auto"
               >
-                {confirmingDelete ? '¿Seguro? Tocá de nuevo para eliminar' : 'Eliminar invitado'}
+                {confirmingDelete ? '¿Seguro? Toca de nuevo para eliminar' : 'Eliminar invitado'}
               </button>
               <div className="flex w-full gap-2 sm:w-auto">
                 <button
                   type="button"
                   onClick={handleClose}
-                  className="tap-target flex-1 bg-smoke-700/30 px-4 py-2 font-mono text-[11px] uppercase tracking-wider text-paper-100 transition-colors hover:bg-smoke-700/50 sm:flex-none"
+                  className="tap-target flex-1 bg-smoke-700/30 px-4 py-2 font-mono text-xs uppercase tracking-wider text-paper-100 transition-colors hover:bg-smoke-700/50 sm:flex-none"
                 >
                   Descartar
                 </button>
                 <button
                   type="button"
                   onClick={() => onSave(draft)}
-                  className="tap-target flex-1 bg-acid-400 px-6 py-2 font-mono text-[11px] font-bold uppercase tracking-wider text-ink-950 shadow-glow-acid transition-transform active:scale-95 sm:flex-none"
+                  className="tap-target flex-1 bg-acid-400 px-6 py-2 font-mono text-xs font-bold uppercase tracking-wider text-ink-950 shadow-glow-acid transition-transform active:scale-95 sm:flex-none"
                 >
                   Guardar cambios
                 </button>

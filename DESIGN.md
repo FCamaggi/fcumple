@@ -24,7 +24,7 @@ typography:
     lineHeight: "1.25rem"
   label:
     fontFamily: "Space Mono, ui-monospace, monospace"
-    fontSize: "11px"
+    fontSize: "12px"
     fontWeight: 400
     lineHeight: "1rem"
     letterSpacing: "0.05em"
@@ -114,7 +114,7 @@ Una base de tinta casi negra con un violeta apenas perceptible, papel claro para
 ### Hierarchy
 - **Display** (Anton 400, 1.5rem, 2rem, tracking 0.025em, mayúsculas): título de pantalla ("Inscríbete", "Entra") y botones primarios.
 - **Body** (Space Grotesk 400, 0.875rem, 1.25rem): texto de campos y párrafos cortos.
-- **Label** (Space Mono 400, 11px, tracking 0.05 a 0.1em, mayúsculas): etiquetas de campo, nombre del evento, mensajes de estado. Las notas al pie bajan a 10px con menos opacidad.
+- **Label** (Space Mono 400, 12px, tracking 0.05 a 0.1em, mayúsculas): etiquetas de campo, nombre del evento, mensajes de estado. Las notas al pie usan el mismo tamaño con menos opacidad. Nada baja de 12px (lo vigila `src/styles/legibilidad.test.ts`).
 - **Counter** (Space Mono 700, 1.5rem, cifras tabulares): solo el número de disparos restantes.
 
 ### Named Rules
@@ -122,7 +122,7 @@ Una base de tinta casi negra con un violeta apenas perceptible, papel claro para
 
 ## Layout
 
-Móvil primero y de una sola columna. Los formularios y tarjetas ocupan hasta `max-w-sm` (24rem) y se centran. El espaciado sigue una escala de 8, 16 y 24 px: 8 entre etiqueta y campo, 16 entre grupos y 24 de relleno de tarjeta. Los objetivos táctiles miden al menos 44 px (`tap-target`; el botón primario mide 44 px y el selector de modo 36 px). Hay un velo de grano al 3 % de opacidad sobre el fondo de algunas pantallas de invitado (no sobre las fotos) y no es parte del sistema.
+Móvil primero y de una sola columna. Los formularios y tarjetas ocupan hasta `max-w-sm` (24rem) y se centran. El espaciado sigue una escala de 8, 16 y 24 px: 8 entre etiqueta y campo, 16 entre grupos y 24 de relleno de tarjeta. Los objetivos táctiles miden al menos 44 px: en pantallas táctiles todo `button` tiene `min-height: 44px` (salida: `data-compact`), también el selector de modo, y las pestañas del panel van en una fila con scroll horizontal. Los campos miden 16 px en pantallas táctiles para que Safari de iPhone no haga zoom. Las pantallas completas usan `min-h-app` (`100dvh`) e `inset-safe` (notch, costados y barra de inicio). En horizontal bajo (`short`) la cámara pasa a dos columnas. Hay un velo de grano al 3 % de opacidad sobre el fondo de algunas pantallas de invitado (no sobre las fotos) y no es parte del sistema.
 
 ## Elevation & Depth
 
@@ -148,7 +148,7 @@ Esquinas rectas: botones, campos, tarjetas y contador no tienen radio. El único
 - **Selector de modo:** dos botones de 36 px en Space Mono. El activo es un Ácido lleno; el inactivo es solo un borde de Humo a 60 % con texto Papel.
 
 ### Inputs / Fields
-- **Style:** fondo Tinta profunda, relleno 8 y 12 px, texto Papel en Space Grotesk 0.875rem, sin borde propio ni radio.
+- **Style:** fondo Tinta profunda, relleno 8 y 12 px, texto Papel en Space Grotesk 0.875rem (1rem en pantallas táctiles), sin borde propio ni radio.
 - **Focus:** el contorno del navegador está desactivado (`outline-none`); el foco visible queda pendiente de definir.
 - **Error:** mensaje en Llama, Space Mono en mayúsculas, con `role="alert"`.
 

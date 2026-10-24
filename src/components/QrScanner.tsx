@@ -96,7 +96,7 @@ export default function QrScanner({ guests, onCheckedIn, onClose }: QrScannerPro
         }
         rafId = requestAnimationFrame(tick);
       } catch {
-        setCameraError('No pudimos acceder a la cámara. Revisá los permisos del navegador o probá desde el celular.');
+        setCameraError('No pudimos acceder a la cámara. Revisa los permisos del navegador o prueba desde el celular.');
       }
     }
 
@@ -111,17 +111,17 @@ export default function QrScanner({ guests, onCheckedIn, onClose }: QrScannerPro
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col bg-ink-950"
+      className="fixed inset-safe z-50 flex flex-col bg-ink-950"
       aria-label="Escáner QR de puerta"
     >
       <header className="flex items-center justify-between bg-ink-900 px-4 py-3 shadow-lg">
-        <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-hotpink-500">
+        <span className="font-mono text-xs font-bold uppercase tracking-wider text-hotpink-500">
           Escáner // check-in de puerta
         </span>
         <button
           type="button"
           onClick={onClose}
-          className="tap-target flex items-center justify-center bg-smoke-700/30 px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-paper-100 transition-colors hover:bg-smoke-700/50"
+          className="tap-target flex items-center justify-center bg-smoke-700/30 px-3 py-1.5 font-mono text-xs font-bold uppercase tracking-wider text-paper-100 transition-colors hover:bg-smoke-700/50"
         >
           Cerrar
         </button>
@@ -130,7 +130,7 @@ export default function QrScanner({ guests, onCheckedIn, onClose }: QrScannerPro
       <div className="relative flex flex-1 flex-col overflow-hidden">
         {cameraError ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center">
-            <span className="font-mono text-[11px] uppercase tracking-widest text-flame-500">Cámara no disponible</span>
+            <span className="font-mono text-xs uppercase tracking-widest text-flame-500">Cámara no disponible</span>
             <p className="font-sans text-sm text-paper-100/80">{cameraError}</p>
           </div>
         ) : (
@@ -157,7 +157,7 @@ export default function QrScanner({ guests, onCheckedIn, onClose }: QrScannerPro
           >
             <label
               htmlFor="qr-manual-token"
-              className="font-mono text-[10px] uppercase tracking-widest text-paper-100/70"
+              className="font-mono text-xs uppercase tracking-widest text-paper-100/70"
             >
               ¿No lo puede escanear? Token o link del invitado
             </label>
@@ -219,7 +219,7 @@ export function CheckInOverlay({
       exit={{ opacity: 0 }}
       className={`flex flex-col items-center gap-3 bg-ink-950 p-6 text-center ${accent.glow}`}
     >
-      <span className={`font-mono text-[11px] uppercase tracking-widest ${accent.text}`}>{accent.label}</span>
+      <span className={`font-mono text-xs uppercase tracking-widest ${accent.text}`}>{accent.label}</span>
       <h2 className="font-display text-3xl uppercase leading-none text-paper-100">{state.guest.fullName}</h2>
       {alreadyArrived ? (
         <p className="font-sans text-sm text-paper-100/80">
@@ -242,7 +242,7 @@ export function CheckInOverlay({
 function ErrorOverlay({ message, onReset }: { message: string; onReset: () => void }) {
   return (
     <div role="alert" className="flex flex-col items-center gap-3 bg-ink-950 p-6 text-center">
-      <span className="font-mono text-[11px] uppercase tracking-widest text-flame-500">No pudimos verificar</span>
+      <span className="font-mono text-xs uppercase tracking-widest text-flame-500">No pudimos verificar</span>
       <p className="font-sans text-sm text-paper-100/80">{message}</p>
       <button
         type="button"

@@ -244,7 +244,7 @@ export default function LayerEditor({ layers, onChange, uploadImage, resolveImag
           onDelete={confirmDelete}
         />
         {error && (
-          <p role="alert" className="font-mono text-[11px] uppercase tracking-wide text-flame-500">
+          <p role="alert" className="font-mono text-xs uppercase tracking-wide text-flame-500">
             {error}
           </p>
         )}

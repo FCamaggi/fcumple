@@ -68,16 +68,16 @@ export default function OrganizerLogin() {
   }
 
   const inputClass = 'bg-ink-950 px-3 py-2 font-sans text-sm text-paper-100 outline-none';
-  const labelClass = 'font-mono text-[11px] uppercase tracking-wider text-paper-100/70';
+  const labelClass = 'font-mono text-xs uppercase tracking-wider text-paper-100/70';
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-ink-950 px-4">
+    <div className="flex min-h-app items-center justify-center bg-ink-950 px-4">
       <form
         onSubmit={handleSubmit}
         className="flex w-full max-w-sm flex-col gap-4 border border-smoke-700/40 bg-ink-900 p-6 shadow-2xl"
       >
         <div className="flex flex-col gap-1">
-          <span className="font-mono text-[11px] uppercase tracking-widest text-laser-500">Organizadores</span>
+          <span className="font-mono text-xs uppercase tracking-widest text-laser-500">Organizadores</span>
           <h1 className="font-display text-2xl uppercase tracking-wide text-paper-100">
             {isSignup ? 'Crea tu cuenta' : 'Tus eventos'}
           </h1>
@@ -90,7 +90,7 @@ export default function OrganizerLogin() {
               type="button"
               aria-pressed={mode === m}
               onClick={() => switchMode(m)}
-              className={`h-9 flex-1 font-mono text-[11px] uppercase tracking-wider ${
+              className={`h-9 flex-1 font-mono text-xs uppercase tracking-wider ${
                 mode === m ? 'bg-acid-400 text-ink-950' : 'border border-smoke-700/60 text-paper-100'
               }`}
             >
@@ -147,12 +147,12 @@ export default function OrganizerLogin() {
         )}
 
         {notice && (
-          <p role="status" className="font-mono text-[11px] uppercase tracking-wide text-acid-400">
+          <p role="status" className="font-mono text-xs uppercase tracking-wide text-acid-400">
             {notice}
           </p>
         )}
         {error && (
-          <p role="alert" className="font-mono text-[11px] uppercase tracking-wide text-flame-500">
+          <p role="alert" className="font-mono text-xs uppercase tracking-wide text-flame-500">
             {error}
           </p>
         )}

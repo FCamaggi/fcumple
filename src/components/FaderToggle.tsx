@@ -87,7 +87,7 @@ export default function FaderToggle({ value, onChange }: FaderToggleProps) {
 
   return (
     <div className={`w-full rounded p-3 shadow-inner transition-colors duration-300 ${styles.track}`}>
-      <div className="flex items-center justify-between px-1 pb-1 font-mono text-[10px] uppercase tracking-widest">
+      <div className="flex items-center justify-between px-1 pb-1 font-mono text-xs uppercase tracking-widest">
         <span className={value === 'no' ? 'font-bold text-flame-500' : 'text-paper-100/70'}>Out / No voy</span>
         <span className={value === 'neutral' ? 'font-bold text-paper-100' : 'text-paper-100/70'}>0dB</span>
         <span className={value === 'yes' ? 'font-bold text-acid-400' : 'text-paper-100/70'}>In / Adentro</span>
@@ -105,7 +105,7 @@ export default function FaderToggle({ value, onChange }: FaderToggleProps) {
             className="tap-target flex items-center justify-start pl-4"
             onClick={() => onChange('no')}
           >
-            <span className="font-mono text-[10px] uppercase text-flame-500/70">CH-A</span>
+            <span className="font-mono text-xs uppercase text-flame-500/70">CH-A</span>
           </button>
           <button
             type="button"
@@ -114,7 +114,7 @@ export default function FaderToggle({ value, onChange }: FaderToggleProps) {
             className="tap-target flex items-center justify-center"
             onClick={() => onChange('neutral')}
           >
-            <span className="font-mono text-[10px] uppercase text-paper-100/70">Cut</span>
+            <span className="font-mono text-xs uppercase text-paper-100/70">Cut</span>
           </button>
           <button
             type="button"
@@ -123,7 +123,7 @@ export default function FaderToggle({ value, onChange }: FaderToggleProps) {
             className="tap-target flex items-center justify-end pr-4"
             onClick={() => onChange('yes')}
           >
-            <span className="font-mono text-[10px] uppercase text-acid-400/70">CH-B</span>
+            <span className="font-mono text-xs uppercase text-acid-400/70">CH-B</span>
           </button>
         </div>
 
@@ -140,7 +140,7 @@ export default function FaderToggle({ value, onChange }: FaderToggleProps) {
         </motion.div>
       </div>
 
-      <div className="mt-2 flex justify-between px-1 font-mono text-[11px] font-bold uppercase tracking-wide">
+      <div className="mt-2 flex justify-between px-1 font-mono text-xs font-bold uppercase tracking-wide">
         <span className={value === 'no' ? 'text-flame-500' : 'text-paper-100/70'}>No voy</span>
         <span className={value === 'neutral' ? 'text-paper-100' : 'text-paper-100/70'}>Centro</span>
         <span className={value === 'yes' ? 'text-acid-400' : 'text-paper-100/70'}>Voy</span>

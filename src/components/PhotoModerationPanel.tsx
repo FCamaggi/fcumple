@@ -173,10 +173,10 @@ export default function PhotoModerationPanel({ onClose, source, initiallyReveale
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-ink-950" aria-label="Moderación de fotos">
+    <div className="fixed inset-safe z-50 flex flex-col bg-ink-950" aria-label="Moderación de fotos">
       <header className="flex flex-col gap-2 bg-ink-900 px-4 py-3 shadow-lg sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-col gap-0.5">
-          <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-acid-400">
+          <span className="font-mono text-xs font-bold uppercase tracking-wider text-acid-400">
             {current ? `Fotos // 1 de ${queue.length}` : 'Fotos // cola de moderación'}
           </span>
           {current && <span className="font-sans text-sm font-bold text-paper-100">{current.guestFullName}</span>}
@@ -186,7 +186,7 @@ export default function PhotoModerationPanel({ onClose, source, initiallyReveale
             <button
               type="button"
               onClick={() => void handlePublish()}
-              className="tap-target border border-acid-400 px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-acid-400 transition-colors hover:bg-acid-400/10"
+              className="tap-target border border-acid-400 px-3 py-1.5 font-mono text-xs font-bold uppercase tracking-wider text-acid-400 transition-colors hover:bg-acid-400/10"
             >
               Publicar lote
             </button>
@@ -195,7 +195,7 @@ export default function PhotoModerationPanel({ onClose, source, initiallyReveale
               type="button"
               onClick={handleReveal}
               disabled={revealed}
-              className="tap-target border border-smoke-700/50 px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-flame-500 transition-colors hover:bg-flame-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+              className="tap-target border border-smoke-700/50 px-3 py-1.5 font-mono text-xs font-bold uppercase tracking-wider text-flame-500 transition-colors hover:bg-flame-500/10 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {revealed ? 'Rollo revelado' : 'Revelar el rollo'}
             </button>
@@ -203,7 +203,7 @@ export default function PhotoModerationPanel({ onClose, source, initiallyReveale
           <button
             type="button"
             onClick={onClose}
-            className="tap-target flex items-center justify-center bg-smoke-700/30 px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-paper-100 transition-colors hover:bg-smoke-700/50"
+            className="tap-target flex items-center justify-center bg-smoke-700/30 px-3 py-1.5 font-mono text-xs font-bold uppercase tracking-wider text-paper-100 transition-colors hover:bg-smoke-700/50"
           >
             Cerrar
           </button>
@@ -211,12 +211,12 @@ export default function PhotoModerationPanel({ onClose, source, initiallyReveale
       </header>
 
       {error && (
-        <p role="alert" className="bg-flame-500/10 px-4 py-2 font-mono text-[11px] uppercase tracking-wider text-flame-500">
+        <p role="alert" className="bg-flame-500/10 px-4 py-2 font-mono text-xs uppercase tracking-wider text-flame-500">
           {error}
         </p>
       )}
       {notice && (
-        <p role="status" className="bg-acid-400/10 px-4 py-2 font-mono text-[11px] uppercase tracking-wider text-acid-400">
+        <p role="status" className="bg-acid-400/10 px-4 py-2 font-mono text-xs uppercase tracking-wider text-acid-400">
           {notice}
         </p>
       )}
@@ -224,11 +224,11 @@ export default function PhotoModerationPanel({ onClose, source, initiallyReveale
       <div className="relative flex flex-1 flex-col overflow-hidden">
         {loading ? (
           <div className="flex flex-1 items-center justify-center">
-            <span className="font-mono text-[11px] uppercase tracking-wider text-paper-100/70">Cargando...</span>
+            <span className="font-mono text-xs uppercase tracking-wider text-paper-100/70">Cargando...</span>
           </div>
         ) : !current ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center">
-            <p className="font-mono text-[11px] uppercase tracking-wider text-paper-100/70">
+            <p className="font-mono text-xs uppercase tracking-wider text-paper-100/70">
               No hay fotos pendientes de moderación.
             </p>
           </div>
@@ -245,7 +245,7 @@ export default function PhotoModerationPanel({ onClose, source, initiallyReveale
                   className="max-h-full max-w-full object-contain"
                 />
               ) : (
-                <span className="font-mono text-[11px] uppercase tracking-wider text-paper-100/70">Cargando foto...</span>
+                <span className="font-mono text-xs uppercase tracking-wider text-paper-100/70">Cargando foto...</span>
               )}
             </motion.div>
 

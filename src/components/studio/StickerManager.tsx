@@ -79,13 +79,13 @@ export default function StickerManager({ stickers, onAddEmoji, onAddImage, onTog
   return (
     <div className="flex flex-col gap-5">
       {error && (
-        <p role="alert" className="font-mono text-[11px] uppercase tracking-wide text-flame-500">
+        <p role="alert" className="font-mono text-xs uppercase tracking-wide text-flame-500">
           {error}
         </p>
       )}
 
       <section className="flex flex-col gap-2" aria-label="Agregar emoji">
-        <h3 className="font-mono text-[11px] font-bold uppercase tracking-widest text-laser-500">Emojis</h3>
+        <h3 className="font-mono text-xs font-bold uppercase tracking-widest text-laser-500">Emojis</h3>
         <div className="flex flex-wrap gap-1.5">
           {EMOJI_PALETTE.map((emoji) => (
             <button
@@ -94,7 +94,7 @@ export default function StickerManager({ stickers, onAddEmoji, onAddImage, onTog
               disabled={busy || alreadyHas(emoji)}
               onClick={() => void run(() => onAddEmoji(emoji))}
               aria-label={`Agregar ${emoji}`}
-              className="h-10 w-10 bg-ink-900 text-xl disabled:opacity-30"
+              className="h-11 w-11 bg-ink-900 text-xl disabled:opacity-30"
             >
               {emoji}
             </button>
@@ -114,7 +114,7 @@ export default function StickerManager({ stickers, onAddEmoji, onAddImage, onTog
           <button
             type="submit"
             disabled={busy || !custom.trim()}
-            className="h-10 border border-acid-400 px-4 font-mono text-[11px] uppercase tracking-wider text-acid-400 disabled:opacity-40"
+            className="h-10 border border-acid-400 px-4 font-mono text-xs uppercase tracking-wider text-acid-400 disabled:opacity-40"
           >
             Agregar
           </button>
@@ -122,7 +122,7 @@ export default function StickerManager({ stickers, onAddEmoji, onAddImage, onTog
       </section>
 
       <section className="flex flex-col gap-2" aria-label="Agregar imagen">
-        <h3 className="font-mono text-[11px] font-bold uppercase tracking-widest text-laser-500">Imágenes propias</h3>
+        <h3 className="font-mono text-xs font-bold uppercase tracking-widest text-laser-500">Imágenes propias</h3>
         <p className="font-sans text-xs text-paper-100/60">
           PNG, WebP o JPG (mejor con fondo transparente). Se reducen a 512 px automáticamente.
         </p>
@@ -138,7 +138,7 @@ export default function StickerManager({ stickers, onAddEmoji, onAddImage, onTog
       </section>
 
       <section className="flex flex-col gap-2" aria-label="Stickers del evento">
-        <h3 className="font-mono text-[11px] font-bold uppercase tracking-widest text-hotpink-500">
+        <h3 className="font-mono text-xs font-bold uppercase tracking-widest text-hotpink-500">
           En la cámara ({stickers.filter((s) => s.enabled).length} activos de {stickers.length})
         </h3>
         {stickers.length === 0 ? (
@@ -159,7 +159,7 @@ export default function StickerManager({ stickers, onAddEmoji, onAddImage, onTog
                     ) : (
                       <span className="h-8 w-8 bg-smoke-700/30" aria-hidden />
                     )}
-                    <label className="flex items-center gap-2 font-sans text-sm text-paper-100">
+                    <label className="flex min-h-11 items-center gap-2 font-sans text-sm text-paper-100">
                       <input
                         type="checkbox"
                         role="switch"
@@ -178,7 +178,7 @@ export default function StickerManager({ stickers, onAddEmoji, onAddImage, onTog
                       if (window.confirm('¿Borrar este sticker?')) void run(() => onDelete(sticker));
                     }}
                     aria-label={`Borrar ${name}`}
-                    className="h-8 border border-smoke-700/60 px-3 font-mono text-[11px] uppercase tracking-wider text-paper-100 disabled:opacity-40"
+                    className="h-8 border border-smoke-700/60 px-3 font-mono text-xs uppercase tracking-wider text-paper-100 disabled:opacity-40"
                   >
                     Borrar
                   </button>

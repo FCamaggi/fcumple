@@ -26,7 +26,7 @@ export default function BackButton({ fallbackTo }: { fallbackTo?: string }) {
     <button
       type="button"
       onClick={handleClick}
-      className="tap-target flex items-center gap-2 self-start font-mono text-[11px] font-bold uppercase tracking-wider text-laser-500"
+      className="tap-target flex items-center gap-2 self-start font-mono text-xs font-bold uppercase tracking-wider text-laser-500"
     >
       <span aria-hidden>←</span> Volver
     </button>

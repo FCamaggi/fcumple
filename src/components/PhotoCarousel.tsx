@@ -22,7 +22,7 @@ export default function PhotoCarousel({ photos }: { photos: RawRevealedPhoto[] }
 
   return (
     <section className="flex flex-col gap-2" aria-label="Fotos de la fiesta">
-      <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-laser-500">
+      <span className="font-mono text-xs font-bold uppercase tracking-wider text-laser-500">
         Fotos de la fiesta // lo último
       </span>
       <ul
@@ -34,7 +34,7 @@ export default function PhotoCarousel({ photos }: { photos: RawRevealedPhoto[] }
           <Slide key={photo.storagePath} photo={photo} index={i} total={latest.length} onOpen={() => setLightboxIndex(i)} />
         ))}
       </ul>
-      <p className="font-mono text-[10px] uppercase tracking-widest text-paper-100/50">
+      <p className="font-mono text-xs uppercase tracking-widest text-paper-100/50">
         {latest.length} de {photos.length} fotos · desliza para ver más
       </p>
       {lightboxIndex !== null && (

@@ -20,7 +20,7 @@ export default function ExportGuestsButton({ guests }: ExportGuestsButtonProps) 
     <button
       type="button"
       onClick={handleClick}
-      className="border border-smoke-700/50 px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-paper-100 transition-colors hover:bg-smoke-700/30"
+      className="border border-smoke-700/50 px-3 py-1.5 font-mono text-xs font-bold uppercase tracking-wider text-paper-100 transition-colors hover:bg-smoke-700/30"
     >
       Exportar CSV
     </button>

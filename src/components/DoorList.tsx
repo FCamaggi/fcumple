@@ -104,7 +104,7 @@ export default function DoorList({
               }`}
             >
               <span>{t.label}</span>
-              <span className="bg-ink-950/40 px-1 text-[10px]">{counts[t.key]}</span>
+              <span className="bg-ink-950/40 px-1 text-xs">{counts[t.key]}</span>
             </button>
           ))}
         </div>
@@ -143,7 +143,7 @@ export default function DoorList({
         <div className="w-full overflow-x-auto bg-ink-950 shadow-inner">
           <table className="w-full min-w-[720px] border-collapse text-left">
             <thead>
-              <tr className="bg-smoke-700/20 font-mono text-[11px] uppercase tracking-widest text-paper-100/70">
+              <tr className="bg-smoke-700/20 font-mono text-xs uppercase tracking-widest text-paper-100/70">
                 <th className="px-4 py-2">Token / hora</th>
                 <th className="px-4 py-2">Invitado</th>
                 <th className="px-4 py-2">Estado</th>
@@ -220,7 +220,7 @@ function DoorListRow({ guest, index, onEditGuest, eventConfig }: DoorListRowProp
       <td className="px-4 py-3 align-top">
         <div className="flex flex-col">
           <span className="font-mono text-xs text-laser-500">{guest.token ?? guest.id}</span>
-          <span className="font-mono text-[11px] text-paper-100/70">{formatTime(guest.createdAt)}</span>
+          <span className="font-mono text-xs text-paper-100/70">{formatTime(guest.createdAt)}</span>
         </div>
       </td>
       <td className="px-4 py-3 align-top">
@@ -232,14 +232,14 @@ function DoorListRow({ guest, index, onEditGuest, eventConfig }: DoorListRowProp
           {guest.fullName}
         </span>
         {guest.isDev && (
-          <span className="ml-2 bg-flame-500/20 px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase text-flame-500">
+          <span className="ml-2 bg-flame-500/20 px-1.5 py-0.5 font-mono text-xs font-bold uppercase text-flame-500">
             DEV
           </span>
         )}
       </td>
       <td className="px-4 py-3 align-top">
         <span
-          className={`inline-block px-2 py-1 font-mono text-[11px] font-bold uppercase tracking-wider ${
+          className={`inline-block px-2 py-1 font-mono text-xs font-bold uppercase tracking-wider ${
             STATUS_CHIP[guest.status]
           }`}
         >
@@ -252,7 +252,7 @@ function DoorListRow({ guest, index, onEditGuest, eventConfig }: DoorListRowProp
       <td className="px-4 py-3 text-center align-top">
         <span className="font-display text-lg leading-none text-acid-400">
           +{guest.plusOnesConfirmed}
-          <span className="ml-1 font-mono text-[10px] text-paper-100/70">/ {guest.plusOnesAllowed}</span>
+          <span className="ml-1 font-mono text-xs text-paper-100/70">/ {guest.plusOnesAllowed}</span>
         </span>
       </td>
       <td className="px-4 py-3 align-top">
@@ -271,7 +271,7 @@ function DoorListRow({ guest, index, onEditGuest, eventConfig }: DoorListRowProp
           <button
             type="button"
             onClick={() => onEditGuest(guest)}
-            className="bg-smoke-700/30 px-2 py-1 font-mono text-[11px] font-bold uppercase text-paper-100 transition-colors hover:bg-smoke-700/50"
+            className="bg-smoke-700/30 px-2 py-1 font-mono text-xs font-bold uppercase text-paper-100 transition-colors hover:bg-smoke-700/50"
           >
             Editar
           </button>
@@ -299,17 +299,17 @@ function DoorListCard({ guest, onEditGuest }: { guest: Guest; onEditGuest: (gues
           >
             {guest.fullName}
             {guest.isDev && (
-              <span className="ml-2 bg-flame-500/20 px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase text-flame-500">
+              <span className="ml-2 bg-flame-500/20 px-1.5 py-0.5 font-mono text-xs font-bold uppercase text-flame-500">
                 DEV
               </span>
             )}
           </span>
-          <span className="font-mono text-[11px] text-laser-500">{guest.token ?? guest.id}</span>
+          <span className="font-mono text-xs text-laser-500">{guest.token ?? guest.id}</span>
         </div>
         <button
           type="button"
           onClick={() => onEditGuest(guest)}
-          className="tap-target shrink-0 bg-smoke-700/30 px-2 py-1 font-mono text-[11px] font-bold uppercase text-paper-100 transition-colors hover:bg-smoke-700/50"
+          className="tap-target shrink-0 bg-smoke-700/30 px-2 py-1 font-mono text-xs font-bold uppercase text-paper-100 transition-colors hover:bg-smoke-700/50"
         >
           Editar
         </button>
@@ -317,7 +317,7 @@ function DoorListCard({ guest, onEditGuest }: { guest: Guest; onEditGuest: (gues
 
       <div className="flex flex-wrap items-center gap-2">
         <span
-          className={`inline-block px-2 py-1 font-mono text-[11px] font-bold uppercase tracking-wider ${
+          className={`inline-block px-2 py-1 font-mono text-xs font-bold uppercase tracking-wider ${
             STATUS_CHIP[guest.status]
           }`}
         >
@@ -325,7 +325,7 @@ function DoorListCard({ guest, onEditGuest }: { guest: Guest; onEditGuest: (gues
         </span>
         <span className="font-display text-base leading-none text-acid-400">
           +{guest.plusOnesConfirmed}
-          <span className="ml-1 font-mono text-[10px] text-paper-100/70">/ {guest.plusOnesAllowed}</span>
+          <span className="ml-1 font-mono text-xs text-paper-100/70">/ {guest.plusOnesAllowed}</span>
         </span>
         <CheckInChip checkedInAt={guest.checkedInAt} />
       </div>
@@ -344,10 +344,10 @@ function DoorListCard({ guest, onEditGuest }: { guest: Guest; onEditGuest: (gues
  */
 function CheckInChip({ checkedInAt }: { checkedInAt: string | null }) {
   if (!checkedInAt) {
-    return <span className="font-mono text-[11px] text-paper-100/40">—</span>;
+    return <span className="font-mono text-xs text-paper-100/40">—</span>;
   }
   return (
-    <span className="inline-flex items-center gap-1 bg-hotpink-500/10 px-2 py-1 font-mono text-[11px] font-bold uppercase tracking-wider text-hotpink-500">
+    <span className="inline-flex items-center gap-1 bg-hotpink-500/10 px-2 py-1 font-mono text-xs font-bold uppercase tracking-wider text-hotpink-500">
       <span aria-hidden>●</span>
       En la puerta // {formatTime(checkedInAt)}
     </span>
@@ -357,17 +357,17 @@ function CheckInChip({ checkedInAt }: { checkedInAt: string | null }) {
 function EmptyState({ onCreateGuest, noResults = false }: { onCreateGuest?: () => void; noResults?: boolean }) {
   return (
     <div className="flex flex-col items-center gap-4 bg-ink-950 px-4 py-16 text-center">
-      <span className="font-mono text-[11px] uppercase tracking-widest text-acid-400">
+      <span className="font-mono text-xs uppercase tracking-widest text-acid-400">
         {noResults ? 'Sin coincidencias' : 'Bitácora en espera'}
       </span>
       <h3 className="max-w-2xl font-display text-3xl uppercase leading-tight text-paper-100">
         {noResults
           ? 'Nadie en la lista calza con este filtro'
-          : 'Todavía no hay nadie en la lista — agregá tu primer invitado'}
+          : 'Todavía no hay nadie en la lista — agrega tu primer invitado'}
       </h3>
       <p className="max-w-xl font-sans text-sm text-paper-100/70">
         {noResults
-          ? 'Probá otro nombre, folio o pestaña de estado.'
+          ? 'Prueba otro nombre, folio o pestaña de estado.'
           : 'El evento está configurado y el enlace maestro está listo para recibir confirmaciones.'}
       </p>
       {!noResults && (

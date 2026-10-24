@@ -118,7 +118,7 @@ export default function SendInviteButton({ guestName, token, eventConfig, phone 
     <button
       type="button"
       onClick={handleClick}
-      className="bg-smoke-700/30 px-2 py-1 font-mono text-[11px] font-bold uppercase text-paper-100 transition-colors hover:bg-smoke-700/50"
+      className="bg-smoke-700/30 px-2 py-1 font-mono text-xs font-bold uppercase text-paper-100 transition-colors hover:bg-smoke-700/50"
     >
       Enviar invitación
     </button>
