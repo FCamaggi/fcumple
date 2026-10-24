@@ -17,6 +17,9 @@ vi.mock('./AnnouncementFeed', () => ({
     <div data-testid="feed">{posts.map((p) => p.title).join(',')}</div>
   ),
 }));
+vi.mock('./PhotoCarousel', () => ({
+  default: ({ photos }: { photos: unknown[] }) => <div data-testid="carousel">{photos.length}</div>,
+}));
 vi.mock('./RevealedRoll', () => ({
   default: ({ photos }: { photos: unknown[] }) => <div data-testid="roll">{photos.length}</div>,
 }));
@@ -66,9 +69,11 @@ const event: EventPublic = {
   rsvpEnabled: false,
   photosRevealed: false,
   enrollment: { welcome: '', plusOnes: null, comment: null, questions: [] },
+  subtitle: null,
+  theme: {},
 };
 
-const guest: MyGuest = { id: 'g1', eventId: 'ev-1', fullName: 'Ana Rojas', checkedInAt: null, photoQuota: 5 };
+const guest: MyGuest = { id: 'g1', eventId: 'ev-1', fullName: 'Ana Rojas', checkedInAt: null, photoQuota: 5, cameraActivatedAt: null };
 
 function setup(overrides: { event?: Partial<EventPublic>; guest?: Partial<MyGuest> } = {}) {
   const onGuestChange = vi.fn();
@@ -160,19 +165,69 @@ describe('GuestHub', () => {
     expect(await screen.findByRole('button', { name: 'Abrir cámara' })).toBeInTheDocument();
   });
 
-  it('solo pide el rollo cuando el evento ya lo reveló', async () => {
+  it('siempre pide las fotos publicadas: la organizadora puede publicar con la página abierta', async () => {
     setup();
-    await waitFor(() => expect(listPublishedPosts).toHaveBeenCalled());
-    expect(listRevealedPhotosForGuest).not.toHaveBeenCalled();
+    await waitFor(() => expect(listRevealedPhotosForGuest).toHaveBeenCalledWith('tok'));
   });
 
-  it('con el rollo revelado lo pide con el token y lo muestra', async () => {
+  it('muestra las fotos publicadas en el carrusel y en el rollo', async () => {
     vi.mocked(listRevealedPhotosForGuest).mockResolvedValue([
       { storagePath: 'ev/g/a.jpg', displayStoragePath: null, createdAt: '2026-10-15T01:00:00Z' },
     ]);
-    setup({ event: { photosRevealed: true } });
-    await waitFor(() => expect(screen.getByTestId('roll')).toHaveTextContent('1'));
-    expect(listRevealedPhotosForGuest).toHaveBeenCalledWith('tok');
+    setup();
+    await waitFor(() => expect(screen.getByTestId('carousel')).toHaveTextContent('1'));
+    expect(screen.getByTestId('roll')).toHaveTextContent('1');
+  });
+
+  it('vuelve a pedir las fotos cada minuto mientras la página está a la vista, y deja de hacerlo al salir', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const { unmount } = render(
+        <GuestHub slug="fiesta-abcd" token="tok" event={event} guest={guest} onGuestChange={vi.fn()} />,
+      );
+      await waitFor(() => expect(listRevealedPhotosForGuest).toHaveBeenCalledTimes(1));
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect(listRevealedPhotosForGuest).toHaveBeenCalledTimes(2);
+      unmount();
+      await vi.advanceTimersByTimeAsync(120_000);
+      expect(listRevealedPhotosForGuest).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  describe('cámara con el QR de la fiesta (on_event_qr)', () => {
+    it('bloquea la cámara y explica que hay que escanear el QR de la fiesta, sin pedir el código de puerta', async () => {
+      setup({ event: { cameraUnlock: 'on_event_qr' } });
+      expect(await screen.findByText(/Escanea el código QR de la fiesta/)).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Abrir cámara' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Mostrar mi código' })).not.toBeInTheDocument();
+      expect(getPhotoQuota).not.toHaveBeenCalled();
+    });
+
+    it('marcar la llegada NO la habilita: la base exige el QR', async () => {
+      setup({ event: { cameraUnlock: 'on_event_qr' }, guest: { checkedInAt: '2026-10-15T22:00:00Z' } });
+      expect(await screen.findByText(/Escanea el código QR de la fiesta/)).toBeInTheDocument();
+    });
+
+    it('con la cámara ya activada se abre', async () => {
+      setup({ event: { cameraUnlock: 'on_event_qr' }, guest: { cameraActivatedAt: '2026-10-30T23:40:00Z' } });
+      expect(await screen.findByRole('button', { name: 'Abrir cámara' })).toBeInTheDocument();
+    });
+
+    it('«Ya escaneé el código» vuelve a consultar al invitado', async () => {
+      const activated = { ...guest, cameraActivatedAt: '2026-10-30T23:40:00Z' };
+      vi.mocked(getMyGuest).mockResolvedValueOnce(activated);
+      const { onGuestChange } = setup({ event: { cameraUnlock: 'on_event_qr' } });
+      await userEvent.click(await screen.findByRole('button', { name: 'Ya escaneé el código' }));
+      await waitFor(() => expect(onGuestChange).toHaveBeenCalledWith(activated));
+    });
+
+    it('con on_identify no pide ningún QR', async () => {
+      setup({ event: { cameraUnlock: 'on_identify' } });
+      expect(await screen.findByRole('button', { name: 'Abrir cámara' })).toBeInTheDocument();
+      expect(screen.queryByText(/Escanea el código QR de la fiesta/)).not.toBeInTheDocument();
+    });
   });
 
   it('muestra el aforo cuando hay inscritos', async () => {

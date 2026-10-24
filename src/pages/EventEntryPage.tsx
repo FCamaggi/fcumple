@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import GuestHub from '../components/GuestHub';
 import IdentifyForm from '../components/IdentifyForm';
+import ThemeScope from '../components/ThemeScope';
 import {
+  activateCamera,
   clearGuestSession,
   getEventPublic,
   getMyGuest,
@@ -27,16 +29,36 @@ function formatDate(iso: string | null): string | null {
   return new Intl.DateTimeFormat('es-CL', { dateStyle: 'full', timeStyle: 'short' }).format(new Date(iso));
 }
 
+/** El código del QR de la fiesta: `/e/:slug/a/:code`. Cualquier otra cola del enlace se ignora. */
+function activationCodeFrom(splat: string | undefined): string | undefined {
+  return /^a\/([A-Za-z0-9]{8,64})\/?$/.exec(splat ?? '')?.[1];
+}
+
 /**
  * `/e/:slug` — el enlace único del evento. Si este dispositivo ya tiene una
  * sesión válida entra directo al hub; si no, pide identificarse.
  *
- * Etapa 2 (en curso): el hub cubre avisos, cámara y rollo revelado. Faltan
- * cómo llegar por evento y la confirmación de asistencia (RSVP).
+ * `/e/:slug/a/:code` es el QR impreso de la fiesta: al escanearlo con la cámara
+ * del teléfono, quien ya tiene sesión activa su cámara en el acto, y quien no,
+ * se inscribe (o entra) y se activa apenas está dentro. El código se quita de la
+ * dirección una vez usado.
  */
 export default function EventEntryPage() {
-  const { slug = '' } = useParams<{ slug: string }>();
+  const params = useParams<{ slug: string; '*': string }>();
+  const slug = params.slug ?? '';
+  // El código se guarda al montar y se quita de la dirección de inmediato: así no queda en la barra, en el
+  // historial ni viaja en un Referer mientras la persona se inscribe.
+  const [code] = useState(() => activationCodeFrom(params['*']));
+  const navigate = useNavigate();
   const [state, setState] = useState<State>({ phase: 'loading' });
+  const [activation, setActivation] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
+  const activationTried = useRef(false);
+
+  useEffect(() => {
+    if (code) navigate(`/e/${slug}`, { replace: true });
+    // Solo al montar: el código ya quedó guardado.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -75,6 +97,30 @@ export default function EventEntryPage() {
     };
   }, [slug]);
 
+  // Activa la cámara con el código del QR en cuanto el invitado está dentro.
+  useEffect(() => {
+    if (!code || state.phase !== 'inside' || activationTried.current) return;
+    activationTried.current = true;
+    const { event, token } = state;
+
+    void (async () => {
+      try {
+        if (await activateCamera(token, code)) {
+          const fresh = await getMyGuest(token);
+          if (fresh) setState({ phase: 'inside', event, guest: fresh, token });
+          setActivation({ kind: 'ok', text: '¡Cámara activada! Ya puedes sacar fotos.' });
+        } else {
+          setActivation({
+            kind: 'error',
+            text: 'Este código ya no sirve. Pregunta a quien organiza por el código de la fiesta.',
+          });
+        }
+      } catch (err) {
+        setActivation({ kind: 'error', text: err instanceof Error ? err.message : 'No pudimos activar la cámara.' });
+      }
+    })();
+  }, [code, state]);
+
   async function handleIdentified(event: EventPublic, session: GuestSession) {
     saveGuestSession(slug, session);
     const guest = await getMyGuest(session.token);
@@ -90,7 +136,7 @@ export default function EventEntryPage() {
     case 'loading':
       return (
         <div className={centered}>
-          <span className="font-mono text-xs uppercase tracking-widest text-acid-400">Cargando...</span>
+          <span className="font-mono text-xs uppercase tracking-widest text-paper-100/70">Cargando...</span>
         </div>
       );
     case 'missing':
@@ -111,29 +157,48 @@ export default function EventEntryPage() {
       );
     case 'identify':
       return (
-        <div className={centered}>
-          <IdentifyForm slug={slug} event={state.event} onIdentified={(session) => void handleIdentified(state.event, session)} />
-        </div>
+        <ThemeScope theme={state.event.theme}>
+          <div className={centered}>
+            <IdentifyForm
+              slug={slug}
+              event={state.event}
+              onIdentified={(session) => void handleIdentified(state.event, session)}
+            />
+          </div>
+        </ThemeScope>
       );
     case 'inside': {
       const { event, guest, token } = state;
       const date = formatDate(event.startsAt);
       return (
-        <div className="flex min-h-screen flex-col items-center gap-5 bg-ink-950 px-4 pb-16 pt-8 text-paper-100">
-          <header className="flex w-full max-w-md flex-col gap-1 text-center">
-            <span className="font-mono text-[11px] uppercase tracking-widest text-laser-500">{event.name}</span>
-            <h1 className="font-display text-3xl uppercase tracking-wide">Hola, {guest.fullName.split(' ')[0]}</h1>
-            {date && <p className="font-sans text-sm text-paper-100/80">{date}</p>}
-            {event.location && <p className="font-sans text-sm text-paper-100/80">{event.location}</p>}
-          </header>
-          <GuestHub
-            slug={slug}
-            token={token}
-            event={event}
-            guest={guest}
-            onGuestChange={(fresh) => setState({ phase: 'inside', event, guest: fresh, token })}
-          />
-        </div>
+        <ThemeScope theme={event.theme}>
+          <div className="flex min-h-screen flex-col items-center gap-5 bg-ink-950 px-4 pb-16 pt-8 text-paper-100">
+            <header className="flex w-full max-w-md flex-col gap-1 text-center">
+              <span className="font-display text-2xl uppercase leading-tight tracking-wide text-laser-500">{event.name}</span>
+              {event.subtitle && <span className="font-sans text-sm text-paper-100/80">{event.subtitle}</span>}
+              <h1 className="mt-2 font-display text-3xl uppercase tracking-wide">Hola, {guest.fullName.split(' ')[0]}</h1>
+              {date && <p className="font-sans text-sm text-paper-100/80">{date}</p>}
+              {event.location && <p className="font-sans text-sm text-paper-100/80">{event.location}</p>}
+            </header>
+            {activation && (
+              <p
+                role={activation.kind === 'error' ? 'alert' : 'status'}
+                className={`w-full max-w-md border px-3 py-2 font-mono text-[11px] uppercase tracking-wide ${
+                  activation.kind === 'error' ? 'border-flame-500 text-flame-500' : 'border-acid-400 text-acid-400'
+                }`}
+              >
+                {activation.text}
+              </p>
+            )}
+            <GuestHub
+              slug={slug}
+              token={token}
+              event={event}
+              guest={guest}
+              onGuestChange={(fresh) => setState({ phase: 'inside', event, guest: fresh, token })}
+            />
+          </div>
+        </ThemeScope>
       );
     }
   }

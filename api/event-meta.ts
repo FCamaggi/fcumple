@@ -13,6 +13,8 @@
 
 export interface EventMeta {
   name: string;
+  /** Línea debajo del título (p. ej. «Cumpleaños Fran»). */
+  subtitle?: string | null;
   startsAt: string | null;
   location: string | null;
 }
@@ -43,6 +45,7 @@ const escapeHtml = (s: string) =>
 /** "viernes 30 de octubre · 20:30 · Los Pozos 6855. Inscríbete con tu nombre…" */
 export function describeEvent(meta: EventMeta): string {
   const parts: string[] = [];
+  if (meta.subtitle?.trim()) parts.push(meta.subtitle.trim());
   if (meta.startsAt) {
     const date = new Date(meta.startsAt);
     if (!Number.isNaN(date.getTime())) {
@@ -141,11 +144,17 @@ async function loadEvent(opts: RenderOptions, fetchImpl: FetchLike): Promise<Eve
       }),
     );
     if (!response.ok) return null;
-    const rows = (await response.json?.()) as Array<{ name?: unknown; starts_at?: unknown; location?: unknown }>;
+    const rows = (await response.json?.()) as Array<{
+      name?: unknown;
+      subtitle?: unknown;
+      starts_at?: unknown;
+      location?: unknown;
+    }>;
     const row = Array.isArray(rows) ? rows[0] : undefined;
     if (!row || typeof row.name !== 'string' || !row.name.trim()) return null;
     return {
       name: row.name.trim(),
+      subtitle: typeof row.subtitle === 'string' ? row.subtitle : null,
       startsAt: typeof row.starts_at === 'string' ? row.starts_at : null,
       location: typeof row.location === 'string' ? row.location : null,
     };

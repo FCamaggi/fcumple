@@ -121,27 +121,27 @@ describe('RPC publicas: nunca cruzan eventos', () => {
   });
 
   it('list_revealed_photos solo trae fotos del evento del token', async () => {
-    await db.query('update events set photos_revealed_at = now()');
+    await db.query("update photos set published_at = now() where status = 'approved'");
     const { rows } = await asAnon(db, () => db.query('select * from list_revealed_photos($1)', [guestA.token]));
     expect(rows).toHaveLength(1);
     expect(rows[0].storage_path.startsWith(evA.id)).toBe(true);
-    await db.query('update events set photos_revealed_at = null');
+    await db.query('update photos set published_at = null');
   });
 
   it('list_revealed_photos no responde sin un token valido', async () => {
-    await db.query('update events set photos_revealed_at = now()');
+    await db.query("update photos set published_at = now() where status = 'approved'");
     const { rows } = await asAnon(db, () => db.query('select * from list_revealed_photos($1)', ['token-falso']));
     expect(rows).toHaveLength(0);
-    await db.query('update events set photos_revealed_at = null');
+    await db.query('update photos set published_at = null');
   });
 
   it('las rutas reveladas no contienen ningun token de invitado', async () => {
-    await db.query('update events set photos_revealed_at = now()');
+    await db.query("update photos set published_at = now() where status = 'approved'");
     const { rows } = await asAnon(db, () => db.query('select * from list_revealed_photos($1)', [guestA.token]));
     for (const row of rows) {
       expect(row.storage_path).not.toContain(guestA.token);
     }
-    await db.query('update events set photos_revealed_at = null');
+    await db.query('update photos set published_at = null');
   });
 });
 
@@ -174,7 +174,7 @@ describe('Storage: politicas por evento', () => {
     ).rejects.toMatchObject({ code: '42501' });
   });
 
-  it('anon no lee fotos hasta que el rollo se revela y la foto esta aprobada', async () => {
+  it('anon no lee fotos hasta que se publican y la foto esta aprobada', async () => {
     await db.query(`insert into storage.objects (bucket_id, name) values ('party-photos', $1)`, [
       `${evA.id}/${guestA.id}/a.jpg`,
     ]);
@@ -185,14 +185,14 @@ describe('Storage: politicas por evento', () => {
     );
     expect(hidden.rows).toHaveLength(0);
 
-    await db.query('update events set photos_revealed_at = now() where id = $1', [evA.id]);
+    await db.query("update photos set published_at = now() where status = 'approved' and event_id = $1", [evA.id]);
     const shown = await asAnon(db, () =>
       db.query(`select name from storage.objects where bucket_id = 'party-photos' and name = $1`, [
         `${evA.id}/${guestA.id}/a.jpg`,
       ]),
     );
     expect(shown.rows).toHaveLength(1);
-    await db.query('update events set photos_revealed_at = null where id = $1', [evA.id]);
+    await db.query('update photos set published_at = null where event_id = $1', [evA.id]);
   });
 
   it('el organizador lee los archivos de su evento y no los del otro', async () => {

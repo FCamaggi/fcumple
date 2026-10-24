@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { AccessMode } from '../lib/platformApi';
 import type { CameraUnlock, EventSettingsPatch, OrganizerEvent } from '../lib/organizerApi';
 import { isoToLocalInput, localInputToIso } from '../lib/localDateTime';
+import { THEME_PRESETS, resolveTheme } from '../lib/theme';
 
 interface EventSettingsPanelProps {
   event: OrganizerEvent;
@@ -15,8 +16,9 @@ const ACCESS_LABELS: Record<AccessMode, string> = {
 };
 
 const UNLOCK_LABELS: Record<CameraUnlock, string> = {
-  on_identify: 'Al identificarse',
-  on_checkin: 'Cuando marque su llegada en la puerta',
+  on_event_qr: 'Cuando escanee el QR de la fiesta (recomendado)',
+  on_identify: 'Apenas se inscribe',
+  on_checkin: 'Cuando marques su llegada en la puerta',
 };
 
 const fieldClass =
@@ -27,6 +29,8 @@ const labelClass = 'font-mono text-[11px] uppercase tracking-wider text-paper-10
 /** Ajustes del evento: nombre, fecha y lugar, cómo entran los invitados, cupo de fotos y cuándo se habilita la cámara. */
 export default function EventSettingsPanel({ event, onSave }: EventSettingsPanelProps) {
   const [name, setName] = useState(event.name);
+  const [subtitle, setSubtitle] = useState(event.subtitle ?? '');
+  const [themeId, setThemeId] = useState(resolveTheme(event.theme).id);
   const [startsAt, setStartsAt] = useState(isoToLocalInput(event.startsAt));
   const [location, setLocation] = useState(event.location ?? '');
   const [photoQuota, setPhotoQuota] = useState(String(event.defaultPhotoQuota));
@@ -51,6 +55,8 @@ export default function EventSettingsPanel({ event, onSave }: EventSettingsPanel
     try {
       await onSave({
         name: name.trim(),
+        ...(subtitle.trim() !== (event.subtitle ?? '') ? { subtitle: subtitle.trim() || null } : {}),
+        ...(themeId !== resolveTheme(event.theme).id ? { theme: { preset: themeId } } : {}),
         // Solo si la tocó: reenviarla en cada guardado reescribiría la fecha (y le quitaría los segundos).
         ...(startsAt !== isoToLocalInput(event.startsAt) ? { startsAt: localInputToIso(startsAt) } : {}),
         location: location.trim() || null,
@@ -73,6 +79,37 @@ export default function EventSettingsPanel({ event, onSave }: EventSettingsPanel
           Nombre del evento
         </label>
         <input id="ev-name" value={name} onChange={(e) => setName(e.target.value)} className={fieldClass} />
+        <p className="font-sans text-xs text-paper-100/60">Es el título grande que ven tus invitados.</p>
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <label htmlFor="ev-subtitle" className={labelClass}>
+          Subtítulo <span className="text-paper-100/50">opcional</span>
+        </label>
+        <input
+          id="ev-subtitle"
+          value={subtitle}
+          maxLength={80}
+          onChange={(e) => setSubtitle(e.target.value)}
+          className={fieldClass}
+        />
+        <p className="font-sans text-xs text-paper-100/60">Una línea debajo del título. Por ejemplo: «Cumpleaños Fran».</p>
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <label htmlFor="ev-theme" className={labelClass}>
+          Estilo del evento
+        </label>
+        <select id="ev-theme" value={themeId} onChange={(e) => setThemeId(e.target.value)} className={selectClass}>
+          {THEME_PRESETS.map((preset) => (
+            <option key={preset.id} value={preset.id}>
+              {preset.label}
+            </option>
+          ))}
+        </select>
+        <p className="font-sans text-xs text-paper-100/60">
+          Los colores de la página de tus invitados y de este panel. Se aplica al guardar.
+        </p>
       </div>
 
       <div className="flex flex-col gap-1">

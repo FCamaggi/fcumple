@@ -26,6 +26,8 @@ const baseEvent: EventPublic = {
   rsvpEnabled: false,
   photosRevealed: false,
   enrollment: emptyEnrollment(),
+  subtitle: null,
+  theme: {},
 };
 
 const ok = { outcome: 'ok' as const, guestToken: 'tok', guestId: 'g1', guestName: 'Ana Rojas' };
@@ -209,6 +211,23 @@ describe('IdentifyForm: el evento', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'PUTI HALLOWEEN' })).toBeInTheDocument();
     expect(screen.getByText('Los Pozos 6855')).toBeInTheDocument();
     expect(screen.getByText(/octubre/i)).toBeInTheDocument();
+  });
+
+  it('muestra el subtítulo debajo del título', () => {
+    render(
+      <IdentifyForm
+        slug="s"
+        event={{ ...baseEvent, name: 'PUTI HALLOWEEN', subtitle: 'Cumpleaños Fran' }}
+        onIdentified={vi.fn()}
+      />,
+    );
+    const title = screen.getByRole('heading', { level: 1, name: 'PUTI HALLOWEEN' });
+    expect(title.nextElementSibling).toHaveTextContent('Cumpleaños Fran');
+  });
+
+  it('sin subtítulo no deja un hueco', () => {
+    render(<IdentifyForm slug="s" event={baseEvent} onIdentified={vi.fn()} />);
+    expect(screen.getByRole('heading', { level: 1 }).nextElementSibling?.tagName).not.toBe('P');
   });
 
   it('sin fecha ni lugar no deja huecos', () => {

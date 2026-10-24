@@ -21,6 +21,12 @@ vi.mock('../components/QrScanner', () => ({
   ),
 }));
 vi.mock('../components/PhotosTab', () => ({ default: () => <div data-testid="photos-tab" /> }));
+vi.mock('../components/PostsPanel', () => ({
+  default: ({ eventId }: { eventId?: string }) => <div data-testid="posts-panel">avisos de {eventId}</div>,
+}));
+vi.mock('../components/ActivationTab', () => ({
+  default: ({ event }: { event: { activationCode: string } }) => <div data-testid="activation-tab">código {event.activationCode}</div>,
+}));
 vi.mock('../components/studio/CameraStudio', () => ({ default: () => <div data-testid="camera-studio" /> }));
 vi.mock('../lib/auth', () => ({ signOut: vi.fn(), signIn: vi.fn(), useSession: vi.fn() }));
 vi.mock('qrcode', () => ({ default: { toDataURL: vi.fn().mockResolvedValue('data:image/png;base64,QR') } }));
@@ -43,6 +49,9 @@ const event: api.OrganizerEvent = {
   stickersEnabled: true,
   defaultFrameId: null,
   photosRevealedAt: null,
+  subtitle: null,
+  theme: {},
+  activationCode: 'a1b2c3d4e5f60718293a4b5c6d7e8f90',
   defaultPhotoQuota: 5,
   enrollment: { welcome: '', plusOnes: null, comment: null, questions: [] },
   createdAt: '2026-10-15T00:00:00Z',
@@ -124,7 +133,7 @@ describe('OrganizerEventsPage', () => {
 
 describe('OrganizerEventPage', () => {
   function renderEvent() {
-    render(
+    return render(
       <MemoryRouter initialEntries={['/panel/e/ev-1']}>
         <Routes>
           <Route path="/panel/e/:eventId" element={<OrganizerEventPage />} />
@@ -204,6 +213,32 @@ describe('OrganizerEventPage', () => {
     await waitFor(() =>
       expect(api.updateEvent).toHaveBeenCalledWith('ev-1', expect.objectContaining({ accessMode: 'open' })),
     );
+  });
+
+  it('Avisos: la organizadora publica avisos de ESTE evento', async () => {
+    vi.mocked(api.getMyEvent).mockResolvedValueOnce(event);
+    vi.mocked(api.listEventGuests).mockResolvedValueOnce([]);
+    renderEvent();
+    await userEvent.click(await screen.findByRole('button', { name: 'Avisos' }));
+    expect(screen.getByTestId('posts-panel')).toHaveTextContent('avisos de ev-1');
+  });
+
+  it('Activación: muestra el QR de la fiesta de este evento', async () => {
+    vi.mocked(api.getMyEvent).mockResolvedValueOnce(event);
+    vi.mocked(api.listEventGuests).mockResolvedValueOnce([]);
+    renderEvent();
+    await userEvent.click(await screen.findByRole('button', { name: 'Activación' }));
+    expect(screen.getByTestId('activation-tab')).toHaveTextContent('código a1b2c3d4e5f60718293a4b5c6d7e8f90');
+  });
+
+  it('aplica el estilo del evento al panel, y lo suelta al salir', async () => {
+    vi.mocked(api.getMyEvent).mockResolvedValueOnce({ ...event, theme: { preset: 'rosa-chicle' } });
+    vi.mocked(api.listEventGuests).mockResolvedValueOnce([]);
+    const { unmount } = renderEvent();
+    await screen.findByRole('button', { name: 'Avisos' });
+    expect(document.documentElement.style.getPropertyValue('--c-acid-400')).toBe('255 95 162');
+    unmount();
+    expect(document.documentElement.style.getPropertyValue('--c-acid-400')).toBe('');
   });
 
   it('Inscripción: configura qué se pide al invitado y lo guarda en el evento', async () => {

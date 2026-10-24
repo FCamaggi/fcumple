@@ -23,7 +23,7 @@ const EMPTY_DRAFT: Draft = { title: '', subtitle: '', body: '' };
  * crear, editar, publicar/despublicar y eliminar, con soporte de autoría
  * rica (subtítulo, imagen destacada, galería).
  */
-export default function PostsPanel() {
+export default function PostsPanel({ eventId }: { eventId?: string } = {}) {
   const [posts, setPosts] = useState<Post[]>([]);
   const [imagesByPostId, setImagesByPostId] = useState<Record<string, PostImage[]>>({});
   const [loading, setLoading] = useState(true);
@@ -44,7 +44,7 @@ export default function PostsPanel() {
 
   useEffect(() => {
     let active = true;
-    listAllPosts()
+    listAllPosts(eventId)
       .then(async (found) => {
         if (!active) return;
         setPosts(found);
@@ -62,7 +62,7 @@ export default function PostsPanel() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [eventId]);
 
   function notifyError(action: string, err: unknown) {
     setError(err instanceof Error ? err.message : `No pudimos ${action}.`);
@@ -81,7 +81,7 @@ export default function PostsPanel() {
     setError(null);
     setUploadingCreate(true);
     try {
-      const path = await uploadPostImage(file, createDraftId);
+      const path = await uploadPostImage(file, eventId ?? createDraftId);
       setCreateCoverPath(path);
     } catch (err) {
       notifyError('subir la imagen destacada', err);
@@ -98,7 +98,7 @@ export default function PostsPanel() {
     try {
       const paths: string[] = [];
       for (const file of files) {
-        paths.push(await uploadPostImage(file, createDraftId));
+        paths.push(await uploadPostImage(file, eventId ?? createDraftId));
       }
       setCreateGalleryPaths((prev) => [...prev, ...paths]);
     } catch (err) {
@@ -113,13 +113,16 @@ export default function PostsPanel() {
     setError(null);
     try {
       const created = await createPost({
+        eventId,
         title: createDraft.title,
         body: createDraft.body,
         subtitle: createDraft.subtitle.trim() ? createDraft.subtitle.trim() : null,
         coverImagePath: createCoverPath,
       });
       const galleryImages = await Promise.all(
-        createGalleryPaths.map((path, position) => addPostImage({ postId: created.id, storagePath: path, position })),
+        createGalleryPaths.map((path, position) =>
+          addPostImage({ eventId, postId: created.id, storagePath: path, position }),
+        ),
       );
       setPosts((prev) => [created, ...prev]);
       setImagesByPostId((prev) => ({ ...prev, [created.id]: galleryImages }));
@@ -143,7 +146,7 @@ export default function PostsPanel() {
     setError(null);
     setUploadingEdit(true);
     try {
-      const path = await uploadPostImage(file, postId);
+      const path = await uploadPostImage(file, eventId ?? postId);
       setEditCoverPath(path);
     } catch (err) {
       notifyError('subir la imagen destacada', err);
@@ -160,9 +163,9 @@ export default function PostsPanel() {
     try {
       const added: PostImage[] = [];
       for (const file of files) {
-        const path = await uploadPostImage(file, postId);
+        const path = await uploadPostImage(file, eventId ?? postId);
         const position = editGalleryImages.length + added.length;
-        added.push(await addPostImage({ postId, storagePath: path, position }));
+        added.push(await addPostImage({ eventId, postId, storagePath: path, position }));
       }
       setEditGalleryImages((prev) => [...prev, ...added]);
       setImagesByPostId((prev) => ({ ...prev, [postId]: [...(prev[postId] ?? []), ...added] }));

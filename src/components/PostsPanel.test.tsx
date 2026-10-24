@@ -234,4 +234,27 @@ describe('PostsPanel', () => {
 
     expect(await screen.findByText(/todavía no hay avisos/i)).toBeInTheDocument();
   });
+
+  describe('en un evento (Fase 1)', () => {
+    it('lista solo los avisos de ese evento', async () => {
+      vi.mocked(listAllPosts).mockResolvedValueOnce([]);
+      render(<PostsPanel eventId="ev-1" />);
+      await waitFor(() => expect(listAllPosts).toHaveBeenCalledWith('ev-1'));
+    });
+
+    it('crea el aviso en ese evento', async () => {
+      vi.mocked(listAllPosts).mockResolvedValueOnce([]);
+      vi.mocked(createPost).mockResolvedValueOnce(draftPost);
+      const user = userEvent.setup();
+      render(<PostsPanel eventId="ev-1" />);
+      await waitFor(() => expect(listAllPosts).toHaveBeenCalled());
+
+      await user.click(screen.getByRole('button', { name: /nuevo aviso/i }));
+      await user.type(screen.getByLabelText(/^título$/i), 'Bienvenidos');
+      await user.type(screen.getByLabelText(/cuerpo/i), 'Los esperamos');
+      await user.click(screen.getByRole('button', { name: /crear/i }));
+
+      await waitFor(() => expect(createPost).toHaveBeenCalledWith(expect.objectContaining({ eventId: 'ev-1' })));
+    });
+  });
 });

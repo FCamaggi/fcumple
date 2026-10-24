@@ -4,28 +4,31 @@ export default {
   darkMode: 'class',
   theme: {
     extend: {
+      // Los colores son variables CSS (canales "r g b") para que cada evento tenga su piel: ver src/lib/theme.ts.
+      // Los valores por defecto (el neón de siempre) están en :root, en src/styles/globals.css.
+      // `<alpha-value>` mantiene funcionando `bg-acid-400/50`, `text-paper-100/70`, etc.
       colors: {
         ink: {
-          950: '#0d0b12',
-          900: '#16121d',
+          950: 'rgb(var(--c-ink-950) / <alpha-value>)',
+          900: 'rgb(var(--c-ink-900) / <alpha-value>)',
         },
         smoke: {
-          700: '#3a3244',
+          700: 'rgb(var(--c-smoke-700) / <alpha-value>)',
         },
         hotpink: {
-          500: '#ff2f92',
+          500: 'rgb(var(--c-hotpink-500) / <alpha-value>)',
         },
         acid: {
-          400: '#c8ff3d',
+          400: 'rgb(var(--c-acid-400) / <alpha-value>)',
         },
         laser: {
-          500: '#00e6d8',
+          500: 'rgb(var(--c-laser-500) / <alpha-value>)',
         },
         flame: {
-          500: '#ff5a1f',
+          500: 'rgb(var(--c-flame-500) / <alpha-value>)',
         },
         paper: {
-          100: '#f3ecf7',
+          100: 'rgb(var(--c-paper-100) / <alpha-value>)',
         },
       },
       fontFamily: {
@@ -38,10 +41,10 @@ export default {
         none: '0px',
       },
       boxShadow: {
-        'glow-hotpink': '0 0 32px -4px rgba(255, 47, 146, 0.45)',
-        'glow-acid': '0 0 24px -2px rgba(200, 255, 61, 0.45)',
-        'glow-laser': '0 0 24px -2px rgba(0, 230, 216, 0.4)',
-        'glow-flame': '0 0 24px -2px rgba(255, 90, 31, 0.4)',
+        'glow-hotpink': '0 0 32px -4px rgb(var(--c-hotpink-500) / 0.45)',
+        'glow-acid': '0 0 24px -2px rgb(var(--c-acid-400) / 0.45)',
+        'glow-laser': '0 0 24px -2px rgb(var(--c-laser-500) / 0.4)',
+        'glow-flame': '0 0 24px -2px rgb(var(--c-flame-500) / 0.4)',
       },
       keyframes: {
         flicker: {

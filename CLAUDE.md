@@ -16,10 +16,10 @@ Verificados el 2026-10-23 con Node 22.
 |---|---|
 | `npm run dev` | Servidor de desarrollo de Vite. |
 | `npm run typecheck` | `tsc --noEmit`. Pasa, unos 30 s. |
-| `npm test` | Vitest con jsdom: 86 archivos, 1043 tests, cerca de 1 min. |
+| `npm test` | Vitest con jsdom: 90 archivos, 1134 tests, cerca de 1 min. |
 | `npm run test:coverage` | Lo que corre el CI. |
 | `npm run build` | `tsc` y `vite build`. Pasa; avisa de chunks de más de 500 kB. |
-| `npm run test:db` | 261 tests contra un Postgres real. Levanta Postgres 16 en Docker (puerto 55433). |
+| `npm run test:db` | 297 tests contra un Postgres real. Levanta Postgres 16 en Docker (puerto 55433). |
 | `npm run build:setup-sql` | Regenera `supabase/setup-fase-1.sql` a partir de las migraciones. |
 
 Sin Docker, `test:db` acepta un Postgres propio en `localhost:55433` (usuario `postgres`, clave `test`) con `FCUMPLE_TEST_PG_EXTERNAL=1`. Cada archivo de test reinicia el esquema `public`: nunca lo apuntes a una base con datos.

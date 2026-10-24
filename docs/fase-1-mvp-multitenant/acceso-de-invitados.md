@@ -61,7 +61,7 @@ En el panel del organizador, **Restablecer acceso** sobre el invitado: cambia su
 ## Check-in y puerta
 
 - El organizador busca por nombre en la pestaña **Puerta** y marca la llegada con un toque, o usa el **escáner**: el invitado muestra un código QR que contiene solo su token (`check_in_guest`, que **solo ejecuta el dueño del evento**).
-- Ajuste por evento `camera_unlock`: `on_identify` (por defecto: la cámara se habilita al entrar) o `on_checkin` (solo después de que el organizador marque la llegada; `submit_photo` lo exige en la base).
+- Ajuste por evento `camera_unlock`: `on_event_qr` (por defecto en los eventos nuevos: la cámara se habilita al escanear el QR impreso de la fiesta), `on_identify` (al inscribirse) u `on_checkin` (solo después de que el organizador marque la llegada). `submit_photo` lo exige en la base. Ver [`activacion-camara-y-cartelera.md`](./activacion-camara-y-cartelera.md).
 
 ## RSVP
 

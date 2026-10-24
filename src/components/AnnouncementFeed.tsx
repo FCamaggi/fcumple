@@ -142,15 +142,24 @@ function AnnouncementCard({ post }: { post: Post }) {
       )}
       <p className="whitespace-pre-wrap font-sans text-sm text-paper-100/90">{post.body}</p>
       {galleryImages.length > 0 && (
-        <div className="grid grid-cols-3 gap-1">
+        // Carrusel que se desliza con el dedo (scroll-snap): con varias imágenes, la grilla de 3 columnas las dejaba
+        // minúsculas.
+        <div
+          role="list"
+          tabIndex={0}
+          aria-label="Galería del aviso"
+          className="flex snap-x snap-mandatory gap-2 overflow-x-auto pb-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-acid-400"
+        >
           {galleryImages.map(
             (img) =>
               galleryUrls[img.storagePath] && (
                 <img
                   key={img.id}
+                  role="listitem"
                   src={galleryUrls[img.storagePath]}
                   alt="Foto de galería"
-                  className="aspect-square w-full object-cover"
+                  loading="lazy"
+                  className="aspect-square w-[70%] max-w-[16rem] shrink-0 snap-center object-cover"
                 />
               ),
           )}

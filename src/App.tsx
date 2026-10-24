@@ -32,7 +32,9 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Navigate to="/i/invalido" replace />} />
         <Route path="/i/:token" element={<GuestPage />} />
-        <Route path="/e/:slug" element={<EventEntryPage />} />
+        {/* `/e/:slug/a/:code` es el QR impreso de la fiesta: activa la cámara. Una sola ruta, para que la página no se
+            reinicie cuando el código se quita de la dirección. */}
+        <Route path="/e/:slug/*" element={<EventEntryPage />} />
         <Route
           path="/brief/:slug"
           element={

@@ -18,6 +18,9 @@ const event: OrganizerEvent = {
   stickersEnabled: true,
   defaultFrameId: null,
   photosRevealedAt: null,
+  subtitle: null,
+  theme: {},
+  activationCode: 'a1b2c3d4e5f60718293a4b5c6d7e8f90',
   defaultPhotoQuota: 5,
   enrollment: { welcome: '', plusOnes: null, comment: null, questions: [] },
   createdAt: '2026-10-15T00:00:00Z',
@@ -85,6 +88,55 @@ describe('EventSettingsPanel', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Guardar ajustes' }));
     expect(screen.getByRole('alert')).toHaveTextContent(/entre 0 y 100/);
     expect(onSave).not.toHaveBeenCalled();
+  });
+
+  it('guarda el subtítulo, y lo borra si se deja en blanco', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    const { unmount } = render(<EventSettingsPanel event={event} onSave={onSave} />);
+    await userEvent.type(screen.getByLabelText(/Subtítulo/), 'Cumpleaños Fran');
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar ajustes' }));
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ subtitle: 'Cumpleaños Fran' }));
+    unmount();
+
+    const onSave2 = vi.fn().mockResolvedValue(undefined);
+    render(<EventSettingsPanel event={{ ...event, subtitle: 'Cumpleaños Fran' }} onSave={onSave2} />);
+    await userEvent.clear(screen.getByLabelText(/Subtítulo/));
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar ajustes' }));
+    expect(onSave2).toHaveBeenCalledWith(expect.objectContaining({ subtitle: null }));
+  });
+
+  it('el subtítulo tiene un máximo de 80 caracteres', () => {
+    render(<EventSettingsPanel event={event} onSave={vi.fn()} />);
+    expect(screen.getByLabelText(/Subtítulo/)).toHaveAttribute('maxlength', '80');
+  });
+
+  it('elige el estilo del evento entre los presets y guarda solo su id', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<EventSettingsPanel event={event} onSave={onSave} />);
+    expect(screen.getByLabelText('Estilo del evento')).toHaveValue('neon');
+    expect(screen.getByRole('option', { name: 'Rosa chicle y negro' })).toBeInTheDocument();
+
+    await userEvent.selectOptions(screen.getByLabelText('Estilo del evento'), 'rosa-chicle');
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar ajustes' }));
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ theme: { preset: 'rosa-chicle' } }));
+  });
+
+  it('carga el estilo actual y no lo reenvía si no se toca', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<EventSettingsPanel event={{ ...event, theme: { preset: 'rosa-chicle' } }} onSave={onSave} />);
+    expect(screen.getByLabelText('Estilo del evento')).toHaveValue('rosa-chicle');
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar ajustes' }));
+    expect(onSave.mock.calls[0][0]).not.toHaveProperty('theme');
+    expect(onSave.mock.calls[0][0]).not.toHaveProperty('subtitle');
+  });
+
+  it('ofrece el QR de la fiesta como forma recomendada de habilitar la cámara', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<EventSettingsPanel event={{ ...event, cameraUnlock: 'on_identify' }} onSave={onSave} />);
+    expect(screen.getByRole('option', { name: /QR de la fiesta \(recomendado\)/ })).toBeInTheDocument();
+    await userEvent.selectOptions(screen.getByLabelText('La cámara se habilita'), 'on_event_qr');
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar ajustes' }));
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ cameraUnlock: 'on_event_qr' }));
   });
 
   it('no deja guardar un evento sin nombre', async () => {

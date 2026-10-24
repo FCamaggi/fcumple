@@ -298,6 +298,7 @@ export default function IdentifyForm({ slug, event, onIdentified }: IdentifyForm
     >
       <header className="flex flex-col gap-3 border-b border-dashed border-smoke-700/60 pb-5">
         <h1 className="font-display text-3xl uppercase leading-tight tracking-wide text-paper-100">{event.name}</h1>
+        {event.subtitle && <p className="font-sans text-base text-paper-100/80">{event.subtitle}</p>}
         {(when || event.location) && (
           <p className="flex flex-col gap-1 font-mono text-[11px] uppercase tracking-wider text-laser-500">
             {when && (

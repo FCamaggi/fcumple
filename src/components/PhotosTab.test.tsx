@@ -5,27 +5,25 @@ import userEvent from '@testing-library/user-event';
 vi.mock('../lib/organizerApi', () => ({
   listEventPhotos: vi.fn(),
   moderateEventPhoto: vi.fn(),
-  revealEventPhotos: vi.fn(),
+  publishPhotoBatch: vi.fn(),
 }));
 vi.mock('./PhotoModerationPanel', () => ({
   default: ({
     source,
-    initiallyRevealed,
     onClose,
   }: {
-    source: { list: () => Promise<unknown>; moderate: (id: string, s: 'approved') => Promise<unknown>; reveal: () => Promise<unknown> };
-    initiallyRevealed: boolean;
+    source: { list: () => Promise<unknown>; moderate: (id: string, s: 'approved') => Promise<unknown>; publish: () => Promise<number> };
     onClose: () => void;
   }) => (
-    <div data-testid="moderation" data-revealed={String(initiallyRevealed)}>
+    <div data-testid="moderation">
       <button type="button" onClick={() => void source.list()}>
         listar
       </button>
       <button type="button" onClick={() => void source.moderate('p1', 'approved')}>
         aprobar
       </button>
-      <button type="button" onClick={() => void source.reveal()}>
-        revelar
+      <button type="button" onClick={() => void source.publish()}>
+        publicar lote
       </button>
       <button type="button" onClick={onClose}>
         cerrar
@@ -50,12 +48,15 @@ const event: api.OrganizerEvent = {
   stickersEnabled: true,
   defaultFrameId: null,
   photosRevealedAt: null,
+  subtitle: null,
+  theme: {},
+  activationCode: 'a1b2c3d4e5f60718293a4b5c6d7e8f90',
   defaultPhotoQuota: 5,
   enrollment: { welcome: '', plusOnes: null, comment: null, questions: [] },
   createdAt: '2026-10-15T00:00:00Z',
 };
 
-function photo(id: string, status: 'pending' | 'approved' | 'rejected') {
+function photo(id: string, status: 'pending' | 'approved' | 'rejected', publishedAt: string | null = null) {
   return {
     id,
     guestId: 'g1',
@@ -63,14 +64,18 @@ function photo(id: string, status: 'pending' | 'approved' | 'rejected') {
     displayStoragePath: null,
     status,
     createdAt: '2026-10-15T00:00:00Z',
+    publishedAt,
     guestFullName: 'Ana Rojas',
   };
 }
 
 beforeEach(() => {
-  vi.mocked(api.listEventPhotos).mockReset().mockResolvedValue([photo('a', 'pending'), photo('b', 'approved'), photo('c', 'rejected')]);
+  vi.mocked(api.listEventPhotos)
+    .mockReset()
+    .mockResolvedValue([photo('a', 'pending'), photo('b', 'approved'), photo('c', 'rejected')]);
   vi.mocked(api.moderateEventPhoto).mockReset().mockResolvedValue(undefined);
-  vi.mocked(api.revealEventPhotos).mockReset();
+  vi.mocked(api.publishPhotoBatch).mockReset();
+  vi.spyOn(window, 'confirm').mockReturnValue(true);
 });
 
 describe('PhotosTab', () => {
@@ -78,32 +83,64 @@ describe('PhotosTab', () => {
     render(<PhotosTab event={event} onEventChange={vi.fn()} />);
     expect(await screen.findByText('3 fotos · 1 por revisar · 1 aprobadas · 1 rechazadas')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Revisar 1 foto(s)' })).toBeInTheDocument();
-    expect(screen.getByText(/rollo sigue oculto/)).toBeInTheDocument();
   });
 
-  it('avisa que el rollo ya está revelado', async () => {
-    render(<PhotosTab event={{ ...event, photosRevealedAt: '2026-10-16T00:00:00Z' }} onEventChange={vi.fn()} />);
-    expect(await screen.findByText(/ya está revelado/)).toBeInTheDocument();
+  it('explica que los invitados no ven nada hasta publicar, y cuántas aprobadas faltan', async () => {
+    render(<PhotosTab event={event} onEventChange={vi.fn()} />);
+    expect(await screen.findByText(/no ven ninguna foto hasta que tú las publicas/)).toBeInTheDocument();
+    expect(screen.getByText(/Tienes 1 aprobada\(s\) sin publicar/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Publicar 1 aprobada(s)' })).toBeEnabled();
   });
 
-  it('abre la moderación con las funciones de este evento', async () => {
-    const revealed = { ...event, photosRevealedAt: '2026-10-16T00:00:00Z' };
-    vi.mocked(api.revealEventPhotos).mockResolvedValue(revealed);
+  it('sin aprobadas por publicar, el botón queda apagado', async () => {
+    vi.mocked(api.listEventPhotos).mockResolvedValue([photo('a', 'pending'), photo('b', 'approved', '2026-10-30T23:00:00Z')]);
+    render(<PhotosTab event={event} onEventChange={vi.fn()} />);
+    expect(await screen.findByRole('button', { name: 'Publicar 0 aprobada(s)' })).toBeDisabled();
+  });
+
+  it('publica el lote, avisa cuántas fueron, marca el evento y recarga las fotos', async () => {
+    vi.mocked(api.publishPhotoBatch).mockResolvedValue(1);
+    const onEventChange = vi.fn();
+    render(<PhotosTab event={event} onEventChange={onEventChange} />);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Publicar 1 aprobada(s)' }));
+
+    expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining('Quedan 1 foto(s) sin revisar'));
+    expect(api.publishPhotoBatch).toHaveBeenCalledWith('ev-1');
+    expect(await screen.findByRole('status')).toHaveTextContent('Publicaste 1 foto(s).');
+    expect(onEventChange).toHaveBeenCalledWith(expect.objectContaining({ photosRevealedAt: expect.any(String) }));
+    await waitFor(() => expect(api.listEventPhotos).toHaveBeenCalledTimes(2));
+  });
+
+  it('no publica si cancela la confirmación', async () => {
+    vi.mocked(window.confirm).mockReturnValueOnce(false);
+    render(<PhotosTab event={event} onEventChange={vi.fn()} />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Publicar 1 aprobada(s)' }));
+    expect(api.publishPhotoBatch).not.toHaveBeenCalled();
+  });
+
+  it('si publicar falla, lo dice', async () => {
+    vi.mocked(api.publishPhotoBatch).mockRejectedValue(new Error('No pudimos publicar las fotos.'));
+    render(<PhotosTab event={event} onEventChange={vi.fn()} />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Publicar 1 aprobada(s)' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos publicar las fotos.');
+  });
+
+  it('abre la revisión con las funciones de este evento, incluido publicar desde ahí', async () => {
+    vi.mocked(api.publishPhotoBatch).mockResolvedValue(3);
     const onEventChange = vi.fn();
     render(<PhotosTab event={event} onEventChange={onEventChange} />);
 
     await userEvent.click(await screen.findByRole('button', { name: /Revisar/ }));
-    expect(screen.getByTestId('moderation')).toHaveAttribute('data-revealed', 'false');
-
     await userEvent.click(screen.getByRole('button', { name: 'listar' }));
     await waitFor(() => expect(api.listEventPhotos).toHaveBeenLastCalledWith('ev-1'));
 
     await userEvent.click(screen.getByRole('button', { name: 'aprobar' }));
     expect(api.moderateEventPhoto).toHaveBeenCalledWith('p1', 'approved');
 
-    await userEvent.click(screen.getByRole('button', { name: 'revelar' }));
-    await waitFor(() => expect(onEventChange).toHaveBeenCalledWith(revealed));
-    expect(api.revealEventPhotos).toHaveBeenCalledWith('ev-1');
+    await userEvent.click(screen.getByRole('button', { name: 'publicar lote' }));
+    await waitFor(() => expect(api.publishPhotoBatch).toHaveBeenCalledWith('ev-1'));
+    expect(onEventChange).toHaveBeenCalled();
 
     await userEvent.click(screen.getByRole('button', { name: 'cerrar' }));
     expect(screen.queryByTestId('moderation')).not.toBeInTheDocument();

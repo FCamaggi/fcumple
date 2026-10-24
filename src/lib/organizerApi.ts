@@ -15,7 +15,7 @@ import type { Photo } from '../types';
  * supabase/: un organizador solo ve y modifica lo de sus eventos.
  */
 
-export type CameraUnlock = 'on_identify' | 'on_checkin';
+export type CameraUnlock = 'on_identify' | 'on_checkin' | 'on_event_qr';
 export type ApprovalStatus = 'approved' | 'pending' | 'rejected';
 
 export interface OrganizerEvent {
@@ -31,6 +31,12 @@ export interface OrganizerEvent {
   stickersEnabled: boolean;
   defaultFrameId: string | null;
   photosRevealedAt: string | null;
+  /** Línea debajo del título (p. ej. «Cumpleaños Fran» bajo «PUTI HALLOWEEN»). */
+  subtitle: string | null;
+  /** Estilo del evento tal como lo guarda la base (`{preset}`); `resolveTheme` lo convierte en colores. */
+  theme: unknown;
+  /** Código secreto del QR impreso de la fiesta (solo lo ve la organizadora; los invitados nunca). */
+  activationCode: string;
   /** Fotos que recibe cada invitado nuevo. */
   defaultPhotoQuota: number;
   /** Qué le pide el organizador al invitado al inscribirse. */
@@ -71,6 +77,9 @@ interface EventRow {
   photos_revealed_at: string | null;
   default_photo_quota: number;
   enrollment_config: unknown;
+  subtitle: string | null;
+  theme: unknown;
+  activation_code: string;
   created_at: string;
 }
 
@@ -105,6 +114,9 @@ function mapEvent(row: EventRow): OrganizerEvent {
     stickersEnabled: row.stickers_enabled,
     defaultFrameId: row.default_frame_id,
     photosRevealedAt: row.photos_revealed_at,
+    subtitle: row.subtitle ?? null,
+    theme: row.theme ?? {},
+    activationCode: row.activation_code,
     defaultPhotoQuota: row.default_photo_quota,
     enrollment: resolveEnrollmentConfig(row.enrollment_config),
     createdAt: row.created_at,
@@ -198,6 +210,9 @@ export interface EventSettingsPatch {
   defaultFrameId?: string | null;
   defaultPhotoQuota?: number;
   enrollment?: ResolvedEnrollment;
+  subtitle?: string | null;
+  /** Solo el id del preset: los colores viven en `src/lib/theme.ts`. */
+  theme?: { preset: string };
 }
 
 export async function updateEvent(eventId: string, patch: EventSettingsPatch): Promise<OrganizerEvent> {
@@ -213,6 +228,8 @@ export async function updateEvent(eventId: string, patch: EventSettingsPatch): P
   if (patch.defaultFrameId !== undefined) row.default_frame_id = patch.defaultFrameId;
   if (patch.defaultPhotoQuota !== undefined) row.default_photo_quota = patch.defaultPhotoQuota;
   if (patch.enrollment !== undefined) row.enrollment_config = serializeEnrollmentConfig(patch.enrollment);
+  if (patch.subtitle !== undefined) row.subtitle = patch.subtitle;
+  if (patch.theme !== undefined) row.theme = patch.theme;
 
   const { data, error } = await supabase.from('events').update(row).eq('id', eventId).select('*').single();
   if (error) {
@@ -315,6 +332,7 @@ interface EventPhotoRow {
   display_storage_path: string | null;
   status: Photo['status'];
   created_at: string;
+  published_at: string | null;
   guests: { full_name: string } | null;
 }
 
@@ -322,7 +340,7 @@ interface EventPhotoRow {
 export async function listEventPhotos(eventId: string): Promise<ModerationPhoto[]> {
   const { data, error } = await supabase
     .from('photos')
-    .select('id, guest_id, storage_path, display_storage_path, status, created_at, guests!photos_guest_same_event(full_name)')
+    .select('id, guest_id, storage_path, display_storage_path, status, created_at, published_at, guests!photos_guest_same_event(full_name)')
     .eq('event_id', eventId)
     .order('created_at', { ascending: false });
   if (error) throw new Error('No pudimos cargar las fotos del evento.');
@@ -333,6 +351,7 @@ export async function listEventPhotos(eventId: string): Promise<ModerationPhoto[
     displayStoragePath: row.display_storage_path ?? null,
     status: row.status,
     createdAt: row.created_at,
+    publishedAt: row.published_at ?? null,
     guestFullName: row.guests?.full_name ?? 'Invitado desconocido',
   }));
 }
@@ -342,15 +361,27 @@ export async function moderateEventPhoto(photoId: string, status: 'approved' | '
   if (error) throw new Error('No pudimos actualizar la foto.');
 }
 
-/** Revela el rollo del evento (ahora). No se puede deshacer desde la app. */
-export async function revealEventPhotos(eventId: string): Promise<OrganizerEvent> {
-  const { data, error } = await supabase
-    .from('events')
-    .update({ photos_revealed_at: new Date().toISOString() })
-    .eq('id', eventId)
-    .is('photos_revealed_at', null)
-    .select('*')
-    .single();
-  if (error) throw new Error('No pudimos revelar el rollo. Puede que ya esté revelado.');
-  return mapEvent(data as EventRow);
+/**
+ * Publica el lote: todas las fotos aprobadas que todavía no se habían publicado. Los invitados las ven en la
+ * cartelera apenas se publican. Se puede repetir durante la fiesta. Devuelve cuántas fotos se publicaron.
+ */
+export async function publishPhotoBatch(eventId: string): Promise<number> {
+  const { data, error } = await supabase.rpc('publish_photo_batch', { p_event_id: eventId });
+  if (error) {
+    throw new Error(
+      error.code === '42501'
+        ? 'Solo la dueña del evento puede publicar fotos.'
+        : 'No pudimos publicar las fotos. Intenta de nuevo en un momento.',
+    );
+  }
+  return typeof data === 'number' ? data : 0;
+}
+
+/** Cambia el código del QR impreso: el QR anterior deja de servir (quien ya activó la cámara sigue activado). */
+export async function rotateActivationCode(eventId: string): Promise<string> {
+  const { data, error } = await supabase.rpc('rotate_activation_code', { p_event_id: eventId });
+  if (error || typeof data !== 'string') {
+    throw new Error('No pudimos cambiar el código. Intenta de nuevo en un momento.');
+  }
+  return data;
 }
