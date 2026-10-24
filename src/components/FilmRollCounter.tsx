@@ -58,10 +58,10 @@ export default function FilmRollCounter({ quota, used }: FilmRollCounterProps) {
       </div>
 
       <div className="flex flex-col">
-        <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-paper-100/70">
+        <span className="font-mono text-xs font-bold uppercase tracking-wider text-paper-100/70">
           Rollo // disparos
         </span>
-        <span className={`font-mono text-[11px] uppercase tracking-wide ${empty ? 'text-flame-500' : 'text-paper-100/70'}`}>
+        <span className={`font-mono text-xs uppercase tracking-wide ${empty ? 'text-flame-500' : 'text-paper-100/70'}`}>
           {empty ? 'Se acabó el rollo' : `de ${quota} en total`}
         </span>
       </div>

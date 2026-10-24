@@ -26,18 +26,18 @@ export default function AdminLogin() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-ink-950 px-4">
+    <div className="flex min-h-app items-center justify-center bg-ink-950 px-4">
       <form
         onSubmit={handleSubmit}
         className="flex w-full max-w-sm flex-col gap-4 border border-smoke-700/40 bg-ink-900 p-6 shadow-2xl"
       >
         <div className="flex flex-col gap-1">
-          <span className="font-mono text-[11px] uppercase tracking-widest text-laser-500">Acceso restringido</span>
+          <span className="font-mono text-xs uppercase tracking-widest text-laser-500">Acceso restringido</span>
           <h1 className="font-display text-2xl uppercase tracking-wide text-paper-100">Consola admin</h1>
         </div>
 
         <div className="flex flex-col gap-1">
-          <label htmlFor="admin-email" className="font-mono text-[11px] uppercase tracking-wider text-paper-100/70">
+          <label htmlFor="admin-email" className="font-mono text-xs uppercase tracking-wider text-paper-100/70">
             Email
           </label>
           <input
@@ -52,7 +52,7 @@ export default function AdminLogin() {
         </div>
 
         <div className="flex flex-col gap-1">
-          <label htmlFor="admin-password" className="font-mono text-[11px] uppercase tracking-wider text-paper-100/70">
+          <label htmlFor="admin-password" className="font-mono text-xs uppercase tracking-wider text-paper-100/70">
             Contraseña
           </label>
           <input
@@ -67,7 +67,7 @@ export default function AdminLogin() {
         </div>
 
         {error && (
-          <p role="alert" className="font-mono text-[11px] uppercase tracking-wide text-flame-500">
+          <p role="alert" className="font-mono text-xs uppercase tracking-wide text-flame-500">
             {error}
           </p>
         )}

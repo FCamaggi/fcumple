@@ -40,7 +40,7 @@ export default function HeadcountMeter({ confirmed, total, pending = 0, declined
 
   return (
     <div className="flex flex-col justify-between rounded bg-ink-950 p-4 shadow-inner">
-      <div className="mb-2 flex items-center justify-between font-mono text-[11px] uppercase tracking-wider text-paper-100/70">
+      <div className="mb-2 flex items-center justify-between font-mono text-xs uppercase tracking-wider text-paper-100/70">
         <span className="font-bold text-acid-400">Aforo VU // confirmados</span>
         <span className="text-laser-500">{total} cupos totales</span>
       </div>
@@ -72,7 +72,7 @@ export default function HeadcountMeter({ confirmed, total, pending = 0, declined
             <div className="h-full bg-laser-500" style={{ width: `${(pending / Math.max(total, 1)) * 100}%` }} />
             <div className="h-full bg-flame-500" style={{ width: `${(declined / Math.max(total, 1)) * 100}%` }} />
           </div>
-          <div className="mt-1 flex justify-between font-mono text-[10px] uppercase text-paper-100/70">
+          <div className="mt-1 flex justify-between font-mono text-xs uppercase text-paper-100/70">
             <span>Pendientes: {pending}</span>
             <span className="font-bold text-acid-400">Disponibles: {Math.max(total - confirmed, 0)}</span>
           </div>

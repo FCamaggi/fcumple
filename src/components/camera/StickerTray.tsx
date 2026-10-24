@@ -13,7 +13,7 @@ interface StickerTrayProps {
 }
 
 const controlClass =
-  'tap-target px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-wider bg-smoke-700/30 text-paper-100 disabled:opacity-40';
+  'tap-target px-3 py-1.5 font-mono text-xs font-bold uppercase tracking-wider bg-smoke-700/30 text-paper-100 disabled:opacity-40';
 
 /**
  * Bandeja de stickers de la cámara: tocar uno lo agrega al centro de la foto
@@ -36,10 +36,10 @@ export default function StickerTray({
   return (
     <section className="flex flex-col gap-1.5" aria-label="Stickers">
       <div className="flex items-center justify-between">
-        <span className="font-mono text-[10px] uppercase tracking-widest text-paper-100/60">
+        <span className="font-mono text-xs uppercase tracking-widest text-paper-100/60">
           Stickers // {count}/{MAX_STICKERS_PER_PHOTO}
         </span>
-        {full && <span className="font-mono text-[10px] uppercase text-flame-500">Máximo por foto</span>}
+        {full && <span className="font-mono text-xs uppercase text-flame-500">Máximo por foto</span>}
       </div>
 
       <ul className="flex gap-2 overflow-x-auto pb-1">

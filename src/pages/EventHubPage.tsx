@@ -112,7 +112,7 @@ export default function EventHubPage() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-ink-950 px-4 pb-16 pt-8">
+    <div className="relative min-h-app overflow-hidden bg-ink-950 px-4 pb-16 pt-8">
       <div
         className="pointer-events-none absolute -top-16 left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-laser-500/20 blur-[90px]"
         aria-hidden
@@ -123,7 +123,7 @@ export default function EventHubPage() {
         <BackButton />
 
         <header className="flex flex-col gap-1 text-center">
-          <span className="font-mono text-[11px] uppercase tracking-widest text-laser-500">La cartelera // abierto para todos</span>
+          <span className="font-mono text-xs uppercase tracking-widest text-laser-500">La cartelera // abierto para todos</span>
           <h1 className="font-display text-4xl uppercase leading-none tracking-wide text-paper-100">
             {eventConfig?.eventName ?? 'El evento'}
           </h1>
@@ -133,7 +133,7 @@ export default function EventHubPage() {
 
         <Link
           to="/como-llegar"
-          className="tap-target flex items-center justify-center bg-acid-400 px-4 py-3 font-mono text-[11px] font-bold uppercase tracking-wider text-ink-950"
+          className="tap-target flex items-center justify-center bg-acid-400 px-4 py-3 font-mono text-xs font-bold uppercase tracking-wider text-ink-950"
         >
           Cómo llegar
         </Link>
@@ -148,8 +148,8 @@ export default function EventHubPage() {
 
 function HubLoading({ reduceMotion }: { reduceMotion: boolean }) {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-ink-950 text-center">
-      <span className="font-mono text-[11px] uppercase tracking-widest text-laser-500">Cargando la cartelera...</span>
+    <div className="flex min-h-app flex-col items-center justify-center gap-3 bg-ink-950 text-center">
+      <span className="font-mono text-xs uppercase tracking-widest text-laser-500">Cargando la cartelera...</span>
       <motion.h1
         className="font-display text-3xl uppercase tracking-wide text-paper-100"
         animate={reduceMotion ? { opacity: 1 } : { opacity: [0.2, 1, 0.3, 1, 1] }}
@@ -197,7 +197,7 @@ function EventStatusStrip({ eventDate, headcount }: { eventDate: string | null; 
       aria-label="Estado del evento"
     >
       <div
-        className={`flex items-center justify-between font-mono text-[11px] uppercase tracking-widest ${
+        className={`flex items-center justify-between font-mono text-xs uppercase tracking-widest ${
           countdown.started ? 'text-acid-400' : 'text-laser-500'
         }`}
       >
@@ -205,7 +205,7 @@ function EventStatusStrip({ eventDate, headcount }: { eventDate: string | null; 
         <span className="font-bold">{countdown.label}</span>
       </div>
       {headcount !== null && (
-        <div className="flex items-center justify-between border-t border-smoke-700/40 pt-2 font-mono text-[11px] uppercase tracking-widest text-hotpink-500">
+        <div className="flex items-center justify-between border-t border-smoke-700/40 pt-2 font-mono text-xs uppercase tracking-widest text-hotpink-500">
           <span>Aforo // en la lista</span>
           <span className="flex items-baseline gap-1">
             <span className="font-display text-base font-bold leading-none text-acid-400">{headcount}</span>

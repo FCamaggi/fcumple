@@ -36,7 +36,7 @@ interface CameraStudioProps {
 type Editing = { kind: 'new'; template: FrameTemplate } | { kind: 'edit'; frame: EventFrame } | null;
 
 const smallButton =
-  'h-8 border border-smoke-700/60 px-3 font-mono text-[11px] uppercase tracking-wider text-paper-100 disabled:opacity-40';
+  'h-8 min-w-11 border border-smoke-700/60 px-3 font-mono text-xs uppercase tracking-wider text-paper-100 disabled:opacity-40';
 
 /** URL firmada para mostrar la imagen de una capa; si no se puede firmar, esa imagen se omite. */
 async function resolveFrameImage(path: string): Promise<string> {
@@ -139,7 +139,7 @@ export default function CameraStudio({ event, onEventChange }: CameraStudioProps
     return (
       <div className="flex flex-col gap-4">
         {error && (
-          <p role="alert" className="font-mono text-[11px] uppercase tracking-wide text-flame-500">
+          <p role="alert" className="font-mono text-xs uppercase tracking-wide text-flame-500">
             {error}
           </p>
         )}
@@ -167,7 +167,7 @@ export default function CameraStudio({ event, onEventChange }: CameraStudioProps
   return (
     <div className="flex flex-col gap-8">
       {error && (
-        <p role="alert" className="font-mono text-[11px] uppercase tracking-wide text-flame-500">
+        <p role="alert" className="font-mono text-xs uppercase tracking-wide text-flame-500">
           {error}
         </p>
       )}
@@ -175,8 +175,8 @@ export default function CameraStudio({ event, onEventChange }: CameraStudioProps
       {/* ---- Marcos ---- */}
       <section className="flex flex-col gap-3" aria-label="Marcos">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="font-mono text-[11px] font-bold uppercase tracking-widest text-hotpink-500">Marcos</h2>
-          <label className="flex items-center gap-2 font-sans text-sm text-paper-100">
+          <h2 className="font-mono text-xs font-bold uppercase tracking-widest text-hotpink-500">Marcos</h2>
+          <label className="flex min-h-11 items-center gap-2 font-sans text-sm text-paper-100">
             <input
               type="checkbox"
               role="switch"
@@ -205,11 +205,11 @@ export default function CameraStudio({ event, onEventChange }: CameraStudioProps
                 />
                 <div className="flex min-w-[140px] flex-1 flex-col gap-1">
                   <span className="font-sans text-sm text-paper-100">{frame.label}</span>
-                  <span className="font-mono text-[10px] uppercase tracking-wide text-paper-100/50">
+                  <span className="font-mono text-xs uppercase tracking-wide text-paper-100/50">
                     {TEMPLATE_LABELS[frame.template]}
                     {isDefault ? ' · por defecto' : ''}
                   </span>
-                  <label className="flex items-center gap-2 font-sans text-xs text-paper-100/80">
+                  <label className="flex min-h-11 items-center gap-2 font-sans text-xs text-paper-100/80">
                     <input
                       type="checkbox"
                       role="switch"
@@ -293,8 +293,8 @@ export default function CameraStudio({ event, onEventChange }: CameraStudioProps
                   aria-label={`Plantilla ${TEMPLATE_LABELS[template]}`}
                 >
                   <FramePreview template={template} params={defaultFrameParams(template, { eventName: event.name })} width={72} height={96} />
-                  <span className="font-mono text-[11px] uppercase tracking-wider text-paper-100">{TEMPLATE_LABELS[template]}</span>
-                  <span className="text-center font-sans text-[10px] text-paper-100/60">{TEMPLATE_DESCRIPTIONS[template]}</span>
+                  <span className="font-mono text-xs uppercase tracking-wider text-paper-100">{TEMPLATE_LABELS[template]}</span>
+                  <span className="text-center font-sans text-xs text-paper-100/60">{TEMPLATE_DESCRIPTIONS[template]}</span>
                 </button>
               ))}
             </div>
@@ -316,8 +316,8 @@ export default function CameraStudio({ event, onEventChange }: CameraStudioProps
       {/* ---- Stickers ---- */}
       <section className="flex flex-col gap-3" aria-label="Stickers">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="font-mono text-[11px] font-bold uppercase tracking-widest text-hotpink-500">Stickers</h2>
-          <label className="flex items-center gap-2 font-sans text-sm text-paper-100">
+          <h2 className="font-mono text-xs font-bold uppercase tracking-widest text-hotpink-500">Stickers</h2>
+          <label className="flex min-h-11 items-center gap-2 font-sans text-sm text-paper-100">
             <input
               type="checkbox"
               role="switch"

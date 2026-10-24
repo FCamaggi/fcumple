@@ -20,7 +20,7 @@ const ANCHOR_LABELS: Record<LayerAnchor, string> = {
 };
 
 const inputClass = 'bg-ink-950 px-3 py-2 font-sans text-sm text-paper-100 outline-none';
-const labelClass = 'font-mono text-[11px] uppercase tracking-wider text-paper-100/70';
+const labelClass = 'font-mono text-xs uppercase tracking-wider text-paper-100/70';
 
 /** Copia de la capa sin una clave opcional (`undefined` no es lo mismo que ausente para la validación). */
 function without<K extends string>(layer: FrameLayer, key: K): FrameLayer {
@@ -113,7 +113,7 @@ function DraftField(props: {
         className={inputClass}
       />
       {error && (
-        <p role="alert" className="font-mono text-[11px] uppercase tracking-wide text-flame-500">
+        <p role="alert" className="font-mono text-xs uppercase tracking-wide text-flame-500">
           {error}
         </p>
       )}

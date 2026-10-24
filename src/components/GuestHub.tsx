@@ -116,7 +116,7 @@ export default function GuestHub({ slug, token, event, guest, onGuestChange }: G
   return (
     <div className="flex w-full max-w-md flex-col gap-5">
       {headcount !== null && headcount > 0 && (
-        <p className="text-center font-mono text-[11px] uppercase tracking-widest text-hotpink-500">
+        <p className="text-center font-mono text-xs uppercase tracking-widest text-hotpink-500">
           Aforo // {headcount} inscritos
         </p>
       )}
@@ -125,7 +125,7 @@ export default function GuestHub({ slug, token, event, guest, onGuestChange }: G
 
       {!cameraUnlocked && event.cameraUnlock === 'on_event_qr' && (
         <section className="flex flex-col gap-3 bg-ink-900 p-4 shadow-2xl" aria-label="Cámara bloqueada">
-          <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-hotpink-500">
+          <span className="font-mono text-xs font-bold uppercase tracking-wider text-hotpink-500">
             Cámara // aún bloqueada
           </span>
           <p className="font-sans text-sm text-paper-100/80">
@@ -145,7 +145,7 @@ export default function GuestHub({ slug, token, event, guest, onGuestChange }: G
 
       {!cameraUnlocked && event.cameraUnlock !== 'on_event_qr' && (
         <section className="flex flex-col gap-3 bg-ink-900 p-4 shadow-2xl" aria-label="Cámara bloqueada">
-          <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-hotpink-500">
+          <span className="font-mono text-xs font-bold uppercase tracking-wider text-hotpink-500">
             Cámara // aún bloqueada
           </span>
           <p className="font-sans text-sm text-paper-100/80">
@@ -217,7 +217,7 @@ function DoorCode({ token, guestName, onClose }: { token: string; guestName: str
     <div
       role="dialog"
       aria-label="Tu código para la puerta"
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-ink-950/95 px-6"
+      className="fixed inset-safe z-50 flex flex-col items-center justify-center gap-4 bg-ink-950/95 px-6"
     >
       <p className="font-display text-xl uppercase tracking-wide text-paper-100">{guestName}</p>
       {dataUrl ? (

@@ -16,7 +16,7 @@ import {
  */
 export default function HowToGetTherePage() {
   return (
-    <div className="relative min-h-screen overflow-hidden bg-ink-950 px-4 pb-16 pt-8">
+    <div className="relative min-h-app overflow-hidden bg-ink-950 px-4 pb-16 pt-8">
       <div
         className="pointer-events-none absolute -top-16 left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-laser-500/20 blur-[90px]"
         aria-hidden
@@ -27,7 +27,7 @@ export default function HowToGetTherePage() {
         <BackButton fallbackTo="/evento" />
 
         <header className="flex flex-col gap-1 text-center">
-          <span className="font-mono text-[11px] uppercase tracking-widest text-laser-500">El mapa // abierto para todos</span>
+          <span className="font-mono text-xs uppercase tracking-widest text-laser-500">El mapa // abierto para todos</span>
           <h1 className="font-display text-4xl uppercase leading-none tracking-wide text-paper-100">Cómo llegar</h1>
         </header>
 
@@ -35,7 +35,7 @@ export default function HowToGetTherePage() {
 
         {MODE_ORDER.map((mode) => (
           <section key={mode} className="flex flex-col gap-3" aria-label={MODE_LABELS[mode]}>
-            <h2 className="font-mono text-[11px] font-bold uppercase tracking-widest text-hotpink-500">{MODE_LABELS[mode]}</h2>
+            <h2 className="font-mono text-xs font-bold uppercase tracking-widest text-hotpink-500">{MODE_LABELS[mode]}</h2>
             {routesByMode(mode).map((route) => (
               <RouteCard key={route.id} route={route} />
             ))}
@@ -61,7 +61,7 @@ function AddressCard() {
 
   return (
     <section className="flex flex-col gap-3 border border-smoke-700/50 bg-ink-900 p-4" aria-label="Dirección">
-      <span className="font-mono text-[11px] uppercase tracking-widest text-laser-500">Destino</span>
+      <span className="font-mono text-xs uppercase tracking-widest text-laser-500">Destino</span>
       <p className="font-display text-2xl uppercase leading-tight tracking-wide text-paper-100">{DESTINATION_LABEL}</p>
       <p className="font-sans text-sm text-paper-100/80">{ARRIVAL_HINT}</p>
       <div className="flex gap-2">
@@ -69,14 +69,14 @@ function AddressCard() {
           href={buildDestinationUrl()}
           target="_blank"
           rel="noopener noreferrer"
-          className="tap-target flex flex-1 items-center justify-center bg-acid-400 px-3 py-3 font-mono text-[11px] font-bold uppercase tracking-wider text-ink-950"
+          className="tap-target flex flex-1 items-center justify-center bg-acid-400 px-3 py-3 font-mono text-xs font-bold uppercase tracking-wider text-ink-950"
         >
           Abrir en Maps
         </a>
         <button
           type="button"
           onClick={copyAddress}
-          className="tap-target flex flex-1 items-center justify-center bg-laser-500/10 px-3 py-3 font-mono text-[11px] font-bold uppercase tracking-wider text-laser-500"
+          className="tap-target flex flex-1 items-center justify-center bg-laser-500/10 px-3 py-3 font-mono text-xs font-bold uppercase tracking-wider text-laser-500"
         >
           {copied ? 'Copiada' : 'Copiar dirección'}
         </button>
@@ -90,7 +90,7 @@ function RouteCard({ route }: { route: HowToRoute }) {
     <article className="flex flex-col gap-3 border border-smoke-700/50 bg-ink-900 p-4">
       <div className="flex items-start justify-between gap-3">
         <h3 className="font-sans text-base font-bold text-paper-100">{route.title}</h3>
-        <span className="shrink-0 font-mono text-[11px] font-bold uppercase tracking-wider text-acid-400">{route.duration}</span>
+        <span className="shrink-0 font-mono text-xs font-bold uppercase tracking-wider text-acid-400">{route.duration}</span>
       </div>
 
       {route.lines && (
@@ -111,13 +111,13 @@ function RouteCard({ route }: { route: HowToRoute }) {
         ))}
       </ol>
 
-      {route.note && <p className="font-mono text-[11px] uppercase tracking-wider text-hotpink-500">{route.note}</p>}
+      {route.note && <p className="font-mono text-xs uppercase tracking-wider text-hotpink-500">{route.note}</p>}
 
       <a
         href={route.mapsUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="tap-target flex items-center justify-center bg-laser-500/10 px-3 py-3 font-mono text-[11px] font-bold uppercase tracking-wider text-laser-500"
+        className="tap-target flex items-center justify-center bg-laser-500/10 px-3 py-3 font-mono text-xs font-bold uppercase tracking-wider text-laser-500"
       >
         Ver en Google Maps
       </a>

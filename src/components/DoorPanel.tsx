@@ -50,7 +50,7 @@ export default function DoorPanel({ guests, onCheckIn, onOpenScanner }: DoorPane
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-2">
-        <h2 className="font-mono text-[11px] font-bold uppercase tracking-widest text-laser-500">
+        <h2 className="font-mono text-xs font-bold uppercase tracking-widest text-laser-500">
           Han llegado: {arrived} de {approved.length}
         </h2>
         <button
@@ -63,7 +63,7 @@ export default function DoorPanel({ guests, onCheckIn, onOpenScanner }: DoorPane
       </div>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="door-search" className="font-mono text-[11px] uppercase tracking-wider text-paper-100/70">
+        <label htmlFor="door-search" className="font-mono text-xs uppercase tracking-wider text-paper-100/70">
           Buscar por nombre
         </label>
         <input
@@ -78,7 +78,7 @@ export default function DoorPanel({ guests, onCheckIn, onOpenScanner }: DoorPane
       </div>
 
       {error && (
-        <p role="alert" className="font-mono text-[11px] uppercase tracking-wide text-flame-500">
+        <p role="alert" className="font-mono text-xs uppercase tracking-wide text-flame-500">
           {error}
         </p>
       )}
@@ -93,13 +93,13 @@ export default function DoorPanel({ guests, onCheckIn, onOpenScanner }: DoorPane
             <li key={guest.id} className="flex items-center justify-between gap-2 bg-ink-900 px-3 py-2">
               <span className="font-sans text-sm text-paper-100">{guest.fullName}</span>
               {guest.checkedInAt ? (
-                <span className="font-mono text-[11px] uppercase tracking-wider text-acid-400">Ya llegó</span>
+                <span className="font-mono text-xs uppercase tracking-wider text-acid-400">Ya llegó</span>
               ) : (
                 <button
                   type="button"
                   disabled={busyId === guest.id}
                   onClick={() => void handleCheckIn(guest)}
-                  className="h-8 border border-acid-400 px-3 font-mono text-[11px] uppercase tracking-wider text-acid-400 disabled:opacity-60"
+                  className="h-8 border border-acid-400 px-3 font-mono text-xs uppercase tracking-wider text-acid-400 disabled:opacity-60"
                 >
                   {busyId === guest.id ? 'Marcando...' : 'Marcar llegada'}
                 </button>

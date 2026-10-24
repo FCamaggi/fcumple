@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { createEvent, listMyEvents, type OrganizerEvent } from '../lib/organizerApi';
 import { signOut } from '../lib/auth';
 
-const shell = 'min-h-screen bg-ink-950 px-4 py-8 text-paper-100';
+const shell = 'min-h-app bg-ink-950 px-4 py-8 text-paper-100';
 
 /** `/panel` — los eventos del organizador y el alta de uno nuevo. */
 export default function OrganizerEventsPage() {
@@ -46,17 +46,17 @@ export default function OrganizerEventsPage() {
       <div className="mx-auto flex max-w-md flex-col gap-6">
         <header className="flex items-start justify-between gap-2">
           <div className="flex flex-col gap-1">
-            <span className="font-mono text-[11px] uppercase tracking-widest text-laser-500">Organizador</span>
+            <span className="font-mono text-xs uppercase tracking-widest text-laser-500">Organizador</span>
             <h1 className="font-display text-3xl uppercase tracking-wide">Tus eventos</h1>
           </div>
           <div className="flex items-center gap-4">
-            <Link to="/panel/cuenta" className="font-mono text-[11px] uppercase tracking-wider text-paper-100/60 underline">
+            <Link to="/panel/cuenta" className="inline-flex min-h-11 items-center font-mono text-xs uppercase tracking-wider text-paper-100/60 underline">
               Tu cuenta
             </Link>
             <button
               type="button"
               onClick={() => void signOut()}
-              className="font-mono text-[11px] uppercase tracking-wider text-paper-100/60 underline"
+              className="min-w-11 font-mono text-xs uppercase tracking-wider text-paper-100/60 underline"
             >
               Salir
             </button>
@@ -64,13 +64,13 @@ export default function OrganizerEventsPage() {
         </header>
 
         {error && (
-          <p role="alert" className="font-mono text-[11px] uppercase tracking-wide text-flame-500">
+          <p role="alert" className="font-mono text-xs uppercase tracking-wide text-flame-500">
             {error}
           </p>
         )}
 
         <form onSubmit={handleCreate} className="flex flex-col gap-2" aria-label="Nuevo evento">
-          <label htmlFor="new-event-name" className="font-mono text-[11px] uppercase tracking-wider text-paper-100/70">
+          <label htmlFor="new-event-name" className="font-mono text-xs uppercase tracking-wider text-paper-100/70">
             Nombre del nuevo evento
           </label>
           <input
@@ -103,7 +103,7 @@ export default function OrganizerEventsPage() {
               <li key={event.id}>
                 <Link to={`/panel/e/${event.id}`} className="flex flex-col bg-ink-900 px-4 py-3 hover:bg-ink-900/70">
                   <span className="font-display text-lg uppercase tracking-wide">{event.name}</span>
-                  <span className="font-mono text-[11px] tracking-wide text-paper-100/50">/e/{event.slug}</span>
+                  <span className="font-mono text-xs tracking-wide text-paper-100/50">/e/{event.slug}</span>
                 </Link>
               </li>
             ))}

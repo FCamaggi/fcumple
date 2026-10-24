@@ -4,10 +4,10 @@ import { changePassword, useSession } from '../lib/auth';
 
 const MIN_PASSWORD = 8;
 
-const shell = 'min-h-screen bg-ink-950 px-4 py-8 text-paper-100';
+const shell = 'min-h-app bg-ink-950 px-4 py-8 text-paper-100';
 const fieldClass =
   'bg-ink-950 px-3 py-2 font-sans text-sm text-paper-100 outline-none focus-visible:ring-2 focus-visible:ring-acid-400';
-const labelClass = 'font-mono text-[11px] uppercase tracking-wider text-paper-100/70';
+const labelClass = 'font-mono text-xs uppercase tracking-wider text-paper-100/70';
 
 /**
  * `/panel/cuenta` — la cuenta del organizador: cambiar la contraseña. Sirve
@@ -61,7 +61,7 @@ export default function OrganizerAccountPage() {
     <div className={shell}>
       <div className="mx-auto flex max-w-md flex-col gap-6">
         <header className="flex flex-col gap-1">
-          <Link to="/panel" className="font-mono text-[11px] uppercase tracking-wider text-paper-100/60 underline">
+          <Link to="/panel" className="inline-flex min-h-11 items-center font-mono text-xs uppercase tracking-wider text-paper-100/60 underline">
             ← Tus eventos
           </Link>
           <h1 className="font-display text-3xl uppercase tracking-wide">Tu cuenta</h1>
@@ -115,7 +115,7 @@ export default function OrganizerAccountPage() {
           {message && (
             <p
               role={message.kind === 'error' ? 'alert' : 'status'}
-              className={`font-mono text-[11px] uppercase tracking-wide ${
+              className={`font-mono text-xs uppercase tracking-wide ${
                 message.kind === 'error' ? 'text-flame-500' : 'text-acid-400'
               }`}
             >

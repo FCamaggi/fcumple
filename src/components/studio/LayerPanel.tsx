@@ -26,7 +26,7 @@ const ADD_BUTTONS: Array<{ kind: NewLayerKind; label: string; short: string }> =
 ];
 
 const smallButton =
-  'h-8 border border-smoke-700/60 px-3 font-mono text-[11px] uppercase tracking-wider text-paper-100 disabled:opacity-40';
+  'h-8 min-w-11 border border-smoke-700/60 px-3 font-mono text-xs uppercase tracking-wider text-paper-100 disabled:opacity-40';
 
 /** Nombre corto de una capa para la lista. */
 export function layerSummary(layer: FrameLayer): string {

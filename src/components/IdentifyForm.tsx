@@ -89,7 +89,7 @@ function fieldForCode(code: string): string {
 const inputClass =
   'w-full bg-ink-950 px-3 py-2.5 font-sans text-sm text-paper-100 outline-none placeholder:text-paper-100/50 ' +
   'focus-visible:ring-2 focus-visible:ring-acid-400 aria-[invalid=true]:ring-1 aria-[invalid=true]:ring-flame-500';
-const labelClass = 'font-mono text-[11px] uppercase tracking-wider text-paper-100/70';
+const labelClass = 'font-mono text-xs uppercase tracking-wider text-paper-100/70';
 
 /** Campo con etiqueta, ayuda y error asociados (aria-describedby). */
 function Field({
@@ -116,12 +116,12 @@ function Field({
       </label>
       {children({ id, 'aria-invalid': Boolean(error), 'aria-describedby': describedBy })}
       {hint && (
-        <p id={`${id}-hint`} className="font-mono text-[10px] tracking-wide text-paper-100/50">
+        <p id={`${id}-hint`} className="font-mono text-xs tracking-wide text-paper-100/50">
           {hint}
         </p>
       )}
       {error && (
-        <p id={`${id}-error`} className="font-mono text-[11px] uppercase tracking-wide text-flame-500">
+        <p id={`${id}-error`} className="font-mono text-xs uppercase tracking-wide text-flame-500">
           {error}
         </p>
       )}
@@ -300,7 +300,7 @@ export default function IdentifyForm({ slug, event, onIdentified }: IdentifyForm
         <h1 className="font-display text-3xl uppercase leading-tight tracking-wide text-paper-100">{event.name}</h1>
         {event.subtitle && <p className="font-sans text-base text-paper-100/80">{event.subtitle}</p>}
         {(when || event.location) && (
-          <p className="flex flex-col gap-1 font-mono text-[11px] uppercase tracking-wider text-laser-500">
+          <p className="flex flex-col gap-1 font-mono text-xs uppercase tracking-wider text-laser-500">
             {when && (
               <span>
                 {when.day} · {when.time}
@@ -321,7 +321,7 @@ export default function IdentifyForm({ slug, event, onIdentified }: IdentifyForm
             type="button"
             aria-pressed={mode === m}
             onClick={() => switchMode(m)}
-            className={`h-11 flex-1 font-mono text-[11px] uppercase tracking-wider transition-transform duration-150 ${EASE_OUT} active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acid-400 ${
+            className={`h-11 flex-1 font-mono text-xs uppercase tracking-wider transition-transform duration-150 ${EASE_OUT} active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acid-400 ${
               mode === m ? 'bg-acid-400 text-ink-950' : 'border border-smoke-700/60 text-paper-100'
             }`}
           >
@@ -411,7 +411,7 @@ export default function IdentifyForm({ slug, event, onIdentified }: IdentifyForm
                   className="peer sr-only"
                 />
                 <span
-                  className={`flex h-11 min-w-[3.25rem] cursor-pointer items-center justify-center border border-smoke-700/60 px-4 font-mono text-[11px] uppercase tracking-wider text-paper-100 transition-transform duration-150 ${EASE_OUT} active:scale-[0.97] peer-checked:border-acid-400 peer-checked:bg-acid-400 peer-checked:text-ink-950 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-acid-400`}
+                  className={`flex h-11 min-w-[3.25rem] cursor-pointer items-center justify-center border border-smoke-700/60 px-4 font-mono text-xs uppercase tracking-wider text-paper-100 transition-transform duration-150 ${EASE_OUT} active:scale-[0.97] peer-checked:border-acid-400 peer-checked:bg-acid-400 peer-checked:text-ink-950 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-acid-400`}
                 >
                   {n === 0 ? 'Ninguno' : n}
                 </span>
@@ -501,13 +501,13 @@ export default function IdentifyForm({ slug, event, onIdentified }: IdentifyForm
         </p>
       )}
       {isRegister && (enrollment.comment || enrollment.questions.length > 0) && (
-        <p className="font-mono text-[10px] tracking-wide text-paper-100/50">
+        <p className="font-mono text-xs tracking-wide text-paper-100/50">
           No escribas aquí RUT, correo, teléfono ni claves.
         </p>
       )}
 
       {message && (
-        <p role="alert" className="font-mono text-[11px] uppercase tracking-wide text-flame-500">
+        <p role="alert" className="font-mono text-xs uppercase tracking-wide text-flame-500">
           {message}
         </p>
       )}

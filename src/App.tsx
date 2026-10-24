@@ -20,7 +20,7 @@ const ClientBriefPage = lazy(() => import('./pages/ClientBriefPage'));
 
 function AdminFallback() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-ink-950 text-paper-100">
+    <div className="flex min-h-app items-center justify-center bg-ink-950 text-paper-100">
       <span className="font-mono text-xs uppercase tracking-widest text-acid-400">Cargando consola...</span>
     </div>
   );

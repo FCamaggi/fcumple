@@ -22,7 +22,7 @@ type State =
   | { phase: 'identify'; event: EventPublic }
   | { phase: 'inside'; event: EventPublic; guest: MyGuest; token: string };
 
-const centered = 'flex min-h-screen items-center justify-center bg-ink-950 px-4 py-8 text-paper-100';
+const centered = 'flex min-h-app items-center justify-center bg-ink-950 px-4 py-8 text-paper-100';
 
 function formatDate(iso: string | null): string | null {
   if (!iso) return null;
@@ -172,7 +172,7 @@ export default function EventEntryPage() {
       const date = formatDate(event.startsAt);
       return (
         <ThemeScope theme={event.theme}>
-          <div className="flex min-h-screen flex-col items-center gap-5 bg-ink-950 px-4 pb-16 pt-8 text-paper-100">
+          <div className="flex min-h-app flex-col items-center gap-5 bg-ink-950 px-4 pb-16 pt-8 text-paper-100">
             <header className="flex w-full max-w-md flex-col gap-1 text-center">
               <span className="font-display text-2xl uppercase leading-tight tracking-wide text-laser-500">{event.name}</span>
               {event.subtitle && <span className="font-sans text-sm text-paper-100/80">{event.subtitle}</span>}
@@ -183,7 +183,7 @@ export default function EventEntryPage() {
             {activation && (
               <p
                 role={activation.kind === 'error' ? 'alert' : 'status'}
-                className={`w-full max-w-md border px-3 py-2 font-mono text-[11px] uppercase tracking-wide ${
+                className={`w-full max-w-md border px-3 py-2 font-mono text-xs uppercase tracking-wide ${
                   activation.kind === 'error' ? 'border-flame-500 text-flame-500' : 'border-acid-400 text-acid-400'
                 }`}
               >

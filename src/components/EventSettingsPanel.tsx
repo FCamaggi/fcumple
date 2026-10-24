@@ -24,7 +24,7 @@ const UNLOCK_LABELS: Record<CameraUnlock, string> = {
 const fieldClass =
   'bg-ink-950 px-3 py-2 font-sans text-sm text-paper-100 outline-none focus-visible:ring-2 focus-visible:ring-acid-400';
 const selectClass = fieldClass;
-const labelClass = 'font-mono text-[11px] uppercase tracking-wider text-paper-100/70';
+const labelClass = 'font-mono text-xs uppercase tracking-wider text-paper-100/70';
 
 /** Ajustes del evento: nombre, fecha y lugar, cómo entran los invitados, cupo de fotos y cuándo se habilita la cámara. */
 export default function EventSettingsPanel({ event, onSave }: EventSettingsPanelProps) {
@@ -202,7 +202,7 @@ export default function EventSettingsPanel({ event, onSave }: EventSettingsPanel
       {message && (
         <p
           role={message.kind === 'error' ? 'alert' : 'status'}
-          className={`font-mono text-[11px] uppercase tracking-wide ${
+          className={`font-mono text-xs uppercase tracking-wide ${
             message.kind === 'error' ? 'text-flame-500' : 'text-acid-400'
           }`}
         >

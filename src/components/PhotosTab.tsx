@@ -86,18 +86,18 @@ export default function PhotosTab({ event, onEventChange }: PhotosTabProps) {
   return (
     <div className="flex flex-col gap-4">
       {error && (
-        <p role="alert" className="font-mono text-[11px] uppercase tracking-wide text-flame-500">
+        <p role="alert" className="font-mono text-xs uppercase tracking-wide text-flame-500">
           {error}
         </p>
       )}
       {notice && (
-        <p role="status" className="font-mono text-[11px] uppercase tracking-wide text-acid-400">
+        <p role="status" className="font-mono text-xs uppercase tracking-wide text-acid-400">
           {notice}
         </p>
       )}
 
       {photos && (
-        <p className="font-mono text-[11px] uppercase tracking-widest text-laser-500">
+        <p className="font-mono text-xs uppercase tracking-widest text-laser-500">
           {photos.length} fotos · {counts.pending} por revisar · {counts.approved} aprobadas · {counts.rejected} rechazadas
         </p>
       )}

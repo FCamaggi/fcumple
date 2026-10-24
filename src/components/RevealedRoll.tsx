@@ -51,7 +51,7 @@ export default function RevealedRoll({ photos }: RevealedRollProps) {
 
   return (
     <section className="flex flex-col gap-3 bg-ink-900 p-4 shadow-2xl" aria-label="Rollo revelado">
-      <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-acid-400">
+      <span className="font-mono text-xs font-bold uppercase tracking-wider text-acid-400">
         Rollo revelado // esta fue la noche
       </span>
       <div className="flex flex-col gap-3">
@@ -101,12 +101,12 @@ function HourBand({ band }: { band: PhotoTimelineBand<RawRevealedPhoto> }) {
         <button
           type="button"
           onClick={() => setLightboxIndex(0)}
-          className="text-left font-mono text-[10px] uppercase tracking-widest text-paper-100/50 underline decoration-dotted underline-offset-2"
+          className="text-left font-mono text-xs uppercase tracking-widest text-paper-100/50 underline decoration-dotted underline-offset-2"
         >
           {band.label} · Ver las {band.photos.length} fotos
         </button>
       ) : (
-        <span className="font-mono text-[10px] uppercase tracking-widest text-paper-100/50">{band.label}</span>
+        <span className="font-mono text-xs uppercase tracking-widest text-paper-100/50">{band.label}</span>
       )}
       <div className="grid grid-cols-3 gap-1">
         {previewPhotos.map((photo, i) => {

@@ -29,10 +29,10 @@ const DEFAULT_COMMENT_LABEL = 'Comentario';
 
 const fieldClass =
   'bg-ink-950 px-3 py-2 font-sans text-sm text-paper-100 outline-none focus-visible:ring-2 focus-visible:ring-acid-400';
-const labelClass = 'font-mono text-[11px] uppercase tracking-wider text-paper-100/70';
-const checkClass = 'flex items-center gap-2 font-sans text-sm text-paper-100';
+const labelClass = 'font-mono text-xs uppercase tracking-wider text-paper-100/70';
+const checkClass = 'flex min-h-11 items-center gap-2 font-sans text-sm text-paper-100';
 const smallButton =
-  'h-9 border border-smoke-700/60 px-3 font-mono text-[11px] uppercase tracking-wider text-paper-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acid-400 disabled:cursor-not-allowed disabled:opacity-50';
+  'h-9 border border-smoke-700/60 px-3 font-mono text-xs uppercase tracking-wider text-paper-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acid-400 disabled:cursor-not-allowed disabled:opacity-50';
 
 /**
  * Pestaña «Inscripción»: qué le pide el organizador al invitado cuando se
@@ -135,7 +135,7 @@ export default function EnrollmentSettings({ event, onSave, usedQuestionIds = []
           onChange={(e) => setWelcome(e.target.value)}
           className={`${fieldClass} resize-none`}
         />
-        <p className="font-mono text-[10px] tracking-wide text-paper-100/50">
+        <p className="font-mono text-xs tracking-wide text-paper-100/50">
           Se muestra arriba del formulario. {[...welcome].length}/{ENROLLMENT_LIMITS.welcome}
         </p>
       </div>
@@ -259,7 +259,7 @@ export default function EnrollmentSettings({ event, onSave, usedQuestionIds = []
       {message && (
         <p
           role={message.kind === 'error' ? 'alert' : 'status'}
-          className={`font-mono text-[11px] uppercase tracking-wide ${
+          className={`font-mono text-xs uppercase tracking-wide ${
             message.kind === 'error' ? 'text-flame-500' : 'text-acid-400'
           }`}
         >
