@@ -153,6 +153,30 @@ describe('PhotosTab', () => {
     expect(screen.queryByTestId('moderation')).not.toBeInTheDocument();
   });
 
+  it('mientras carga lo dice, en vez de quedarse en blanco', () => {
+    vi.mocked(api.listEventPhotos).mockReturnValue(new Promise(() => undefined));
+    render(<PhotosTab event={event} onEventChange={vi.fn()} />);
+    expect(screen.getByRole('status')).toHaveTextContent(/cargando fotos/i);
+  });
+
+  it('sin fotos todavía lo explica y no muestra el resumen en cero', async () => {
+    vi.mocked(api.listEventPhotos).mockResolvedValue([]);
+    render(<PhotosTab event={event} onEventChange={vi.fn()} />);
+
+    expect(await screen.findByText(/todavía no llegan fotos/i)).toBeInTheDocument();
+    expect(screen.queryByText(/0 fotos ·/)).not.toBeInTheDocument();
+  });
+
+  it('si no puede cargar ofrece «Reintentar», que vuelve a pedir las fotos', async () => {
+    vi.mocked(api.listEventPhotos).mockRejectedValueOnce(new Error('sin red')).mockResolvedValueOnce([photo('a', 'pending')]);
+    render(<PhotosTab event={event} onEventChange={vi.fn()} />);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Reintentar' }));
+
+    expect(await screen.findByText('1 fotos · 1 por revisar · 0 aprobadas · 0 rechazadas')).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
   it('muestra el error si no se pueden cargar las fotos', async () => {
     vi.mocked(api.listEventPhotos).mockRejectedValue(new Error('No pudimos cargar las fotos del evento.'));
     render(<PhotosTab event={event} onEventChange={vi.fn()} />);

@@ -64,6 +64,38 @@ const publishedPost = {
   createdAt: '2026-04-27T00:00:00Z',
 };
 
+describe('PostsPanel: estados de la lista', () => {
+  it('si la lectura falla muestra el error con «Reintentar» y NO dice que no hay avisos', async () => {
+    vi.mocked(listAllPosts).mockRejectedValueOnce(new Error('No pudimos cargar los avisos.'));
+    render(<PostsPanel eventId="ev-1" />);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos cargar los avisos.');
+    expect(screen.queryByText(/Todavía no hay avisos/)).not.toBeInTheDocument();
+    expect(screen.queryByText('Cargando...')).not.toBeInTheDocument();
+  });
+
+  it('«Reintentar» vuelve a pedir la lista y muestra los avisos', async () => {
+    vi.mocked(listAllPosts).mockRejectedValueOnce(new Error('sin red')).mockResolvedValueOnce([draftPost]);
+    vi.mocked(listPostImages).mockResolvedValue([]);
+    render(<PostsPanel eventId="ev-1" />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Reintentar' }));
+
+    expect(await screen.findByText('Borrador sin publicar')).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('mientras reintenta vuelve a decir «Cargando...»', async () => {
+    vi.mocked(listAllPosts)
+      .mockRejectedValueOnce(new Error('sin red'))
+      .mockReturnValueOnce(new Promise(() => undefined));
+    render(<PostsPanel eventId="ev-1" />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Reintentar' }));
+
+    expect(await screen.findByText('Cargando...')).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+});
+
 beforeEach(() => {
   vi.mocked(listAllPosts).mockReset();
   vi.mocked(createPost).mockReset();

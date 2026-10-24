@@ -26,3 +26,10 @@ Sale de tamaño medio: seis puntos con carencias reales. Se divide así:
 - **PR B:** **Cámara** (reintento), **la página** (reintento al fallar la carga, sin tirar el panel), **Puerta** (vacío) y **QR** de Activación y Enlace (avisar cuando no se pudo generar).
 
 Queda fuera, por no ser carga de datos: Inscripción y Ajustes (formularios) y la vista previa (tiene sus estados dentro del teléfono).
+
+## PR A: hecho
+- `src/components/PanelState.tsx`: cargando (`role="status"`), vacío y error (`role="alert"`, «Reintentar» de 44 px si se le da `onRetry`). Probado en `PanelState.test.tsx`.
+- **Hoy** lo usa sin cambiar lo que muestra (sus tests no se tocaron).
+- **Avisos:** el error de lectura ya no convive con «Todavía no hay avisos»; tiene su propio estado (`loadError`) con «Reintentar», que vuelve a mostrar «Cargando...». El error de las acciones (crear, publicar…) ahora lleva `role="alert"`.
+- **Fotos:** «Cargando fotos...», vacío («Todavía no llegan fotos…», sin el resumen en ceros) y «Reintentar» en el error. En «Fotos» el error puede venir de una publicación fallida; ahí «Reintentar» vuelve a pedir la lista, no repite la publicación (igual que en «Hoy»).
+- Pendiente para el PR B: Cámara, la página, Puerta y los QR.

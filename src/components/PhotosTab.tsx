@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import PanelState from './PanelState';
 import PhotoModerationPanel from './PhotoModerationPanel';
 import type { EventPhotos } from '../hooks/useEventPhotos';
 
@@ -26,9 +27,13 @@ export default function PhotosTab({ photos: state }: PhotosTabProps) {
   return (
     <div className="flex flex-col gap-4">
       {error && (
-        <p role="alert" className="font-mono text-xs uppercase tracking-wide text-flame-500">
+        <PanelState kind="error" onRetry={reload}>
           {error}
-        </p>
+        </PanelState>
+      )}
+      {photos === null && !error && <PanelState kind="loading">Cargando fotos...</PanelState>}
+      {photos !== null && photos.length === 0 && (
+        <PanelState kind="empty">Todavía no llegan fotos. Aparecerán aquí cuando los invitados las tomen.</PanelState>
       )}
       {notice && (
         <p role="status" className="font-mono text-xs uppercase tracking-wide text-acid-400">
@@ -36,7 +41,7 @@ export default function PhotosTab({ photos: state }: PhotosTabProps) {
         </p>
       )}
 
-      {photos && (
+      {photos && photos.length > 0 && (
         <p className="font-mono text-xs uppercase tracking-widest text-laser-500">
           {photos.length} fotos · {counts.pending} por revisar · {counts.approved} aprobadas · {counts.rejected} rechazadas
         </p>
