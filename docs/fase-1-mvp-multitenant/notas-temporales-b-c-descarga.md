@@ -53,7 +53,7 @@ Conclusiones (estimación):
 2. Pedir `ideal: 1920×1080` (o 2048) a la cámara y subir el original a 2048 px, calidad 0,85, como punto medio. Mantener la copia de 640 px para la cartelera: es lo que cuida la salida de datos.
 3. Si la clienta quiere calidad máxima para imprimir: ofrecerla solo para la foto que el invitado abre, nunca en bloque.
 4. Antes de la fiesta, mirar en el panel de Supabase el uso real de almacenamiento y de salida, y decidir si conviene el plan Pro durante el mes de la fiesta (decisión del dueño; tiene costo).
-5. Riesgo aparte: un proyecto gratuito inactivo una semana se pausa. Entrar al panel el día antes de la fiesta.
+5. Riesgo aparte: un proyecto gratuito inactivo una semana se pausa. Ya hay un ping cada 3 días (`.github/workflows/keepalive.yml`), pero **solo corre si los secretos `SUPABASE_URL` y `SUPABASE_ANON_KEY` están en GitHub**; si no, termina sin error y sin avisar. Confirmar en GitHub que los secretos existen y que la última ejecución fue buena (no verificado desde aquí).
 
 ## 3. Épica B: marcos
 
