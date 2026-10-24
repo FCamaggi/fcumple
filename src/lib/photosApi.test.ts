@@ -158,16 +158,41 @@ describe('uploadPhoto', () => {
     const upload = vi.fn().mockResolvedValue({ data: null, error: { message: 'bucket full' } });
     storageFrom.mockReturnValue({ upload });
 
-    await expect(uploadPhoto('tok123', blob)).rejects.toThrow(/bucket full/);
+    const failure = await uploadPhoto('tok123', blob).catch((e: Error) => e);
+    expect(failure).toBeInstanceOf(Error);
+    expect((failure as Error).message).toBe('No pudimos subir la foto. Intenta de nuevo.');
+    // El texto crudo de Supabase no llega a la pantalla del invitado.
+    expect((failure as Error).message).not.toMatch(/bucket full/);
     expect(rpc).not.toHaveBeenCalled();
   });
 
-  it('throws a readable error when submit_photo fails after a successful upload', async () => {
+  it('dice «ya usaste todos los disparos» cuando submit_photo rechaza por cupo', async () => {
     const upload = vi.fn().mockResolvedValue({ data: { path: 'tok123/fixed-uuid.jpg' }, error: null });
     storageFrom.mockReturnValue({ upload });
-    rpc.mockResolvedValue({ data: null, error: { message: 'quota reached', code: '22023' } });
+    rpc.mockResolvedValue({ data: null, error: { message: 'photo quota (5) already reached', code: '22023' } });
 
-    await expect(uploadPhoto('tok123', blob)).rejects.toThrow(/quota reached|cupo/i);
+    await expect(uploadPhoto('tok123', blob)).rejects.toThrow('Ya usaste todos los disparos de tu rollo.');
+  });
+
+  it('explica que la cámara no está habilitada cuando falta el check-in o la activación', async () => {
+    const upload = vi.fn().mockResolvedValue({ data: { path: 'tok123/fixed-uuid.jpg' }, error: null });
+    storageFrom.mockReturnValue({ upload });
+    rpc.mockResolvedValue({ data: null, error: { message: 'check-in required before taking photos', code: '42501' } });
+
+    await expect(uploadPhoto('tok123', blob)).rejects.toThrow(/cámara todavía no está habilitada/);
+  });
+
+  it('con cualquier otro fallo de submit_photo no muestra el texto crudo del servidor', async () => {
+    const upload = vi.fn().mockResolvedValue({ data: { path: 'tok123/fixed-uuid.jpg' }, error: null });
+    storageFrom.mockReturnValue({ upload });
+    rpc.mockResolvedValue({
+      data: null,
+      error: { message: 'duplicate key value violates unique constraint "photos_storage_path_key"', code: '23505' },
+    });
+
+    const failure = await uploadPhoto('tok123', blob).catch((e: Error) => e);
+    expect((failure as Error).message).toBe('La foto se subió pero no pudimos registrarla. Avísale a quien organiza.');
+    expect((failure as Error).message).not.toMatch(/duplicate key|constraint/);
   });
 });
 
