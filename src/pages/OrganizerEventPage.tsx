@@ -5,6 +5,7 @@ import CameraStudio from '../components/studio/CameraStudio';
 import DoorPanel from '../components/DoorPanel';
 import ActivationTab from '../components/ActivationTab';
 import EnrollmentSettings from '../components/EnrollmentSettings';
+import PanelTabs from '../components/PanelTabs';
 import PostsPanel from '../components/PostsPanel';
 import ThemeScope from '../components/ThemeScope';
 import { QUESTION_IDS } from '../lib/enrollmentConfig';
@@ -41,7 +42,7 @@ const TABS: Array<{ id: Tab; label: string }> = [
   { id: 'ajustes', label: 'Ajustes' },
 ];
 
-const shell = 'min-h-screen bg-ink-950 px-4 py-8 text-paper-100';
+const shell = 'min-h-app bg-ink-950 px-4 py-8 text-paper-100';
 
 /** `/panel/e/:eventId` — gestión de un evento: invitados, enlace único y ajustes. */
 export default function OrganizerEventPage() {
@@ -109,27 +110,13 @@ export default function OrganizerEventPage() {
       <div className={shell}>
         <div className="mx-auto flex max-w-xl flex-col gap-6">
           <header className="flex flex-col gap-1">
-            <Link to="/panel" className="font-mono text-[11px] uppercase tracking-wider text-paper-100/60 underline">
+            <Link to="/panel" className="inline-flex min-h-11 items-center font-mono text-xs uppercase tracking-wider text-paper-100/60 underline">
               ← Tus eventos
             </Link>
             <h1 className="font-display text-3xl uppercase tracking-wide">{event.name}</h1>
           </header>
 
-          <nav className="flex flex-wrap gap-2" aria-label="Secciones">
-            {TABS.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                aria-current={tab === t.id ? 'page' : undefined}
-                onClick={() => setTab(t.id)}
-                className={`h-9 px-4 font-mono text-[11px] uppercase tracking-wider ${
-                  tab === t.id ? 'bg-acid-400 text-ink-950' : 'border border-smoke-700/60 text-paper-100'
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
-          </nav>
+          <PanelTabs tabs={TABS} active={tab} onSelect={setTab} />
 
           {tab === 'invitados' && (
             <GuestListPanel
