@@ -81,6 +81,27 @@ describe('PhoneFrame', () => {
     expect(screen.getByTitle(/vista previa/i)).toBe(iframe);
   });
 
+  it('pide al iframe que vuelva a leer los avisos cuando cambia refreshKey, sin recargarlo ni reenviar el estado', () => {
+    const { rerender } = render(<PhoneFrame src={SRC} label="x" state="aviso" refreshKey={0} />);
+    const iframe = screen.getByTitle(/vista previa/i);
+    const post = vi.spyOn(frameWindow(), 'postMessage');
+
+    rerender(<PhoneFrame src={SRC} label="x" state="aviso" refreshKey={1} />);
+
+    expect(post).toHaveBeenCalledTimes(1);
+    expect(post).toHaveBeenCalledWith({ type: 'fcumple-preview-refresh' }, window.location.origin);
+    expect(screen.getByTitle(/vista previa/i)).toBe(iframe);
+  });
+
+  it('no pide refresco al montarse ni mientras refreshKey no cambia', () => {
+    const { rerender } = render(<PhoneFrame src={SRC} label="x" state="aviso" refreshKey={3} />);
+    const post = vi.spyOn(frameWindow(), 'postMessage');
+
+    rerender(<PhoneFrame src={SRC} label="x" state="aviso" refreshKey={3} />);
+
+    expect(post).not.toHaveBeenCalledWith({ type: 'fcumple-preview-refresh' }, window.location.origin);
+  });
+
   it('no responde a un «listo» que no viene de su iframe', () => {
     render(<PhoneFrame src={SRC} label="x" state="activa" />);
     const post = vi.spyOn(frameWindow(), 'postMessage');

@@ -38,6 +38,8 @@ export interface PreviewDraftPost {
 }
 
 export const PREVIEW_MESSAGE_TYPE = 'fcumple-preview';
+/** Del marco al iframe: «los avisos cambiaron (se publicó o despublicó uno), vuelve a leerlos». No lleva datos. */
+export const PREVIEW_REFRESH_TYPE = 'fcumple-preview-refresh';
 /** Del iframe al marco: «ya escucho, mándame el estado». */
 export const PREVIEW_READY_TYPE = 'fcumple-preview-ready';
 /** Del iframe al marco: la nota que acompaña al estado que se ve. */

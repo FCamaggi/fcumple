@@ -7,6 +7,7 @@ import ThemeScope from '../components/ThemeScope';
 import {
   PREVIEW_NOTE_TYPE,
   PREVIEW_READY_TYPE,
+  PREVIEW_REFRESH_TYPE,
   buildPreviewScenario,
   parsePreviewMessage,
   parsePreviewState,
@@ -75,6 +76,14 @@ export default function GuestPreviewPage() {
   useEffect(() => {
     function onMessage(e: MessageEvent) {
       if (e.origin !== window.location.origin || e.source !== window.parent) return;
+      if (typeof e.data === 'object' && e.data !== null && (e.data as { type?: unknown }).type === PREVIEW_REFRESH_TYPE) {
+        // Se publicó o despublicó un aviso con la vista previa abierta: se vuelven a leer solo los avisos, sin pasar
+        // por la pantalla de carga. Si falla, se conserva lo que ya se veía.
+        listAllPosts(eventId)
+          .then((posts) => setLoad((prev) => (prev.status === 'ready' ? { ...prev, posts } : prev)))
+          .catch(noop);
+        return;
+      }
       const message = parsePreviewMessage(e.data);
       if (!message) return;
       setState(message.state);
@@ -89,7 +98,7 @@ export default function GuestPreviewPage() {
     window.addEventListener('message', onMessage);
     window.parent.postMessage({ type: PREVIEW_READY_TYPE }, window.location.origin);
     return () => window.removeEventListener('message', onMessage);
-  }, []);
+  }, [eventId]);
 
   const scenario = useMemo(() => {
     if (load.status !== 'ready') return null;
