@@ -96,6 +96,26 @@ describe('ActivationTab', () => {
     expect(await screen.findByRole('status')).toHaveTextContent('Cambiaste el código');
   });
 
+  it('al cambiar el código no deja visible el QR viejo (ni su descarga) mientras llega el nuevo', async () => {
+    const { rerender } = render(<ActivationTab event={event} onEventChange={vi.fn()} />);
+    expect(await screen.findByRole('link', { name: 'Descargar QR' })).toBeInTheDocument();
+
+    let resolveNew: (dataUrl: string) => void = () => {};
+    vi.mocked(QRCode.toDataURL).mockImplementationOnce(
+      () => new Promise<string>((resolve) => { resolveNew = resolve; }) as never,
+    );
+    rerender(<ActivationTab event={{ ...event, activationCode: 'f'.repeat(32) }} onEventChange={vi.fn()} />);
+
+    expect(screen.queryByAltText(/código qr de activación/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Descargar QR' })).not.toBeInTheDocument();
+
+    resolveNew(`data:image/png;base64,QR(${urlFor('f'.repeat(32))})`);
+    expect(await screen.findByAltText(/código qr de activación/i)).toHaveAttribute(
+      'src',
+      `data:image/png;base64,QR(${urlFor('f'.repeat(32))})`,
+    );
+  });
+
   it('no cambia el código si cancela', async () => {
     vi.mocked(window.confirm).mockReturnValueOnce(false);
     render(<ActivationTab event={event} onEventChange={vi.fn()} />);

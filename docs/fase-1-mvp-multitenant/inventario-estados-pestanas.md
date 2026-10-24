@@ -52,4 +52,5 @@ Con esto quedan cubiertas las carencias del inventario, salvo las dos anotadas c
 ### Límites conocidos del PR B
 - Al pulsar «Reintentar» en el QR, el aviso desaparece y no hay «Generando...» hasta que llega el QR; el botón con foco desaparece (igual que ya se anotó para «Hoy»).
 - Si falla el QR y a la vez la rotación del código, se muestran dos alertas seguidas.
-- Anterior a esta etapa: al rotar el código de activación el QR viejo (con su «Descargar QR») sigue visible hasta que se genera el nuevo; y al cambiar `:eventId` con la página montada se ve un instante el evento anterior.
+- Anterior a esta etapa: al cambiar `:eventId` con la página montada se ve un instante el evento anterior.
+- **Corregido el 2026-10-24:** al rotar el código de activación, el QR viejo (con su «Descargar QR») ya no sigue visible hasta que llega el nuevo. `ActivationTab` guarda el QR junto con la dirección para la que se dibujó y solo lo muestra si coincide con la actual; mientras llega el nuevo no hay QR (sin «Generando...», igual que en la primera carga). Test: «al cambiar el código no deja visible el QR viejo…» en `ActivationTab.test.tsx`.
