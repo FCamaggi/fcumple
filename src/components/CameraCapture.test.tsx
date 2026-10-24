@@ -361,7 +361,9 @@ describe('CameraCapture', () => {
       await user.click(screen.getByRole('button', { name: /^enviar/i }));
 
       const sending = await screen.findByRole('button', { name: /enviando/i });
-      expect(sending).toBeDisabled();
+      // aria-disabled y no disabled: así «Enviar» conserva el foco durante la subida.
+      expect(sending).toHaveAttribute('aria-disabled', 'true');
+      await user.click(sending);
       expect(uploadPhoto).toHaveBeenCalledTimes(1);
     });
 

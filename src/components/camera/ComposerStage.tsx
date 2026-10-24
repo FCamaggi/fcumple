@@ -200,7 +200,7 @@ export default function ComposerStage({
               data-selected={selected}
               aria-label={`Sticker ${option.label}${selected ? ' (seleccionado)' : ''}`}
               className={`absolute flex touch-none select-none items-center justify-center ${
-                selected ? 'outline outline-2 outline-offset-2 outline-acid-400' : ''
+                selected ? 'outline outline-2 outline-offset-2 outline-hotpink-500' : ''
               }`}
               style={{
                 left: `${placement.x * 100}%`,

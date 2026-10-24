@@ -70,6 +70,9 @@ const scenes = [
   // La cámara falsa de Chromium entrega 4:3 apaisado; un teléfono en vertical entrega 3:4. Esta escena sustituye
   // getUserMedia por un lienzo vertical de 480×640 para medir el visor como lo vería el invitado.
   { id: 'g11-camara-vertical', url: '/e/demo', ...guest('t-active'), vshot: true, fakeCam: true, act: async (p) => { await p.getByRole('button', { name: /abrir cámara/i }).click(); await p.waitForTimeout(1500); } },
+  // La pantalla de revisión (diálogo con «Repetir» y «Enviar») y, tras enviar, el sello «Quedó en el rollo».
+  { id: 'g12-revision-camara', url: '/e/demo', ...guest('t-active'), vshot: true, fakeCam: true, act: async (p) => { await p.getByRole('button', { name: /abrir cámara/i }).click(); await p.waitForTimeout(1500); await p.getByRole('button', { name: /disparar/i }).click(); await p.waitForTimeout(800); } },
+  { id: 'g13-sello-enviado', url: '/e/demo', ...guest('t-active'), vshot: true, fakeCam: true, act: async (p) => { await p.getByRole('button', { name: /abrir cámara/i }).click(); await p.waitForTimeout(1500); await p.getByRole('button', { name: /disparar/i }).click(); await p.waitForTimeout(800); await p.getByRole('button', { name: /^enviar/i }).click(); await p.waitForTimeout(1200); } },
   { id: 'g10-visor-foto', url: '/e/demo', ...guest('t-active'), vshot: true, act: async (p) => { const b = p.getByRole('button', { name: /^ver foto 1 de/i }).first(); await b.scrollIntoViewIfNeeded(); await b.click(); await p.waitForTimeout(800); } },
   { id: 'o01-eventos', url: '/panel', org: true },
   ...TABS.map((t, i) => ({ id: `o${String(i + 2).padStart(2, '0')}-panel-${t.toLowerCase().normalize('NFD').replace(/[^a-z]/g, '')}`, url: `/panel/e/${EVENT_ID}`, org: true, act: async (p) => { await p.getByRole('button', { name: t, exact: true }).click(); await p.waitForTimeout(500); } })),
