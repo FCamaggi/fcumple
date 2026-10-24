@@ -10,7 +10,7 @@ Fecha: 2026-10-24. Rama `feat/vistas-previas`. Origen: [`backlog-diseno-y-marcos
 ## Cómo está hecho
 - `GuestHubView` es la cartelera del invitado sin estado ni llamadas; `GuestHub` (el real) y la vista previa la alimentan. `EventHeader` es la cabecera compartida. Lo que ve la organizadora es el mismo código que ve el invitado.
 - `GuestPreviewPage` (`/panel/e/:eventId/vista-previa`, tras `RequireAuth`) se abre dentro de un **iframe** (`PhoneFrame`). Así los puntos de quiebre, `100dvh` y las capas `fixed` miden un teléfono y no la ventana del panel, y el estilo del evento (variables CSS en `<html>`) no pisa al del panel. El teléfono se reduce hasta la mitad en pantallas angostas.
-- Panel e iframe hablan por `postMessage` del mismo origen, validado en `src/lib/guestPreview.ts` (`parsePreviewMessage`, `parsePreviewNote`): estado y borrador hacia el iframe; «listo» y la nota del estado de vuelta. El iframe lleva `sandbox="allow-scripts allow-same-origin"`: no puede navegar el panel ni abrir ventanas.
+- Panel e iframe hablan por `postMessage` del mismo origen, validado en `src/lib/guestPreview.ts` (`parsePreviewMessage`, `parsePreviewNote`): estado y borrador hacia el iframe; «listo» y la nota del estado de vuelta. El iframe lleva `sandbox="allow-scripts allow-same-origin"`: es un freno contra navegar el panel o abrir ventanas por accidente, no un aislamiento (con `allow-same-origin` la propia app podría quitárselo).
 - La lógica de qué se ve en cada estado es pura (`buildPreviewScenario`) y está probada.
 
 ## Qué es real y qué es de ejemplo

@@ -33,7 +33,8 @@ interface PhoneFrameProps {
 /**
  * Un teléfono de 390×844 con la pantalla del invitado dentro de un iframe. El iframe es una página de la propia app
  * (mismo origen), así que las reglas de pantalla miden un teléfono y no la ventana del panel; el panel y el iframe
- * solo hablan por mensajes validados. `sandbox` impide que la vista previa navegue el panel o abra ventanas.
+ * solo hablan por mensajes validados. `sandbox` es un freno contra navegar el panel o abrir ventanas por accidente,
+ * no un aislamiento: con `allow-same-origin` el contenido (la propia app) podría quitárselo.
  */
 export default function PhoneFrame({ src, label, state, draft = null, onNote }: PhoneFrameProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);

@@ -21,7 +21,7 @@ vi.mock('../lib/platformApi', async () => {
 });
 
 import { getMyEvent, type OrganizerEvent } from '../lib/organizerApi';
-import { listAllPosts, listPostImages } from '../lib/postsApi';
+import { getPostImageUrl, listAllPosts, listPostImages } from '../lib/postsApi';
 import { loginGuest, registerGuest } from '../lib/platformApi';
 import { emptyEnrollment } from '../lib/enrollmentConfig';
 import type { Post } from '../types';
@@ -75,8 +75,9 @@ beforeEach(() => {
   vi.mocked(getMyEvent).mockReset().mockResolvedValue(event);
   vi.mocked(listAllPosts)
     .mockReset()
-    .mockResolvedValue([post('a', 'Cambio de hora', '2026-10-25T12:00:00Z'), post('b', 'Borrador secreto', null)]);
+    .mockResolvedValue([post('a', 'Cambio de hora', '2025-10-25T12:00:00Z'), post('b', 'Borrador secreto', null)]);
   vi.mocked(listPostImages).mockReset().mockResolvedValue([]);
+  vi.mocked(getPostImageUrl).mockClear();
   vi.mocked(registerGuest).mockReset();
   vi.mocked(loginGuest).mockReset();
   postMessageSpy = vi.spyOn(window, 'postMessage');
@@ -107,6 +108,36 @@ describe('GuestPreviewPage', () => {
 
     expect(await screen.findByText('Cambio de hora')).toBeInTheDocument();
     expect(screen.queryByText('Borrador secreto')).not.toBeInTheDocument();
+  });
+
+  it('no muestra un aviso programado a futuro: el invitado todavía no lo ve', async () => {
+    vi.mocked(listAllPosts).mockResolvedValue([
+      post('a', 'Cambio de hora', '2025-10-25T12:00:00Z'),
+      post('f', 'Aviso del futuro', '2999-01-01T00:00:00Z'),
+    ]);
+    renderAt('/panel/e/ev-1/vista-previa?estado=avisos');
+
+    expect(await screen.findByText('Cambio de hora')).toBeInTheDocument();
+    expect(screen.queryByText('Aviso del futuro')).not.toBeInTheDocument();
+  });
+
+  it('al escribir en el borrador no vuelve a pedir las imágenes de la galería', async () => {
+    renderAt();
+    await screen.findByRole('button', { name: 'Abrir cámara' });
+    const draft = (title: string) => ({
+      type: 'fcumple-preview',
+      state: 'aviso',
+      draft: { title, subtitle: null, body: 'B', coverImagePath: null, galleryPaths: ['ev-1/g1.jpg', 'ev-1/g2.jpg'] },
+    });
+
+    send(draft('P'));
+    await screen.findByText('P');
+    await waitFor(() => expect(getPostImageUrl).toHaveBeenCalledTimes(2));
+    send(draft('Pi'));
+    send(draft('Piz'));
+    await screen.findByText('Piz');
+
+    expect(getPostImageUrl).toHaveBeenCalledTimes(2);
   });
 
   it('lee el estado de la dirección', async () => {

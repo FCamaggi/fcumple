@@ -44,11 +44,13 @@ export default function GuestPreviewTab({ event }: { event: OrganizerEvent }) {
         ))}
       </div>
 
-      {note && (
-        <p role="status" className="border border-smoke-700/60 px-3 py-2 font-mono text-xs uppercase tracking-wider text-laser-500">
-          {note}
-        </p>
-      )}
+      <div role="status">
+        {note && (
+          <p className="border border-smoke-700/60 px-3 py-2 font-mono text-xs uppercase tracking-wider text-laser-500">
+            {note}
+          </p>
+        )}
+      </div>
 
       <PhoneFrame src={src} label={current.label} state={state} onNote={setNote} />
     </section>

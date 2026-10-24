@@ -26,6 +26,10 @@ type Load =
 
 const centered = 'flex min-h-app items-center justify-center bg-ink-950 px-4 py-8 text-paper-100';
 
+function sameList(a: string[], b: string[]): boolean {
+  return a.length === b.length && a.every((item, i) => item === b[i]);
+}
+
 function noop() {
   // La vista previa no hace nada: solo muestra.
 }
@@ -74,7 +78,13 @@ export default function GuestPreviewPage() {
       const message = parsePreviewMessage(e.data);
       if (!message) return;
       setState(message.state);
-      setDraft(message.draft);
+      // Cada mensaje trae arreglos nuevos: se conserva el de la galería si no cambió, para que la cartelera no
+      // vuelva a firmar las imágenes con cada tecla.
+      setDraft((prev) =>
+        message.draft && prev && sameList(prev.galleryPaths, message.draft.galleryPaths)
+          ? { ...message.draft, galleryPaths: prev.galleryPaths }
+          : message.draft,
+      );
     }
     window.addEventListener('message', onMessage);
     window.parent.postMessage({ type: PREVIEW_READY_TYPE }, window.location.origin);
@@ -86,7 +96,8 @@ export default function GuestPreviewPage() {
     return buildPreviewScenario({
       state,
       event: load.event,
-      publishedPosts: load.posts.filter((p) => p.publishedAt !== null),
+      // Igual que la RPC del invitado: lo programado a futuro todavía no se ve.
+      publishedPosts: load.posts.filter((p) => p.publishedAt !== null && new Date(p.publishedAt) <= new Date()),
       draft,
       now: new Date(),
     });
@@ -131,7 +142,8 @@ export default function GuestPreviewPage() {
     return (
       <ThemeScope theme={event.theme}>
         <div className={centered} onSubmitCapture={blockSubmit}>
-          <IdentifyForm slug={event.slug} event={publicEvent} onIdentified={noop} />
+          {/* Sin slug a propósito: aunque algo se saltara el bloqueo del envío, las RPC no encontrarían el evento. */}
+          <IdentifyForm slug="" event={publicEvent} onIdentified={noop} />
         </div>
       </ThemeScope>
     );

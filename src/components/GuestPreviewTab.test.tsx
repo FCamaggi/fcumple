@@ -70,8 +70,9 @@ describe('GuestPreviewTab', () => {
     note('Las fotos son de ejemplo: aquí irán las que publiques.');
     expect(screen.getByRole('status')).toHaveTextContent('Las fotos son de ejemplo');
 
+    // La región viva sigue en pantalla, vacía: así un lector de pantalla anuncia la nota siguiente.
     note(null);
-    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
   });
 
   it('explica que solo se mira: los botones no hacen nada y la gente es de ejemplo', () => {
