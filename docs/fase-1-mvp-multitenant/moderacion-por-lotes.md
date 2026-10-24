@@ -1,5 +1,7 @@
 # Moderación por lotes horarios (Fase 1)
 
+> **Descartado (2026-10-24, decisión del dueño).** No importa moderar por bloques horarios; lo que importa es que se revise y se suba todo, ordenado por hora, y eso ya es lo que hace la app: `publish_photo_batch` publica todo lo aprobado y la cartelera y la cola de revisión salen de la más antigua a la más nueva. Nada de lo de abajo existe ni se va a construir; se conserva como registro. Ver [`notas-temporales-b-c-descarga.md`](./notas-temporales-b-c-descarga.md).
+
 ## Qué es
 
 El panel de moderación agrupa las fotos pendientes en **bloques de tiempo** (por defecto 1 hora; configurable por evento: 30 min / 1 h / 2 h) para que el organizador revise el evento de forma secuencial.
