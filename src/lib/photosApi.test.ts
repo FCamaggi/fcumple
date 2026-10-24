@@ -20,6 +20,7 @@ import {
   getSignedPhotoDownloadUrl,
   listRevealedPhotos,
 } from './photosApi';
+import { SAMPLE_PHOTOS } from './samplePhotos';
 
 const from = supabase.from as unknown as ReturnType<typeof vi.fn>;
 const rpc = supabase.rpc as unknown as ReturnType<typeof vi.fn>;
@@ -242,6 +243,22 @@ describe('getSignedPhotoUrl', () => {
     storageFrom.mockReturnValue({ createSignedUrl });
 
     await expect(getSignedPhotoUrl('tok1/a.jpg')).rejects.toThrow(/not found/);
+  });
+
+  it('devuelve tal cual las fotos de ejemplo de la vista previa, sin tocar el almacenamiento', async () => {
+    storageFrom.mockClear();
+
+    expect(await getSignedPhotoUrl(SAMPLE_PHOTOS[0].storagePath)).toBe(SAMPLE_PHOTOS[0].storagePath);
+    expect(await getSignedPhotoDownloadUrl(SAMPLE_PHOTOS[1].storagePath)).toBe(SAMPLE_PHOTOS[1].storagePath);
+    expect(storageFrom).not.toHaveBeenCalled();
+  });
+
+  it('cualquier otra ruta data: sigue yendo al almacenamiento: una fila manipulada no se sirve como imagen', async () => {
+    const createSignedUrl = vi.fn().mockResolvedValue({ data: null, error: { message: 'invalid path' } });
+    storageFrom.mockReturnValue({ createSignedUrl });
+
+    await expect(getSignedPhotoUrl('data:image/svg+xml,<svg onload=alert(1)>')).rejects.toThrow(/invalid path/);
+    expect(createSignedUrl).toHaveBeenCalledTimes(1);
   });
 });
 

@@ -1,3 +1,4 @@
+import { isSamplePhotoPath } from './samplePhotos';
 import { supabase } from './supabaseClient';
 import type { Photo, PhotoQuota } from '../types';
 
@@ -144,6 +145,8 @@ export async function moderatePhoto(id: string, status: 'approved' | 'rejected')
 // actually decides whether the signed URL can be generated at all — this
 // function doesn't need to know which role is calling it.
 export async function getSignedPhotoUrl(storagePath: string): Promise<string> {
+  // Las fotos de ejemplo de la vista previa de la organizadora no viven en el almacenamiento.
+  if (isSamplePhotoPath(storagePath)) return storagePath;
   const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(storagePath, SIGNED_URL_TTL_SECONDS);
 
   if (error) fail('generar el link de la foto', error);
@@ -155,6 +158,7 @@ export async function getSignedPhotoUrl(storagePath: string): Promise<string> {
 // que el navegador baje el archivo en vez de solo mostrarlo, y se pide
 // recién al tocar "Descargar", nunca precalculada junto a la de preview.
 export async function getSignedPhotoDownloadUrl(storagePath: string): Promise<string> {
+  if (isSamplePhotoPath(storagePath)) return storagePath;
   const { data, error } = await supabase.storage
     .from(BUCKET)
     .createSignedUrl(storagePath, SIGNED_URL_TTL_SECONDS, { download: true });
