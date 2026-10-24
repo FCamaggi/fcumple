@@ -14,15 +14,18 @@ returns boolean
 language sql
 immutable
 as $$
-  select coalesce(
-    jsonb_typeof(b) = 'object'
-    and exists (select 1 from jsonb_object_keys(b))
-    and not exists (select 1 from jsonb_object_keys(b) k where k not in ('l', 't', 'r', 'b'))
-    and public._frame_num(b, 'l', 0, 1)
-    and public._frame_num(b, 't', 0, 1)
-    and public._frame_num(b, 'r', 0, 1)
-    and public._frame_num(b, 'b', 0, 1),
-    false);
+  -- CASE y no AND: jsonb_object_keys falla con una lista o un escalar, y SQL no garantiza el orden de un AND.
+  select case
+    when jsonb_typeof(b) is distinct from 'object' then false
+    else coalesce(
+      exists (select 1 from jsonb_object_keys(b))
+      and not exists (select 1 from jsonb_object_keys(b) k where k not in ('l', 't', 'r', 'b'))
+      and public._frame_num(b, 'l', 0, 1)
+      and public._frame_num(b, 't', 0, 1)
+      and public._frame_num(b, 'r', 0, 1)
+      and public._frame_num(b, 'b', 0, 1),
+      false)
+  end;
 $$;
 
 -- Una capa. p_event es el evento dueno del marco: las imagenes tienen que estar en SU carpeta.

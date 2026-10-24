@@ -129,6 +129,18 @@ describe('capas con dx, dy y box', () => {
     expect(layerBounds(plate, 800, 600)).toEqual({ cx: 400, cy: 495, width: 740, height: 150, rotation: 0 });
   });
 
+  it('scaleLayer no toca una caja pegada a los bordes (su tamaño lo fijan los bordes)', () => {
+    const plate = rect({ box: { l: 0.05, r: 0.05, b: 0.05 }, h: 0.25 });
+    expect(scaleLayer(plate, 1.5)).toBe(plate);
+  });
+
+  it('hitTest ignora las cajas pegadas a los bordes: un anillo no acapara los clics del lienzo', () => {
+    const under = rect({ x: 0.5, y: 0.5, w: 0.2, h: 0.2 });
+    const ring = rect({ box: { l: 0.025, t: 0.025, r: 0.025, b: 0.025 } });
+    expect(hitTest([under, ring], 400, 300, 800, 600)).toBe(0);
+    expect(hitTest([ring], 400, 300, 800, 600)).toBe(-1);
+  });
+
   it('moveLayer no mueve una caja pegada a los bordes, y con dx mueve solo x e y', () => {
     const plate = rect({ box: { l: 0.05, r: 0.05, b: 0.05 }, h: 0.25 });
     expect(moveLayer(plate, 40, 40, 600, 800)).toBe(plate);

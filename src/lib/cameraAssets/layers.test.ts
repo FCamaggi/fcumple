@@ -282,6 +282,30 @@ describe('anclaje a los bordes: dx, dy y box', () => {
     expect(boxRect({ type: 'shape', shape: 'line', box: { l: 0.05, r: 0.05, b: 0.3 } }, 800, 600, 600)).toEqual([30, 420, 740, 0]);
   });
 
+  it('boxRect: un solo borde inicial, ningún borde en un eje, y márgenes que sobrepasan el lienzo', () => {
+    const rectBox = (box: object, patch: object = {}) => ({ type: 'shape', shape: 'rect', w: 0.2, h: 0.3, box, ...patch }) as FrameLayer & { type: 'shape' };
+    // Solo l y t: pegada a la esquina de arriba a la izquierda, con w y h.
+    expect(boxRect(rectBox({ l: 0.1, t: 0.1 }), 800, 600, 600)).toEqual([60, 60, 120, 180]);
+    // Solo l: en vertical queda centrada.
+    expect(boxRect(rectBox({ l: 0.1 }), 800, 600, 600)).toEqual([60, 210, 120, 180]);
+    // Solo t: en horizontal queda centrada.
+    expect(boxRect(rectBox({ t: 0.1 }), 800, 600, 600)).toEqual([340, 60, 120, 180]);
+    // Márgenes que suman más que el lienzo: el ancho nunca es negativo.
+    expect(boxRect(rectBox({ l: 0.7, r: 0.7 }), 800, 600, 600)[2]).toBe(0);
+  });
+
+  it('boxRect: una línea con t y b se dibuja en el borde de arriba y no tiene alto', () => {
+    const line = { type: 'shape', shape: 'line', box: { l: 0.05, r: 0.05, t: 0.1, b: 0.1 } } as FrameLayer & { type: 'shape' };
+    expect(boxRect(line, 800, 600, 600)).toEqual([30, 60, 740, 0]);
+  });
+
+  it('acepta dx y dy justo en los extremos (±2) y rechaza una caja o un margen nulos', () => {
+    expect(validateLayers([{ ...text, dx: 2, dy: -2 }])).toEqual({ ok: true });
+    expect(validateLayers([{ ...rect, box: null } as unknown as FrameLayer]).ok).toBe(false);
+    expect(validateLayers([{ ...rect, box: { l: null } } as unknown as FrameLayer]).ok).toBe(false);
+    expect(validateLayers([{ ...rect, box: 5 } as unknown as FrameLayer]).ok).toBe(false);
+  });
+
   it('una caja se dibuja pegada a los bordes aunque cambie la proporción del lienzo', () => {
     for (const [w, h] of [[600, 800], [800, 600], [450, 800]] as const) {
       const m = createMockCtx();

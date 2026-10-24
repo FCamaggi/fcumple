@@ -40,7 +40,7 @@ export function createLayer(kind: NewLayerKind, options: { src?: string; full?: 
 
 const isCover = (layer: FrameLayer) => layer.type === 'image' && layer.full === true;
 /** Una forma pegada a los bordes (`box`): como la imagen a pantalla completa, su lugar lo fijan los bordes, no se arrastra. */
-const isBoxed = (layer: FrameLayer) => layer.type === 'shape' && layer.box !== undefined;
+export const isBoxed = (layer: FrameLayer) => layer.type === 'shape' && layer.box !== undefined;
 const round4 = (n: number) => Math.round(n * 10000) / 10000;
 const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, n));
 
@@ -140,6 +140,8 @@ const MIN_HIT_HALF = 12;
 /** La capa de más arriba que contiene el punto (en píxeles del lienzo), o -1. */
 export function hitTest(layers: FrameLayer[], px: number, py: number, w: number, h: number): number {
   for (let i = layers.length - 1; i >= 0; i--) {
+    // Las cajas pegadas a los bordes no se eligen con un clic en el lienzo (un anillo cubriría todo): van por la lista.
+    if (isBoxed(layers[i])) continue;
     const b = layerBounds(layers[i], w, h);
     const theta = (b.rotation * Math.PI) / 180;
     const dx = px - b.cx;
@@ -167,7 +169,7 @@ export function moveLayer(layer: FrameLayer, dx: number, dy: number, w: number, 
 
 /** Escala el tamaño de la capa (no el grosor del borde). Corta en los límites que valida la base. */
 export function scaleLayer(layer: FrameLayer, factor: number): FrameLayer {
-  if (isCover(layer)) return layer;
+  if (isCover(layer) || isBoxed(layer)) return layer;
   const side = (value: number) => round4(clamp(value * factor, 0.01, 4));
   switch (layer.type) {
     case 'text':

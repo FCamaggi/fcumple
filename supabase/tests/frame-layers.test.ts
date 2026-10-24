@@ -121,6 +121,11 @@ const cases = (e: string): Case[] => {
     { name: 'box con margen mayor que 1', layers: [{ ...rect, box: { r: 1.5 } }], ok: false },
     { name: 'box con margen como texto', layers: [{ ...rect, box: { l: '0.1' } }], ok: false },
     { name: 'box como lista', layers: [{ ...rect, box: [0.1] }], ok: false },
+    { name: 'box nula', layers: [{ ...rect, box: null }], ok: false },
+    { name: 'box como número', layers: [{ ...rect, box: 5 }], ok: false },
+    { name: 'box con un margen nulo', layers: [{ ...rect, box: { l: null } }], ok: false },
+    { name: 'dx y dy justo en los extremos', layers: [{ ...text, dx: 2, dy: -2 }], ok: true },
+    { name: 'dx en una imagen y en un emoji', layers: [{ type: 'emoji', emoji: '🦇', size: 0.1, dx: 0.3 }, { type: 'image', src: img, w: 0.5, h: 0.5, dy: -0.1 }], ok: true },
     { name: '40 capas', layers: Array.from({ length: 40 }, () => rect), ok: true },
     { name: '41 capas', layers: Array.from({ length: 41 }, () => rect), ok: false },
   ];

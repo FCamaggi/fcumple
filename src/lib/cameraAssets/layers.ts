@@ -387,7 +387,12 @@ export function boxRect(layer: ShapeLayer, w: number, h: number, unit: number): 
     return [(total - size) / 2, size];
   };
   const [x0, bw] = axis(box.l, box.r, w, (layer.w ?? 0.2) * unit);
-  const [y0, bh] = axis(box.t, box.b, h, layer.shape === 'line' ? 0 : (layer.h ?? 0.2) * unit);
+  if (layer.shape === 'line') {
+    // Una línea no tiene alto: va en el borde de arriba (`t`) o, si no, a `b` del de abajo.
+    const y = box.t !== undefined ? box.t * unit : box.b !== undefined ? h - box.b * unit : h / 2;
+    return [x0, y, bw, 0];
+  }
+  const [y0, bh] = axis(box.t, box.b, h, (layer.h ?? 0.2) * unit);
   return [x0, y0, bw, bh];
 }
 

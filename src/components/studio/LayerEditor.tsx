@@ -64,7 +64,11 @@ export default function LayerEditor({ layers, onChange, uploadImage, resolveImag
 
   const params = useMemo(() => ({ layers }), [layers]);
   const selectedLayer = selected >= 0 ? layers[selected] : undefined;
-  const isCover = selectedLayer?.type === 'image' && selectedLayer.full === true;
+  // Sin asas de escala ni de giro: una imagen a pantalla completa y una forma pegada a los bordes no se mueven ni se
+  // escalan con el puntero (su lugar y su tamaño los fijan los bordes).
+  const isCover =
+    (selectedLayer?.type === 'image' && selectedLayer.full === true) ||
+    (selectedLayer?.type === 'shape' && selectedLayer.box !== undefined);
 
   const replaceSelected = (layer: FrameLayer) => onChange(layers.map((l, i) => (i === selected ? layer : l)));
 
