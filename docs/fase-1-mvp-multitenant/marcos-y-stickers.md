@@ -171,3 +171,15 @@ Editor visual (paso 3):
 - **Imágenes:** el panel sube a `{event_id}/frames/` (hasta 1600 px y 1 MB, WebP o PNG) con `uploadFrameImage`; el lienzo, las miniaturas y la cámara las muestran con URL firmada (`useLayerAssets`, `useCameraAssets`). Un archivo subido que luego no se guarda en el marco queda huérfano en Storage (son pocos KB; la limpieza queda pendiente).
 
 Pendiente: probar el CORS del canvas con imágenes de Storage en Safari iOS real, cachear el `Path2D` y el saneado por cuadro en la cámara, acotar el emoji a un solo grafema, borrar los archivos huérfanos de `frames/`, y que la sombra no se duplique con el contorno del texto.
+
+### Anclaje a los bordes (2026-10-24): `dx`, `dy` y `box`
+
+**El problema.** `x` e `y` son fracciones del lienzo, pero tamaños, bordes y sombras se miden en «lado menor». Un marco dibujado para una foto vertical 3:4 (borde, talón, línea de corte) no llegaba a los bordes en horizontal, ni en una cámara 9:16, y los textos de abajo se pisaban al achicarse la altura.
+
+**La solución, dos claves opcionales** (las capas que ya existen no cambian):
+- `dx`, `dy` (todas las capas, entre -2 y 2): desplazamiento desde (`x`, `y`) en unidades del lado menor. Con `x`, `y` en 0, 0,5 o 1 la capa queda pegada a un borde, una esquina o el centro, y `dx`, `dy` la separan de ahí; así sigue en su sitio sea cual sea la proporción.
+- `box` (solo `rect` y `line`): la forma queda pegada a los bordes del lienzo. Es un objeto con alguno de `l`, `t`, `r`, `b` (márgenes en unidades del lado menor, entre 0 y 1). Con `l` y `r` el ancho sale del lienzo (con `t` y `b`, el alto); con un solo borde se usa `w` o `h`. Se ignoran `x`, `y`, `dx`, `dy`, el ancla y la rotación. Sirve para la banda del borde (los cuatro márgenes), el talón de abajo (`l`, `r`, `b` y `h`) y la línea de corte.
+
+**Dónde.** `validateLayers`, `drawLayers` y `boxRect` en `src/lib/cameraAssets/layers.ts`; `layerBounds` y `moveLayer` en `layerOps.ts` (el editor trata una caja pegada a los bordes como fija, igual que una imagen a pantalla completa, y respeta `dx`, `dy`); migración `20261024100014_frame_layers_anclaje.sql` (`_frame_box` y `valid_frame_layer`); y los casos de paridad cliente-base en `supabase/tests/frame-layers.test.ts`.
+
+**Límite.** El editor visual todavía no tiene controles para `dx`, `dy` ni `box`: un marco que los use se arma con un generador (o JSON) y el editor lo muestra y permite moverle las capas normales, no las cajas. Dibujado y probado en vertical 3:4, horizontal y 9:16 con una foto de ejemplo; no en un teléfono real.

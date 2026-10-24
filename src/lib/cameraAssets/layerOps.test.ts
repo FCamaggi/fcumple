@@ -113,6 +113,31 @@ describe('reorderLayer', () => {
   });
 });
 
+describe('capas con dx, dy y box', () => {
+  it('layerBounds suma dx y dy (en unidades del lado menor) a la posición', () => {
+    expect(layerBounds(rect({ x: 0, y: 1, dx: 0.1, dy: -0.2, w: 0.1, h: 0.1, anchor: 'bl' }), 800, 600)).toEqual({
+      cx: 60 + 30,
+      cy: 480 - 30,
+      width: 60,
+      height: 60,
+      rotation: 0,
+    });
+  });
+
+  it('layerBounds de una caja pegada a los bordes coincide con lo que se dibuja', () => {
+    const plate = rect({ box: { l: 0.05, r: 0.05, b: 0.05 }, h: 0.25 });
+    expect(layerBounds(plate, 800, 600)).toEqual({ cx: 400, cy: 495, width: 740, height: 150, rotation: 0 });
+  });
+
+  it('moveLayer no mueve una caja pegada a los bordes, y con dx mueve solo x e y', () => {
+    const plate = rect({ box: { l: 0.05, r: 0.05, b: 0.05 }, h: 0.25 });
+    expect(moveLayer(plate, 40, 40, 600, 800)).toBe(plate);
+    const corner = rect({ x: 0, y: 1, dx: 0.1 });
+    const moved = moveLayer(corner, 60, 0, 600, 800);
+    expect(moved).toMatchObject({ x: 0.1, y: 1, dx: 0.1 });
+  });
+});
+
 describe('layerBounds', () => {
   it('centra la caja en el punto cuando el ancla es center', () => {
     expect(layerBounds(rect({ x: 0.5, y: 0.5, w: 0.5, h: 0.25 }), 600, 800)).toEqual({
