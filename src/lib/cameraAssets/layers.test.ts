@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createMockCtx } from '../../test/mockCanvas';
 import {
   MAX_LAYERS,
+  boxRect,
   collectImagePaths,
   collectLayerFonts,
   drawLayers,
@@ -233,6 +234,87 @@ describe('drawLayers', () => {
     drawLayers(m.ctx, 600, 800, 600, [{ ...rect, fill: '#aa0000' }, { ...rect, fill: '#00aa00' }]);
     const fills = m.fills().filter((f) => f === '#aa0000' || f === '#00aa00');
     expect(fills).toEqual(['#aa0000', '#00aa00']);
+  });
+});
+
+describe('anclaje a los bordes: dx, dy y box', () => {
+  const plate: FrameLayer = { type: 'shape', shape: 'rect', box: { l: 0.05, r: 0.05, b: 0.05 }, h: 0.25, fill: '#0d0b12' };
+
+  it('valida dx y dy (entre -2 y 2) y la caja pegada a los bordes', () => {
+    expect(validateLayers([{ ...text, x: 0, y: 1, dx: 0.1, dy: -0.2 }])).toEqual({ ok: true });
+    expect(validateLayers([plate])).toEqual({ ok: true });
+    expect(validateLayers([{ type: 'shape', shape: 'line', box: { l: 0.05, r: 0.05, b: 0.3 }, stroke: '#ffffff' }])).toEqual({ ok: true });
+    expect(validateLayers([{ ...text, dx: 3 }]).ok).toBe(false);
+    expect(validateLayers([{ ...text, dy: -2.5 }]).ok).toBe(false);
+    expect(validateLayers([{ ...text, dx: '0.1' as unknown as number }]).ok).toBe(false);
+  });
+
+  it('rechaza una caja mal armada o en una forma que no la admite', () => {
+    const withBox = (shape: string, box: unknown) => [{ type: 'shape', shape, w: 0.2, h: 0.2, fill: '#000000', box }] as unknown as FrameLayer[];
+    expect(validateLayers(withBox('ellipse', { l: 0.05 })).ok).toBe(false);
+    expect(validateLayers(withBox('path', { l: 0.05 })).ok).toBe(false);
+    expect(validateLayers(withBox('rect', {})).ok).toBe(false);
+    expect(validateLayers(withBox('rect', { l: -0.1 })).ok).toBe(false);
+    expect(validateLayers(withBox('rect', { r: 1.5 })).ok).toBe(false);
+    expect(validateLayers(withBox('rect', { x: 0.1 })).ok).toBe(false);
+    expect(validateLayers(withBox('rect', { l: '0.1' })).ok).toBe(false);
+    expect(validateLayers(withBox('rect', [0.1])).ok).toBe(false);
+  });
+
+  it('dx y dy se suman a la posición en unidades del lado menor, en vertical y en horizontal', () => {
+    const corner: FrameLayer = { type: 'shape', shape: 'rect', x: 0, y: 1, dx: 0.1, dy: -0.2, w: 0.1, h: 0.1, fill: '#000000', anchor: 'bl' };
+    const vertical = createMockCtx();
+    drawLayers(vertical.ctx, 600, 800, 600, [corner]);
+    expect(vertical.calls.find((c) => c.name === 'translate')?.args).toEqual([60, 680]);
+    const horizontal = createMockCtx();
+    drawLayers(horizontal.ctx, 800, 600, 600, [corner]);
+    expect(horizontal.calls.find((c) => c.name === 'translate')?.args).toEqual([60, 480]);
+  });
+
+  it('boxRect: la caja con márgenes a los dos lados toma el ancho del lienzo; con un solo borde usa w y h', () => {
+    expect(boxRect(plate, 600, 800, 600)).toEqual([30, 620, 540, 150]);
+    expect(boxRect(plate, 800, 600, 600)).toEqual([30, 420, 740, 150]);
+    // Anillo: los cuatro márgenes, sin w ni h.
+    expect(boxRect({ type: 'shape', shape: 'rect', box: { l: 0.025, t: 0.025, r: 0.025, b: 0.025 } }, 800, 600, 600)).toEqual([15, 15, 770, 570]);
+    // Solo un borde y ningún lado opuesto: usa w y queda pegada a ese borde.
+    expect(boxRect({ type: 'shape', shape: 'rect', box: { r: 0.1, t: 0.1 }, w: 0.2, h: 0.3 }, 800, 600, 600)).toEqual([620, 60, 120, 180]);
+    // Línea: solo importa el borde vertical.
+    expect(boxRect({ type: 'shape', shape: 'line', box: { l: 0.05, r: 0.05, b: 0.3 } }, 800, 600, 600)).toEqual([30, 420, 740, 0]);
+  });
+
+  it('boxRect: un solo borde inicial, ningún borde en un eje, y márgenes que sobrepasan el lienzo', () => {
+    const rectBox = (box: object, patch: object = {}) => ({ type: 'shape', shape: 'rect', w: 0.2, h: 0.3, box, ...patch }) as FrameLayer & { type: 'shape' };
+    // Solo l y t: pegada a la esquina de arriba a la izquierda, con w y h.
+    expect(boxRect(rectBox({ l: 0.1, t: 0.1 }), 800, 600, 600)).toEqual([60, 60, 120, 180]);
+    // Solo l: en vertical queda centrada.
+    expect(boxRect(rectBox({ l: 0.1 }), 800, 600, 600)).toEqual([60, 210, 120, 180]);
+    // Solo t: en horizontal queda centrada.
+    expect(boxRect(rectBox({ t: 0.1 }), 800, 600, 600)).toEqual([340, 60, 120, 180]);
+    // Márgenes que suman más que el lienzo: el ancho nunca es negativo.
+    expect(boxRect(rectBox({ l: 0.7, r: 0.7 }), 800, 600, 600)[2]).toBe(0);
+  });
+
+  it('boxRect: una línea con t y b se dibuja en el borde de arriba y no tiene alto', () => {
+    const line = { type: 'shape', shape: 'line', box: { l: 0.05, r: 0.05, t: 0.1, b: 0.1 } } as FrameLayer & { type: 'shape' };
+    expect(boxRect(line, 800, 600, 600)).toEqual([30, 60, 740, 0]);
+  });
+
+  it('acepta dx y dy justo en los extremos (±2) y rechaza una caja o un margen nulos', () => {
+    expect(validateLayers([{ ...text, dx: 2, dy: -2 }])).toEqual({ ok: true });
+    expect(validateLayers([{ ...rect, box: null } as unknown as FrameLayer]).ok).toBe(false);
+    expect(validateLayers([{ ...rect, box: { l: null } } as unknown as FrameLayer]).ok).toBe(false);
+    expect(validateLayers([{ ...rect, box: 5 } as unknown as FrameLayer]).ok).toBe(false);
+  });
+
+  it('una caja se dibuja pegada a los bordes aunque cambie la proporción del lienzo', () => {
+    for (const [w, h] of [[600, 800], [800, 600], [450, 800]] as const) {
+      const m = createMockCtx();
+      drawLayers(m.ctx, w, h, Math.min(w, h), [plate]);
+      const unit = Math.min(w, h);
+      expect(m.calls.some((c) => c.name === 'translate')).toBe(false);
+      expect(m.calls.find((c) => c.name === 'moveTo')?.args).toEqual([0.05 * unit, h - 0.05 * unit - 0.25 * unit]);
+      expect(m.calls.find((c) => c.name === 'lineTo')?.args).toEqual([w - 0.05 * unit, h - 0.05 * unit - 0.25 * unit]);
+    }
   });
 });
 

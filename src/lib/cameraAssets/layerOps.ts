@@ -7,7 +7,7 @@
  * que `validateLayers` rechace: los valores se cortan en los límites.
  */
 
-import { MAX_LAYERS, anchorOffset, layerSize, type FrameLayer } from './layers';
+import { MAX_LAYERS, anchorOffset, boxRect, layerSize, type FrameLayer } from './layers';
 
 export type NewLayerKind = 'text' | 'rect' | 'ellipse' | 'line' | 'path' | 'emoji' | 'image';
 
@@ -39,6 +39,8 @@ export function createLayer(kind: NewLayerKind, options: { src?: string; full?: 
 }
 
 const isCover = (layer: FrameLayer) => layer.type === 'image' && layer.full === true;
+/** Una forma pegada a los bordes (`box`): como la imagen a pantalla completa, su lugar lo fijan los bordes, no se arrastra. */
+export const isBoxed = (layer: FrameLayer) => layer.type === 'shape' && layer.box !== undefined;
 const round4 = (n: number) => Math.round(n * 10000) / 10000;
 const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, n));
 
@@ -113,6 +115,10 @@ export function layerBounds(layer: FrameLayer, w: number, h: number): LayerBound
   if (isCover(layer)) return { cx: w / 2, cy: h / 2, width: w, height: h, rotation: 0 };
 
   const unit = Math.min(w, h);
+  if (layer.type === 'shape' && layer.box && (layer.shape === 'rect' || layer.shape === 'line')) {
+    const [bx, by, boxW, boxH] = boxRect(layer, w, h, unit);
+    return { cx: bx + boxW / 2, cy: by + boxH / 2, width: boxW, height: boxH, rotation: 0 };
+  }
   const [bw, bh] = layerSize(layer, unit);
   const [ox, oy] = anchorOffset(layer.anchor ?? 'center', bw, bh);
   const lx = ox + bw / 2;
@@ -120,8 +126,8 @@ export function layerBounds(layer: FrameLayer, w: number, h: number): LayerBound
   const rotation = layer.rotation ?? 0;
   const theta = (rotation * Math.PI) / 180;
   return {
-    cx: (layer.x ?? 0.5) * w + lx * Math.cos(theta) - ly * Math.sin(theta),
-    cy: (layer.y ?? 0.5) * h + lx * Math.sin(theta) + ly * Math.cos(theta),
+    cx: (layer.x ?? 0.5) * w + (layer.dx ?? 0) * unit + lx * Math.cos(theta) - ly * Math.sin(theta),
+    cy: (layer.y ?? 0.5) * h + (layer.dy ?? 0) * unit + lx * Math.sin(theta) + ly * Math.cos(theta),
     width: bw,
     height: bh,
     rotation,
@@ -134,6 +140,8 @@ const MIN_HIT_HALF = 12;
 /** La capa de más arriba que contiene el punto (en píxeles del lienzo), o -1. */
 export function hitTest(layers: FrameLayer[], px: number, py: number, w: number, h: number): number {
   for (let i = layers.length - 1; i >= 0; i--) {
+    // Las cajas pegadas a los bordes no se eligen con un clic en el lienzo (un anillo cubriría todo): van por la lista.
+    if (isBoxed(layers[i])) continue;
     const b = layerBounds(layers[i], w, h);
     const theta = (b.rotation * Math.PI) / 180;
     const dx = px - b.cx;
@@ -151,7 +159,7 @@ export function hitTest(layers: FrameLayer[], px: number, py: number, w: number,
 
 /** Mueve la capa; dx y dy en píxeles del lienzo. La imagen a pantalla completa no se mueve. */
 export function moveLayer(layer: FrameLayer, dx: number, dy: number, w: number, h: number): FrameLayer {
-  if (isCover(layer)) return layer;
+  if (isCover(layer) || isBoxed(layer)) return layer;
   return {
     ...layer,
     x: round4(clamp((layer.x ?? 0.5) + dx / w, -1, 2)),
@@ -161,7 +169,7 @@ export function moveLayer(layer: FrameLayer, dx: number, dy: number, w: number, 
 
 /** Escala el tamaño de la capa (no el grosor del borde). Corta en los límites que valida la base. */
 export function scaleLayer(layer: FrameLayer, factor: number): FrameLayer {
-  if (isCover(layer)) return layer;
+  if (isCover(layer) || isBoxed(layer)) return layer;
   const side = (value: number) => round4(clamp(value * factor, 0.01, 4));
   switch (layer.type) {
     case 'text':

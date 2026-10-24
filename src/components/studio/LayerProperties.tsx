@@ -123,7 +123,8 @@ function DraftField(props: {
 }
 
 function CommonFields({ layer, onChange }: LayerPropertiesProps) {
-  const cover = layer.type === 'image' && layer.full === true;
+  // Rotación y ancla no valen para una imagen a pantalla completa ni para una forma pegada a los bordes.
+  const cover = (layer.type === 'image' && layer.full === true) || (layer.type === 'shape' && layer.box !== undefined);
   return (
     <>
       <RangeField label="Opacidad" value={layer.opacity ?? 1} min={0} max={1} step={0.05} onChange={(opacity) => onChange({ ...layer, opacity })} />

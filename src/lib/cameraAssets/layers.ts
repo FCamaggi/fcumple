@@ -43,6 +43,12 @@ interface LayerBase {
   x?: number;
   /** Fracción del alto del lienzo. */
   y?: number;
+  /**
+   * Desplazamiento desde (`x`, `y`), relativo al lado menor (como los tamaños). Es lo que permite pegar una capa a un
+   * borde o una esquina (`x: 1, dx: -0.1`) y que siga ahí en vertical, en horizontal o en una cámara 9:16.
+   */
+  dx?: number;
+  dy?: number;
   /** Grados, en sentido horario. */
   rotation?: number;
   opacity?: number;
@@ -76,6 +82,19 @@ export interface ShapeLayer extends LayerBase {
   radius?: number;
   /** Solo `path`: trazo en una caja de 100 × 100 que se escala a `w` × `h`. */
   d?: string;
+  /**
+   * Solo `rect` y `line`: la forma queda pegada a los bordes del lienzo, con márgenes relativos al lado menor.
+   * Con `l` y `r` el ancho sale del lienzo (con `t` y `b`, el alto); con un solo borde se usa `w` o `h` y la forma
+   * queda pegada a ese borde. Se ignoran `x`, `y`, `dx`, `dy`, el ancla y la rotación.
+   */
+  box?: LayerBox;
+}
+
+export interface LayerBox {
+  l?: number;
+  t?: number;
+  r?: number;
+  b?: number;
 }
 
 export interface ImageLayer extends LayerBase {
@@ -110,10 +129,11 @@ const PATH_PATTERN = /^[MLCZ0-9.,\s-]+$/;
 const IMAGE_SRC_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/frames\/[A-Za-z0-9_-][A-Za-z0-9._-]{0,99}$/;
 
-const COMMON_KEYS = ['type', 'x', 'y', 'rotation', 'opacity', 'anchor', 'shadow'];
+const BOX_EDGES = ['l', 't', 'r', 'b'];
+const COMMON_KEYS = ['type', 'x', 'y', 'dx', 'dy', 'rotation', 'opacity', 'anchor', 'shadow'];
 const KEYS_BY_TYPE: Record<FrameLayer['type'], Set<string>> = {
   text: new Set([...COMMON_KEYS, 'text', 'size', 'font', 'color', 'weight', 'w', 'strokeColor', 'strokeWidth']),
-  shape: new Set([...COMMON_KEYS, 'shape', 'w', 'h', 'fill', 'stroke', 'strokeWidth', 'radius', 'd']),
+  shape: new Set([...COMMON_KEYS, 'shape', 'w', 'h', 'fill', 'stroke', 'strokeWidth', 'radius', 'd', 'box']),
   image: new Set([...COMMON_KEYS, 'src', 'w', 'h', 'full']),
   emoji: new Set([...COMMON_KEYS, 'emoji', 'size']),
 };
@@ -147,6 +167,8 @@ function validateLayer(raw: unknown): ValidationResult {
 
   if ('x' in l && !isNumberIn(l.x, -1, 2)) return fail('La posición de la capa está fuera de rango.');
   if ('y' in l && !isNumberIn(l.y, -1, 2)) return fail('La posición de la capa está fuera de rango.');
+  if ('dx' in l && !isNumberIn(l.dx, -2, 2)) return fail('El desplazamiento de la capa está fuera de rango.');
+  if ('dy' in l && !isNumberIn(l.dy, -2, 2)) return fail('El desplazamiento de la capa está fuera de rango.');
   if ('rotation' in l && !isNumberIn(l.rotation, -360, 360)) return fail('La rotación va entre -360 y 360 grados.');
   if ('opacity' in l && !isNumberIn(l.opacity, 0, 1)) return fail('La opacidad va entre 0 y 1.');
   if ('anchor' in l && !LAYER_ANCHORS.includes(l.anchor as LayerAnchor)) return fail('Ancla desconocida.');
@@ -179,6 +201,18 @@ function validateLayer(raw: unknown): ValidationResult {
       }
       if ('strokeWidth' in l && !isNumberIn(l.strokeWidth, 0, 0.2)) return fail('El borde está fuera de rango.');
       if ('radius' in l && !isNumberIn(l.radius, 0, 1)) return fail('El radio va entre 0 y 1.');
+      if ('box' in l) {
+        const box = l.box;
+        const edges = typeof box === 'object' && box !== null && !Array.isArray(box) ? (box as Record<string, unknown>) : null;
+        if (
+          (l.shape !== 'rect' && l.shape !== 'line') ||
+          !edges ||
+          Object.keys(edges).length === 0 ||
+          Object.entries(edges).some(([key, value]) => !BOX_EDGES.includes(key) || !isNumberIn(value, 0, 1))
+        ) {
+          return fail('La caja pegada a los bordes no es válida.');
+        }
+      }
       if (l.shape === 'path') {
         if (typeof l.d !== 'string' || l.d.length === 0 || l.d.length > MAX_PATH_LENGTH || !PATH_PATTERN.test(l.d)) {
           return fail('El trazo no es válido.');
@@ -340,6 +374,28 @@ export function anchorOffset(anchor: LayerAnchor, bw: number, bh: number): [numb
   }
 }
 
+/**
+ * Caja en píxeles (x, y, ancho, alto) de un `rect` o `line` con `box`: pegada a los bordes del lienzo con márgenes
+ * relativos al lado menor, así que sigue pegada aunque cambie la proporción (vertical, horizontal, 9:16).
+ */
+export function boxRect(layer: ShapeLayer, w: number, h: number, unit: number): [number, number, number, number] {
+  const box = layer.box ?? {};
+  const axis = (start: number | undefined, end: number | undefined, total: number, size: number): [number, number] => {
+    if (start !== undefined && end !== undefined) return [start * unit, Math.max(0, total - (start + end) * unit)];
+    if (start !== undefined) return [start * unit, size];
+    if (end !== undefined) return [total - end * unit - size, size];
+    return [(total - size) / 2, size];
+  };
+  const [x0, bw] = axis(box.l, box.r, w, (layer.w ?? 0.2) * unit);
+  if (layer.shape === 'line') {
+    // Una línea no tiene alto: va en el borde de arriba (`t`) o, si no, a `b` del de abajo.
+    const y = box.t !== undefined ? box.t * unit : box.b !== undefined ? h - box.b * unit : h / 2;
+    return [x0, y, bw, 0];
+  }
+  const [y0, bh] = axis(box.t, box.b, h, (layer.h ?? 0.2) * unit);
+  return [x0, y0, bw, bh];
+}
+
 function paintShape(ctx: Ctx, layer: ShapeLayer, unit: number, ox: number, oy: number, bw: number, bh: number): void {
   const strokeWidth = (layer.strokeWidth ?? 0.01) * unit;
   // Sin relleno ni borde la forma sería invisible: se dibuja rellena en rosa.
@@ -408,7 +464,13 @@ function drawLayer(ctx: Ctx, w: number, h: number, unit: number, layer: FrameLay
     ctx.shadowOffsetY = layer.shadow.y * unit;
   }
 
-  ctx.translate((layer.x ?? 0.5) * w, (layer.y ?? 0.5) * h);
+  if (layer.type === 'shape' && layer.box && (layer.shape === 'rect' || layer.shape === 'line')) {
+    const [bx, by, bw, bh] = boxRect(layer, w, h, unit);
+    paintShape(ctx, layer, unit, bx, by, bw, bh);
+    return;
+  }
+
+  ctx.translate((layer.x ?? 0.5) * w + (layer.dx ?? 0) * unit, (layer.y ?? 0.5) * h + (layer.dy ?? 0) * unit);
   if (layer.rotation) ctx.rotate((layer.rotation * Math.PI) / 180);
 
   const [bw, bh] = layerSize(layer, unit);
