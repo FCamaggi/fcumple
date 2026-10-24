@@ -34,6 +34,9 @@ Una cámara desechable digital para eventos festivos e informales (cumpleaños, 
 - **2026-10-23:** el estilo es **por evento** (datos), no por rama. Cada evento elige su piel; la estructura es una sola.
 - **2026-10-23:** los acompañantes que escribe el invitado son una **solicitud** que aprueba la organizadora.
 
+## Lo que viene
+[`backlog-diseno-y-marcos.md`](./backlog-diseno-y-marcos.md): revisión móvil, marcos nuevos (composición, no máscaras), vistas previas de lo que ve el invitado para la organizadora y panel pensado para el celular.
+
 ## Cómo trabajamos (para que no vuelva el desorden)
 - Un solo `main`. Las ramas viven pocos días, con PR, y se **borran al fusionar** (activar «Automatically delete head branches» en GitHub).
 - Lo propio de un cliente va como datos en la base y su material personal fuera del repo (`docs/clientes/` está en `.gitignore`: el repo es público).
