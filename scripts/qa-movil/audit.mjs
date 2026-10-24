@@ -67,6 +67,7 @@ const scenes = [
   { id: 'g10-visor-foto', url: '/e/demo', ...guest('t-active'), vshot: true, act: async (p) => { const b = p.getByRole('button', { name: /^ver foto 1 de/i }).first(); await b.scrollIntoViewIfNeeded(); await b.click(); await p.waitForTimeout(800); } },
   { id: 'o01-eventos', url: '/panel', org: true },
   ...TABS.map((t, i) => ({ id: `o${String(i + 2).padStart(2, '0')}-panel-${t.toLowerCase().normalize('NFD').replace(/[^a-z]/g, '')}`, url: `/panel/e/${EVENT_ID}`, org: true, act: async (p) => { await p.getByRole('button', { name: t, exact: true }).click(); await p.waitForTimeout(500); } })),
+  { id: 'o19-hoy', url: `/panel/e/${EVENT_ID}`, org: true, act: async (p) => { await p.getByRole('button', { name: 'Hoy', exact: true }).click(); await p.waitForTimeout(1200); } },
   { id: 'o11-moderacion', url: `/panel/e/${EVENT_ID}`, org: true, vshot: true, act: async (p) => { await p.getByRole('button', { name: 'Fotos', exact: true }).click(); await p.waitForTimeout(500); await p.getByRole('button', { name: /revisar \d+ foto|abrir revisión/i }).first().click({ timeout: 3000 }); await p.waitForTimeout(700); } },
   { id: 'o12-escaner', url: `/panel/e/${EVENT_ID}`, org: true, vshot: true, act: async (p) => { await p.getByRole('button', { name: 'Puerta', exact: true }).click(); await p.getByRole('button', { name: /abrir escáner/i }).click(); await p.waitForTimeout(900); } },
   // Épica C: la pestaña «Vista previa» (teléfono dentro del panel) y la página que corre dentro de su iframe.

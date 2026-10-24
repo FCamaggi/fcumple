@@ -129,16 +129,22 @@ export default function PartyDayTab({ event, guests, photos: state, onOpenTab, o
             {camera.missing.length === 0 ? (
               <p className="font-mono text-xs uppercase tracking-wide text-acid-400">Todos tienen la cámara.</p>
             ) : (
-              <ul className="flex flex-col gap-1 font-sans text-sm" aria-label="Les falta activar la cámara">
-                {listed.map((g) => (
-                  <li key={g.id} data-testid="missing-guest">
-                    {g.fullName}
-                  </li>
-                ))}
-                {camera.missing.length > listed.length && (
-                  <li className="text-paper-100/70">y {camera.missing.length - listed.length} más</li>
-                )}
-              </ul>
+              <>
+                {/* A la vista: sin rótulo, los nombres se leen como los que ya activaron. */}
+                <p id="missing-camera-label" className="font-mono text-xs uppercase tracking-wide text-paper-100/70">
+                  Les falta activar:
+                </p>
+                <ul aria-labelledby="missing-camera-label" className="flex flex-col gap-1 font-sans text-sm">
+                  {listed.map((g) => (
+                    <li key={g.id} data-testid="missing-guest">
+                      {g.fullName}
+                    </li>
+                  ))}
+                  {camera.missing.length > listed.length && (
+                    <li className="text-paper-100/70">y {camera.missing.length - listed.length} más</li>
+                  )}
+                </ul>
+              </>
             )}
           </>
         )}

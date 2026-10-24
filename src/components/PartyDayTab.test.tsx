@@ -191,6 +191,15 @@ describe('PartyDayTab: cámara', () => {
     await screen.findByText('2 por revisar');
   });
 
+  it('rotula a la vista la lista de quienes les falta activar, para no leerla como los que ya activaron', async () => {
+    renderTab();
+
+    const list = await screen.findByRole('list', { name: /les falta activar/i });
+    const label = screen.getByText(/^les falta activar/i);
+    expect(label).toBeVisible();
+    expect(list.compareDocumentPosition(label) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
+  });
+
   it('con una lista larga muestra los primeros y cuenta el resto', async () => {
     const many = Array.from({ length: 11 }, (_, i) => guest(`g${i}`));
     renderTab({ guests: many });
