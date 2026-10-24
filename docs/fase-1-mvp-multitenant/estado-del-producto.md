@@ -35,7 +35,9 @@ Una cámara desechable digital para eventos festivos e informales (cumpleaños, 
 - **2026-10-23:** los acompañantes que escribe el invitado son una **solicitud** que aprueba la organizadora.
 
 ## Lo que viene
-[`backlog-diseno-y-marcos.md`](./backlog-diseno-y-marcos.md): revisión móvil, marcos nuevos (composición, no máscaras), vistas previas de lo que ve el invitado para la organizadora y panel pensado para el celular.
+**Hecho el 2026-10-24:** la revisión móvil (épica A del backlog), con sus arreglos y lo que falta probar en un teléfono real: [`informe-revision-movil.md`](./informe-revision-movil.md).
+
+[`backlog-diseno-y-marcos.md`](./backlog-diseno-y-marcos.md): marcos nuevos (composición, no máscaras), vistas previas de lo que ve el invitado para la organizadora y panel pensado para el celular (épicas B, C y D).
 
 ## Cómo trabajamos (para que no vuelva el desorden)
 - Un solo `main`. Las ramas viven pocos días, con PR, y se **borran al fusionar** (activar «Automatically delete head branches» en GitHub).
