@@ -48,7 +48,28 @@ describe('EnrollmentSettings', () => {
     render(<EnrollmentSettings event={event} onSave={vi.fn().mockResolvedValue(undefined)} />);
     await userEvent.click(save());
     const bar = save().parentElement as HTMLElement;
+    expect(bar).not.toBe(bar.closest('form'));
+    expect(bar).toHaveClass('sticky');
     expect(within(bar).getByRole('status')).toHaveTextContent('Inscripción guardada.');
+  });
+
+  it('los controles dejan margen de scroll para que la barra fija no tape el que tiene el foco', async () => {
+    render(<EnrollmentSettings event={event} onSave={vi.fn()} />);
+    await userEvent.click(screen.getByLabelText('Permitir acompañantes (+1)'));
+    await userEvent.click(screen.getByLabelText('Pedir un comentario'));
+    await userEvent.click(screen.getByRole('button', { name: 'Agregar pregunta' }));
+    const controls = [
+      screen.getByLabelText(/Texto de bienvenida/),
+      screen.getByLabelText('Máximo de acompañantes'),
+      screen.getByLabelText('Pregunta del comentario'),
+      screen.getByLabelText('Pregunta 1'),
+      screen.getByLabelText('Permitir acompañantes (+1)'),
+      screen.getByLabelText('El comentario es obligatorio'),
+      screen.getByLabelText('Pregunta 1 obligatoria'),
+      screen.getByRole('button', { name: 'Agregar pregunta' }),
+      screen.getByRole('button', { name: 'Quitar pregunta 1' }),
+    ];
+    for (const control of controls) expect(control.className).toContain('scroll-mb-');
   });
 
   it('activa los acompañantes con un máximo', async () => {
