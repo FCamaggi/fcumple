@@ -1,10 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import QRCode from 'qrcode';
-import AnnouncementFeed from './AnnouncementFeed';
 import CameraCapture from './CameraCapture';
-import CameraSection from './CameraSection';
-import PhotoCarousel from './PhotoCarousel';
-import RevealedRoll, { type RawRevealedPhoto } from './RevealedRoll';
+import GuestHubView from './GuestHubView';
+import { type RawRevealedPhoto } from './RevealedRoll';
 import { getPhotoQuota } from '../lib/photosApi';
 import { useCameraAssets } from '../hooks/useCameraAssets';
 import {
@@ -115,67 +113,19 @@ export default function GuestHub({ slug, token, event, guest, onGuestChange }: G
 
   return (
     <div className="flex w-full max-w-md flex-col gap-5">
-      {headcount !== null && headcount > 0 && (
-        <p className="text-center font-mono text-xs uppercase tracking-widest text-hotpink-500">
-          Aforo // {headcount} inscritos
-        </p>
-      )}
-
-      {cameraUnlocked && quota && cameraReady && <CameraSection quota={quota} onOpen={() => setShowCamera(true)} />}
-
-      {!cameraUnlocked && event.cameraUnlock === 'on_event_qr' && (
-        <section className="flex flex-col gap-3 bg-ink-900 p-4 shadow-2xl" aria-label="Cámara bloqueada">
-          <span className="font-mono text-xs font-bold uppercase tracking-wider text-hotpink-500">
-            Cámara // aún bloqueada
-          </span>
-          <p className="font-sans text-sm text-paper-100/80">
-            Escanea el código QR de la fiesta con la cámara de tu celular para activar la cámara. Lo encuentras impreso en
-            el lugar del evento.
-          </p>
-          <button
-            type="button"
-            onClick={() => void refreshGuest()}
-            disabled={refreshing}
-            className="h-11 border border-acid-400 font-display text-sm uppercase tracking-wider text-acid-400 disabled:opacity-60"
-          >
-            {refreshing ? 'Revisando...' : 'Ya escaneé el código'}
-          </button>
-        </section>
-      )}
-
-      {!cameraUnlocked && event.cameraUnlock !== 'on_event_qr' && (
-        <section className="flex flex-col gap-3 bg-ink-900 p-4 shadow-2xl" aria-label="Cámara bloqueada">
-          <span className="font-mono text-xs font-bold uppercase tracking-wider text-hotpink-500">
-            Cámara // aún bloqueada
-          </span>
-          <p className="font-sans text-sm text-paper-100/80">
-            Muestra tu código en la puerta. Cuando marquen tu llegada se habilita la cámara.
-          </p>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => setShowQr(true)}
-              className="h-11 flex-1 bg-acid-400 font-display text-sm uppercase tracking-wider text-ink-950"
-            >
-              Mostrar mi código
-            </button>
-            <button
-              type="button"
-              onClick={() => void refreshGuest()}
-              disabled={refreshing}
-              className="h-11 flex-1 border border-acid-400 font-display text-sm uppercase tracking-wider text-acid-400 disabled:opacity-60"
-            >
-              {refreshing ? 'Revisando...' : 'Ya me escanearon'}
-            </button>
-          </div>
-        </section>
-      )}
-
-      <AnnouncementFeed posts={posts} />
-
-      <PhotoCarousel photos={revealed} />
-
-      <RevealedRoll photos={revealed} />
+      <GuestHubView
+        cameraUnlock={event.cameraUnlock}
+        cameraUnlocked={cameraUnlocked}
+        cameraReady={cameraReady}
+        headcount={headcount}
+        quota={quota}
+        posts={posts}
+        revealed={revealed}
+        refreshing={refreshing}
+        onOpenCamera={() => setShowCamera(true)}
+        onShowQr={() => setShowQr(true)}
+        onRefresh={() => void refreshGuest()}
+      />
 
       {showCamera && quota && (
         <CameraCapture

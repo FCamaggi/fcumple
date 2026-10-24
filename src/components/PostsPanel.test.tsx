@@ -3,6 +3,13 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import PostsPanel from './PostsPanel';
 
+// El marco real abre un iframe: aquí solo interesa qué estado y qué borrador recibe.
+vi.mock('./PhoneFrame', () => ({
+  default: ({ src, state, draft }: { src: string; state: string; draft: unknown }) => (
+    <div data-testid="phone-frame" data-src={src} data-state={state} data-draft={JSON.stringify(draft)} />
+  ),
+}));
+
 vi.mock('../lib/postsApi', () => ({
   listAllPosts: vi.fn(),
   createPost: vi.fn(),
@@ -211,6 +218,71 @@ describe('PostsPanel', () => {
     await waitFor(() => expect(addPostImage).toHaveBeenCalledTimes(2));
     expect(addPostImage).toHaveBeenCalledWith({ postId: 'p1', storagePath: 'p1/gal-a.jpg', position: 0 });
     expect(addPostImage).toHaveBeenCalledWith({ postId: 'p1', storagePath: 'p1/gal-b.jpg', position: 1 });
+  });
+
+  describe('vista previa del aviso (C2)', () => {
+    const draftOf = () => JSON.parse(screen.getByTestId('phone-frame').getAttribute('data-draft') ?? 'null');
+
+    it('sin evento (el /admin de la Fase 0) no ofrece la vista previa', async () => {
+      vi.mocked(listAllPosts).mockResolvedValueOnce([]);
+      const user = userEvent.setup();
+      render(<PostsPanel />);
+      await waitFor(() => expect(listAllPosts).toHaveBeenCalled());
+
+      await user.click(screen.getByRole('button', { name: /nuevo aviso/i }));
+
+      expect(screen.queryByRole('button', { name: /ver cómo queda/i })).not.toBeInTheDocument();
+    });
+
+    it('al redactar muestra el aviso en la cartelera del teléfono y lo sigue mientras se escribe', async () => {
+      vi.mocked(listAllPosts).mockResolvedValueOnce([]);
+      const user = userEvent.setup();
+      render(<PostsPanel eventId="ev-1" />);
+      await waitFor(() => expect(listAllPosts).toHaveBeenCalled());
+
+      await user.click(screen.getByRole('button', { name: /nuevo aviso/i }));
+      expect(screen.queryByTestId('phone-frame')).not.toBeInTheDocument();
+      await user.type(screen.getByLabelText(/^título$/i), 'Pizza');
+      await user.click(screen.getByRole('button', { name: /ver cómo queda/i }));
+
+      const frame = screen.getByTestId('phone-frame');
+      expect(frame).toHaveAttribute('data-src', '/panel/e/ev-1/vista-previa?estado=aviso');
+      expect(frame).toHaveAttribute('data-state', 'aviso');
+      expect(draftOf()).toEqual({ title: 'Pizza', subtitle: null, body: '', coverImagePath: null, galleryPaths: [] });
+
+      await user.type(screen.getByLabelText(/cuerpo/i), 'A las 22:00');
+      expect(draftOf().body).toBe('A las 22:00');
+
+      await user.click(screen.getByRole('button', { name: /ocultar vista previa/i }));
+      expect(screen.queryByTestId('phone-frame')).not.toBeInTheDocument();
+    });
+
+    it('incluye la portada y la galería ya subidas', async () => {
+      vi.mocked(listAllPosts).mockResolvedValueOnce([]);
+      vi.mocked(uploadPostImage).mockResolvedValueOnce('ev-1/portada.jpg').mockResolvedValueOnce('ev-1/g1.jpg');
+      const user = userEvent.setup();
+      render(<PostsPanel eventId="ev-1" />);
+      await waitFor(() => expect(listAllPosts).toHaveBeenCalled());
+
+      await user.click(screen.getByRole('button', { name: /nuevo aviso/i }));
+      await user.upload(screen.getByLabelText(/imagen destacada/i), new File(['a'], 'a.jpg', { type: 'image/jpeg' }));
+      await user.upload(screen.getByLabelText(/galería/i), new File(['b'], 'b.jpg', { type: 'image/jpeg' }));
+      await user.click(screen.getByRole('button', { name: /ver cómo queda/i }));
+
+      expect(draftOf()).toMatchObject({ coverImagePath: 'ev-1/portada.jpg', galleryPaths: ['ev-1/g1.jpg'] });
+    });
+
+    it('al editar un aviso existente manda su id, para que no salga repetido', async () => {
+      vi.mocked(listAllPosts).mockResolvedValueOnce([draftPost]);
+      const user = userEvent.setup();
+      render(<PostsPanel eventId="ev-1" />);
+      await screen.findByText('Borrador sin publicar');
+
+      await user.click(screen.getByRole('button', { name: /^editar$/i }));
+      await user.click(screen.getByRole('button', { name: /ver cómo queda/i }));
+
+      expect(draftOf()).toMatchObject({ id: 'p1', title: 'Borrador sin publicar', body: 'Todavía no está listo' });
+    });
   });
 
   it('deletes a post', async () => {

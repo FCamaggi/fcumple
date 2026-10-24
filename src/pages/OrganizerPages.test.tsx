@@ -28,6 +28,9 @@ vi.mock('../components/ActivationTab', () => ({
   default: ({ event }: { event: { activationCode: string } }) => <div data-testid="activation-tab">código {event.activationCode}</div>,
 }));
 vi.mock('../components/studio/CameraStudio', () => ({ default: () => <div data-testid="camera-studio" /> }));
+vi.mock('../components/GuestPreviewTab', () => ({
+  default: ({ event }: { event: { id: string } }) => <div data-testid="guest-preview-tab">vista previa de {event.id}</div>,
+}));
 vi.mock('../lib/auth', () => ({ signOut: vi.fn(), signIn: vi.fn(), useSession: vi.fn() }));
 vi.mock('qrcode', () => ({ default: { toDataURL: vi.fn().mockResolvedValue('data:image/png;base64,QR') } }));
 
@@ -302,6 +305,14 @@ describe('OrganizerEventPage', () => {
     renderEvent();
     await userEvent.click(await screen.findByRole('button', { name: 'Fotos' }));
     expect(screen.getByTestId('photos-tab')).toBeInTheDocument();
+  });
+
+  it('Vista previa: muestra lo que ve el invitado en este evento', async () => {
+    vi.mocked(api.getMyEvent).mockResolvedValueOnce(event);
+    vi.mocked(api.listEventGuests).mockResolvedValueOnce([]);
+    renderEvent();
+    await userEvent.click(await screen.findByRole('button', { name: 'Vista previa' }));
+    expect(screen.getByTestId('guest-preview-tab')).toHaveTextContent('vista previa de ev-1');
   });
 
   it('Cámara: muestra el estudio de marcos y stickers', async () => {

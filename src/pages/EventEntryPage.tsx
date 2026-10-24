@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import EventHeader from '../components/EventHeader';
 import GuestHub from '../components/GuestHub';
 import IdentifyForm from '../components/IdentifyForm';
 import ThemeScope from '../components/ThemeScope';
@@ -23,11 +24,6 @@ type State =
   | { phase: 'inside'; event: EventPublic; guest: MyGuest; token: string };
 
 const centered = 'flex min-h-app items-center justify-center bg-ink-950 px-4 py-8 text-paper-100';
-
-function formatDate(iso: string | null): string | null {
-  if (!iso) return null;
-  return new Intl.DateTimeFormat('es-CL', { dateStyle: 'full', timeStyle: 'short' }).format(new Date(iso));
-}
 
 /** El código del QR de la fiesta: `/e/:slug/a/:code`. Cualquier otra cola del enlace se ignora. */
 function activationCodeFrom(splat: string | undefined): string | undefined {
@@ -169,17 +165,10 @@ export default function EventEntryPage() {
       );
     case 'inside': {
       const { event, guest, token } = state;
-      const date = formatDate(event.startsAt);
       return (
         <ThemeScope theme={event.theme}>
           <div className="flex min-h-app flex-col items-center gap-5 bg-ink-950 px-4 pb-16 pt-8 text-paper-100">
-            <header className="flex w-full max-w-md flex-col gap-1 text-center">
-              <span className="font-display text-2xl uppercase leading-tight tracking-wide text-laser-500">{event.name}</span>
-              {event.subtitle && <span className="font-sans text-sm text-paper-100/80">{event.subtitle}</span>}
-              <h1 className="mt-2 font-display text-3xl uppercase tracking-wide">Hola, {guest.fullName.split(' ')[0]}</h1>
-              {date && <p className="font-sans text-sm text-paper-100/80">{date}</p>}
-              {event.location && <p className="font-sans text-sm text-paper-100/80">{event.location}</p>}
-            </header>
+            <EventHeader event={event} guestName={guest.fullName} />
             {activation && (
               <p
                 role={activation.kind === 'error' ? 'alert' : 'status'}

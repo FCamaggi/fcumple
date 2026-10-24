@@ -15,6 +15,8 @@ const AdminPage = lazy(() => import('./pages/AdminPage'));
 const OrganizerEventsPage = lazy(() => import('./pages/OrganizerEventsPage'));
 const OrganizerEventPage = lazy(() => import('./pages/OrganizerEventPage'));
 const OrganizerAccountPage = lazy(() => import('./pages/OrganizerAccountPage'));
+// Lo que ve un invitado, para la organizadora: se abre dentro del iframe de la pestaña «Vista previa».
+const GuestPreviewPage = lazy(() => import('./pages/GuestPreviewPage'));
 // Formulario de opciones para el cliente de un cumpleaños: nadie más lo abre.
 const ClientBriefPage = lazy(() => import('./pages/ClientBriefPage'));
 
@@ -71,6 +73,16 @@ export default function App() {
             <RequireAuth login={<OrganizerLogin />}>
               <Suspense fallback={<AdminFallback />}>
                 <OrganizerEventPage />
+              </Suspense>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/panel/e/:eventId/vista-previa"
+          element={
+            <RequireAuth login={<OrganizerLogin />}>
+              <Suspense fallback={<AdminFallback />}>
+                <GuestPreviewPage />
               </Suspense>
             </RequireAuth>
           }
