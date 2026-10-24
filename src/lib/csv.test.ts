@@ -166,6 +166,7 @@ describe('enrollmentToCsv', () => {
     checkedInAt: null,
     claimedAt: '2026-10-30T00:00:00Z',
     lastSeenAt: null,
+    cameraActivatedAt: null,
     ...over,
   });
   const config = {

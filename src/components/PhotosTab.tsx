@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useState } from 'react';
 import PhotoModerationPanel from './PhotoModerationPanel';
-import { listEventPhotos, moderateEventPhoto, publishPhotoBatch, type OrganizerEvent } from '../lib/organizerApi';
-import type { ModerationPhoto } from '../lib/photosApi';
+import { useEventPhotos } from '../hooks/useEventPhotos';
+import type { OrganizerEvent } from '../lib/organizerApi';
 
 interface PhotosTabProps {
   event: OrganizerEvent;
@@ -15,72 +15,12 @@ interface PhotosTabProps {
  * trabajan sobre ESTE evento).
  */
 export default function PhotosTab({ event, onEventChange }: PhotosTabProps) {
-  const [photos, setPhotos] = useState<ModerationPhoto[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
   const [moderating, setModerating] = useState(false);
-  const [publishing, setPublishing] = useState(false);
-  const [reloadKey, setReloadKey] = useState(0);
-
-  useEffect(() => {
-    let active = true;
-    listEventPhotos(event.id)
-      .then((found) => active && setPhotos(found))
-      .catch((err: unknown) => active && setError(err instanceof Error ? err.message : 'No pudimos cargar las fotos.'));
-    return () => {
-      active = false;
-    };
-  }, [event.id, moderating, reloadKey]);
-
-  const counts = useMemo(() => {
-    const result = { pending: 0, approved: 0, rejected: 0, unpublished: 0 };
-    for (const photo of photos ?? []) {
-      result[photo.status] += 1;
-      if (photo.status === 'approved' && !photo.publishedAt) result.unpublished += 1;
-    }
-    return result;
-  }, [photos]);
-
-  /** Publica el lote y deja el evento marcado como «con fotos» (lo que lee el hub). */
-  async function publish(): Promise<number> {
-    const count = await publishPhotoBatch(event.id);
-    onEventChange({ ...event, photosRevealedAt: event.photosRevealedAt ?? new Date().toISOString() });
-    setReloadKey((k) => k + 1);
-    return count;
-  }
-
-  async function handlePublish() {
-    setError(null);
-    setNotice(null);
-    let message = `¿Publicar ${counts.unpublished} foto(s) aprobada(s)? Tus invitados las verán en la cartelera.`;
-    if (counts.pending > 0) {
-      message += `\n\nQuedan ${counts.pending} foto(s) sin revisar: no se publican hasta que las apruebes.`;
-    }
-    if (!window.confirm(message)) return;
-    setPublishing(true);
-    try {
-      const count = await publish();
-      setNotice(count > 0 ? `Publicaste ${count} foto(s).` : 'No había fotos aprobadas nuevas para publicar.');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No pudimos publicar las fotos.');
-    } finally {
-      setPublishing(false);
-    }
-  }
-
-  // Se fija una vez por montaje del panel: ver PhotoModerationPanel.
-  const source = useMemo(
-    () => ({
-      list: () => listEventPhotos(event.id),
-      moderate: (id: string, status: 'approved' | 'rejected') => moderateEventPhoto(id, status),
-      publish: async () => {
-        const count = await publishPhotoBatch(event.id);
-        onEventChange({ ...event, photosRevealedAt: event.photosRevealedAt ?? new Date().toISOString() });
-        return count;
-      },
-    }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [event.id, onEventChange],
+  // Al abrir y al cerrar la revisión se vuelve a pedir la lista: lo revisado cambia los conteos.
+  const { photos, counts, error, notice, publishing, handlePublish, source } = useEventPhotos(
+    event,
+    onEventChange,
+    moderating ? 1 : 0,
   );
 
   return (

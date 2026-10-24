@@ -7,9 +7,11 @@ import ActivationTab from '../components/ActivationTab';
 import EnrollmentSettings from '../components/EnrollmentSettings';
 import GuestPreviewTab from '../components/GuestPreviewTab';
 import PanelTabs from '../components/PanelTabs';
+import PartyDayTab from '../components/PartyDayTab';
 import PostsPanel from '../components/PostsPanel';
 import ThemeScope from '../components/ThemeScope';
 import { QUESTION_IDS } from '../lib/enrollmentConfig';
+import { isPartyDay } from '../lib/partyDay';
 import EventSettingsPanel from '../components/EventSettingsPanel';
 import GuestListPanel from '../components/GuestListPanel';
 import PhotosTab from '../components/PhotosTab';
@@ -30,6 +32,7 @@ import {
 } from '../lib/organizerApi';
 
 type Tab =
+  | 'hoy'
   | 'invitados'
   | 'avisos'
   | 'fotos'
@@ -42,6 +45,7 @@ type Tab =
   | 'ajustes';
 
 const TABS: Array<{ id: Tab; label: string }> = [
+  { id: 'hoy', label: 'Hoy' },
   { id: 'invitados', label: 'Invitados' },
   { id: 'avisos', label: 'Avisos' },
   { id: 'fotos', label: 'Fotos' },
@@ -72,6 +76,8 @@ export default function OrganizerEventPage() {
         if (cancelled) return;
         setEvent(ev);
         setGuests(list);
+        // El día de la fiesta el panel abre en lo que se necesita ahí; otros días, en la lista de invitados.
+        if (ev && isPartyDay(ev.startsAt, new Date())) setTab('hoy');
       })
       .catch((err: unknown) => {
         if (!cancelled) setError(err instanceof Error ? err.message : 'No pudimos cargar el evento.');
@@ -129,6 +135,8 @@ export default function OrganizerEventPage() {
           </header>
 
           <PanelTabs tabs={TABS} active={tab} onSelect={setTab} />
+
+          {tab === 'hoy' && <PartyDayTab event={event} guests={guests} onEventChange={setEvent} onOpenTab={setTab} />}
 
           {tab === 'invitados' && (
             <GuestListPanel

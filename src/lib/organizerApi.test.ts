@@ -191,6 +191,20 @@ describe('invitados', () => {
     expect(guests[0]).toMatchObject({ fullName: 'Ana Rojas', approvalStatus: 'approved', token: 'tok' });
   });
 
+  it('listEventGuests entrega cuándo activó la cámara con el QR (null si nunca)', async () => {
+    const q = chain({
+      data: [
+        { ...guestRow, camera_activated_at: '2026-10-30T23:10:00Z' },
+        { ...guestRow, id: 'g2' },
+      ],
+      error: null,
+    });
+    from.mockReturnValueOnce(q.proxy);
+    const [activated, never] = await listEventGuests('ev-1');
+    expect(activated.cameraActivatedAt).toBe('2026-10-30T23:10:00Z');
+    expect(never.cameraActivatedAt).toBeNull();
+  });
+
   it('listEventGuests entrega las respuestas de la inscripción', async () => {
     const q = chain({
       data: [{ ...guestRow, guest_answers: { plus_ones: ['Luis Pérez'], q1: 'Regina' }, plus_ones_requested: 1 }],
@@ -248,7 +262,7 @@ describe('invitados', () => {
     const guest = {
       id: 'g1', eventId: 'ev-1', fullName: 'Ana Rojas', token: 't', approvalStatus: 'approved' as const,
       status: 'pending' as const, plusOnesAllowed: 0, plusOnesConfirmed: 0, photoQuota: 5, answers: {},
-      plusOnesRequested: 2, checkedInAt: null, claimedAt: null, lastSeenAt: null,
+      plusOnesRequested: 2, checkedInAt: null, claimedAt: null, lastSeenAt: null, cameraActivatedAt: null,
     };
     const updated = await setGuestPlusOnes(guest, true);
     expect(q.calls.find(([name]) => name === 'update')?.[1][0]).toEqual({ plus_ones_allowed: 2, plus_ones_confirmed: 2 });
@@ -262,7 +276,7 @@ describe('invitados', () => {
       {
         id: 'g1', eventId: 'ev-1', fullName: 'Ana Rojas', token: 't', approvalStatus: 'approved', status: 'pending',
         plusOnesAllowed: 4, plusOnesConfirmed: 0, photoQuota: 5, answers: {}, plusOnesRequested: 1,
-        checkedInAt: null, claimedAt: null, lastSeenAt: null,
+        checkedInAt: null, claimedAt: null, lastSeenAt: null, cameraActivatedAt: null,
       },
       true,
     );
@@ -276,7 +290,7 @@ describe('invitados', () => {
       {
         id: 'g1', eventId: 'ev-1', fullName: 'Ana Rojas', token: 't', approvalStatus: 'approved', status: 'pending',
         plusOnesAllowed: 0, plusOnesConfirmed: 0, photoQuota: 5, answers: {}, plusOnesRequested: 2,
-        checkedInAt: null, claimedAt: null, lastSeenAt: null,
+        checkedInAt: null, claimedAt: null, lastSeenAt: null, cameraActivatedAt: null,
       },
       false,
     );
