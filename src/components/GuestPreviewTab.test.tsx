@@ -47,7 +47,7 @@ describe('GuestPreviewTab', () => {
 
     expect(iframe()).toBe(frame);
     expect(frame.getAttribute('src')).toBe('/panel/e/ev-1/vista-previa?estado=activa');
-    expect(post).toHaveBeenLastCalledWith({ type: 'fcumple-preview', state: 'fotos', draft: null }, window.location.origin);
+    expect(post).toHaveBeenLastCalledWith({ type: 'fcumple-preview', state: 'fotos', draft: null, themeId: null }, window.location.origin);
     expect(screen.getByRole('button', { name: 'Fotos publicadas' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('button', { name: 'Cámara activa' })).toHaveAttribute('aria-pressed', 'false');
   });

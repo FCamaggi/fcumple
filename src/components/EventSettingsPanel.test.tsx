@@ -121,6 +121,50 @@ describe('EventSettingsPanel', () => {
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ theme: { preset: 'rosa-chicle' } }));
   });
 
+  describe('vista previa del estilo', () => {
+    function frameWindow(): Window {
+      return (screen.getByTitle(/vista previa/i) as HTMLIFrameElement).contentWindow as Window;
+    }
+
+    it('empieza cerrada: no carga ningún teléfono hasta que se pide', () => {
+      render(<EventSettingsPanel event={event} onSave={vi.fn()} />);
+      expect(screen.queryByTitle(/vista previa/i)).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Ver cómo queda' })).toHaveAttribute('aria-expanded', 'false');
+    });
+
+    it('al abrirla muestra el teléfono del evento y no pone el estilo en la dirección', async () => {
+      render(<EventSettingsPanel event={event} onSave={vi.fn()} />);
+      await userEvent.click(screen.getByRole('button', { name: 'Ver cómo queda' }));
+
+      const src = screen.getByTitle(/vista previa/i).getAttribute('src') ?? '';
+      expect(src).toContain('/panel/e/ev-1/vista-previa');
+      expect(src).not.toContain('rosa-chicle');
+      expect(screen.getByRole('button', { name: 'Ocultar vista previa' })).toHaveAttribute('aria-expanded', 'true');
+    });
+
+    it('al elegir otro preset se lo manda al teléfono por mensaje, sin guardar', async () => {
+      const onSave = vi.fn();
+      render(<EventSettingsPanel event={event} onSave={onSave} />);
+      await userEvent.click(screen.getByRole('button', { name: 'Ver cómo queda' }));
+      const post = vi.spyOn(frameWindow(), 'postMessage');
+
+      await userEvent.selectOptions(screen.getByLabelText('Estilo del evento'), 'rosa-chicle');
+
+      expect(post).toHaveBeenLastCalledWith(
+        { type: 'fcumple-preview', state: 'activa', draft: null, themeId: 'rosa-chicle' },
+        window.location.origin,
+      );
+      expect(onSave).not.toHaveBeenCalled();
+    });
+
+    it('volver a ocultarla quita el teléfono', async () => {
+      render(<EventSettingsPanel event={event} onSave={vi.fn()} />);
+      await userEvent.click(screen.getByRole('button', { name: 'Ver cómo queda' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Ocultar vista previa' }));
+      expect(screen.queryByTitle(/vista previa/i)).not.toBeInTheDocument();
+    });
+  });
+
   it('carga el estilo actual y no lo reenvía si no se toca', async () => {
     const onSave = vi.fn().mockResolvedValue(undefined);
     render(<EventSettingsPanel event={{ ...event, theme: { preset: 'rosa-chicle' } }} onSave={onSave} />);

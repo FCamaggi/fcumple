@@ -188,7 +188,20 @@ describe('parsePreviewMessage', () => {
       type: 'fcumple-preview',
       state: 'activa',
       draft: null,
+      themeId: null,
     });
+  });
+
+  it('acepta el estilo de un preset conocido y lo conserva', () => {
+    expect(parsePreviewMessage({ type: 'fcumple-preview', state: 'activa', draft: null, themeId: 'rosa-chicle' })?.themeId).toBe(
+      'rosa-chicle',
+    );
+  });
+
+  it('un estilo que no es de los presets no se acepta: ni colores sueltos ni ids inventados', () => {
+    for (const themeId of ['#ff0000', 'no-existe', 7, {}, '']) {
+      expect(parsePreviewMessage({ type: 'fcumple-preview', state: 'activa', draft: null, themeId })).toBeNull();
+    }
   });
 
   it('acepta un borrador bien formado y descarta campos de más', () => {

@@ -24,6 +24,7 @@ import { getMyEvent, type OrganizerEvent } from '../lib/organizerApi';
 import { getPostImageUrl, listAllPosts, listPostImages } from '../lib/postsApi';
 import { loginGuest, registerGuest } from '../lib/platformApi';
 import { emptyEnrollment } from '../lib/enrollmentConfig';
+import { THEME_PRESETS, hexToChannels } from '../lib/theme';
 import type { Post } from '../types';
 import GuestPreviewPage from './GuestPreviewPage';
 
@@ -94,6 +95,31 @@ describe('GuestPreviewPage', () => {
     expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent('Hola, Ana');
     expect(screen.getByText('PUTI HALLOWEEN')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Abrir cámara' })).toBeInTheDocument();
+  });
+
+  it('con un estilo en el mensaje, pinta ese preset y no el guardado en el evento', async () => {
+    renderAt();
+    await screen.findByRole('heading', { level: 1 });
+    const bg = () => document.documentElement.style.getPropertyValue('--c-ink-950');
+    const neon = THEME_PRESETS.find((p) => p.id === 'neon')!;
+    const rosa = THEME_PRESETS.find((p) => p.id === 'rosa-chicle')!;
+    expect(bg()).toBe(hexToChannels(rosa.colors.bg));
+
+    send({ type: 'fcumple-preview', state: 'activa', draft: null, themeId: 'neon' });
+    await waitFor(() => expect(bg()).toBe(hexToChannels(neon.colors.bg)));
+
+    send({ type: 'fcumple-preview', state: 'activa', draft: null, themeId: null });
+    await waitFor(() => expect(bg()).toBe(hexToChannels(rosa.colors.bg)));
+  });
+
+  it('un mensaje con un estilo inventado se ignora y se conserva el que se veía', async () => {
+    renderAt();
+    await screen.findByRole('heading', { level: 1 });
+
+    send({ type: 'fcumple-preview', state: 'activa', draft: null, themeId: '#00ff00' });
+
+    const rosa = THEME_PRESETS.find((p) => p.id === 'rosa-chicle')!;
+    expect(document.documentElement.style.getPropertyValue('--c-ink-950')).toBe(hexToChannels(rosa.colors.bg));
   });
 
   it('nunca pone el código de activación en la página', async () => {

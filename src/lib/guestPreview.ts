@@ -2,6 +2,7 @@ import type { RawRevealedPhoto } from '../components/RevealedRoll';
 import type { EventPublic } from './platformApi';
 import type { OrganizerEvent } from './organizerApi';
 import { SAMPLE_PHOTOS } from './samplePhotos';
+import { THEME_PRESETS } from './theme';
 import type { PhotoQuota, Post } from '../types';
 
 /**
@@ -62,6 +63,8 @@ export interface PreviewMessage {
   type: typeof PREVIEW_MESSAGE_TYPE;
   state: PreviewState;
   draft: PreviewDraftPost | null;
+  /** Id de un preset de `theme.ts` para probarlo sin guardar; `null` deja el estilo guardado del evento. */
+  themeId: string | null;
 }
 
 function isStringArray(value: unknown): value is string[] {
@@ -95,7 +98,10 @@ export function parsePreviewMessage(data: unknown): PreviewMessage | null {
   if (typeof m.state !== 'string' || !STATE_IDS.includes(m.state)) return null;
   const draft = parseDraft(m.draft === undefined ? null : m.draft);
   if (draft === undefined) return null;
-  return { type: PREVIEW_MESSAGE_TYPE, state: m.state as PreviewState, draft };
+  // Solo ids de los presets: nunca colores sueltos, así que el mensaje no puede pintar nada fuera de la paleta.
+  const themeId = m.themeId === undefined ? null : m.themeId;
+  if (themeId !== null && (typeof themeId !== 'string' || !THEME_PRESETS.some((p) => p.id === themeId))) return null;
+  return { type: PREVIEW_MESSAGE_TYPE, state: m.state as PreviewState, draft, themeId };
 }
 
 /**
