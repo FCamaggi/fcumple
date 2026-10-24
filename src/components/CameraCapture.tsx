@@ -366,10 +366,9 @@ export default function CameraCapture({
   }
 
   // La foto se conserva hasta que la subida salga bien: si falla (red compartida de
-  // una fiesta), sigue en la revisión y se reintenta con el mismo archivo. Un fallo antes
-  // de que `submit_photo` confirme no gasta el cupo; si el servidor confirmó y se perdió la
-  // respuesta, el reintento sube otra copia (ruta nueva, sin clave de idempotencia) y gasta
-  // un segundo disparo. El tope del servidor se respeta igual.
+  // una fiesta), sigue en la revisión y se reintenta con el mismo archivo. Reintentar no
+  // gasta otro disparo: el mismo `Blob` conserva su ruta y `submit_photo` es idempotente por
+  // ruta (en la Fase 1; la ruta heredada `/i/:token` no lo es).
   function handleSend() {
     if (!reviewBlob || state.phase === 'uploading') return;
     void capture(reviewBlob, reviewDisplayBlob);
