@@ -82,7 +82,7 @@ Objetivo: que la organizadora vea, desde su panel y en formato teléfono, lo que
 
 ## Épica D. Panel de la organizadora pensado para el celular
 La organizadora administra durante la fiesta, desde el teléfono.
-- Navegación móvil de las pestañas; las acciones del día de la fiesta a un toque (revisar fotos, publicar lote, ver quién activó la cámara, cuántas fotos faltan por revisar).
+- Navegación móvil de las pestañas; las acciones del día de la fiesta a un toque (revisar fotos, publicar lote, ver quién activó la cámara, cuántas fotos faltan por revisar). *Hecho: etapa 1 (pestaña «Hoy») y etapa 2 (insignia en «Fotos», ver [`panel-fotos-por-revisar.md`](./panel-fotos-por-revisar.md)).*
 - Moderación rápida (swipe), con confirmaciones que no estorben.
 - Estados de carga, vacío y error en cada pestaña.
 - Revisar `GuestListPanel` (acciones en filas cortas) y `EnrollmentSettings` (formularios largos) en pantallas pequeñas.

@@ -18,6 +18,43 @@ afterEach(() => {
   window.matchMedia = matchMediaOriginal;
 });
 
+describe('PanelTabs: insignia', () => {
+  it('muestra la cuenta en la pestaña y la lee el lector de pantalla con su explicación', () => {
+    render(
+      <PanelTabs
+        tabs={[...TABS.slice(0, 2), { id: 'tres', label: 'Tres', badge: { count: 3, hint: 'por revisar' } }]}
+        active="uno"
+        onSelect={vi.fn()}
+      />,
+    );
+
+    const tab = screen.getByRole('button', { name: /Tres.*3 por revisar/ });
+    expect(tab).toHaveTextContent('3');
+  });
+
+  it('sin cuenta o con cero no dibuja nada', () => {
+    render(
+      <PanelTabs
+        tabs={[
+          { id: 'uno', label: 'Uno', badge: { count: 0, hint: 'por revisar' } },
+          { id: 'dos', label: 'Dos' },
+        ]}
+        active="uno"
+        onSelect={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Uno' })).toHaveTextContent(/^Uno$/);
+  });
+
+  it('con cien o más muestra 99+', () => {
+    render(
+      <PanelTabs tabs={[{ id: 'uno', label: 'Uno', badge: { count: 120, hint: 'por revisar' } }]} active="uno" onSelect={vi.fn()} />,
+    );
+    expect(screen.getByRole('button', { name: /Uno/ })).toHaveTextContent('99+');
+  });
+});
+
 describe('PanelTabs', () => {
   it('marca la sección activa con aria-current y avisa al elegir otra', async () => {
     const onSelect = vi.fn();

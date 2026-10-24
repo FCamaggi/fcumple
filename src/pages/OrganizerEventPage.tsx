@@ -10,6 +10,7 @@ import PanelTabs from '../components/PanelTabs';
 import PartyDayTab from '../components/PartyDayTab';
 import PostsPanel from '../components/PostsPanel';
 import ThemeScope from '../components/ThemeScope';
+import { useEventPhotos } from '../hooks/useEventPhotos';
 import { QUESTION_IDS } from '../lib/enrollmentConfig';
 import { isPartyDay } from '../lib/partyDay';
 import EventSettingsPanel from '../components/EventSettingsPanel';
@@ -68,6 +69,15 @@ export default function OrganizerEventPage() {
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>('invitados');
   const [scanning, setScanning] = useState(false);
+  // Las fotos viven aquí, no en cada pestaña: así la insignia de «Fotos» se ve desde cualquier pestaña y «Fotos» y
+  // «Hoy» muestran lo mismo con una sola petición.
+  const photos = useEventPhotos(event ?? null, setEvent);
+
+  // Sin sondeo: las fotos se vuelven a pedir al cambiar de pestaña (y con «Actualizar» en «Hoy»).
+  function selectTab(next: Tab) {
+    setTab(next);
+    photos.reload();
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -130,6 +140,13 @@ export default function OrganizerEventPage() {
     setEvent(await updateEvent(eventId, patch));
   }
 
+  // Si no se pudieron leer las fotos, mejor sin cuenta que con una que podría estar vieja.
+  const tabs = TABS.map((t) =>
+    t.id === 'fotos' && photos.photos !== null && !photos.error
+      ? { ...t, badge: { count: photos.counts.pending, hint: 'por revisar' } }
+      : t,
+  );
+
   return (
     <ThemeScope theme={event.theme}>
       <div className={shell}>
@@ -141,14 +158,14 @@ export default function OrganizerEventPage() {
             <h1 className="font-display text-3xl uppercase tracking-wide">{event.name}</h1>
           </header>
 
-          <PanelTabs tabs={TABS} active={tab} onSelect={setTab} />
+          <PanelTabs tabs={tabs} active={tab} onSelect={selectTab} />
 
           {tab === 'hoy' && (
             <PartyDayTab
               event={event}
               guests={guests}
-              onEventChange={setEvent}
-              onOpenTab={setTab}
+              photos={photos}
+              onOpenTab={selectTab}
               onRefresh={refreshGuests}
             />
           )}
@@ -185,7 +202,7 @@ export default function OrganizerEventPage() {
           {tab === 'avisos' && <PostsPanel eventId={event.id} />}
           {tab === 'activacion' && <ActivationTab event={event} onEventChange={setEvent} />}
           {tab === 'camara' && <CameraStudio event={event} onEventChange={setEvent} />}
-          {tab === 'fotos' && <PhotosTab event={event} onEventChange={setEvent} />}
+          {tab === 'fotos' && <PhotosTab photos={photos} />}
           {tab === 'vista' && <GuestPreviewTab event={event} />}
           {tab === 'enlace' && <ShareEventLink event={event} />}
           {tab === 'inscripcion' && (

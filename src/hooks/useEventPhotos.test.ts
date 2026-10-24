@@ -27,6 +27,30 @@ beforeEach(() => {
 });
 
 describe('useEventPhotos', () => {
+  it('sin evento todavía no pide nada, y al llegar el evento carga sus fotos', async () => {
+    const { result, rerender } = renderHook(({ ev }: { ev: api.OrganizerEvent | null }) => useEventPhotos(ev, vi.fn()), {
+      initialProps: { ev: null as api.OrganizerEvent | null },
+    });
+
+    expect(api.listEventPhotos).not.toHaveBeenCalled();
+    expect(result.current.photos).toBeNull();
+
+    rerender({ ev: event });
+    await waitFor(() => expect(result.current.photos).toHaveLength(3));
+    expect(api.listEventPhotos).toHaveBeenCalledWith('ev-1');
+  });
+
+  it('al recargar conserva las fotos que ya tenía hasta que llegan las nuevas', async () => {
+    const { result } = renderHook(() => useEventPhotos(event, vi.fn()));
+    await waitFor(() => expect(result.current.photos).toHaveLength(3));
+
+    vi.mocked(api.listEventPhotos).mockResolvedValueOnce([photo('a', 'pending')]);
+    act(() => result.current.reload());
+
+    expect(result.current.photos).toHaveLength(3);
+    await waitFor(() => expect(result.current.photos).toHaveLength(1));
+  });
+
   it('carga las fotos del evento y las cuenta', async () => {
     const { result } = renderHook(() => useEventPhotos(event, vi.fn()));
 
