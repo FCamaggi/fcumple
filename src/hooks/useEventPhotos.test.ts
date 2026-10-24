@@ -58,6 +58,46 @@ describe('useEventPhotos', () => {
     await waitFor(() => expect(api.listEventPhotos).toHaveBeenCalledTimes(2));
   });
 
+  it('si dos cargas se cruzan, gana la última aunque la respuesta de la primera llegue después', async () => {
+    let resolveOld!: (p: ReturnType<typeof photo>[]) => void;
+    vi.mocked(api.listEventPhotos)
+      .mockReset()
+      .mockReturnValueOnce(new Promise((r) => (resolveOld = r)))
+      .mockResolvedValueOnce([photo('nueva', 'pending')]);
+    const { result, rerender } = renderHook(({ k }) => useEventPhotos(event, vi.fn(), k), { initialProps: { k: 0 } });
+
+    rerender({ k: 1 });
+    await waitFor(() => expect(result.current.photos).toHaveLength(1));
+    await act(async () => resolveOld([photo('v1', 'pending'), photo('v2', 'pending')]));
+
+    expect(result.current.photos?.map((p) => p.id)).toEqual(['nueva']);
+  });
+
+  it('un error de antes desaparece cuando la recarga siguiente sale bien', async () => {
+    vi.mocked(api.listEventPhotos).mockRejectedValueOnce(new Error('sin red'));
+    const { result, rerender } = renderHook(({ k }) => useEventPhotos(event, vi.fn(), k), { initialProps: { k: 0 } });
+    await waitFor(() => expect(result.current.error).toBe('sin red'));
+
+    rerender({ k: 1 });
+
+    await waitFor(() => expect(result.current.photos).toHaveLength(3));
+    expect(result.current.error).toBeNull();
+  });
+
+  it('al cambiar de evento no deja ver las fotos del anterior', async () => {
+    let resolveSecond!: (p: ReturnType<typeof photo>[]) => void;
+    const { result, rerender } = renderHook(({ ev }) => useEventPhotos(ev, vi.fn()), { initialProps: { ev: event } });
+    await waitFor(() => expect(result.current.photos).toHaveLength(3));
+    vi.mocked(api.listEventPhotos).mockReturnValueOnce(new Promise((r) => (resolveSecond = r)));
+
+    rerender({ ev: { ...event, id: 'ev-2' } as api.OrganizerEvent });
+
+    await waitFor(() => expect(api.listEventPhotos).toHaveBeenLastCalledWith('ev-2'));
+    expect(result.current.photos).toBeNull();
+    await act(async () => resolveSecond([photo('x', 'approved')]));
+    expect(result.current.photos).toHaveLength(1);
+  });
+
   it('publicar pregunta antes, avisa cuántas sin revisar quedan y no publica si dices que no', async () => {
     vi.mocked(window.confirm).mockReturnValueOnce(false);
     const { result } = renderHook(() => useEventPhotos(event, vi.fn()));

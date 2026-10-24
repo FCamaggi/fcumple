@@ -65,10 +65,11 @@ describe('summarizeCamera', () => {
     expect(s.missing.map((g) => g.id)).toEqual(['a', 'c', 'd']);
   });
 
-  it('al identificarse, activó quien ya se inscribió', () => {
+  it('al identificarse la cámara está disponible para todos, también para quien aún no entra', () => {
     const s = summarizeCamera('on_identify', guests);
-    expect(s.activated).toBe(3);
-    expect(s.missing.map((g) => g.id)).toEqual(['d']);
+    expect(s.total).toBe(4);
+    expect(s.activated).toBe(4);
+    expect(s.missing).toEqual([]);
   });
 
   it('no cuenta a quien está rechazado o pendiente de aprobación ni a quien declinó', () => {
@@ -94,6 +95,13 @@ describe('isPartyDay', () => {
   it('es el día de la fiesta desde unas horas antes hasta la madrugada siguiente', () => {
     expect(isPartyDay(startsAt, new Date('2026-10-30T12:00:00Z'))).toBe(true);
     expect(isPartyDay(startsAt, new Date('2026-10-31T10:00:00Z'))).toBe(true);
+  });
+
+  it('los límites cuentan: 12 h antes y 18 h después todavía es el día; un minuto más allá, no', () => {
+    expect(isPartyDay(startsAt, new Date('2026-10-30T11:00:00Z'))).toBe(true);
+    expect(isPartyDay(startsAt, new Date('2026-10-30T10:59:00Z'))).toBe(false);
+    expect(isPartyDay(startsAt, new Date('2026-10-31T17:00:00Z'))).toBe(true);
+    expect(isPartyDay(startsAt, new Date('2026-10-31T17:01:00Z'))).toBe(false);
   });
 
   it('no lo es días antes ni días después', () => {

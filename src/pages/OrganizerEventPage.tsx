@@ -87,6 +87,13 @@ export default function OrganizerEventPage() {
     };
   }, [eventId]);
 
+  // «Actualizar» de la pestaña «Hoy»: si no se puede, se queda con la lista que ya tenía.
+  const refreshGuests = useCallback(() => {
+    listEventGuests(eventId)
+      .then(setGuests)
+      .catch(() => undefined);
+  }, [eventId]);
+
   const replaceGuest = useCallback((updated: OrganizerGuest) => {
     setGuests((current) => current.map((g) => (g.id === updated.id ? updated : g)));
   }, []);
@@ -136,7 +143,15 @@ export default function OrganizerEventPage() {
 
           <PanelTabs tabs={TABS} active={tab} onSelect={setTab} />
 
-          {tab === 'hoy' && <PartyDayTab event={event} guests={guests} onEventChange={setEvent} onOpenTab={setTab} />}
+          {tab === 'hoy' && (
+            <PartyDayTab
+              event={event}
+              guests={guests}
+              onEventChange={setEvent}
+              onOpenTab={setTab}
+              onRefresh={refreshGuests}
+            />
+          )}
 
           {tab === 'invitados' && (
             <GuestListPanel

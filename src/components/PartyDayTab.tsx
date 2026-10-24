@@ -12,6 +12,8 @@ interface PartyDayTabProps {
   onEventChange: (event: OrganizerEvent) => void;
   /** Lleva a otra pestaña del panel (los atajos de esta). */
   onOpenTab: (tab: PartyDayShortcut) => void;
+  /** Vuelve a leer la lista de invitados (las fotos las relee esta pestaña). */
+  onRefresh: () => void;
 }
 
 const MAX_LISTED = 8;
@@ -19,7 +21,7 @@ const MAX_LISTED = 8;
 const HOW_ACTIVATED: Record<CameraUnlock, string> = {
   on_event_qr: 'Activan la cámara escaneando el QR del evento.',
   on_checkin: 'La cámara se activa al entrar por la puerta.',
-  on_identify: 'La cámara se activa al inscribirse.',
+  on_identify: 'La cámara queda disponible apenas se inscriben.',
 };
 
 const card = 'flex flex-col gap-3 border border-smoke-700/50 bg-ink-900 p-4 shadow-2xl';
@@ -33,7 +35,7 @@ const secondary =
  * revisión y la publicación del lote ahí mismo) y quiénes ya activaron la cámara. Solo muestra y atajos: no guarda
  * nada propio, usa lo mismo que las pestañas «Fotos», «Activación» e «Invitados».
  */
-export default function PartyDayTab({ event, guests, onEventChange, onOpenTab }: PartyDayTabProps) {
+export default function PartyDayTab({ event, guests, onEventChange, onOpenTab, onRefresh }: PartyDayTabProps) {
   const [moderating, setModerating] = useState(false);
   const { photos, counts, error, notice, publishing, reload, handlePublish, source } = useEventPhotos(
     event,
@@ -45,6 +47,17 @@ export default function PartyDayTab({ event, guests, onEventChange, onOpenTab }:
 
   return (
     <div className="flex flex-col gap-4">
+      <button
+        type="button"
+        onClick={() => {
+          reload();
+          onRefresh();
+        }}
+        className={`${secondary} self-start`}
+      >
+        Actualizar
+      </button>
+
       <section aria-label="Fotos" className={card}>
         <span className={label}>Fotos // por revisar</span>
 
@@ -73,7 +86,7 @@ export default function PartyDayTab({ event, guests, onEventChange, onOpenTab }:
           <>
             <p className="font-display text-3xl uppercase tracking-wide">{counts.pending} por revisar</p>
             <p className="font-sans text-sm text-paper-100/80">
-              {counts.unpublished} aprobada(s) sin publicar · {counts.approved} aprobadas · {counts.rejected} rechazadas
+              {counts.unpublished} aprobada(s) sin publicar · {counts.rejected} rechazada(s)
             </p>
             {notice && (
               <p role="status" className="font-mono text-xs uppercase tracking-wide text-acid-400">

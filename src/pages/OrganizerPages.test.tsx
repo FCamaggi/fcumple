@@ -22,10 +22,19 @@ vi.mock('../components/QrScanner', () => ({
 }));
 vi.mock('../components/PhotosTab', () => ({ default: () => <div data-testid="photos-tab" /> }));
 vi.mock('../components/PartyDayTab', () => ({
-  default: ({ guests, onOpenTab }: { guests: unknown[]; onOpenTab: (tab: 'fotos' | 'activacion' | 'invitados') => void }) => (
+  default: ({
+    guests,
+    onOpenTab,
+    onRefresh,
+  }: {
+    guests: unknown[];
+    onOpenTab: (tab: 'fotos' | 'activacion' | 'invitados') => void;
+    onRefresh: () => void;
+  }) => (
     <div data-testid="party-day-tab">
       hoy con {guests.length} invitado(s)
       <button type="button" onClick={() => onOpenTab('activacion')}>ir a activación</button>
+      <button type="button" onClick={onRefresh}>refrescar hoy</button>
     </div>
   ),
 }));
@@ -194,6 +203,30 @@ describe('OrganizerEventPage', () => {
 
       expect(await screen.findByText('Ana Rojas')).toBeInTheDocument();
       expect(screen.queryByTestId('party-day-tab')).not.toBeInTheDocument();
+    });
+
+    it('«Actualizar» en «Hoy» vuelve a leer los invitados y conserva la pestaña', async () => {
+      vi.mocked(api.getMyEvent).mockResolvedValueOnce({ ...event, startsAt: inAnHour() });
+      vi.mocked(api.listEventGuests).mockResolvedValueOnce([ana]).mockResolvedValueOnce([ana, { ...ana, id: 'g2' }]);
+      renderEvent();
+      await screen.findByText('hoy con 1 invitado(s)');
+
+      await userEvent.click(screen.getByRole('button', { name: 'refrescar hoy' }));
+
+      expect(await screen.findByText('hoy con 2 invitado(s)')).toBeInTheDocument();
+      expect(api.listEventGuests).toHaveBeenCalledTimes(2);
+    });
+
+    it('si falla al actualizar conserva la lista que ya tenía', async () => {
+      vi.mocked(api.getMyEvent).mockResolvedValueOnce({ ...event, startsAt: inAnHour() });
+      vi.mocked(api.listEventGuests).mockResolvedValueOnce([ana]).mockRejectedValueOnce(new Error('sin red'));
+      renderEvent();
+      await screen.findByText('hoy con 1 invitado(s)');
+
+      await userEvent.click(screen.getByRole('button', { name: 'refrescar hoy' }));
+
+      await waitFor(() => expect(api.listEventGuests).toHaveBeenCalledTimes(2));
+      expect(screen.getByText('hoy con 1 invitado(s)')).toBeInTheDocument();
     });
 
     it('los atajos de «Hoy» llevan a la pestaña que piden', async () => {

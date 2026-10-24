@@ -28,11 +28,15 @@ export interface CameraSummary {
   missing: OrganizerGuest[];
 }
 
-/** Qué cuenta como «cámara activada» depende de cómo se habilita en este evento (`camera_unlock`). */
+/**
+ * Qué cuenta como «cámara activada» depende de cómo se habilita en este evento (`camera_unlock`), igual que en
+ * `GuestHub`: con `on_identify` la cámara está disponible para todos desde que se identifican (`claimed_at` no sirve:
+ * se borra al regenerar el token).
+ */
 function hasCamera(mode: CameraUnlock, guest: OrganizerGuest): boolean {
   if (mode === 'on_event_qr') return guest.cameraActivatedAt !== null;
   if (mode === 'on_checkin') return guest.checkedInAt !== null;
-  return guest.claimedAt !== null;
+  return true;
 }
 
 export function summarizeCamera(mode: CameraUnlock, guests: readonly OrganizerGuest[]): CameraSummary {
@@ -42,6 +46,8 @@ export function summarizeCamera(mode: CameraUnlock, guests: readonly OrganizerGu
 }
 
 const HOUR = 3_600_000;
+const HOURS_BEFORE = 12;
+const HOURS_AFTER = 18;
 
 /** Es «el día de la fiesta» desde 12 h antes del inicio hasta 18 h después (las fiestas pasan de medianoche). */
 export function isPartyDay(startsAt: string | null, now: Date): boolean {
@@ -49,5 +55,5 @@ export function isPartyDay(startsAt: string | null, now: Date): boolean {
   const start = new Date(startsAt).getTime();
   if (Number.isNaN(start)) return false;
   const t = now.getTime();
-  return t >= start - 12 * HOUR && t <= start + 18 * HOUR;
+  return t >= start - HOURS_BEFORE * HOUR && t <= start + HOURS_AFTER * HOUR;
 }

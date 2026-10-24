@@ -63,15 +63,17 @@ const guests = [
 function renderTab(over: { event?: api.OrganizerEvent; guests?: api.OrganizerGuest[]; onOpenTab?: () => void } = {}) {
   const onOpenTab = over.onOpenTab ?? vi.fn();
   const onEventChange = vi.fn();
+  const onRefresh = vi.fn();
   render(
     <PartyDayTab
       event={over.event ?? event}
       guests={over.guests ?? guests}
       onEventChange={onEventChange}
       onOpenTab={onOpenTab}
+      onRefresh={onRefresh}
     />,
   );
-  return { onOpenTab, onEventChange };
+  return { onOpenTab, onEventChange, onRefresh };
 }
 
 beforeEach(() => {
@@ -147,7 +149,28 @@ describe('PartyDayTab: fotos', () => {
   });
 });
 
+describe('PartyDayTab: actualizar', () => {
+  it('«Actualizar» vuelve a pedir las fotos y avisa para que se relea la lista de invitados', async () => {
+    const { onRefresh } = renderTab();
+    await screen.findByText('2 por revisar');
+    vi.mocked(api.listEventPhotos).mockResolvedValue([photo('a', 'pending')]);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Actualizar' }));
+
+    expect(onRefresh).toHaveBeenCalledTimes(1);
+    expect(await screen.findByText('1 por revisar')).toBeInTheDocument();
+  });
+});
+
 describe('PartyDayTab: cámara', () => {
+  it('cuando la cámara se abre al identificarse nadie queda esperando', async () => {
+    renderTab({ event: { ...event, cameraUnlock: 'on_identify' } as api.OrganizerEvent });
+
+    expect(screen.getByText('3 de 3 activaron la cámara')).toBeInTheDocument();
+    expect(screen.getByText(/todos tienen la cámara/i)).toBeInTheDocument();
+    await screen.findByText('2 por revisar');
+  });
+
   it('con QR dice cuántos activaron la cámara y quiénes faltan', async () => {
     renderTab();
 

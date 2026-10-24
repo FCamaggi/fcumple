@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { listEventPhotos, moderateEventPhoto, publishPhotoBatch, type OrganizerEvent } from '../lib/organizerApi';
 import { countModerationPhotos } from '../lib/partyDay';
 import type { ModerationPhoto } from '../lib/photosApi';
@@ -15,8 +15,16 @@ export function useEventPhotos(event: OrganizerEvent, onEventChange: (event: Org
   const [publishing, setPublishing] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
 
+  // Con otro evento no deben verse un instante las fotos del anterior.
+  const loadedFor = useRef(event.id);
+
   useEffect(() => {
     let active = true;
+    setError(null);
+    if (loadedFor.current !== event.id) {
+      loadedFor.current = event.id;
+      setPhotos(null);
+    }
     listEventPhotos(event.id)
       .then((found) => active && setPhotos(found))
       .catch((err: unknown) => active && setError(err instanceof Error ? err.message : 'No pudimos cargar las fotos.'));
