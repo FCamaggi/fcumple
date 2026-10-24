@@ -239,16 +239,25 @@ describe('fotos: cupo, rutas y desbloqueo de camara', () => {
       expect(again.rows[0].status).toBe('rejected');
     });
 
-    it('si la copia liviana no estaba, el reintento la registra; si ya estaba, no la pisa', async () => {
+    it('el reintento nunca cambia la copia liviana: ni la pisa ni la agrega después', async () => {
       const ev = await createEvent(db, owner);
       const g = await createGuest(db, ev.id, 'Ana Rojas');
-      await submit(g.token, photoPath(ev, g));
+      const h = await createGuest(db, ev.id, 'Beto Mora');
 
-      const withDisplay = await submit(g.token, photoPath(ev, g), photoPath(ev, g, 'f-display.jpg'));
-      expect(withDisplay.rows[0].display_storage_path).toBe(photoPath(ev, g, 'f-display.jpg'));
+      // Con copia liviana: un reintento con otra no la pisa.
+      await submit(g.token, photoPath(ev, g), photoPath(ev, g, 'f-display.jpg'));
+      const kept = await submit(g.token, photoPath(ev, g), photoPath(ev, g, 'otra-display.jpg'));
+      expect(kept.rows[0].display_storage_path).toBe(photoPath(ev, g, 'f-display.jpg'));
 
-      const other = await submit(g.token, photoPath(ev, g), photoPath(ev, g, 'otra-display.jpg'));
-      expect(other.rows[0].display_storage_path).toBe(photoPath(ev, g, 'f-display.jpg'));
+      // Sin copia liviana: un reintento no la agrega, ni siquiera con la foto ya aprobada
+      // (si no, un invitado podría cambiar lo que ve el rollo revelado después de la moderación).
+      await submit(h.token, photoPath(ev, h));
+      await db.query(`update photos set status = 'approved' where guest_id = $1`, [h.id]);
+      const swapped = await submit(h.token, photoPath(ev, h), photoPath(ev, h, 'cambiada-display.jpg'));
+      expect(swapped.rows[0].status).toBe('approved');
+      expect(swapped.rows[0].display_storage_path).toBeNull();
+      const stored = await db.query('select display_storage_path from photos where guest_id = $1', [h.id]);
+      expect(stored.rows[0].display_storage_path).toBeNull();
     });
 
     it('el reintento sigue exigiendo el desbloqueo de la cámara y la ruta del invitado', async () => {

@@ -68,6 +68,7 @@ export async function listRevealedPhotosForGuest(token: string): Promise<Reveale
 }
 
 // La ruta se decide una vez por archivo: el mismo `Blob` siempre usa el mismo UUID.
+// Contrato: un Blob = una foto (reusar el mismo Blob para otra foto devolvería la primera).
 const uuidByBlob = new WeakMap<Blob, string>();
 
 function uuidFor(blob: Blob): string {
@@ -81,7 +82,10 @@ function uuidFor(blob: Blob): string {
 
 /** Storage responde 409 «The resource already exists» si esa ruta ya se subió. */
 function alreadyUploaded(error: { message?: string; statusCode?: string | number } | null): boolean {
-  return !!error && (String(error.statusCode) === '409' || /already exists/i.test(error.message ?? ''));
+  if (!error) return false;
+  // Con código manda el código; el mensaje solo vale si el error no trae ninguno.
+  if (error.statusCode !== undefined) return String(error.statusCode) === '409';
+  return /already exists/i.test(error.message ?? '');
 }
 
 /**

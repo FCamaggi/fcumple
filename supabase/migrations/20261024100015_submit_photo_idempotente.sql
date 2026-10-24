@@ -7,8 +7,8 @@
 -- photos.storage_path (23505) y el invitado veia «no pudimos registrarla».
 --
 -- Ahora, repetir una ruta que ya es de ese invitado devuelve la fila existente:
--- no cuenta contra el cupo (ni siquiera con el rollo agotado), no cambia su
--- estado y solo completa la copia liviana si faltaba. Las comprobaciones de
+-- no cuenta contra el cupo (ni siquiera con el rollo agotado) y no modifica la
+-- fila (ni su estado ni su copia liviana). Las comprobaciones de
 -- activacion, de prefijo de ruta y de cupo para fotos nuevas no cambian.
 -- ---------------------------------------------------------------------------
 create or replace function public.submit_photo(
@@ -82,13 +82,8 @@ begin
     end if;
   end if;
 
-  if v_photo.display_storage_path is null and p_display_storage_path is not null then
-    update public.photos p
-       set display_storage_path = p_display_storage_path
-     where p.id = v_photo.id
-    returning * into v_photo;
-  end if;
-
+  -- Un reintento nunca modifica la fila: la copia liviana se fija solo al insertar. Completarla
+  -- despues permitiria cambiar lo que muestra el rollo de una foto ya moderada.
   return query
   select v_photo.id, v_photo.guest_id, v_photo.storage_path, v_photo.display_storage_path,
          v_photo.status, v_photo.created_at;

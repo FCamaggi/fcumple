@@ -140,6 +140,20 @@ describe('uploadGuestPhoto', () => {
 
       await expect(uploadGuestPhoto(identity, photo)).resolves.toBeDefined();
       expect(rpc).toHaveBeenCalledTimes(1);
+      expect(rpc.mock.calls[0][1].p_storage_path).toBe(pathsOf()[0]);
+    });
+
+    it('reconoce el 409 como número o, sin código, por el mensaje; con otro código no lo acepta', async () => {
+      upload.mockResolvedValueOnce({ error: { message: 'x', statusCode: 409 } });
+      rpc.mockResolvedValueOnce({ data: [photoRow], error: null });
+      await expect(uploadGuestPhoto(identity, new Blob(['n']))).resolves.toBeDefined();
+
+      upload.mockResolvedValueOnce({ error: { message: 'The resource already exists' } });
+      rpc.mockResolvedValueOnce({ data: [photoRow], error: null });
+      await expect(uploadGuestPhoto(identity, new Blob(['m']))).resolves.toBeDefined();
+
+      upload.mockResolvedValueOnce({ error: { message: 'The resource already exists', statusCode: '400' } });
+      await expect(uploadGuestPhoto(identity, new Blob(['o']))).rejects.toThrow(/No pudimos subir la foto/);
     });
 
     it('si la copia liviana ya estaba, la registra igual', async () => {
