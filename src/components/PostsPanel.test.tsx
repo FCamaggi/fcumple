@@ -5,8 +5,14 @@ import PostsPanel from './PostsPanel';
 
 // El marco real abre un iframe: aquí solo interesa qué estado y qué borrador recibe.
 vi.mock('./PhoneFrame', () => ({
-  default: ({ src, state, draft }: { src: string; state: string; draft: unknown }) => (
-    <div data-testid="phone-frame" data-src={src} data-state={state} data-draft={JSON.stringify(draft)} />
+  default: ({ src, state, draft, refreshKey }: { src: string; state: string; draft: unknown; refreshKey?: number }) => (
+    <div
+      data-testid="phone-frame"
+      data-src={src}
+      data-state={state}
+      data-draft={JSON.stringify(draft)}
+      data-refresh-key={refreshKey}
+    />
   ),
 }));
 
@@ -282,6 +288,58 @@ describe('PostsPanel', () => {
       await user.click(screen.getByRole('button', { name: /ver cómo queda/i }));
 
       expect(draftOf()).toMatchObject({ id: 'p1', title: 'Borrador sin publicar', body: 'Todavía no está listo' });
+    });
+
+    describe('al publicar o despublicar con la vista previa abierta', () => {
+      const refreshKeyOf = () => Number(screen.getByTestId('phone-frame').getAttribute('data-refresh-key'));
+
+      async function openPreview(user: ReturnType<typeof userEvent.setup>) {
+        await user.click(screen.getByRole('button', { name: /nuevo aviso/i }));
+        await user.click(screen.getByRole('button', { name: /ver cómo queda/i }));
+      }
+
+      it('publicar le pide al teléfono que vuelva a leer los avisos', async () => {
+        vi.mocked(listAllPosts).mockResolvedValueOnce([draftPost]);
+        vi.mocked(publishPost).mockResolvedValueOnce({ ...draftPost, publishedAt: '2026-05-05T00:00:00Z' });
+        const user = userEvent.setup();
+        render(<PostsPanel eventId="ev-1" />);
+        await screen.findByText('Borrador sin publicar');
+        await openPreview(user);
+        const before = refreshKeyOf();
+
+        await user.click(screen.getByRole('button', { name: /^publicar$/i }));
+
+        await waitFor(() => expect(refreshKeyOf()).toBe(before + 1));
+      });
+
+      it('despublicar también', async () => {
+        vi.mocked(listAllPosts).mockResolvedValueOnce([publishedPost]);
+        vi.mocked(unpublishPost).mockResolvedValueOnce({ ...publishedPost, publishedAt: null });
+        const user = userEvent.setup();
+        render(<PostsPanel eventId="ev-1" />);
+        await screen.findByText('Ya salió la lista');
+        await openPreview(user);
+        const before = refreshKeyOf();
+
+        await user.click(screen.getByRole('button', { name: /despublicar/i }));
+
+        await waitFor(() => expect(refreshKeyOf()).toBe(before + 1));
+      });
+
+      it('si publicar falla no se pide ningún refresco', async () => {
+        vi.mocked(listAllPosts).mockResolvedValueOnce([draftPost]);
+        vi.mocked(publishPost).mockRejectedValueOnce(new Error('sin red'));
+        const user = userEvent.setup();
+        render(<PostsPanel eventId="ev-1" />);
+        await screen.findByText('Borrador sin publicar');
+        await openPreview(user);
+        const before = refreshKeyOf();
+
+        await user.click(screen.getByRole('button', { name: /^publicar$/i }));
+
+        await waitFor(() => expect(publishPost).toHaveBeenCalled());
+        expect(refreshKeyOf()).toBe(before);
+      });
     });
   });
 

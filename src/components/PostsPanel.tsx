@@ -30,6 +30,8 @@ export default function PostsPanel({ eventId }: { eventId?: string } = {}) {
   const [imagesByPostId, setImagesByPostId] = useState<Record<string, PostImage[]>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Sube cada vez que se publica o despublica un aviso: el teléfono de «Ver cómo queda» vuelve a leer la cartelera.
+  const [previewRefresh, setPreviewRefresh] = useState(0);
 
   const [creating, setCreating] = useState(false);
   const [createDraft, setCreateDraft] = useState<Draft>(EMPTY_DRAFT);
@@ -200,6 +202,7 @@ export default function PostsPanel({ eventId }: { eventId?: string } = {}) {
     try {
       const updated = post.publishedAt ? await unpublishPost(post.id) : await publishPost(post.id);
       setPosts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+      setPreviewRefresh((n) => n + 1);
     } catch (err) {
       notifyError('cambiar el estado del aviso', err);
     }
@@ -297,6 +300,7 @@ export default function PostsPanel({ eventId }: { eventId?: string } = {}) {
           {eventId && (
             <DraftPreview
               eventId={eventId}
+              refreshKey={previewRefresh}
               draft={{
                 title: createDraft.title,
                 subtitle: createDraft.subtitle.trim() || null,
@@ -394,6 +398,7 @@ export default function PostsPanel({ eventId }: { eventId?: string } = {}) {
                   {eventId && (
                     <DraftPreview
                       eventId={eventId}
+                      refreshKey={previewRefresh}
                       draft={{
                         id: post.id,
                         title: editDraft.title,
@@ -523,7 +528,7 @@ function PostImageThumb({ path, alt, className }: { path: string; alt: string; c
  * Cómo quedará el aviso en la cartelera del invitado (épica C2): el mismo teléfono de la pestaña «Vista previa»,
  * alimentado con lo que se está escribiendo. No publica nada ni toca la base.
  */
-function DraftPreview({ eventId, draft }: { eventId: string; draft: PreviewDraftPost }) {
+function DraftPreview({ eventId, draft, refreshKey }: { eventId: string; draft: PreviewDraftPost; refreshKey: number }) {
   const [open, setOpen] = useState(false);
   // El marco vuelve a mandar el borrador cada vez que cambia el objeto: se mantiene el mismo mientras el contenido
   // no cambie.
@@ -547,6 +552,7 @@ function DraftPreview({ eventId, draft }: { eventId: string; draft: PreviewDraft
           label="Aviso"
           state="aviso"
           draft={stable}
+          refreshKey={refreshKey}
         />
       )}
     </div>

@@ -167,6 +167,91 @@ describe('GuestPreviewPage', () => {
     expect(screen.getByRole('button', { name: 'Abrir cámara' })).toBeInTheDocument();
   });
 
+  it('al recibir un refresco vuelve a leer los avisos: lo recién publicado aparece y lo despublicado se va', async () => {
+    renderAt();
+    await screen.findByText('Cambio de hora');
+    vi.mocked(listAllPosts).mockResolvedValue([
+      post('a', 'Cambio de hora', null),
+      post('b', 'Borrador secreto', '2025-10-26T12:00:00Z'),
+    ]);
+
+    send({ type: 'fcumple-preview-refresh' });
+
+    expect(await screen.findByText('Borrador secreto')).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByText('Cambio de hora')).not.toBeInTheDocument());
+  });
+
+  it('el refresco no vuelve a la pantalla de carga ni cambia el estado que se ve', async () => {
+    renderAt('/panel/e/ev-1/vista-previa?estado=bloqueada');
+    await screen.findByLabelText('Cámara bloqueada');
+    vi.mocked(listAllPosts).mockClear();
+
+    send({ type: 'fcumple-preview-refresh' });
+
+    expect(screen.queryByText('Cargando...')).not.toBeInTheDocument();
+    await waitFor(() => expect(listAllPosts).toHaveBeenCalledTimes(1));
+    expect(screen.getByLabelText('Cámara bloqueada')).toBeInTheDocument();
+  });
+
+  it('si el refresco falla conserva lo que ya mostraba', async () => {
+    renderAt();
+    await screen.findByText('Cambio de hora');
+    vi.mocked(listAllPosts).mockRejectedValue(new Error('sin red'));
+
+    send({ type: 'fcumple-preview-refresh' });
+
+    await waitFor(() => expect(listAllPosts).toHaveBeenCalledTimes(2));
+    expect(screen.getByText('Cambio de hora')).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('si dos refrescos se cruzan, gana el último aunque la respuesta del primero llegue después', async () => {
+    renderAt();
+    await screen.findByText('Cambio de hora');
+    let resolveOld!: (posts: Post[]) => void;
+    let resolveNew!: (posts: Post[]) => void;
+    vi.mocked(listAllPosts)
+      .mockReturnValueOnce(new Promise<Post[]>((r) => (resolveOld = r)))
+      .mockReturnValueOnce(new Promise<Post[]>((r) => (resolveNew = r)));
+
+    send({ type: 'fcumple-preview-refresh' });
+    send({ type: 'fcumple-preview-refresh' });
+    await act(async () => resolveNew([post('n', 'Aviso nuevo', '2025-10-26T12:00:00Z')]));
+    await act(async () => resolveOld([post('v', 'Aviso viejo', '2025-10-26T12:00:00Z')]));
+
+    expect(await screen.findByText('Aviso nuevo')).toBeInTheDocument();
+    expect(screen.queryByText('Aviso viejo')).not.toBeInTheDocument();
+  });
+
+  it('ignora un refresco que no viene de la ventana que la contiene', async () => {
+    renderAt();
+    await screen.findByText('Cambio de hora');
+    vi.mocked(listAllPosts).mockClear();
+
+    act(() => {
+      fireEvent(
+        window,
+        new MessageEvent('message', {
+          data: { type: 'fcumple-preview-refresh' },
+          origin: window.location.origin,
+          source: null,
+        }),
+      );
+    });
+
+    expect(listAllPosts).not.toHaveBeenCalled();
+  });
+
+  it('ignora un refresco de otro origen', async () => {
+    renderAt();
+    await screen.findByText('Cambio de hora');
+    vi.mocked(listAllPosts).mockClear();
+
+    send({ type: 'fcumple-preview-refresh' }, 'https://otro.example');
+
+    expect(listAllPosts).not.toHaveBeenCalled();
+  });
+
   it('muestra el aviso en borrador entre los publicados', async () => {
     renderAt();
     await screen.findByRole('button', { name: 'Abrir cámara' });

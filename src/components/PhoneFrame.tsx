@@ -3,6 +3,7 @@ import {
   PREVIEW_MESSAGE_TYPE,
   PREVIEW_NOTE_TYPE,
   PREVIEW_READY_TYPE,
+  PREVIEW_REFRESH_TYPE,
   parsePreviewNote,
   type PreviewDraftPost,
   type PreviewState,
@@ -28,6 +29,8 @@ interface PhoneFrameProps {
   draft?: PreviewDraftPost | null;
   /** La nota que acompaña al estado (qué es de ejemplo, qué falta). */
   onNote?: (note: string | null) => void;
+  /** Cada vez que cambia, el iframe vuelve a leer los avisos publicados (sin recargarse ni perder el estado). */
+  refreshKey?: number;
 }
 
 /**
@@ -36,7 +39,7 @@ interface PhoneFrameProps {
  * solo hablan por mensajes validados. `sandbox` es un freno contra navegar el panel o abrir ventanas por accidente,
  * no un aislamiento: con `allow-same-origin` el contenido (la propia app) podría quitárselo.
  */
-export default function PhoneFrame({ src, label, state, draft = null, onNote }: PhoneFrameProps) {
+export default function PhoneFrame({ src, label, state, draft = null, onNote, refreshKey = 0 }: PhoneFrameProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
@@ -53,6 +56,14 @@ export default function PhoneFrame({ src, label, state, draft = null, onNote }: 
   useEffect(() => {
     send();
   }, [send]);
+
+  // Al montarse el iframe ya lee los avisos al cargar: solo se avisa cuando la clave cambia después.
+  const lastRefreshKey = useRef(refreshKey);
+  useEffect(() => {
+    if (lastRefreshKey.current === refreshKey) return;
+    lastRefreshKey.current = refreshKey;
+    iframeRef.current?.contentWindow?.postMessage({ type: PREVIEW_REFRESH_TYPE }, window.location.origin);
+  }, [refreshKey]);
 
   useEffect(() => {
     function onMessage(e: MessageEvent) {
