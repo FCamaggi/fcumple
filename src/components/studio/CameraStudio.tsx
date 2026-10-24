@@ -65,6 +65,13 @@ export default function CameraStudio({ event, onEventChange }: CameraStudioProps
   const [editing, setEditing] = useState<Editing>(null);
   const [saving, setSaving] = useState(false);
   const canEdit = useCanEditDesigns();
+  // Al perder el computador se descarta lo que estaba abierto: al volver no reaparece solo.
+  useEffect(() => {
+    if (!canEdit) {
+      setEditing(null);
+      setPicking(false);
+    }
+  }, [canEdit]);
   // Sube con «Reintentar» para volver a leer marcos y stickers.
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -184,7 +191,7 @@ export default function CameraStudio({ event, onEventChange }: CameraStudioProps
         </p>
       )}
       {!canEdit && (
-        <p className="border border-smoke-700/60 bg-ink-900 p-3 font-mono text-xs uppercase tracking-wide text-paper-100/80">
+        <p role="status" className="border border-smoke-700/60 bg-ink-900 p-3 font-mono text-xs uppercase tracking-wide text-paper-100/80">
           Para editar los diseños, entra desde un computador
         </p>
       )}

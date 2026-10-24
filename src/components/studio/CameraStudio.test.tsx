@@ -359,6 +359,37 @@ describe('CameraStudio: edición solo en computador', () => {
     expect(screen.queryByLabelText(/Nombre del marco/)).not.toBeInTheDocument();
     expect(screen.getByText(NOTICE)).toBeInTheDocument();
   });
+
+  it('al volver a agrandar la ventana el editor no reaparece solo', async () => {
+    const setEditable = stubEditQuery(true);
+    await load([frame('f1', 'Borde rosa')]);
+    await userEvent.click(screen.getByRole('button', { name: 'Editar Borde rosa' }));
+
+    setEditable(false);
+    setEditable(true);
+
+    expect(screen.queryByLabelText(/Nombre del marco/)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Editar Borde rosa' })).toBeInTheDocument();
+  });
+
+  it('al volver a agrandar la ventana el selector de plantillas no reaparece abierto', async () => {
+    const setEditable = stubEditQuery(true);
+    await load([]);
+    await userEvent.click(screen.getByRole('button', { name: 'Nuevo marco' }));
+    expect(screen.getByRole('group', { name: 'Elige una plantilla' })).toBeInTheDocument();
+
+    setEditable(false);
+    setEditable(true);
+
+    expect(screen.queryByRole('group', { name: 'Elige una plantilla' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Nuevo marco' })).toBeInTheDocument();
+  });
+
+  it('el aviso se anuncia a los lectores de pantalla', async () => {
+    stubEditQuery(false);
+    await load([]);
+    expect(screen.getByRole('status')).toHaveTextContent(NOTICE);
+  });
 });
 
 describe('CameraStudio: carga', () => {
