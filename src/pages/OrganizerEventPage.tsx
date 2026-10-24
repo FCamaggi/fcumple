@@ -5,6 +5,7 @@ import CameraStudio from '../components/studio/CameraStudio';
 import DoorPanel from '../components/DoorPanel';
 import ActivationTab from '../components/ActivationTab';
 import EnrollmentSettings from '../components/EnrollmentSettings';
+import GuestPreviewTab from '../components/GuestPreviewTab';
 import PanelTabs from '../components/PanelTabs';
 import PostsPanel from '../components/PostsPanel';
 import ThemeScope from '../components/ThemeScope';
@@ -28,7 +29,17 @@ import {
   type OrganizerGuest,
 } from '../lib/organizerApi';
 
-type Tab = 'invitados' | 'avisos' | 'fotos' | 'activacion' | 'camara' | 'enlace' | 'inscripcion' | 'puerta' | 'ajustes';
+type Tab =
+  | 'invitados'
+  | 'avisos'
+  | 'fotos'
+  | 'activacion'
+  | 'camara'
+  | 'vista'
+  | 'enlace'
+  | 'inscripcion'
+  | 'puerta'
+  | 'ajustes';
 
 const TABS: Array<{ id: Tab; label: string }> = [
   { id: 'invitados', label: 'Invitados' },
@@ -36,6 +47,7 @@ const TABS: Array<{ id: Tab; label: string }> = [
   { id: 'fotos', label: 'Fotos' },
   { id: 'activacion', label: 'Activación' },
   { id: 'camara', label: 'Cámara' },
+  { id: 'vista', label: 'Vista previa' },
   { id: 'enlace', label: 'Enlace' },
   { id: 'inscripcion', label: 'Inscripción' },
   { id: 'puerta', label: 'Puerta' },
@@ -151,6 +163,7 @@ export default function OrganizerEventPage() {
           {tab === 'activacion' && <ActivationTab event={event} onEventChange={setEvent} />}
           {tab === 'camara' && <CameraStudio event={event} onEventChange={setEvent} />}
           {tab === 'fotos' && <PhotosTab event={event} onEventChange={setEvent} />}
+          {tab === 'vista' && <GuestPreviewTab event={event} />}
           {tab === 'enlace' && <ShareEventLink event={event} />}
           {tab === 'inscripcion' && (
             <EnrollmentSettings
