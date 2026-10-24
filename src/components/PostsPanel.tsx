@@ -231,16 +231,19 @@ export default function PostsPanel({ eventId }: { eventId?: string } = {}) {
     <section className="flex flex-col gap-4 border border-smoke-700/50 bg-ink-900 p-6 shadow-2xl">
       <div className="flex items-center justify-between">
         <span className="font-mono text-xs uppercase tracking-widest text-acid-400">Avisos // cartelera</span>
-        <button
-          type="button"
-          onClick={() => {
-            setCreating((v) => !v);
-            resetCreateForm();
-          }}
-          className="border border-smoke-700/50 px-3 py-1.5 font-mono text-xs font-bold uppercase tracking-wider text-acid-400 transition-colors hover:bg-acid-400/10"
-        >
-          {creating ? 'Cancelar' : 'Nuevo aviso'}
-        </button>
+        {/* Con la lista caída un aviso nuevo no se vería hasta reintentar: se ofrece de nuevo al recargar. */}
+        {(!loadError || creating) && (
+          <button
+            type="button"
+            onClick={() => {
+              setCreating((v) => !v);
+              resetCreateForm();
+            }}
+            className="border border-smoke-700/50 px-3 py-1.5 font-mono text-xs font-bold uppercase tracking-wider text-acid-400 transition-colors hover:bg-acid-400/10"
+          >
+            {creating ? 'Cancelar' : 'Nuevo aviso'}
+          </button>
+        )}
       </div>
 
       {error && <PanelState kind="error">{error}</PanelState>}
