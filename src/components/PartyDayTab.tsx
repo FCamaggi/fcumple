@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import PhotoModerationPanel from './PhotoModerationPanel';
 import type { EventPhotos } from '../hooks/useEventPhotos';
 import type { CameraUnlock, OrganizerEvent, OrganizerGuest } from '../lib/organizerApi';
@@ -38,6 +38,8 @@ const secondary =
  */
 export default function PartyDayTab({ event, guests, photos: state, onOpenTab, onRefresh }: PartyDayTabProps) {
   const [moderating, setModerating] = useState(false);
+  // Único por instancia: si algún día hay dos «Hoy» a la vez, cada lista apunta a su propio rótulo.
+  const missingLabelId = useId();
   const { photos, counts, error, notice, publishing, reload, handlePublish, source } = state;
 
   // Al abrir y al cerrar la revisión se vuelve a pedir la lista: lo revisado cambia los conteos.
@@ -131,10 +133,10 @@ export default function PartyDayTab({ event, guests, photos: state, onOpenTab, o
             ) : (
               <>
                 {/* A la vista: sin rótulo, los nombres se leen como los que ya activaron. */}
-                <p id="missing-camera-label" className="font-mono text-xs uppercase tracking-wide text-paper-100/70">
+                <p id={missingLabelId} className="font-mono text-xs uppercase tracking-wide text-paper-100/70">
                   Les falta activar:
                 </p>
-                <ul aria-labelledby="missing-camera-label" className="flex flex-col gap-1 font-sans text-sm">
+                <ul aria-labelledby={missingLabelId} className="flex flex-col gap-1 font-sans text-sm">
                   {listed.map((g) => (
                     <li key={g.id} data-testid="missing-guest">
                       {g.fullName}
