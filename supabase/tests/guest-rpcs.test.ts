@@ -198,6 +198,75 @@ describe('fotos: cupo, rutas y desbloqueo de camara', () => {
     expect(rows[0]).toEqual({ quota: 2, used: 2 });
   });
 
+  describe('reintento idempotente (respuesta perdida)', () => {
+    const submit = (token: string, ...args: (string | null)[]) =>
+      anon(() => db.query('select * from submit_photo($1, $2, $3)', [token, args[0], args[1] ?? null]));
+
+    it('repetir la misma ruta devuelve la misma foto y no gasta otro disparo', async () => {
+      const ev = await createEvent(db, owner);
+      const g = await createGuest(db, ev.id, 'Ana Rojas', { photo_quota: 3 });
+
+      const first = await submit(g.token, photoPath(ev, g));
+      const again = await submit(g.token, photoPath(ev, g));
+
+      expect(again.rows).toHaveLength(1);
+      expect(again.rows[0].id).toBe(first.rows[0].id);
+      const count = await db.query('select count(*)::int as n from photos where guest_id = $1', [g.id]);
+      expect(count.rows[0].n).toBe(1);
+      const quota = await anon(() => db.query('select * from get_photo_quota($1)', [g.token]));
+      expect(quota.rows[0]).toEqual({ quota: 3, used: 1 });
+    });
+
+    it('si era el último disparo, el reintento igual devuelve la foto en vez de «cupo agotado»', async () => {
+      const ev = await createEvent(db, owner);
+      const g = await createGuest(db, ev.id, 'Ana Rojas', { photo_quota: 1 });
+
+      const first = await submit(g.token, photoPath(ev, g));
+      const again = await submit(g.token, photoPath(ev, g));
+      expect(again.rows[0].id).toBe(first.rows[0].id);
+
+      // Una ruta distinta sí es otra foto y el cupo sigue aplicándose.
+      await expect(submit(g.token, photoPath(ev, g, 'otra.jpg'))).rejects.toMatchObject({ code: '22023' });
+    });
+
+    it('conserva el estado de la fila original (no la vuelve a aprobar ni a poner en pendiente)', async () => {
+      const ev = await createEvent(db, owner);
+      const g = await createGuest(db, ev.id, 'Ana Rojas');
+      await submit(g.token, photoPath(ev, g));
+      await db.query(`update photos set status = 'rejected' where guest_id = $1`, [g.id]);
+
+      const again = await submit(g.token, photoPath(ev, g));
+      expect(again.rows[0].status).toBe('rejected');
+    });
+
+    it('si la copia liviana no estaba, el reintento la registra; si ya estaba, no la pisa', async () => {
+      const ev = await createEvent(db, owner);
+      const g = await createGuest(db, ev.id, 'Ana Rojas');
+      await submit(g.token, photoPath(ev, g));
+
+      const withDisplay = await submit(g.token, photoPath(ev, g), photoPath(ev, g, 'f-display.jpg'));
+      expect(withDisplay.rows[0].display_storage_path).toBe(photoPath(ev, g, 'f-display.jpg'));
+
+      const other = await submit(g.token, photoPath(ev, g), photoPath(ev, g, 'otra-display.jpg'));
+      expect(other.rows[0].display_storage_path).toBe(photoPath(ev, g, 'f-display.jpg'));
+    });
+
+    it('el reintento sigue exigiendo el desbloqueo de la cámara y la ruta del invitado', async () => {
+      const ev = await createEvent(db, owner, { camera_unlock: 'on_checkin' });
+      const g = await createGuest(db, ev.id, 'Ana Rojas');
+      const h = await createGuest(db, ev.id, 'Beto Mora');
+      const k = await createGuest(db, ev.id, 'Carla Diaz');
+      await asUser(db, owner, () => db.query('select * from check_in_guest($1)', [g.token]));
+      await asUser(db, owner, () => db.query('select * from check_in_guest($1)', [h.token]));
+      await submit(g.token, photoPath(ev, g));
+
+      // La ruta de otro invitado no se puede reclamar, ni siquiera siendo una foto ya registrada.
+      await expect(submit(h.token, photoPath(ev, g))).rejects.toMatchObject({ code: '22023' });
+      // Y un invitado sin check-in sigue sin poder subir.
+      await expect(submit(k.token, photoPath(ev, k))).rejects.toMatchObject({ code: '42501' });
+    });
+  });
+
   it('con camera_unlock = on_checkin exige el check-in del organizador', async () => {
     const ev = await createEvent(db, owner, { camera_unlock: 'on_checkin' });
     const g = await createGuest(db, ev.id, 'Ana Rojas');

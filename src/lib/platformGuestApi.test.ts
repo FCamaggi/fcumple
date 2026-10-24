@@ -108,6 +108,58 @@ describe('uploadGuestPhoto', () => {
     expect(rpc.mock.calls[0][1].p_display_storage_path).toBeNull();
   });
 
+  describe('reintento del mismo archivo', () => {
+    const pathsOf = () => upload.mock.calls.map((call) => call[0] as string);
+
+    it('reusa la misma ruta (y la misma copia liviana) al reintentar el mismo blob', async () => {
+      const photo = new Blob(['una foto'], { type: 'image/jpeg' });
+      rpc.mockResolvedValueOnce({ data: null, error: { code: 'XX000' } });
+      await expect(uploadGuestPhoto(identity, photo, photo)).rejects.toThrow(/no pudimos registrarla/);
+
+      rpc.mockResolvedValueOnce({ data: [photoRow], error: null });
+      await uploadGuestPhoto(identity, photo, photo);
+
+      const [first, firstDisplay, second, secondDisplay] = pathsOf();
+      expect(second).toBe(first);
+      expect(secondDisplay).toBe(firstDisplay);
+      expect(rpc.mock.calls[1][1].p_storage_path).toBe(rpc.mock.calls[0][1].p_storage_path);
+    });
+
+    it('otra foto usa otra ruta', async () => {
+      rpc.mockResolvedValue({ data: [photoRow], error: null });
+      await uploadGuestPhoto(identity, new Blob(['a'], { type: 'image/jpeg' }));
+      await uploadGuestPhoto(identity, new Blob(['b'], { type: 'image/jpeg' }));
+      const [first, second] = pathsOf();
+      expect(second).not.toBe(first);
+    });
+
+    it('si el archivo ya estaba en Storage (reintento tras una subida que sí llegó) sigue y registra', async () => {
+      const photo = new Blob(['una foto'], { type: 'image/jpeg' });
+      upload.mockResolvedValueOnce({ error: { message: 'The resource already exists', statusCode: '409' } });
+      rpc.mockResolvedValueOnce({ data: [photoRow], error: null });
+
+      await expect(uploadGuestPhoto(identity, photo)).resolves.toBeDefined();
+      expect(rpc).toHaveBeenCalledTimes(1);
+    });
+
+    it('si la copia liviana ya estaba, la registra igual', async () => {
+      const photo = new Blob(['una foto'], { type: 'image/jpeg' });
+      upload
+        .mockResolvedValueOnce({ error: null })
+        .mockResolvedValueOnce({ error: { message: 'The resource already exists', statusCode: '409' } });
+      rpc.mockResolvedValueOnce({ data: [photoRow], error: null });
+
+      await uploadGuestPhoto(identity, photo, photo);
+      expect(rpc.mock.calls[0][1].p_display_storage_path).toMatch(/-display\.jpg$/);
+    });
+
+    it('otro error de Storage sigue siendo un fallo', async () => {
+      upload.mockResolvedValueOnce({ error: { message: 'Payload too large', statusCode: '413' } });
+      await expect(uploadGuestPhoto(identity, new Blob(['z']))).rejects.toThrow(/No pudimos subir la foto/);
+      expect(rpc).not.toHaveBeenCalled();
+    });
+  });
+
   it('falla si la subida del original falla, sin registrar nada', async () => {
     upload.mockResolvedValueOnce({ error: { message: 'x' } });
     await expect(uploadGuestPhoto(identity, blob)).rejects.toThrow(/No pudimos subir la foto/);

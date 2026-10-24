@@ -67,21 +67,43 @@ export async function listRevealedPhotosForGuest(token: string): Promise<Reveale
   }));
 }
 
+// La ruta se decide una vez por archivo: el mismo `Blob` siempre usa el mismo UUID.
+const uuidByBlob = new WeakMap<Blob, string>();
+
+function uuidFor(blob: Blob): string {
+  let uuid = uuidByBlob.get(blob);
+  if (!uuid) {
+    uuid = crypto.randomUUID();
+    uuidByBlob.set(blob, uuid);
+  }
+  return uuid;
+}
+
+/** Storage responde 409 «The resource already exists» si esa ruta ya se subió. */
+function alreadyUploaded(error: { message?: string; statusCode?: string | number } | null): boolean {
+  return !!error && (String(error.statusCode) === '409' || /already exists/i.test(error.message ?? ''));
+}
+
 /**
  * Sube la foto (y su copia liviana, best-effort) a `{event_id}/{guest_id}/…` y
  * registra su metadata con `submit_photo`. Igual que en la Fase 0, los dos
  * pasos no son atómicos: si la subida funciona pero el registro falla, el
  * archivo queda huérfano y el mensaje lo dice con honestidad.
+ *
+ * Reintentar es seguro: como el mismo archivo conserva su ruta, un reintento tras
+ * una respuesta perdida cae en la misma fila (`submit_photo` es idempotente por
+ * ruta) y no gasta otro disparo. Un archivo que ya estaba en Storage (409) cuenta
+ * como subido.
  */
 export async function uploadGuestPhoto(identity: GuestIdentity, blob: Blob, displayBlob?: Blob | null): Promise<Photo> {
-  const uuid = crypto.randomUUID();
+  const uuid = uuidFor(blob);
   const folder = `${identity.eventId}/${identity.guestId}`;
   const path = `${folder}/${uuid}.jpg`;
 
   const { error: uploadError } = await supabase.storage.from(BUCKET).upload(path, blob, {
     contentType: 'image/jpeg',
   });
-  if (uploadError) {
+  if (uploadError && !alreadyUploaded(uploadError)) {
     throw new Error('No pudimos subir la foto. Intenta de nuevo.');
   }
 
@@ -91,7 +113,7 @@ export async function uploadGuestPhoto(identity: GuestIdentity, blob: Blob, disp
     const { error: displayError } = await supabase.storage.from(BUCKET).upload(candidate, displayBlob, {
       contentType: 'image/jpeg',
     });
-    if (!displayError) displayPath = candidate;
+    if (!displayError || alreadyUploaded(displayError)) displayPath = candidate;
   }
 
   const { data, error } = await supabase.rpc('submit_photo', {
