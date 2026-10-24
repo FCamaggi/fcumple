@@ -23,6 +23,7 @@ import {
   type EventFrame,
   type EventSticker,
 } from '../../lib/cameraStudioApi';
+import { useCanEditDesigns } from '../../hooks/useCanEditDesigns';
 import { updateEvent, type OrganizerEvent } from '../../lib/organizerApi';
 import PanelState from '../PanelState';
 import FrameEditor from './FrameEditor';
@@ -63,6 +64,7 @@ export default function CameraStudio({ event, onEventChange }: CameraStudioProps
   const [picking, setPicking] = useState(false);
   const [editing, setEditing] = useState<Editing>(null);
   const [saving, setSaving] = useState(false);
+  const canEdit = useCanEditDesigns();
   // Sube con «Reintentar» para volver a leer marcos y stickers.
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -143,7 +145,8 @@ export default function CameraStudio({ event, onEventChange }: CameraStudioProps
     return <PanelState kind="loading">Cargando...</PanelState>;
   }
 
-  if (editing) {
+  // Si la ventana se achica con el editor abierto, se desmonta: solo se edita en computador.
+  if (editing && canEdit) {
     const template = editing.kind === 'new' ? editing.template : editing.frame.template;
     return (
       <div className="flex flex-col gap-4">
@@ -180,6 +183,11 @@ export default function CameraStudio({ event, onEventChange }: CameraStudioProps
           {error}
         </p>
       )}
+      {!canEdit && (
+        <p className="border border-smoke-700/60 bg-ink-900 p-3 font-mono text-xs uppercase tracking-wide text-paper-100/80">
+          Para editar los diseños, entra desde un computador
+        </p>
+      )}
 
       {/* ---- Marcos ---- */}
       <section className="flex flex-col gap-3" aria-label="Marcos">
@@ -197,7 +205,11 @@ export default function CameraStudio({ event, onEventChange }: CameraStudioProps
           </label>
         </div>
 
-        {frames.length === 0 && <p className="font-sans text-sm text-paper-100/60">Todavía no hay marcos. Crea el primero.</p>}
+        {frames.length === 0 && (
+          <p className="font-sans text-sm text-paper-100/60">
+            {canEdit ? 'Todavía no hay marcos. Crea el primero.' : 'Todavía no hay marcos.'}
+          </p>
+        )}
 
         <ul className="flex flex-col gap-2">
           {frames.map((frame, index) => {
@@ -230,15 +242,19 @@ export default function CameraStudio({ event, onEventChange }: CameraStudioProps
                   </label>
                 </div>
                 <div className="flex flex-wrap gap-1">
-                  <button type="button" className={smallButton} disabled={index === 0} onClick={() => void handleMove(frame, -1)} aria-label={`Subir ${frame.label}`}>
-                    ↑
-                  </button>
-                  <button type="button" className={smallButton} disabled={index === frames.length - 1} onClick={() => void handleMove(frame, 1)} aria-label={`Bajar ${frame.label}`}>
-                    ↓
-                  </button>
-                  <button type="button" className={smallButton} onClick={() => setEditing({ kind: 'edit', frame })} aria-label={`Editar ${frame.label}`}>
-                    Editar
-                  </button>
+                  {canEdit && (
+                    <>
+                      <button type="button" className={smallButton} disabled={index === 0} onClick={() => void handleMove(frame, -1)} aria-label={`Subir ${frame.label}`}>
+                        ↑
+                      </button>
+                      <button type="button" className={smallButton} disabled={index === frames.length - 1} onClick={() => void handleMove(frame, 1)} aria-label={`Bajar ${frame.label}`}>
+                        ↓
+                      </button>
+                      <button type="button" className={smallButton} onClick={() => setEditing({ kind: 'edit', frame })} aria-label={`Editar ${frame.label}`}>
+                        Editar
+                      </button>
+                    </>
+                  )}
                   <button
                     type="button"
                     className={smallButton}
@@ -248,45 +264,49 @@ export default function CameraStudio({ event, onEventChange }: CameraStudioProps
                   >
                     Por defecto
                   </button>
-                  <button
-                    type="button"
-                    className={smallButton}
-                    aria-label={`Duplicar ${frame.label}`}
-                    onClick={() =>
-                      void run(async () => {
-                        const copy = await createFrame(
-                          event.id,
-                          { template: frame.template, label: `${frame.label} (copia)`.slice(0, 60), params: frame.params },
-                          frames.length,
-                        );
-                        setFrames((current) => [...(current ?? []), copy]);
-                      })
-                    }
-                  >
-                    Duplicar
-                  </button>
-                  <button
-                    type="button"
-                    className={smallButton}
-                    aria-label={`Borrar ${frame.label}`}
-                    onClick={() => {
-                      if (!window.confirm(`¿Borrar el marco "${frame.label}"?`)) return;
-                      void run(async () => {
-                        await deleteFrame(frame.id);
-                        setFrames((current) => (current ?? []).filter((f) => f.id !== frame.id));
-                        if (isDefault) onEventChange({ ...event, defaultFrameId: null });
-                      });
-                    }}
-                  >
-                    Borrar
-                  </button>
+                  {canEdit && (
+                    <>
+                      <button
+                        type="button"
+                        className={smallButton}
+                        aria-label={`Duplicar ${frame.label}`}
+                        onClick={() =>
+                          void run(async () => {
+                            const copy = await createFrame(
+                              event.id,
+                              { template: frame.template, label: `${frame.label} (copia)`.slice(0, 60), params: frame.params },
+                              frames.length,
+                            );
+                            setFrames((current) => [...(current ?? []), copy]);
+                          })
+                        }
+                      >
+                        Duplicar
+                      </button>
+                      <button
+                        type="button"
+                        className={smallButton}
+                        aria-label={`Borrar ${frame.label}`}
+                        onClick={() => {
+                          if (!window.confirm(`¿Borrar el marco "${frame.label}"?`)) return;
+                          void run(async () => {
+                            await deleteFrame(frame.id);
+                            setFrames((current) => (current ?? []).filter((f) => f.id !== frame.id));
+                            if (isDefault) onEventChange({ ...event, defaultFrameId: null });
+                          });
+                        }}
+                      >
+                        Borrar
+                      </button>
+                    </>
+                  )}
                 </div>
               </li>
             );
           })}
         </ul>
 
-        {picking ? (
+        {!canEdit ? null : picking ? (
           <div className="flex flex-col gap-2" role="group" aria-label="Elige una plantilla">
             <p className="font-sans text-sm text-paper-100/80">Elige una plantilla:</p>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -338,6 +358,7 @@ export default function CameraStudio({ event, onEventChange }: CameraStudioProps
           </label>
         </div>
         <StickerManager
+          readOnly={!canEdit}
           stickers={stickers}
           onAddEmoji={async (emoji) => {
             const created = await addEmojiSticker(event.id, emoji, stickers.length);
