@@ -198,6 +198,20 @@ describe('useEventPhotos', () => {
     await waitFor(() => expect(api.listEventPhotos).toHaveBeenCalledTimes(2));
   });
 
+  it('el error de publicar se va al recargar o al volver a publicar', async () => {
+    vi.mocked(api.publishPhotoBatch).mockRejectedValueOnce(new Error('No pudimos publicar las fotos.')).mockResolvedValueOnce(1);
+    const { result } = renderHook(() => useEventPhotos(event, vi.fn()));
+    await waitFor(() => expect(result.current.photos).toHaveLength(3));
+    await act(() => result.current.handlePublish());
+    expect(result.current.publishError).not.toBeNull();
+
+    act(() => result.current.reload());
+    expect(result.current.publishError).toBeNull();
+
+    await act(() => result.current.handlePublish());
+    expect(result.current.publishError).toBeNull();
+  });
+
   it('si publicar falla muestra el error y no marca el evento', async () => {
     vi.mocked(api.publishPhotoBatch).mockRejectedValueOnce(new Error('No pudimos publicar las fotos.'));
     const onEventChange = vi.fn();
@@ -206,7 +220,9 @@ describe('useEventPhotos', () => {
 
     await act(() => result.current.handlePublish());
 
-    expect(result.current.error).toBe('No pudimos publicar las fotos.');
+    // Un fallo al publicar no es un fallo de lectura: aparte, para que nadie ofrezca «Reintentar» (que solo relee).
+    expect(result.current.publishError).toBe('No pudimos publicar las fotos.');
+    expect(result.current.error).toBeNull();
     expect(result.current.publishing).toBe(false);
     expect(onEventChange).not.toHaveBeenCalled();
   });
