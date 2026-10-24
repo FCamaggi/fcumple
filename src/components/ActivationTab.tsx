@@ -16,7 +16,10 @@ interface ActivationTabProps {
  */
 export default function ActivationTab({ event, onEventChange }: ActivationTabProps) {
   const url = `${window.location.origin}/e/${event.slug}/a/${event.activationCode}`;
-  const [qr, setQr] = useState<string | null>(null);
+  // El QR va con la dirección para la que se dibujó: tras cambiar el código, el viejo no se muestra (ni se puede
+  // descargar) mientras llega el nuevo.
+  const [qrDrawn, setQr] = useState<{ url: string; dataUrl: string } | null>(null);
+  const qr = qrDrawn?.url === url ? qrDrawn.dataUrl : null;
   // Si el QR no se puede dibujar hay que decirlo: es lo que se imprime. El mensaje es fijo (la dirección lleva el código).
   const [qrFailed, setQrFailed] = useState(false);
   const [qrKey, setQrKey] = useState(0);
@@ -28,7 +31,7 @@ export default function ActivationTab({ event, onEventChange }: ActivationTabPro
     setQrFailed(false);
     QRCode.toDataURL(url, { margin: 4, width: 800 })
       .then((dataUrl) => {
-        if (!cancelled) setQr(dataUrl);
+        if (!cancelled) setQr({ url, dataUrl });
       })
       .catch(() => {
         if (!cancelled) {

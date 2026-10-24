@@ -28,11 +28,13 @@ interface QuestionDraft {
 const DEFAULT_COMMENT_LABEL = 'Comentario';
 
 const fieldClass =
-  'bg-ink-950 px-3 py-2 font-sans text-sm text-paper-100 outline-none focus-visible:ring-2 focus-visible:ring-acid-400';
+  'scroll-mb-28 bg-ink-950 px-3 py-2 font-sans text-sm text-paper-100 outline-none focus-visible:ring-2 focus-visible:ring-acid-400';
 const labelClass = 'font-mono text-xs uppercase tracking-wider text-paper-100/70';
+// Margen de scroll: al enfocar un control, el navegador lo deja sobre la barra fija de abajo, no detrás.
+const boxClass = 'scroll-mb-28';
 const checkClass = 'flex min-h-11 items-center gap-2 font-sans text-sm text-paper-100';
 const smallButton =
-  'h-9 border border-smoke-700/60 px-3 font-mono text-xs uppercase tracking-wider text-paper-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acid-400 disabled:cursor-not-allowed disabled:opacity-50';
+  'scroll-mb-28 h-9 border border-smoke-700/60 px-3 font-mono text-xs uppercase tracking-wider text-paper-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acid-400 disabled:cursor-not-allowed disabled:opacity-50';
 
 /**
  * Pestaña «Inscripción»: qué le pide el organizador al invitado cuando se
@@ -143,7 +145,7 @@ export default function EnrollmentSettings({ event, onSave, usedQuestionIds = []
       <fieldset className="flex flex-col gap-3">
         <legend className={`${labelClass} mb-2`}>Acompañantes</legend>
         <label className={checkClass}>
-          <input type="checkbox" checked={plusOnesOn} onChange={(e) => setPlusOnesOn(e.target.checked)} />
+          <input type="checkbox" className={boxClass} checked={plusOnesOn} onChange={(e) => setPlusOnesOn(e.target.checked)} />
           Permitir acompañantes (+1)
         </label>
         {plusOnesOn && (
@@ -174,7 +176,7 @@ export default function EnrollmentSettings({ event, onSave, usedQuestionIds = []
       <fieldset className="flex flex-col gap-3">
         <legend className={`${labelClass} mb-2`}>Comentario</legend>
         <label className={checkClass}>
-          <input type="checkbox" checked={commentOn} onChange={(e) => setCommentOn(e.target.checked)} />
+          <input type="checkbox" className={boxClass} checked={commentOn} onChange={(e) => setCommentOn(e.target.checked)} />
           Pedir un comentario
         </label>
         {commentOn && (
@@ -198,6 +200,7 @@ export default function EnrollmentSettings({ event, onSave, usedQuestionIds = []
             <label className={checkClass}>
               <input
                 type="checkbox"
+                className={boxClass}
                 checked={commentRequired}
                 onChange={(e) => setCommentRequired(e.target.checked)}
               />
@@ -228,6 +231,7 @@ export default function EnrollmentSettings({ event, onSave, usedQuestionIds = []
               <label className={checkClass}>
                 <input
                   type="checkbox"
+                  className={boxClass}
                   checked={q.required}
                   aria-label={`Pregunta ${i + 1} obligatoria`}
                   onChange={(e) => updateQuestion(q.id, { required: e.target.checked })}
@@ -256,24 +260,27 @@ export default function EnrollmentSettings({ event, onSave, usedQuestionIds = []
         )}
       </fieldset>
 
-      {message && (
-        <p
-          role={message.kind === 'error' ? 'alert' : 'status'}
-          className={`font-mono text-xs uppercase tracking-wide ${
-            message.kind === 'error' ? 'text-flame-500' : 'text-acid-400'
-          }`}
-        >
-          {message.text}
-        </p>
-      )}
+      {/* Fijo abajo: el formulario mide unos 2600 px en el teléfono. El resultado va en la misma barra para verlo sin desplazarse. */}
+      <div className="sticky bottom-0 z-10 flex flex-col gap-2 border-t border-smoke-700/50 bg-ink-950 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3">
+        {message && (
+          <p
+            role={message.kind === 'error' ? 'alert' : 'status'}
+            className={`font-mono text-xs uppercase tracking-wide ${
+              message.kind === 'error' ? 'text-flame-500' : 'text-acid-400'
+            }`}
+          >
+            {message.text}
+          </p>
+        )}
 
-      <button
-        type="submit"
-        disabled={saving}
-        className="h-11 bg-acid-400 font-display text-sm uppercase tracking-wider text-ink-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-paper-100 disabled:opacity-60"
-      >
-        {saving ? 'Guardando...' : 'Guardar inscripción'}
-      </button>
+        <button
+          type="submit"
+          disabled={saving}
+          className="h-11 bg-acid-400 font-display text-sm uppercase tracking-wider text-ink-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-paper-100 disabled:opacity-60"
+        >
+          {saving ? 'Guardando...' : 'Guardar inscripción'}
+        </button>
+      </div>
     </form>
   );
 }
