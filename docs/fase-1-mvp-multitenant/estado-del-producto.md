@@ -21,7 +21,8 @@ Una cámara desechable digital para eventos festivos e informales (cumpleaños, 
 | **Estilo por evento** | **Existe** (rama `feat/cartelera-tema`) | `src/lib/theme.ts` |
 | **Título + subtítulo del evento** | **Existe** (rama `feat/cartelera-tema`) | Ajustes |
 | **Vista previa de lo que ve el invitado (pestaña «Vista previa», 7 estados), del aviso al redactarlo y del estilo al elegir un preset en Ajustes** | **Existe** (épica C1, C2 y C4) | [`vistas-previas.md`](./vistas-previas.md) |
-| Vista previa de marcos y de la tarjeta del enlace; flujo del QR simulado (C3, C5, C6) | No existe | — |
+| **Tarjeta del enlace (WhatsApp) en la pestaña «Enlace»**: título, descripción (la misma que arma `api/event-meta.ts`), imagen propia si existe y dominio | **Existe** (épica C5) | `LinkCardPreview`, [`vistas-previas.md`](./vistas-previas.md) |
+| Vista previa de marcos; flujo del QR simulado (C3, C6) | No existe | — |
 | **Pestaña «Hoy» del panel** (fotos por revisar con revisión y publicación del lote, quién activó la cámara; abre por defecto desde 12 h antes del inicio hasta 18 h después) | **Existe** (épica D, etapa 1) | `PartyDayTab`, `src/lib/partyDay.ts` |
 | **Insignia de «fotos por revisar» en la pestaña «Fotos»**, visible desde cualquier pestaña; sin sondeo: se actualiza al cambiar de pestaña y con «Actualizar» | **Existe** (épica D, etapa 2) | [`panel-fotos-por-revisar.md`](./panel-fotos-por-revisar.md) |
 | Vista previa del enlace por evento (WhatsApp) | Existe; imagen propia opcional en `public/og/<slug>.jpg` | `api/event-meta.ts` |
