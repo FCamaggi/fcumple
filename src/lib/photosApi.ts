@@ -70,7 +70,8 @@ export async function uploadPhoto(token: string, blob: Blob, displayBlob?: Blob 
   });
 
   if (uploadError) {
-    fail('subir la foto', uploadError);
+    // Sin el texto crudo de Supabase: el invitado no puede hacer nada con él.
+    throw new Error('No pudimos subir la foto. Intenta de nuevo.');
   }
 
   let displayPath: string | null = null;
@@ -94,14 +95,19 @@ export async function uploadPhoto(token: string, blob: Blob, displayBlob?: Blob 
   });
 
   if (error) {
+    // Mismos mensajes que la ruta de la Fase 1 (uploadGuestPhoto): sin texto crudo del servidor.
     throw new Error(
-      `La foto se subió pero no pudimos registrarla (${error.message ?? 'error desconocido'}). Avisale a alguien del staff.`,
+      error.code === '22023'
+        ? 'Ya usaste todos los disparos de tu rollo.'
+        : error.code === '42501'
+          ? 'La cámara todavía no está habilitada para ti. Pasa por la puerta para que marquen tu llegada.'
+          : 'La foto se subió pero no pudimos registrarla. Avísale a quien organiza.',
     );
   }
 
   const row = (data as PhotoRow[] | null)?.[0];
   if (!row) {
-    throw new Error('La foto se subió pero no pudimos registrarla. Avisale a alguien del staff.');
+    throw new Error('La foto se subió pero no pudimos registrarla. Avísale a quien organiza.');
   }
   return mapRow(row);
 }
