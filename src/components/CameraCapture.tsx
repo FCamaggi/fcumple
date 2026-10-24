@@ -347,22 +347,33 @@ export default function CameraCapture({
     );
   }
 
-  function handleRetake() {
+  function clearReview() {
     setReviewBlob(null);
     setReviewUrl(null);
     setReviewDisplayBlob(null);
   }
 
+  function handleRetake() {
+    clearReview();
+    // Si la subida había fallado, el aviso de error ya no corresponde a ninguna foto.
+    if (state.phase === 'error') reset();
+  }
+
+  // La foto se conserva hasta que la subida salga bien: si falla (red compartida de
+  // una fiesta), sigue en la revisión y se reintenta con el mismo archivo. Un fallo no
+  // gasta el cupo (usePhotoCapture solo lo cuenta tras una subida exitosa).
   function handleSend() {
-    if (!reviewBlob) return;
-    capture(reviewBlob, reviewDisplayBlob);
+    if (!reviewBlob || state.phase === 'uploading') return;
+    void capture(reviewBlob, reviewDisplayBlob);
+  }
+
+  useEffect(() => {
+    if (state.phase !== 'success') return;
+    clearReview();
     // La próxima foto parte sin stickers.
     setPlacements([]);
     setSelectedUid(null);
-    setReviewBlob(null);
-    setReviewUrl(null);
-    setReviewDisplayBlob(null);
-  }
+  }, [state.phase]);
 
   if (outOfShots) {
     return (
@@ -470,7 +481,7 @@ export default function CameraCapture({
           <AnimatePresence mode="wait">
             {state.phase === 'success' ? (
               <ConfirmationBanner key="success" status={state.status} reduceMotion={reduceMotion} onDismiss={reset} />
-            ) : state.phase === 'error' ? (
+            ) : state.phase === 'error' && !reviewUrl ? (
               <ErrorBanner key="error" message={state.message} onDismiss={reset} />
             ) : null}
           </AnimatePresence>
@@ -528,7 +539,14 @@ export default function CameraCapture({
       </div>
 
       {reviewUrl && (
-        <ReviewScreen photoUrl={reviewUrl} onRetake={handleRetake} onSend={handleSend} />
+        <ReviewScreen
+          photoUrl={reviewUrl}
+          remainingAfter={remaining - 1}
+          uploading={state.phase === 'uploading'}
+          errorMessage={state.phase === 'error' ? state.message : null}
+          onRetake={handleRetake}
+          onSend={handleSend}
+        />
       )}
     </div>
   );
@@ -541,33 +559,54 @@ export default function CameraCapture({
  */
 function ReviewScreen({
   photoUrl,
+  remainingAfter,
+  uploading,
+  errorMessage,
   onRetake,
   onSend,
 }: {
   photoUrl: string;
+  /** Disparos que quedan después de enviar esta foto. */
+  remainingAfter: number;
+  uploading: boolean;
+  errorMessage: string | null;
   onRetake: () => void;
   onSend: () => void;
 }) {
+  const sendLabel = errorMessage ? 'Reintentar' : uploading ? 'Enviando…' : `Enviar // te quedarán ${remainingAfter}`;
+
   return (
     <div className="fixed inset-safe z-[60] flex flex-col bg-ink-950" aria-label="Revisión de la foto">
       <div className="relative flex-1 overflow-hidden bg-ink-950">
         <img src={photoUrl} alt="Foto recién sacada, todavía sin enviar" className="h-full w-full object-contain" />
       </div>
-      <div className="flex items-center justify-center gap-3 bg-ink-900 p-3">
-        <button
-          type="button"
-          onClick={onRetake}
-          className="tap-target flex-1 bg-smoke-700/30 px-4 py-3 font-mono text-xs font-bold uppercase tracking-wider text-paper-100 transition-colors hover:bg-smoke-700/50"
-        >
-          Repetir
-        </button>
-        <button
-          type="button"
-          onClick={onSend}
-          className="tap-target flex-1 bg-hotpink-500 px-4 py-3 font-mono text-xs font-bold uppercase tracking-wider text-ink-950 shadow-glow-hotpink transition-colors"
-        >
-          Enviar
-        </button>
+      <div className="flex flex-col gap-2 bg-ink-900 p-3">
+        {errorMessage && (
+          <p role="alert" className="font-mono text-xs uppercase tracking-wide text-flame-500">
+            {errorMessage} Tu foto sigue aquí.
+          </p>
+        )}
+        {!errorMessage && remainingAfter === 0 && (
+          <p className="font-mono text-xs uppercase tracking-wide text-paper-100/80">Es tu última foto del rollo</p>
+        )}
+        <div className="flex items-center justify-center gap-3">
+          <button
+            type="button"
+            onClick={onRetake}
+            disabled={uploading}
+            className="tap-target flex-1 bg-smoke-700/30 px-4 py-3 font-mono text-xs font-bold uppercase tracking-wider text-paper-100 transition-colors hover:bg-smoke-700/50 disabled:opacity-40"
+          >
+            Repetir
+          </button>
+          <button
+            type="button"
+            onClick={onSend}
+            disabled={uploading}
+            className="tap-target flex-1 bg-hotpink-500 px-4 py-3 font-mono text-xs font-bold uppercase tracking-wider text-ink-950 shadow-glow-hotpink transition-colors disabled:opacity-60"
+          >
+            {sendLabel}
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -9,6 +9,7 @@ vi.mock('../lib/photosApi', () => ({
 import CameraCapture from './CameraCapture';
 import { uploadPhoto } from '../lib/photosApi';
 import type { CameraTrackCapabilities } from '../lib/cameraControls';
+import type { Photo } from '../types';
 
 /**
  * What's covered here (same honesty criterion as QrScanner.test.tsx and
@@ -280,6 +281,7 @@ describe('CameraCapture', () => {
     it('uploads the captured blob only when "Enviar" is tapped', async () => {
       mockCanvasPipeline();
       mockCamera(makeTrack({}));
+      vi.mocked(uploadPhoto).mockResolvedValue({ status: 'approved' } as Photo);
       const user = userEvent.setup();
       render(<CameraCapture token="tok123" quota={{ quota: 5, used: 2 }} onClose={() => {}} />);
 
@@ -295,9 +297,78 @@ describe('CameraCapture', () => {
       expect(screen.queryByRole('button', { name: /repetir/i })).not.toBeInTheDocument();
     });
 
+    /** Saca una foto y deja abierta la pantalla de revisión. */
+    async function shootAndReview(quota = { quota: 5, used: 2 }) {
+      mockCanvasPipeline();
+      mockCamera(makeTrack({}));
+      const user = userEvent.setup();
+      render(<CameraCapture token="tok123" quota={quota} onClose={() => {}} />);
+      const shutter = await screen.findByRole('button', { name: /disparar/i });
+      await waitFor(() => expect(shutter).toBeEnabled());
+      await user.click(shutter);
+      await screen.findByRole('button', { name: /repetir/i });
+      return user;
+    }
+
+    it('«Enviar» dice cuántos disparos quedarán después de enviar', async () => {
+      await shootAndReview({ quota: 5, used: 2 });
+      expect(screen.getByRole('button', { name: 'Enviar // te quedarán 2' })).toBeInTheDocument();
+      expect(screen.queryByText(/última foto/i)).not.toBeInTheDocument();
+    });
+
+    it('con un solo disparo restante avisa que es la última foto', async () => {
+      await shootAndReview({ quota: 5, used: 4 });
+      expect(screen.getByRole('button', { name: 'Enviar // te quedarán 0' })).toBeInTheDocument();
+      expect(screen.getByText(/última foto del rollo/i)).toBeInTheDocument();
+    });
+
+    it('si la subida falla, conserva la foto, explica el error y deja reintentar el mismo blob', async () => {
+      const user = await shootAndReview();
+      vi.mocked(uploadPhoto)
+        .mockRejectedValueOnce(new Error('Sin red.'))
+        .mockResolvedValueOnce({ status: 'approved' } as Photo);
+
+      await user.click(screen.getByRole('button', { name: /^enviar/i }));
+
+      expect(await screen.findByRole('alert')).toHaveTextContent('Sin red.');
+      expect(screen.getByAltText(/foto recién sacada/i)).toBeInTheDocument();
+      expect(screen.getAllByRole('alert')).toHaveLength(1);
+
+      await user.click(screen.getByRole('button', { name: 'Reintentar' }));
+
+      await waitFor(() => expect(uploadPhoto).toHaveBeenCalledTimes(2));
+      const [first, second] = vi.mocked(uploadPhoto).mock.calls;
+      expect(second[1]).toBe(first[1]);
+      await waitFor(() => expect(screen.queryByAltText(/foto recién sacada/i)).not.toBeInTheDocument());
+    });
+
+    it('tras un fallo, «Repetir» descarta la foto y limpia el error', async () => {
+      const user = await shootAndReview();
+      vi.mocked(uploadPhoto).mockRejectedValueOnce(new Error('Sin red.'));
+      await user.click(screen.getByRole('button', { name: /^enviar/i }));
+      await screen.findByRole('alert');
+
+      await user.click(screen.getByRole('button', { name: /repetir/i }));
+
+      expect(screen.queryByAltText(/foto recién sacada/i)).not.toBeInTheDocument();
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
+
+    it('mientras sube no se puede enviar dos veces', async () => {
+      const user = await shootAndReview();
+      vi.mocked(uploadPhoto).mockReturnValue(new Promise(() => undefined));
+
+      await user.click(screen.getByRole('button', { name: /^enviar/i }));
+
+      const sending = await screen.findByRole('button', { name: /enviando/i });
+      expect(sending).toBeDisabled();
+      expect(uploadPhoto).toHaveBeenCalledTimes(1);
+    });
+
     it('generates and sends a second, smaller "display" blob alongside the original (Etapa 15)', async () => {
       mockCanvasPipeline();
       mockCamera(makeTrack({}));
+      vi.mocked(uploadPhoto).mockResolvedValue({ status: 'approved' } as Photo);
       const user = userEvent.setup();
       render(<CameraCapture token="tok123" quota={{ quota: 5, used: 2 }} onClose={() => {}} />);
 
