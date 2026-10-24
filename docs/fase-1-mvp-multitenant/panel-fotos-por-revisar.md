@@ -17,3 +17,9 @@ Fecha: 2026-10-24. Rama `feat/insignia-fotos`. Origen: [`backlog-diseno-y-marcos
 - La cuenta puede estar desactualizada hasta el siguiente cambio de pestaña o «Actualizar»: una foto que llega mientras se mira «Invitados» no se refleja sola. Es a propósito (sin sondeo); un aviso en tiempo real queda para la Fase 3.
 - Cada cambio de pestaña hace una petición de lista de fotos, aunque la pestaña no las use.
 - No se probó en un teléfono real.
+
+## Qué corrigió la revisión
+- Publicar desde la revisión parte del evento más reciente (no del que había al montar la página): si no, tras guardar Ajustes, publicar habría devuelto al panel el nombre, el tema y la cuota viejos.
+- Recargar limpia también el aviso «Publicaste N foto(s)», que ahora vive en la página y si no reaparecería al volver a «Fotos» u «Hoy».
+- Tras una lectura fallida, la siguiente recarga suelta las fotos viejas: la insignia no reaparece con una cuenta dudosa mientras llega la respuesta.
+- Sin corregir, a propósito: al pasar de `/panel/e/A` a `/panel/e/B` sin desmontar la página, durante un render se ven los datos de A (ya pasaba antes de esta etapa).

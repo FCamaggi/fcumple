@@ -26,6 +26,18 @@ export function useEventPhotos(
 
   // Con otro evento no deben verse un instante las fotos del anterior.
   const loadedFor = useRef(eventId);
+  // El hook dura lo que la página, no lo que una pestaña: lo que se hace tras un `await` debe partir del evento de
+  // ahora (que pudo cambiar al guardar Ajustes), no del que había al montar.
+  const latest = useRef(event);
+  latest.current = event;
+  // Si la última lectura falló, las fotos que quedan son de antes: no deben mostrarse al volver a pedirlas.
+  const lastLoadFailed = useRef(false);
+
+  /** Deja el evento marcado como «con fotos» (lo que lee el hub), sobre su última versión. */
+  const markRevealed = useCallback(() => {
+    const current = latest.current;
+    if (current) onEventChange({ ...current, photosRevealedAt: current.photosRevealedAt ?? new Date().toISOString() });
+  }, [onEventChange]);
 
   useEffect(() => {
     if (eventId === null) return;
@@ -36,16 +48,29 @@ export function useEventPhotos(
       setPhotos(null);
     }
     listEventPhotos(eventId)
-      .then((found) => active && setPhotos(found))
-      .catch((err: unknown) => active && setError(err instanceof Error ? err.message : 'No pudimos cargar las fotos.'));
+      .then((found) => {
+        if (!active) return;
+        lastLoadFailed.current = false;
+        setPhotos(found);
+      })
+      .catch((err: unknown) => {
+        if (!active) return;
+        lastLoadFailed.current = true;
+        setError(err instanceof Error ? err.message : 'No pudimos cargar las fotos.');
+      });
     return () => {
       active = false;
     };
   }, [eventId, refreshToken, reloadKey]);
 
-  /** Vuelve a pedir la lista: limpia el error anterior (sirve de «Reintentar»). */
+  /**
+   * Vuelve a pedir la lista: limpia el error y el aviso anteriores (sirve de «Reintentar»). Si la lectura anterior
+   * falló, suelta también las fotos viejas, para que ni la insignia ni las pestañas muestren una cuenta dudosa.
+   */
   const reload = useCallback(() => {
     setError(null);
+    setNotice(null);
+    if (lastLoadFailed.current) setPhotos(null);
     setReloadKey((k) => k + 1);
   }, []);
 
@@ -55,7 +80,7 @@ export function useEventPhotos(
   async function publish(): Promise<number> {
     if (!event) throw new Error(NOT_LOADED);
     const count = await publishPhotoBatch(event.id);
-    onEventChange({ ...event, photosRevealedAt: event.photosRevealedAt ?? new Date().toISOString() });
+    markRevealed();
     setReloadKey((k) => k + 1);
     return count;
   }
@@ -88,7 +113,7 @@ export function useEventPhotos(
       publish: async () => {
         if (!event) throw new Error(NOT_LOADED);
         const count = await publishPhotoBatch(event.id);
-        onEventChange({ ...event, photosRevealedAt: event.photosRevealedAt ?? new Date().toISOString() });
+        markRevealed();
         return count;
       },
     }),

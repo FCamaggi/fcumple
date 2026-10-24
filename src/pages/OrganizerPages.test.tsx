@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 
 vi.mock('../lib/organizerApi', () => ({
   listMyEvents: vi.fn(),
@@ -198,6 +198,35 @@ describe('OrganizerEventPage', () => {
 
       expect(await screen.findByText('Ana Rojas')).toBeInTheDocument();
       expect(await screen.findByRole('button', { name: /Fotos.*3 por revisar/ })).toBeInTheDocument();
+    });
+
+    it('al pasar a otro evento no se ve la insignia del anterior', async () => {
+      vi.mocked(api.listEventPhotos).mockResolvedValueOnce([pendingPhoto('a'), pendingPhoto('b')]);
+      vi.mocked(api.getMyEvent).mockResolvedValueOnce(event).mockResolvedValueOnce({ ...event, id: 'ev-2', name: 'Otra fiesta' });
+      vi.mocked(api.listEventGuests).mockResolvedValue([ana]);
+      function GoToOther() {
+        const navigate = useNavigate();
+        return (
+          <button type="button" onClick={() => navigate('/panel/e/ev-2')}>
+            ir al otro evento
+          </button>
+        );
+      }
+      render(
+        <MemoryRouter initialEntries={['/panel/e/ev-1']}>
+          <GoToOther />
+          <Routes>
+            <Route path="/panel/e/:eventId" element={<OrganizerEventPage />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+      expect(await screen.findByRole('button', { name: /Fotos.*2 por revisar/ })).toBeInTheDocument();
+
+      vi.mocked(api.listEventPhotos).mockReturnValueOnce(new Promise(() => undefined));
+      await userEvent.click(screen.getByRole('button', { name: 'ir al otro evento' }));
+
+      expect(await screen.findByText('Otra fiesta')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Fotos' })).toHaveTextContent(/^Fotos$/);
     });
 
     it('sin fotos por revisar no hay insignia', async () => {
