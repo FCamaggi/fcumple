@@ -36,3 +36,6 @@ coverage/
 
 # Datos de clientes (briefs, respuestas, invitaciones): privados. El repo es público.
 docs/clientes/
+
+# Salida de scripts/qa-movil (capturas y mediciones; se regeneran)
+scripts/qa-movil/salida/

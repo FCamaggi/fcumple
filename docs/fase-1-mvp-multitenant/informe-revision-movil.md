@@ -6,6 +6,8 @@ Fecha: 2026-10-23 y 24. Rama `fix/revision-movil`. Backlog de origen: [`backlog-
 La app del invitado estaba sana en tamaños táctiles pero tenía un bloqueante probable (zoom de iOS en la inscripción); el panel de la organizadora tenía el trabajo pendiente: pestañas apiladas, una lista de avisos rota a 360 px, botones de 25–32 px y texto de 10–11 px. La cámara en horizontal era inutilizable. Todo eso está arreglado y medido; **nada de esto se probó en un teléfono real** (ver «Qué no se probó»).
 
 ## Cómo se probó
+Los scripts están en [`scripts/qa-movil/`](../../scripts/qa-movil/README.md) para repetir la revisión antes de la fiesta o tras un cambio de diseño.
+
 - **Navegadores:** WebKit de Playwright con el perfil iPhone 13 (390×664 útiles), Chromium con Pixel 7 (412×839), Chromium a 360×640, y los dos teléfonos en horizontal (iPhone 750×342, Pixel 863×360). WebKit de Playwright en Linux no es Safari de iOS.
 - **Datos:** Supabase simulado con `page.route` (evento «PUTI HALLOWEEN» con el estilo Rosa chicle, 12 invitados, 24 fotos, 3 avisos, 3 marcos y 6 stickers). Nada salió a producción ni se crearon datos reales.
 - **Pantallas:** 22 por perfil (10 del invitado y 12 del panel, con las 9 pestañas, la moderación y el escáner), en 5 perfiles: 110 combinaciones por corrida.

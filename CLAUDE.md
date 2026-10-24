@@ -21,6 +21,7 @@ Verificados el 2026-10-23 con Node 22.
 | `npm run build` | `tsc` y `vite build`. Pasa; avisa de chunks de más de 500 kB. |
 | `npm run test:db` | 297 tests contra un Postgres real. Levanta Postgres 16 en Docker (puerto 55433). |
 | `npm run build:setup-sql` | Regenera `supabase/setup-fase-1.sql` a partir de las migraciones. |
+| `node scripts/qa-movil/audit.mjs` | Auditoría móvil con capturas (WebKit y Chromium simulados, Supabase simulado). Necesita el servidor de Vite y `playwright-cli`; ver `scripts/qa-movil/README.md`. |
 
 Sin Docker, `test:db` acepta un Postgres propio en `localhost:55433` (usuario `postgres`, clave `test`) con `FCUMPLE_TEST_PG_EXTERNAL=1`. Cada archivo de test reinicia el esquema `public`: nunca lo apuntes a una base con datos.
 
