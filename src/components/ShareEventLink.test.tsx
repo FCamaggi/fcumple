@@ -64,3 +64,17 @@ describe('ShareEventLink', () => {
     expect(screen.getByText(`${window.location.origin}/e/cumple-abcd`)).toBeInTheDocument();
   });
 });
+
+describe('ShareEventLink: si el QR no se puede generar', () => {
+  it('lo avisa con «Reintentar» y al reintentar muestra el QR', async () => {
+    vi.mocked(QRCode.toDataURL).mockRejectedValueOnce(new Error('canvas'));
+    render(<ShareEventLink event={event} />);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/no pudimos generar el qr/i);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Reintentar' }));
+
+    expect(await screen.findByAltText(/código qr de/i)).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+});

@@ -24,6 +24,7 @@ import {
   type EventSticker,
 } from '../../lib/cameraStudioApi';
 import { updateEvent, type OrganizerEvent } from '../../lib/organizerApi';
+import PanelState from '../PanelState';
 import FrameEditor from './FrameEditor';
 import FramePreview from './FramePreview';
 import StickerManager from './StickerManager';
@@ -62,6 +63,8 @@ export default function CameraStudio({ event, onEventChange }: CameraStudioProps
   const [picking, setPicking] = useState(false);
   const [editing, setEditing] = useState<Editing>(null);
   const [saving, setSaving] = useState(false);
+  // Sube con «Reintentar» para volver a leer marcos y stickers.
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -77,7 +80,7 @@ export default function CameraStudio({ event, onEventChange }: CameraStudioProps
     return () => {
       active = false;
     };
-  }, [event.id]);
+  }, [event.id, reloadKey]);
 
   const run = useCallback(async (action: () => Promise<void>) => {
     setError(null);
@@ -125,13 +128,19 @@ export default function CameraStudio({ event, onEventChange }: CameraStudioProps
 
   if (error && frames === null) {
     return (
-      <p role="alert" className="font-mono text-xs uppercase tracking-wider text-flame-500">
+      <PanelState
+        kind="error"
+        onRetry={() => {
+          setError(null);
+          setReloadKey((k) => k + 1);
+        }}
+      >
         {error}
-      </p>
+      </PanelState>
     );
   }
   if (frames === null || stickers === null) {
-    return <p className="font-mono text-xs uppercase tracking-widest text-acid-400">Cargando...</p>;
+    return <PanelState kind="loading">Cargando...</PanelState>;
   }
 
   if (editing) {

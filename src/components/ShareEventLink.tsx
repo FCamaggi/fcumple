@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
+import PanelState from './PanelState';
 import { eventUrl, whatsappMessage, whatsappShareUrl } from '../lib/eventLink';
 import type { OrganizerEvent } from '../lib/organizerApi';
 
@@ -16,20 +17,26 @@ export default function ShareEventLink({ event }: ShareEventLinkProps) {
   const url = eventUrl(window.location.origin, event.slug);
   const [qr, setQr] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [qrFailed, setQrFailed] = useState(false);
+  const [qrKey, setQrKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
+    setQrFailed(false);
     QRCode.toDataURL(url, { margin: 4, width: 640 })
       .then((dataUrl) => {
         if (!cancelled) setQr(dataUrl);
       })
       .catch(() => {
-        if (!cancelled) setQr(null);
+        if (!cancelled) {
+          setQr(null);
+          setQrFailed(true);
+        }
       });
     return () => {
       cancelled = true;
     };
-  }, [url]);
+  }, [url, qrKey]);
 
   async function handleCopy() {
     try {
@@ -77,6 +84,12 @@ export default function ShareEventLink({ event }: ShareEventLinkProps) {
       <p className="font-sans text-xs text-paper-100/60">
         Manda el mismo enlace a todos (por ejemplo al grupo). Cada persona escribe su nombre y apellido y elige un PIN de 4 a 6 números para entrar. Con «Probar el enlace» ves lo mismo que verán tus invitados.
       </p>
+
+      {qrFailed && (
+        <PanelState kind="error" onRetry={() => setQrKey((k) => k + 1)}>
+          No pudimos generar el QR. El enlace de arriba funciona igual.
+        </PanelState>
+      )}
 
       {qr && (
         <div className="flex flex-col items-start gap-2">

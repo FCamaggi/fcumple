@@ -180,6 +180,36 @@ describe('OrganizerEventPage', () => {
     expect(screen.getByText('Ana Rojas')).toBeInTheDocument();
   });
 
+  describe('si no carga el evento', () => {
+    it('muestra el error con «Reintentar» y, al reintentar, abre el panel', async () => {
+      vi.mocked(api.getMyEvent).mockRejectedValueOnce(new Error('No pudimos cargar el evento.')).mockResolvedValueOnce(event);
+      vi.mocked(api.listEventGuests).mockResolvedValue([ana]);
+      renderEvent();
+
+      expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos cargar el evento.');
+      await userEvent.click(screen.getByRole('button', { name: 'Reintentar' }));
+
+      expect(await screen.findByText('Ana Rojas')).toBeInTheDocument();
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
+
+    it('mientras carga lo dice con role="status"', () => {
+      vi.mocked(api.getMyEvent).mockReturnValue(new Promise(() => undefined));
+      vi.mocked(api.listEventGuests).mockReturnValue(new Promise(() => undefined));
+      renderEvent();
+      expect(screen.getByRole('status')).toHaveTextContent(/cargando/i);
+    });
+
+    it('un evento que no existe no ofrece reintentar: no es un fallo de red', async () => {
+      vi.mocked(api.getMyEvent).mockResolvedValueOnce(null);
+      vi.mocked(api.listEventGuests).mockResolvedValueOnce([]);
+      renderEvent();
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(/no existe o no es tuyo/i);
+      expect(screen.queryByRole('button', { name: 'Reintentar' })).not.toBeInTheDocument();
+    });
+  });
+
   describe('insignia de fotos por revisar', () => {
     const pendingPhoto = (id: string) =>
       ({ id, status: 'pending', publishedAt: null, guestFullName: 'Ana Rojas' }) as unknown as Awaited<
