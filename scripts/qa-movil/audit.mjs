@@ -43,6 +43,9 @@ const profiles = [
   { id: 'iphone13', engine: 'webkit', device: 'iPhone 13' },
   { id: 'pixel7', engine: 'chromium', device: 'Pixel 7' },
   { id: 's360', engine: 'chromium', viewport: { width: 360, height: 640 }, mobile: true },
+  // Los tamaños de la crítica de la cámara (iPhone 13/14 y Pro Max). En Chromium porque WebKit no abre la cámara falsa.
+  { id: 's390', engine: 'chromium', viewport: { width: 390, height: 844 }, mobile: true },
+  { id: 's430', engine: 'chromium', viewport: { width: 430, height: 932 }, mobile: true },
   { id: 'iphone13-h', engine: 'webkit', device: 'iPhone 13 landscape' },
   { id: 'pixel7-h', engine: 'chromium', device: 'Pixel 7 landscape' },
 ];
@@ -64,6 +67,9 @@ const scenes = [
   { id: 'g07-cupo-agotado', url: '/e/demo', ...guest('t-full') },
   { id: 'g08-qr-activacion', url: '/e/demo/a/AAAABBBBCCCC', ...guest('t-locked') },
   { id: 'g09-camara-abierta', url: '/e/demo', ...guest('t-active'), vshot: true, act: async (p) => { await p.getByRole('button', { name: /abrir cámara/i }).click(); await p.waitForTimeout(1500); } },
+  // La cámara falsa de Chromium entrega 4:3 apaisado; un teléfono en vertical entrega 3:4. Esta escena sustituye
+  // getUserMedia por un lienzo vertical de 480×640 para medir el visor como lo vería el invitado.
+  { id: 'g11-camara-vertical', url: '/e/demo', ...guest('t-active'), vshot: true, fakeCam: true, act: async (p) => { await p.getByRole('button', { name: /abrir cámara/i }).click(); await p.waitForTimeout(1500); } },
   { id: 'g10-visor-foto', url: '/e/demo', ...guest('t-active'), vshot: true, act: async (p) => { const b = p.getByRole('button', { name: /^ver foto 1 de/i }).first(); await b.scrollIntoViewIfNeeded(); await b.click(); await p.waitForTimeout(800); } },
   { id: 'o01-eventos', url: '/panel', org: true },
   ...TABS.map((t, i) => ({ id: `o${String(i + 2).padStart(2, '0')}-panel-${t.toLowerCase().normalize('NFD').replace(/[^a-z]/g, '')}`, url: `/panel/e/${EVENT_ID}`, org: true, act: async (p) => { await p.getByRole('button', { name: t, exact: true }).click(); await p.waitForTimeout(500); } })),
@@ -100,6 +106,9 @@ function measure() {
   }
   out.smallText = sizes;
   out.fixedFull = [...document.querySelectorAll('*')].filter((el) => getComputedStyle(el).position === 'fixed' && vis(el)).map((el) => { const r = el.getBoundingClientRect(); return { n: label(el), h: Math.round(r.height), top: Math.round(r.top), bottom: Math.round(r.bottom) }; }).filter((x) => x.h >= vh - 2);
+  // Cámara: qué parte del alto de la ventana ocupa el visor (el escenario con la proporción de la foto).
+  const stage = document.querySelector('[data-testid="composer-stage"]');
+  if (stage) { const r = stage.getBoundingClientRect(); out.stage = { w: Math.round(r.width), h: Math.round(r.height), pctAlto: Math.round((r.height / vh) * 100) }; }
   out.title = document.title;
   return out;
 }
@@ -119,11 +128,22 @@ for (const prof of profiles) {
     if (onlyS && !sc.id.includes(onlyS)) continue;
     const context = await browser.newContext({ ...base, locale: 'es-CL', permissions: prof.engine === 'chromium' ? ['camera'] : [] });
     await context.addInitScript(({ sc, orgSession }) => {
+      if (sc.fakeCam) {
+        const stream = () => {
+          const c = document.createElement('canvas');
+          c.width = 480; c.height = 640;
+          const g = c.getContext('2d');
+          let t = 0;
+          setInterval(() => { t += 1; g.fillStyle = `hsl(${(t * 3) % 360} 30% 40%)`; g.fillRect(0, 0, 480, 640); g.fillStyle = '#fff'; g.fillRect(160, 160, 160, 320); }, 100);
+          return c.captureStream(10);
+        };
+        navigator.mediaDevices.getUserMedia = async () => stream();
+      }
       try {
         if (sc.guestSession) localStorage.setItem('fcumple:session:demo', JSON.stringify({ token: sc.guestSession, guestName: 'Camila Rojas' }));
         if (sc.org) localStorage.setItem('sb-127-auth-token', orgSession);
       } catch { /* ignorar */ }
-    }, { sc: { guestSession: sc.guestSession, org: sc.org }, orgSession });
+    }, { sc: { guestSession: sc.guestSession, org: sc.org, fakeCam: sc.fakeCam }, orgSession });
     const page = await context.newPage();
     await installMock(page);
     const errors = [];
@@ -144,7 +164,7 @@ for (const prof of profiles) {
       m = { error: String(e).slice(0, 200) };
     }
     results.push({ profile: prof.id, scene: sc.id, errors, ...m });
-    process.stdout.write(`${prof.id} ${sc.id} ${m.error ? 'ERROR ' + m.error : `ovf=${m.hOverflow} campos<16=${m.smallFields?.length} tap<44=${m.smallTap?.length}`}\n`);
+    process.stdout.write(`${prof.id} ${sc.id} ${m.error ? 'ERROR ' + m.error : `ovf=${m.hOverflow} campos<16=${m.smallFields?.length} tap<44=${m.smallTap?.length}${m.stage ? ` visor=${m.stage.pctAlto}%` : ''}`}\n`);
     await context.close();
   }
   await browser.close();

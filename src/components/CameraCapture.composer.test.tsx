@@ -79,6 +79,11 @@ afterEach(() => {
 
 const quota = { quota: 5, used: 1 };
 
+/** La bandeja de stickers está detrás de un botón de la cabecera: se abre antes de agregar. */
+async function openStickers(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(await screen.findByRole('button', { name: /^stickers \d\/\d$/i }));
+}
+
 describe('CameraCapture: modo compositor', () => {
   it('arranca en "Sin marco" y recorre los marcos del evento con los botones ‹ ›, dando la vuelta', async () => {
     render(<CameraCapture token="tok" quota={quota} onClose={() => {}} frames={makeFrames()} stickers={stickers} />);
@@ -112,10 +117,42 @@ describe('CameraCapture: modo compositor', () => {
     expect(screen.getByText('Marco // Sin marco')).toBeInTheDocument();
   });
 
-  it('sin stickers en el evento no muestra la bandeja', async () => {
+  it('sin stickers en el evento no muestra la bandeja ni el botón', async () => {
     render(<CameraCapture token="tok" quota={quota} onClose={() => {}} frames={makeFrames()} stickers={[]} />);
     await screen.findByText(/no permite acceder a la cámara/i);
     expect(screen.queryByRole('region', { name: 'Stickers' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^stickers/i })).not.toBeInTheDocument();
+  });
+
+  it('la bandeja de stickers está cerrada hasta tocar «Stickers» y se vuelve a cerrar', async () => {
+    render(<CameraCapture token="tok" quota={quota} onClose={() => {}} frames={makeFrames()} stickers={stickers} />);
+    const user = userEvent.setup();
+    const toggle = await screen.findByRole('button', { name: 'Stickers 0/5' });
+
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('button', { name: 'Agregar sticker 🎉' })).not.toBeInTheDocument();
+
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('button', { name: 'Agregar sticker 🎉' })).toBeInTheDocument();
+
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('button', { name: 'Agregar sticker 🎉' })).not.toBeInTheDocument();
+  });
+
+  it('el botón «Stickers» cuenta los de la foto aunque la bandeja esté cerrada, y no los pierde', async () => {
+    mockCanvasPipeline();
+    mockCamera();
+    render(<CameraCapture token="tok" quota={quota} onClose={() => {}} frames={makeFrames()} stickers={stickers} />);
+    const user = userEvent.setup();
+
+    await openStickers(user);
+    await user.click(screen.getByRole('button', { name: 'Agregar sticker 🎉' }));
+    await user.click(screen.getByRole('button', { name: 'Stickers 1/5' })); // cerrar
+
+    expect(screen.getByRole('button', { name: 'Stickers 1/5' })).toBeInTheDocument();
+    expect(screen.getByLabelText(/^Sticker 🎉/)).toBeInTheDocument(); // sigue en el visor
   });
 
   it('agrega stickers, los selecciona y permite agrandar, girar y quitar', async () => {
@@ -124,6 +161,7 @@ describe('CameraCapture: modo compositor', () => {
     const user = userEvent.setup();
     render(<CameraCapture token="tok" quota={quota} onClose={() => {}} frames={makeFrames()} stickers={stickers} />);
 
+    await openStickers(user);
     await user.click(await screen.findByRole('button', { name: 'Agregar sticker 🎉' }));
     expect(screen.getByText('Stickers // 1/5')).toBeInTheDocument();
 
@@ -150,6 +188,7 @@ describe('CameraCapture: modo compositor', () => {
     const user = userEvent.setup();
     render(<CameraCapture token="tok" quota={quota} onClose={() => {}} frames={[]} stickers={stickers} />);
 
+    await openStickers(user);
     const add = await screen.findByRole('button', { name: 'Agregar sticker 🎉' });
     for (let i = 0; i < 5; i++) await user.click(add);
 
@@ -165,6 +204,7 @@ describe('CameraCapture: modo compositor', () => {
     const frames = makeFrames();
     render(<CameraCapture token="tok" quota={quota} onClose={() => {}} frames={frames} stickers={stickers} />);
 
+    await openStickers(user);
     await user.click(await screen.findByRole('button', { name: 'Agregar sticker 🎉' }));
     await user.click(screen.getByRole('button', { name: 'Agregar sticker 🎂' }));
     await user.click(screen.getByRole('button', { name: 'Siguiente marco' })); // Borde
@@ -212,6 +252,7 @@ describe('CameraCapture: modo compositor', () => {
     });
     render(<CameraCapture token="tok" quota={quota} onClose={() => {}} frames={[]} stickers={stickers} upload={upload} />);
 
+    await openStickers(user);
     await user.click(await screen.findByRole('button', { name: 'Agregar sticker 🎉' }));
     const shutter = screen.getByRole('button', { name: /disparar/i });
     await waitFor(() => expect(shutter).toBeEnabled());

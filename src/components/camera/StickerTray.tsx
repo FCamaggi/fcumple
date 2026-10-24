@@ -2,6 +2,8 @@ import { MAX_STICKERS_PER_PHOTO } from '../../lib/cameraAssets/stickers';
 import type { CameraStickerOption } from './types';
 
 interface StickerTrayProps {
+  /** Para que el botón que abre la bandeja la señale con `aria-controls`. */
+  id?: string;
   options: CameraStickerOption[];
   count: number;
   hasSelection: boolean;
@@ -21,6 +23,7 @@ const controlClass =
  * girarlo o quitarlo sin necesidad de gestos.
  */
 export default function StickerTray({
+  id,
   options,
   count,
   hasSelection,
@@ -34,7 +37,7 @@ export default function StickerTray({
   const full = count >= MAX_STICKERS_PER_PHOTO;
 
   return (
-    <section className="flex flex-col gap-1.5" aria-label="Stickers">
+    <section id={id} className="flex flex-col gap-1.5" aria-label="Stickers">
       <div className="flex items-center justify-between">
         <span className="font-mono text-xs uppercase tracking-widest text-paper-100/60">
           Stickers // {count}/{MAX_STICKERS_PER_PHOTO}

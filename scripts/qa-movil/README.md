@@ -8,7 +8,7 @@ Recorre las pantallas de la app en tamaños de teléfono, saca capturas y mide l
 - `mock.js` simula Supabase: responde a todo lo que la app pide a `127.0.0.1:54321` con datos inventados (evento «PUTI HALLOWEEN» con el estilo Rosa chicle, 12 invitados, 24 fotos que son dibujos, 3 avisos, 3 marcos y 6 stickers). **No habla con ninguna base real.**
 - `audit.mjs` abre cada pantalla en cada perfil, la captura y la mide.
 
-Perfiles: iPhone 13 (WebKit), Pixel 7 (Chromium), 360×640, iPhone 13 en horizontal y Pixel 7 en horizontal. Pantallas: 10 del invitado (inscripción, «ya me inscribí», evento que no existe, cámara bloqueada, cámara activa con cartelera, cartelera vacía, cupo agotado, QR de activación, cámara abierta, visor de foto) y 12 del panel (lista de eventos, las 9 pestañas, la moderación y el escáner).
+Perfiles: iPhone 13 (WebKit), Pixel 7 (Chromium), 360×640, 390×844 y 430×932 (Chromium, los tamaños de la crítica de la cámara), iPhone 13 en horizontal y Pixel 7 en horizontal. Pantallas: 11 del invitado (inscripción, «ya me inscribí», evento que no existe, cámara bloqueada, cámara activa con cartelera, cartelera vacía, cupo agotado, QR de activación, cámara abierta, **cámara con video vertical** y visor de foto) y 12 del panel (lista de eventos, las 9 pestañas, la moderación y el escáner).
 
 ## Cómo correrla
 1. Levanta la app apuntando a una dirección falsa, sin claves reales (el simulador responde ahí):
@@ -45,6 +45,7 @@ Cómo leer las mediciones de cada pantalla en el JSON:
 | `smallText` | Cantidad de textos por tamaño de letra, solo los de menos de 12 px. |
 | `fixedFull` | Capas fijas que cubren toda la pantalla. |
 | `errors` | Errores de JavaScript que salieron en la consola. |
+| `stage` | Solo en las escenas de cámara: tamaño del visor y `pctAlto`, su porcentaje del alto de la ventana (también en la línea de la terminal como `visor=NN%`). **Ojo:** la cámara falsa de Chromium entrega video 4:3 apaisado, que da un visor mucho más bajo que un teléfono en vertical; la escena `g11-camara-vertical` sustituye `getUserMedia` por un video vertical 3:4 y es la que sirve para medir el visor. WebKit no abre la cámara falsa. |
 
 Un resultado sano es todo en cero. Lo que queda a propósito (por ejemplo los botones marcados `data-compact`) debería explicarse en el informe.
 
