@@ -31,10 +31,12 @@ Fecha: 2026-10-24. Rama `feat/vistas-previas`. Origen: [`backlog-diseno-y-marcos
 - **Fotos de ejemplo acotadas:** `getSignedPhotoUrl` y la URL de descarga devuelven tal cual solo las rutas exactas de `SAMPLE_PHOTOS`; cualquier otra ruta `data:` va al almacenamiento como siempre, para que una fila manipulada de `photos` no se sirva como imagen. Test en `photosApi.test.ts`.
 
 ## Límites conocidos
+- La vista previa de Ajustes (C4) muestra siempre el estado «Cámara activa»: no enseña la pantalla de inscripción con el preset elegido. Para ver ese estado hay que guardar y abrir la pestaña «Vista previa».
+- Al abrirla con un preset ya elegido puede verse un instante el estilo por defecto mientras el iframe carga (no medido en navegador).
 - En el computador, el iframe no cumple `pointer: coarse`: los campos se ven a 14 px y no a 16 px como en un teléfono táctil.
 - Los botones no hacen nada (abrir la cámara, mostrar el código); el visor de fotos sí abre, y su descarga queda bloqueada por el `sandbox`.
 - Con la cartelera larga hay que desplazar dentro del teléfono para llegar al carrusel de fotos.
-- Verificado con la auditoría de `scripts/qa-movil/` (escenas `o13` a `o17`) en WebKit iPhone 13, Chromium Pixel 7 y 360×640: sin desbordes, sin campos de menos de 16 px, sin botones de menos de 44 px y sin errores de JavaScript. **No se probó en un teléfono real.**
+- Verificado con la auditoría de `scripts/qa-movil/` (escenas `o13` a `o18`) en WebKit iPhone 13, Chromium Pixel 7 y 360×640: sin desbordes, sin campos de menos de 16 px, sin botones de menos de 44 px y sin errores de JavaScript. **No se probó en un teléfono real.**
 
 ## Cómo ampliarla (C3–C6)
 Agregar un estado a `PREVIEW_STATES` o a `buildPreviewScenario` (con su test) y, si necesita datos nuevos, pasarlos por el mensaje validado, nunca por la dirección. Mantener la regla: el evento público se arma campo por campo.
