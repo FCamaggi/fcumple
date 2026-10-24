@@ -64,7 +64,7 @@ describe('PhoneFrame', () => {
     fromFrame({ type: 'fcumple-preview-ready' });
 
     expect(post).toHaveBeenCalledWith(
-      { type: 'fcumple-preview', state: 'bloqueada', draft: null },
+      { type: 'fcumple-preview', state: 'bloqueada', draft: null, themeId: null },
       window.location.origin,
     );
   });
@@ -77,7 +77,21 @@ describe('PhoneFrame', () => {
 
     rerender(<PhoneFrame src={SRC} label="x" state="aviso" draft={draft} />);
 
-    expect(post).toHaveBeenLastCalledWith({ type: 'fcumple-preview', state: 'aviso', draft }, window.location.origin);
+    expect(post).toHaveBeenLastCalledWith({ type: 'fcumple-preview', state: 'aviso', draft, themeId: null }, window.location.origin);
+    expect(screen.getByTitle(/vista previa/i)).toBe(iframe);
+  });
+
+  it('manda el estilo elegido y vuelve a mandarlo cuando cambia, sin recargar el iframe', () => {
+    const { rerender } = render(<PhoneFrame src={SRC} label="x" state="activa" themeId="neon" />);
+    const iframe = screen.getByTitle(/vista previa/i);
+    const post = vi.spyOn(frameWindow(), 'postMessage');
+
+    rerender(<PhoneFrame src={SRC} label="x" state="activa" themeId="rosa-chicle" />);
+
+    expect(post).toHaveBeenLastCalledWith(
+      { type: 'fcumple-preview', state: 'activa', draft: null, themeId: 'rosa-chicle' },
+      window.location.origin,
+    );
     expect(screen.getByTitle(/vista previa/i)).toBe(iframe);
   });
 

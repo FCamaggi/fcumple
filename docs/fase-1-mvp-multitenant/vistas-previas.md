@@ -1,17 +1,23 @@
-# Vistas previas para la organizadora (épica C: C1 y C2)
+# Vistas previas para la organizadora (épica C: C1, C2 y C4)
 
 Fecha: 2026-10-24. Rama `feat/vistas-previas`. Origen: [`backlog-diseno-y-marcos.md`](./backlog-diseno-y-marcos.md), épica C. Estado de la app: [`estado-del-producto.md`](./estado-del-producto.md).
 
 ## Qué hay
 - **C1, pestaña «Vista previa» del panel.** Un teléfono de 390×844 con la pantalla del invitado y siete estados elegibles: inscripción, cámara bloqueada, cámara activa, avisos, fotos publicadas, cartelera vacía y cupo agotado.
 - **C2, «Ver cómo queda» al redactar un aviso.** En los formularios de crear y de editar (solo con evento), el mismo teléfono muestra el borrador, con portada, subtítulo, cuerpo y galería, arriba de los avisos ya publicados y sin repetir el que se edita.
-- No existen todavía C3 (marcos), C4 (estilo), C5 (tarjeta del enlace) ni C6 (flujo del QR simulado).
+- **C4, «Ver cómo queda» en Ajustes.** Bajo «Estilo del evento» hay un botón que abre el mismo teléfono (cerrado por defecto: no carga nada hasta que se pide). Al elegir otro preset en la lista, el teléfono lo pinta al instante, sin guardar; el guardado sigue siendo el botón «Guardar ajustes».
+- No existen todavía C3 (marcos), C5 (tarjeta del enlace) ni C6 (flujo del QR simulado).
 
 ## Cómo está hecho
 - `GuestHubView` es la cartelera del invitado sin estado ni llamadas; `GuestHub` (el real) y la vista previa la alimentan. `EventHeader` es la cabecera compartida. Lo que ve la organizadora es el mismo código que ve el invitado.
 - `GuestPreviewPage` (`/panel/e/:eventId/vista-previa`, tras `RequireAuth`) se abre dentro de un **iframe** (`PhoneFrame`). Así los puntos de quiebre, `100dvh` y las capas `fixed` miden un teléfono y no la ventana del panel, y el estilo del evento (variables CSS en `<html>`) no pisa al del panel. El teléfono se reduce hasta la mitad en pantallas angostas.
-- Panel e iframe hablan por `postMessage` del mismo origen, validado en `src/lib/guestPreview.ts` (`parsePreviewMessage`, `parsePreviewNote`): estado y borrador hacia el iframe; «listo» y la nota del estado de vuelta. El iframe lleva `sandbox="allow-scripts allow-same-origin"`: es un freno contra navegar el panel o abrir ventanas por accidente, no un aislamiento (con `allow-same-origin` la propia app podría quitárselo).
+- Panel e iframe hablan por `postMessage` del mismo origen, validado en `src/lib/guestPreview.ts` (`parsePreviewMessage`, `parsePreviewNote`): estado, borrador y estilo (`themeId`) hacia el iframe; «listo» y la nota del estado de vuelta. El iframe lleva `sandbox="allow-scripts allow-same-origin"`: es un freno contra navegar el panel o abrir ventanas por accidente, no un aislamiento (con `allow-same-origin` la propia app podría quitárselo).
 - La lógica de qué se ve en cada estado es pura (`buildPreviewScenario`) y está probada.
+
+### Cómo viaja el estilo (C4)
+- El preset va **en el mensaje** (`themeId`), nunca en la dirección: la dirección del iframe no cambia al elegir otra opción, así que no se recarga.
+- `parsePreviewMessage` solo acepta ids que existen en `THEME_PRESETS` (o `null`, que deja el estilo guardado del evento). Un id inventado o un color suelto como `#00ff00` descarta todo el mensaje, de modo que no se puede pintar nada fuera de la paleta. Tests en `guestPreview.test.ts` y `GuestPreviewPage.test.tsx`.
+- La página de la vista previa aplica el preset probado sobre una copia del evento; el evento guardado no se toca.
 
 ## Qué es real y qué es de ejemplo
 | Real (con la sesión de la organizadora) | De ejemplo |

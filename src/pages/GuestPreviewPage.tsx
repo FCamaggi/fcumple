@@ -52,6 +52,7 @@ export default function GuestPreviewPage() {
   const [search] = useSearchParams();
   const [state, setState] = useState<PreviewState>(() => parsePreviewState(search.get('estado')));
   const [draft, setDraft] = useState<PreviewDraftPost | null>(null);
+  const [themeId, setThemeId] = useState<string | null>(null);
   const [load, setLoad] = useState<Load>({ status: 'loading' });
   const refreshSeq = useRef(0);
 
@@ -92,6 +93,7 @@ export default function GuestPreviewPage() {
       const message = parsePreviewMessage(e.data);
       if (!message) return;
       setState(message.state);
+      setThemeId(message.themeId);
       // Cada mensaje trae arreglos nuevos: se conserva el de la galería si no cambió, para que la cartelera no
       // vuelva a firmar las imágenes con cada tecla.
       setDraft((prev) =>
@@ -153,7 +155,8 @@ export default function GuestPreviewPage() {
     );
   }
 
-  const { event } = load;
+  // El preset que se está probando manda sobre el guardado; ya viene validado contra `THEME_PRESETS`.
+  const event = themeId ? { ...load.event, theme: { preset: themeId } } : load.event;
   const publicEvent = toPublicPreviewEvent(event);
 
   if (scenario.screen === 'identify') {

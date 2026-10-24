@@ -27,6 +27,8 @@ interface PhoneFrameProps {
   state: PreviewState;
   /** Quien lo use debe memorizarlo: cada objeto nuevo se vuelve a mandar al iframe. */
   draft?: PreviewDraftPost | null;
+  /** Preset de `theme.ts` que se prueba sin guardar; sin él se ve el estilo guardado del evento. */
+  themeId?: string | null;
   /** La nota que acompaña al estado (qué es de ejemplo, qué falta). */
   onNote?: (note: string | null) => void;
   /** Cada vez que cambia, el iframe vuelve a leer los avisos publicados (sin recargarse ni perder el estado). */
@@ -39,7 +41,7 @@ interface PhoneFrameProps {
  * solo hablan por mensajes validados. `sandbox` es un freno contra navegar el panel o abrir ventanas por accidente,
  * no un aislamiento: con `allow-same-origin` el contenido (la propia app) podría quitárselo.
  */
-export default function PhoneFrame({ src, label, state, draft = null, onNote, refreshKey = 0 }: PhoneFrameProps) {
+export default function PhoneFrame({ src, label, state, draft = null, themeId = null, onNote, refreshKey = 0 }: PhoneFrameProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
@@ -48,10 +50,10 @@ export default function PhoneFrame({ src, label, state, draft = null, onNote, re
 
   const send = useCallback(() => {
     iframeRef.current?.contentWindow?.postMessage(
-      { type: PREVIEW_MESSAGE_TYPE, state, draft },
+      { type: PREVIEW_MESSAGE_TYPE, state, draft, themeId },
       window.location.origin,
     );
-  }, [state, draft]);
+  }, [state, draft, themeId]);
 
   useEffect(() => {
     send();

@@ -20,8 +20,8 @@ Una cámara desechable digital para eventos festivos e informales (cumpleaños, 
 | **Cartelera del invitado: avisos + carrusel de fotos publicadas** | **Existe** (rama `feat/cartelera-tema`) | `GuestHub`, `PhotoCarousel` |
 | **Estilo por evento** | **Existe** (rama `feat/cartelera-tema`) | `src/lib/theme.ts` |
 | **Título + subtítulo del evento** | **Existe** (rama `feat/cartelera-tema`) | Ajustes |
-| **Vista previa de lo que ve el invitado (pestaña «Vista previa», 7 estados) y del aviso al redactarlo** | **Existe** (épica C1 y C2) | [`vistas-previas.md`](./vistas-previas.md) |
-| Vista previa de marcos, del estilo y de la tarjeta del enlace; flujo del QR simulado (C3–C6) | No existe | — |
+| **Vista previa de lo que ve el invitado (pestaña «Vista previa», 7 estados), del aviso al redactarlo y del estilo al elegir un preset en Ajustes** | **Existe** (épica C1, C2 y C4) | [`vistas-previas.md`](./vistas-previas.md) |
+| Vista previa de marcos y de la tarjeta del enlace; flujo del QR simulado (C3, C5, C6) | No existe | — |
 | Vista previa del enlace por evento (WhatsApp) | Existe; imagen propia opcional en `public/og/<slug>.jpg` | `api/event-meta.ts` |
 | Cambio de contraseña del organizador | Existe | `/panel/cuenta` |
 | Moderación por lotes horarios | **No existe** (PRODUCT.md la daba por hecha; la publicación por lotes de arriba es otra cosa) | — |

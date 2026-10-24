@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { AccessMode } from '../lib/platformApi';
 import type { CameraUnlock, EventSettingsPatch, OrganizerEvent } from '../lib/organizerApi';
 import { isoToLocalInput, localInputToIso } from '../lib/localDateTime';
+import PhoneFrame from './PhoneFrame';
 import { THEME_PRESETS, resolveTheme } from '../lib/theme';
 
 interface EventSettingsPanelProps {
@@ -36,6 +37,9 @@ export default function EventSettingsPanel({ event, onSave }: EventSettingsPanel
   const [photoQuota, setPhotoQuota] = useState(String(event.defaultPhotoQuota));
   const [accessMode, setAccessMode] = useState<AccessMode>(event.accessMode);
   const [cameraUnlock, setCameraUnlock] = useState<CameraUnlock>(event.cameraUnlock);
+  const [showPreview, setShowPreview] = useState(false);
+  // La dirección no lleva el estilo ni cambia al elegir otro: si cambiara, el iframe se recargaría con cada opción.
+  const [previewSrc] = useState(() => `/panel/e/${event.id}/vista-previa?estado=activa`);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
 
@@ -110,6 +114,17 @@ export default function EventSettingsPanel({ event, onSave }: EventSettingsPanel
         <p className="font-sans text-xs text-paper-100/60">
           Los colores de la página de tus invitados y de este panel. Se aplica al guardar.
         </p>
+        <button
+          type="button"
+          aria-expanded={showPreview}
+          onClick={() => setShowPreview((open) => !open)}
+          className="h-11 border border-smoke-700/60 px-3 font-mono text-xs uppercase tracking-wider text-paper-100"
+        >
+          {showPreview ? 'Ocultar vista previa' : 'Ver cómo queda'}
+        </button>
+        {showPreview && (
+          <PhoneFrame src={previewSrc} label="Estilo del evento" state="activa" themeId={themeId} />
+        )}
       </div>
 
       <div className="flex flex-col gap-1">
