@@ -41,6 +41,7 @@ Pagos y planes, Cloudflare R2, muro en vivo, descarga ZIP, marcos dinámicos con
 |---|---|
 | [`arquitectura-multitenant.md`](./arquitectura-multitenant.md) | Modelo de datos, RLS, storage, rutas, poda y despliegue. |
 | [`acceso-de-invitados.md`](./acceso-de-invitados.md) | Enlace único por evento, inscripción y inicio de sesión con PIN, modos de acceso, seguridad, check-in. |
+| [`pantalla-de-camara.md`](./pantalla-de-camara.md) | Pantalla de cámara del invitado: foto conservada con «Reintentar», visor, controles al alcance del pulgar y cómo se mide. |
 | [`marcos-y-stickers.md`](./marcos-y-stickers.md) | Marcos paramétricos, stickers emoji/imagen, toggles, editor del organizador, render en la cámara. |
 | [`moderacion-por-lotes.md`](./moderacion-por-lotes.md) | Agrupación por bloques horarios en el panel de moderación. **Descartado.** |
 | [`notas-temporales-b-c-descarga.md`](./notas-temporales-b-c-descarga.md) | **Temporal.** Marcos (B), vistas previas pendientes (C), descarga de calidad y capacidad del plan gratuito. |

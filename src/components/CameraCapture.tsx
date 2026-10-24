@@ -20,6 +20,7 @@ import {
 import {
   drawStickers,
   newPlacement,
+  MAX_STICKERS_PER_PHOTO,
   rotateBy,
   scaleBy,
   type StickerPlacement,
@@ -67,6 +68,9 @@ const NO_CONTROLS: CameraControlsAvailability = { torch: false };
 // de marco -- por debajo de esto es más probable que haya sido un tap o un
 // scroll accidental que una intención real de cambiar de marco.
 const SWIPE_THRESHOLD = 48;
+// Botones de la fila del pulgar: caja visible y papel pleno (antes eran gris tenue y sin caja).
+const thumbButton =
+  'tap-target flex items-center justify-center bg-smoke-700/40 text-paper-100 transition-colors hover:bg-smoke-700/60';
 
 /**
  * CameraCapture -- cámara dedicada del invitado, a pantalla completa
@@ -183,6 +187,8 @@ export default function CameraCapture({
   // handleSend igual manda el original -- ver el comentario dentro de
   // handleShoot.
   const [reviewDisplayBlob, setReviewDisplayBlob] = useState<Blob | null>(null);
+  // La bandeja de stickers está cerrada por defecto: el visor no cede alto si nadie la pide.
+  const [stickersOpen, setStickersOpen] = useState(false);
 
   // Revoca la URL de objeto de la revisión anterior (o de la actual, al
   // desmontar con una revisión pendiente) para no filtrar memoria. Corre en
@@ -392,16 +398,37 @@ export default function CameraCapture({
 
   return (
     <div className="fixed inset-safe z-50 flex flex-col bg-ink-950" aria-label="Cámara de fotos">
-      <CameraHeader onClose={onClose}>
-        <button
-          type="button"
-          onClick={() => setFacingMode((m) => (m === 'environment' ? 'user' : 'environment'))}
-          aria-label="Cambiar cámara"
-          className="tap-target flex items-center justify-center text-paper-100/80 transition-colors hover:text-paper-100"
-        >
-          <FlipCameraIcon />
-        </button>
-      </CameraHeader>
+      {/* Cabecera baja: el visor es lo que manda. El rótulo «Cámara // modo carrete» solo vive en las pantallas sin cámara. */}
+      <div role="group" aria-label="Estado de la cámara" className="flex items-center justify-between gap-2 bg-ink-900 px-3 py-1">
+        <FilmRollCounter quota={quota.quota} used={quota.used} compact />
+        <div className="flex items-center gap-2">
+          {controls.torch && (
+            <button
+              type="button"
+              onClick={handleTorchToggle}
+              aria-pressed={torchOn}
+              className={`tap-target px-3 font-mono text-xs font-bold uppercase tracking-wider ${
+                torchOn ? 'bg-acid-400 text-ink-950 shadow-glow-acid' : 'bg-smoke-700/40 text-paper-100'
+              }`}
+            >
+              Flash {torchOn ? 'activado' : 'apagado'}
+            </button>
+          )}
+          {composer && stickerOptions.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setStickersOpen((open) => !open)}
+              aria-expanded={stickersOpen}
+              aria-controls="bandeja-stickers"
+              className={`tap-target px-3 font-mono text-xs font-bold uppercase tracking-wider ${
+                stickersOpen ? 'bg-paper-100 text-ink-950' : 'bg-smoke-700/40 text-paper-100'
+              }`}
+            >
+              Stickers {placements.length}/{MAX_STICKERS_PER_PHOTO}
+            </button>
+          )}
+        </div>
+      </div>
 
       <div className="relative flex flex-1 flex-col overflow-hidden short:flex-row">
         {cameraError ? (
@@ -459,25 +486,6 @@ export default function CameraCapture({
           aria-label="Controles de la cámara"
           className="flex flex-col gap-2 bg-ink-900 p-2.5 short:w-60 short:shrink-0 short:justify-center short:overflow-y-auto"
         >
-          <div className="flex items-center gap-2">
-            <FilmRollCounter quota={quota.quota} used={quota.used} />
-
-            <div className="flex flex-1 flex-col gap-1.5">
-              {controls.torch && (
-                <button
-                  type="button"
-                  onClick={handleTorchToggle}
-                  aria-pressed={torchOn}
-                  className={`tap-target self-start px-3 py-1.5 font-mono text-xs font-bold uppercase tracking-wider ${
-                    torchOn ? 'bg-acid-400 text-ink-950 shadow-glow-acid' : 'bg-smoke-700/30 text-paper-100'
-                  }`}
-                >
-                  Flash {torchOn ? 'activado' : 'apagado'}
-                </button>
-              )}
-            </div>
-          </div>
-
           <AnimatePresence mode="wait">
             {state.phase === 'success' ? (
               <ConfirmationBanner key="success" status={state.status} reduceMotion={reduceMotion} onDismiss={reset} />
@@ -486,8 +494,9 @@ export default function CameraCapture({
             ) : null}
           </AnimatePresence>
 
-          {composer && (
+          {composer && stickersOpen && (
             <StickerTray
+              id="bandeja-stickers"
               options={stickerOptions}
               count={placements.length}
               hasSelection={selectedUid !== null}
@@ -507,13 +516,15 @@ export default function CameraCapture({
             />
           )}
 
-          <div className="flex items-center justify-center gap-4">
-            <button
-              type="button"
-              onClick={() => handleSwipeFrame('right')}
-              aria-label="Marco anterior"
-              className="tap-target flex items-center justify-center text-paper-100/60 transition-colors hover:text-paper-100"
-            >
+          <span className="self-center bg-smoke-700/40 px-3 py-1 font-mono text-xs uppercase tracking-widest text-paper-100">
+            Marco // {currentFrame ? currentFrame.label : FRAME_LABELS[frameId]}
+          </span>
+          {/* Todo lo que se toca con el pulgar, en una sola fila junto al obturador. */}
+          <div className="flex items-center justify-between gap-2 short:flex-wrap short:justify-center">
+            <button type="button" onClick={onClose} className={`${thumbButton} px-3 font-mono text-xs font-bold uppercase tracking-wider`}>
+              Cerrar
+            </button>
+            <button type="button" onClick={() => handleSwipeFrame('right')} aria-label="Marco anterior" className={thumbButton}>
               <ChevronIcon direction="left" />
             </button>
 
@@ -523,18 +534,18 @@ export default function CameraCapture({
               onClick={handleShoot}
             />
 
-            <button
-              type="button"
-              onClick={() => handleSwipeFrame('left')}
-              aria-label="Siguiente marco"
-              className="tap-target flex items-center justify-center text-paper-100/60 transition-colors hover:text-paper-100"
-            >
+            <button type="button" onClick={() => handleSwipeFrame('left')} aria-label="Siguiente marco" className={thumbButton}>
               <ChevronIcon direction="right" />
             </button>
+            <button
+              type="button"
+              onClick={() => setFacingMode((m) => (m === 'environment' ? 'user' : 'environment'))}
+              aria-label="Cambiar cámara"
+              className={thumbButton}
+            >
+              <FlipCameraIcon />
+            </button>
           </div>
-          <span className="text-center font-mono text-xs uppercase tracking-widest text-paper-100/60">
-            Marco // {currentFrame ? currentFrame.label : FRAME_LABELS[frameId]}
-          </span>
         </div>
       </div>
 

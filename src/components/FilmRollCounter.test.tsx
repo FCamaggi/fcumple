@@ -30,4 +30,26 @@ describe('FilmRollCounter', () => {
     render(<FilmRollCounter quota={5} used={2} />);
     expect(screen.getByLabelText(/3.*disparos restantes/i)).toBeInTheDocument();
   });
+
+  describe('compact (cabecera de la cámara)', () => {
+    it('conserva el número y la etiqueta accesible, sin el bloque de texto', () => {
+      render(<FilmRollCounter quota={5} used={2} compact />);
+      expect(screen.getByLabelText('3 disparos restantes de 5')).toBeInTheDocument();
+      expect(screen.getByText('3')).toBeInTheDocument();
+      expect(screen.queryByText(/rollo \/\/ disparos/i)).not.toBeInTheDocument();
+    });
+
+    it('cuando se acaba sigue diciéndolo, en llama', () => {
+      render(<FilmRollCounter quota={5} used={5} compact />);
+      expect(screen.getByLabelText('0 disparos restantes de 5')).toBeInTheDocument();
+      expect(screen.getByText('0')).toHaveClass('text-flame-500');
+    });
+
+    it('es más bajo que el contador completo', () => {
+      const { container, rerender } = render(<FilmRollCounter quota={5} used={2} />);
+      expect(container.querySelector('.h-12')).not.toBeNull();
+      rerender(<FilmRollCounter quota={5} used={2} compact />);
+      expect(container.querySelector('.h-12')).toBeNull();
+    });
+  });
 });
