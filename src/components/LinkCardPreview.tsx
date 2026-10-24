@@ -49,7 +49,7 @@ function Card({ event, origin }: LinkCardPreviewProps) {
           />
         )}
         <div className="flex flex-col gap-1 p-3">
-          <p className="font-sans text-sm font-bold text-paper-100">{event.name}</p>
+          <p className="font-sans text-sm font-bold text-paper-100">{event.name.trim()}</p>
           <p className="font-sans text-sm text-paper-100/70">{description}</p>
           <p className="font-mono text-xs uppercase tracking-wide text-paper-100/50">{hostOf(origin)}</p>
         </div>

@@ -49,6 +49,12 @@ describe('LinkCardPreview', () => {
     expect(screen.getByRole('group')).toHaveTextContent('Cumpleaños Fran');
   });
 
+  it('recorta los espacios del título, igual que la tarjeta real', () => {
+    render(<LinkCardPreview event={{ ...event, name: '  Cumpleaños Fran  ' }} origin="https://x.app" />);
+    // `getByText` ya ignora los espacios de los bordes, así que se compara el texto exacto.
+    expect(screen.getByText('Cumpleaños Fran', { selector: 'p' }).textContent).toBe('Cumpleaños Fran');
+  });
+
   it('avisa que WhatsApp guarda la tarjeta un rato, para no creer que está rota', () => {
     render(<LinkCardPreview event={event} origin="https://fcumple-ten.vercel.app" />);
     expect(screen.getByText(/whatsapp puede tardar en actualizarla/i)).toBeInTheDocument();
