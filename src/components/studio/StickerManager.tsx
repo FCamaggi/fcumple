@@ -8,6 +8,8 @@ interface StickerManagerProps {
   onAddImage: (file: File) => Promise<void>;
   onToggle: (sticker: EventSticker, enabled: boolean) => Promise<void>;
   onDelete: (sticker: EventSticker) => Promise<void>;
+  /** Sin agregar ni borrar: solo ver y activar o apagar (el celular no edita diseños). */
+  readOnly?: boolean;
 }
 
 /** Emojis festivos para agregar con un toque. Cualquier otro se pega en el campo de abajo. */
@@ -23,7 +25,7 @@ export const EMOJI_PALETTE = [
  * pegando cualquiera, se ven con el estilo del teléfono de cada invitado) e
  * imágenes propias. Cada uno se puede activar o desactivar sin borrarlo.
  */
-export default function StickerManager({ stickers, onAddEmoji, onAddImage, onToggle, onDelete }: StickerManagerProps) {
+export default function StickerManager({ stickers, onAddEmoji, onAddImage, onToggle, onDelete, readOnly = false }: StickerManagerProps) {
   const [custom, setCustom] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -84,65 +86,71 @@ export default function StickerManager({ stickers, onAddEmoji, onAddImage, onTog
         </p>
       )}
 
-      <section className="flex flex-col gap-2" aria-label="Agregar emoji">
-        <h3 className="font-mono text-xs font-bold uppercase tracking-widest text-laser-500">Emojis</h3>
-        <div className="flex flex-wrap gap-1.5">
-          {EMOJI_PALETTE.map((emoji) => (
-            <button
-              key={emoji}
-              type="button"
-              disabled={busy || alreadyHas(emoji)}
-              onClick={() => void run(() => onAddEmoji(emoji))}
-              aria-label={`Agregar ${emoji}`}
-              className="h-11 w-11 bg-ink-900 text-xl disabled:opacity-30"
-            >
-              {emoji}
-            </button>
-          ))}
-        </div>
-        <form onSubmit={handleCustom} className="flex gap-2">
-          <label htmlFor="custom-emoji" className="sr-only">
-            Otro emoji
-          </label>
-          <input
-            id="custom-emoji"
-            value={custom}
-            onChange={(e) => setCustom(e.target.value)}
-            placeholder="Pega cualquier emoji"
-            className="w-48 bg-ink-900 px-3 py-2 font-sans text-sm text-paper-100 outline-none"
-          />
-          <button
-            type="submit"
-            disabled={busy || !custom.trim()}
-            className="h-10 border border-acid-400 px-4 font-mono text-xs uppercase tracking-wider text-acid-400 disabled:opacity-40"
-          >
-            Agregar
-          </button>
-        </form>
-      </section>
+      {!readOnly && (
+        <>
+          <section className="flex flex-col gap-2" aria-label="Agregar emoji">
+            <h3 className="font-mono text-xs font-bold uppercase tracking-widest text-laser-500">Emojis</h3>
+            <div className="flex flex-wrap gap-1.5">
+              {EMOJI_PALETTE.map((emoji) => (
+                <button
+                  key={emoji}
+                  type="button"
+                  disabled={busy || alreadyHas(emoji)}
+                  onClick={() => void run(() => onAddEmoji(emoji))}
+                  aria-label={`Agregar ${emoji}`}
+                  className="h-11 w-11 bg-ink-900 text-xl disabled:opacity-30"
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+            <form onSubmit={handleCustom} className="flex gap-2">
+              <label htmlFor="custom-emoji" className="sr-only">
+                Otro emoji
+              </label>
+              <input
+                id="custom-emoji"
+                value={custom}
+                onChange={(e) => setCustom(e.target.value)}
+                placeholder="Pega cualquier emoji"
+                className="w-48 bg-ink-900 px-3 py-2 font-sans text-sm text-paper-100 outline-none"
+              />
+              <button
+                type="submit"
+                disabled={busy || !custom.trim()}
+                className="h-10 border border-acid-400 px-4 font-mono text-xs uppercase tracking-wider text-acid-400 disabled:opacity-40"
+              >
+                Agregar
+              </button>
+            </form>
+          </section>
 
-      <section className="flex flex-col gap-2" aria-label="Agregar imagen">
-        <h3 className="font-mono text-xs font-bold uppercase tracking-widest text-laser-500">Imágenes propias</h3>
-        <p className="font-sans text-xs text-paper-100/60">
-          PNG, WebP o JPG (mejor con fondo transparente). Se reducen a 512 px automáticamente.
-        </p>
-        <input ref={fileRef} type="file" accept="image/png,image/webp,image/jpeg" hidden onChange={handleFile} aria-label="Elegir imagen" />
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => fileRef.current?.click()}
-          className="h-10 w-fit bg-acid-400 px-4 font-display text-xs uppercase tracking-wider text-ink-950 disabled:opacity-60"
-        >
-          {busy ? 'Subiendo...' : 'Subir imagen'}
-        </button>
-      </section>
+          <section className="flex flex-col gap-2" aria-label="Agregar imagen">
+            <h3 className="font-mono text-xs font-bold uppercase tracking-widest text-laser-500">Imágenes propias</h3>
+            <p className="font-sans text-xs text-paper-100/60">
+              PNG, WebP o JPG (mejor con fondo transparente). Se reducen a 512 px automáticamente.
+            </p>
+            <input ref={fileRef} type="file" accept="image/png,image/webp,image/jpeg" hidden onChange={handleFile} aria-label="Elegir imagen" />
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => fileRef.current?.click()}
+              className="h-10 w-fit bg-acid-400 px-4 font-display text-xs uppercase tracking-wider text-ink-950 disabled:opacity-60"
+            >
+              {busy ? 'Subiendo...' : 'Subir imagen'}
+            </button>
+          </section>
+        </>
+      )}
 
       <section className="flex flex-col gap-2" aria-label="Stickers del evento">
         <h3 className="font-mono text-xs font-bold uppercase tracking-widest text-hotpink-500">
           En la cámara ({stickers.filter((s) => s.enabled).length} activos de {stickers.length})
         </h3>
         {stickers.length === 0 ? (
-          <p className="font-sans text-sm text-paper-100/60">Todavía no hay stickers. Agrega algunos arriba.</p>
+          <p className="font-sans text-sm text-paper-100/60">
+            {readOnly ? 'Todavía no hay stickers.' : 'Todavía no hay stickers. Agrega algunos arriba.'}
+          </p>
         ) : (
           <ul className="flex flex-col gap-1">
             {stickers.map((sticker) => {
@@ -171,17 +179,19 @@ export default function StickerManager({ stickers, onAddEmoji, onAddImage, onTog
                       {sticker.enabled ? 'Activo' : 'Apagado'}
                     </label>
                   </span>
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => {
-                      if (window.confirm('¿Borrar este sticker?')) void run(() => onDelete(sticker));
-                    }}
-                    aria-label={`Borrar ${name}`}
-                    className="h-8 border border-smoke-700/60 px-3 font-mono text-xs uppercase tracking-wider text-paper-100 disabled:opacity-40"
-                  >
-                    Borrar
-                  </button>
+                  {!readOnly && (
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => {
+                        if (window.confirm('¿Borrar este sticker?')) void run(() => onDelete(sticker));
+                      }}
+                      aria-label={`Borrar ${name}`}
+                      className="h-8 border border-smoke-700/60 px-3 font-mono text-xs uppercase tracking-wider text-paper-100 disabled:opacity-40"
+                    >
+                      Borrar
+                    </button>
+                  )}
                 </li>
               );
             })}

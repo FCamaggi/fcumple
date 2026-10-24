@@ -183,3 +183,14 @@ Pendiente: probar el CORS del canvas con imágenes de Storage en Safari iOS real
 **Dónde.** `validateLayers`, `drawLayers` y `boxRect` en `src/lib/cameraAssets/layers.ts`; `layerBounds` y `moveLayer` en `layerOps.ts` (el editor trata una caja pegada a los bordes como fija, igual que una imagen a pantalla completa, y respeta `dx`, `dy`); migración `20261024100014_frame_layers_anclaje.sql` (`_frame_box` y `valid_frame_layer`); y los casos de paridad cliente-base en `supabase/tests/frame-layers.test.ts`.
 
 **Límite.** El editor visual todavía no tiene controles para `dx`, `dy` ni `box`: un marco que los use se arma con un generador (o JSON) y el editor lo muestra y permite moverle las capas normales, no las cajas. Dibujado y probado en vertical 3:4, horizontal y 9:16 con una foto de ejemplo; no en un teléfono real.
+
+### Edición solo en computador (2026-10-24)
+
+**Decisión del dueño.** Los diseños se editan solo desde un computador; en el celular se ven. El invitado nunca edita.
+
+**Regla.** `useCanEditDesigns` (`src/hooks/useCanEditDesigns.ts`) es verdadero si `matchMedia('(pointer: fine) and (min-width: 1024px)')` coincide, y sigue los cambios de la ventana. `CameraStudio` lo lee:
+- **Con computador:** todo como antes.
+- **Sin computador:** aparece el aviso «Para editar los diseños, entra desde un computador» y desaparecen **Nuevo marco, Editar, Duplicar, Borrar, ↑ ↓** y, en los stickers, **agregar emoji, subir imagen y Borrar**. Si la ventana se achica con el editor abierto, el editor se desmonta (lo no guardado se pierde).
+- **Siguen en el celular** los interruptores («Mostrar marcos», «Permitir stickers», «Activo» de cada marco y sticker) y «Por defecto»: no cambian el diseño y sirven para apagar algo durante la fiesta. Es una elección de implementación; si el dueño prefiere vista pura, se quitan.
+
+**Pruebas.** `useCanEditDesigns.test.ts` y el bloque «edición solo en computador» de `CameraStudio.test.tsx`. En las pruebas, `src/test/setup.ts` hace que la consulta de puntero fino coincida por defecto (un escritorio la cumple); las del celular la reemplazan. No se probó en un teléfono real ni con una tableta con ratón.

@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMockCtx } from '../../test/mockCanvas';
 
@@ -22,6 +22,7 @@ vi.mock('../../lib/organizerApi', () => ({ updateEvent: vi.fn() }));
 import * as studio from '../../lib/cameraStudioApi';
 import { updateEvent, type OrganizerEvent } from '../../lib/organizerApi';
 import CameraStudio from './CameraStudio';
+import { DESIGN_EDIT_QUERY } from '../../hooks/useCanEditDesigns';
 
 const event: OrganizerEvent = {
   id: 'ev-1', slug: 'fiesta-abcd', name: 'Cumple de Ana', startsAt: null, location: null,
@@ -273,6 +274,121 @@ describe('CameraStudio: stickers', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Borrar 🎉' }));
     await waitFor(() => expect(studio.deleteSticker).toHaveBeenCalledWith(expect.objectContaining({ id: 's1' })));
     await waitFor(() => expect(screen.queryByRole('switch', { name: 'Activo: 🎉' })).not.toBeInTheDocument());
+  });
+});
+
+const NOTICE = 'Para editar los diseños, entra desde un computador';
+
+/** matchMedia falso: la consulta de edición coincide o no, y se puede cambiar con el componente montado. */
+function stubEditQuery(initial: boolean) {
+  const listeners = new Set<(e: { matches: boolean }) => void>();
+  let matches = initial;
+  vi.stubGlobal('matchMedia', (query: string) => ({
+    get matches() {
+      return query === DESIGN_EDIT_QUERY && matches;
+    },
+    media: query,
+    addEventListener: (_: string, cb: (e: { matches: boolean }) => void) => listeners.add(cb),
+    removeEventListener: (_: string, cb: (e: { matches: boolean }) => void) => listeners.delete(cb),
+  }));
+  return (next: boolean) => {
+    matches = next;
+    act(() => listeners.forEach((cb) => cb({ matches: next })));
+  };
+}
+
+describe('CameraStudio: edición solo en computador', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  const existing: studio.EventSticker = { id: 's1', eventId: 'ev-1', kind: 'emoji', emoji: '🎉', storagePath: null, enabled: true, sortOrder: 0 };
+
+  it('en un computador no muestra el aviso y deja editar', async () => {
+    stubEditQuery(true);
+    await load([frame('f1', 'Borde rosa')]);
+    expect(screen.queryByText(NOTICE)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Editar Borde rosa' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Nuevo marco' })).toBeInTheDocument();
+  });
+
+  it('en un celular muestra los diseños en solo lectura con el aviso', async () => {
+    stubEditQuery(false);
+    vi.mocked(studio.listStickers).mockResolvedValue([existing]);
+    await load([frame('f1', 'Borde rosa'), frame('f2', 'Segundo')]);
+
+    expect(screen.getByText(NOTICE)).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Vista previa de Borde rosa' })).toBeInTheDocument();
+    expect(screen.getByText('Borde rosa')).toBeInTheDocument();
+
+    for (const name of [
+      'Nuevo marco', 'Editar Borde rosa', 'Duplicar Borde rosa', 'Borrar Borde rosa',
+      'Subir Segundo', 'Bajar Borde rosa', 'Agregar 🥳', 'Subir imagen', 'Borrar 🎉',
+    ]) {
+      expect(screen.queryByRole('button', { name }), name).not.toBeInTheDocument();
+    }
+    expect(screen.queryByLabelText('Elegir imagen')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Lienzo del marco')).not.toBeInTheDocument();
+  });
+
+  it('en un celular siguen los interruptores y «Por defecto»: no cambian el diseño', async () => {
+    stubEditQuery(false);
+    vi.mocked(studio.updateFrame).mockResolvedValue(frame('f1', 'Borde rosa', { enabled: false }));
+    vi.mocked(updateEvent).mockResolvedValue({ ...event, defaultFrameId: 'f1' });
+    await load([frame('f1', 'Borde rosa')]);
+
+    await userEvent.click(screen.getByRole('switch', { name: 'Activo: Borde rosa' }));
+    await waitFor(() => expect(studio.updateFrame).toHaveBeenCalledWith('f1', { enabled: false }));
+    expect(screen.getByRole('switch', { name: 'Mostrar marcos a los invitados' })).toBeInTheDocument();
+    expect(screen.getByRole('switch', { name: 'Permitir stickers a los invitados' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Usar Borde rosa por defecto' })).toBeInTheDocument();
+  });
+
+  it('en un celular, sin stickers, no manda a «agregar algunos arriba»', async () => {
+    stubEditQuery(false);
+    await load([]);
+    expect(screen.queryByText(/Agrega algunos arriba/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Crea el primero/)).not.toBeInTheDocument();
+  });
+
+  it('si la ventana se achica con el editor abierto, el editor se desmonta', async () => {
+    const setEditable = stubEditQuery(true);
+    await load([frame('f1', 'Borde rosa')]);
+    await userEvent.click(screen.getByRole('button', { name: 'Editar Borde rosa' }));
+    expect(screen.getByLabelText(/Nombre del marco/)).toBeInTheDocument();
+
+    setEditable(false);
+    expect(screen.queryByLabelText(/Nombre del marco/)).not.toBeInTheDocument();
+    expect(screen.getByText(NOTICE)).toBeInTheDocument();
+  });
+
+  it('al volver a agrandar la ventana el editor no reaparece solo', async () => {
+    const setEditable = stubEditQuery(true);
+    await load([frame('f1', 'Borde rosa')]);
+    await userEvent.click(screen.getByRole('button', { name: 'Editar Borde rosa' }));
+
+    setEditable(false);
+    setEditable(true);
+
+    expect(screen.queryByLabelText(/Nombre del marco/)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Editar Borde rosa' })).toBeInTheDocument();
+  });
+
+  it('al volver a agrandar la ventana el selector de plantillas no reaparece abierto', async () => {
+    const setEditable = stubEditQuery(true);
+    await load([]);
+    await userEvent.click(screen.getByRole('button', { name: 'Nuevo marco' }));
+    expect(screen.getByRole('group', { name: 'Elige una plantilla' })).toBeInTheDocument();
+
+    setEditable(false);
+    setEditable(true);
+
+    expect(screen.queryByRole('group', { name: 'Elige una plantilla' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Nuevo marco' })).toBeInTheDocument();
+  });
+
+  it('el aviso se anuncia a los lectores de pantalla', async () => {
+    stubEditQuery(false);
+    await load([]);
+    expect(screen.getByRole('status')).toHaveTextContent(NOTICE);
   });
 });
 
