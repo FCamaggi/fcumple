@@ -11,7 +11,7 @@ Contexto de decisiones: [`../estrategia/decisiones-de-alcance.md`](../estrategia
 3. **Rutas por evento** (`/e/:slug/...`) y panel del organizador para crear/gestionar eventos.
 4. **Acceso de invitados solo web con un único enlace/QR por evento**: cada persona se inscribe con nombre y apellido y un PIN que elige (o inicia sesión con los mismos datos). Sin lista previa, RUT, correo ni teléfono. Ver [`acceso-de-invitados.md`](./acceso-de-invitados.md).
 5. **Marcos genéricos (colores y textos editables) y stickers (emojis e imágenes subidas)**, definidos por el organizador, con toggles por recurso y globales. Ver [`marcos-y-stickers.md`](./marcos-y-stickers.md).
-6. **Moderación por lotes horarios**, sobre `photoTimeline.ts`. Ver [`moderacion-por-lotes.md`](./moderacion-por-lotes.md).
+6. ~~**Moderación por lotes horarios**~~ **Descartada el 2026-10-24** (la publicación ya sube todo lo aprobado, ordenado por hora). Ver [`moderacion-por-lotes.md`](./moderacion-por-lotes.md).
 9. **Revisión móvil (épica A) hecha:** zoom de iOS, pestañas del panel, avisos a 360 px, cámara en horizontal, objetivos de 44 px, texto mínimo de 12 px. Informe con capturas y lo que falta probar en un teléfono real: [`informe-revision-movil.md`](./informe-revision-movil.md).
 10. **Siguiente:** vistas previas para la organizadora y marcos reinventados: [`backlog-diseno-y-marcos.md`](./backlog-diseno-y-marcos.md).
 8. **Cámara por QR de la fiesta, cartelera de avisos y fotos publicadas por lotes, estilo por evento y subtítulo.** Ver [`activacion-camara-y-cartelera.md`](./activacion-camara-y-cartelera.md). Qué existe y qué no, con sus decisiones: [`estado-del-producto.md`](./estado-del-producto.md).
@@ -42,7 +42,8 @@ Pagos y planes, Cloudflare R2, muro en vivo, descarga ZIP, marcos dinámicos con
 | [`arquitectura-multitenant.md`](./arquitectura-multitenant.md) | Modelo de datos, RLS, storage, rutas, poda y despliegue. |
 | [`acceso-de-invitados.md`](./acceso-de-invitados.md) | Enlace único por evento, inscripción y inicio de sesión con PIN, modos de acceso, seguridad, check-in. |
 | [`marcos-y-stickers.md`](./marcos-y-stickers.md) | Marcos paramétricos, stickers emoji/imagen, toggles, editor del organizador, render en la cámara. |
-| [`moderacion-por-lotes.md`](./moderacion-por-lotes.md) | Agrupación por bloques horarios en el panel de moderación. |
+| [`moderacion-por-lotes.md`](./moderacion-por-lotes.md) | Agrupación por bloques horarios en el panel de moderación. **Descartado.** |
+| [`notas-temporales-b-c-descarga.md`](./notas-temporales-b-c-descarga.md) | **Temporal.** Marcos (B), vistas previas pendientes (C), descarga de calidad y capacidad del plan gratuito. |
 | [`briefs-de-cliente.md`](./briefs-de-cliente.md) | Formularios de opciones para el cliente de cada cumpleaños: página `/brief/:slug`, tabla de respuestas y cómo agregar uno nuevo. |
 | [`puesta-en-marcha.md`](./puesta-en-marcha.md) | Podar la Fase 0 del proyecto Supabase actual, aplicar la Fase 1, probar en un preview, checklist de punta a punta y merge. |
 | [`plan-de-trabajo.md`](./plan-de-trabajo.md) | Etapas ordenadas, dependencias y riesgos. |
