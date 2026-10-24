@@ -25,6 +25,10 @@ En 390 y 430 de ancho el techo es el ancho (3:4: 62 % y 61 %), no los controles.
 - **Deslizar para cambiar de marco** solo existía en la ruta antigua (sin marcos ni stickers); en el modo compositor de la Fase 1 nunca estuvo cableado, así que no hay choque con arrastrar stickers. El cambio de marco es solo con las flechas.
 - En **horizontal** la fila del pulgar se parte en dos líneas (cabe en 240 px de columna).
 - El aviso de éxito y los demás avisos siguen como antes (PR 2).
+- **Foco y diálogo:** la revisión sigue siendo un `div` sin `role="dialog"` y no mueve el foco; al deshabilitarse el botón durante la subida el foco cae al `body` (PR 2).
+
+## Riesgo conocido: reintento sin idempotencia
+Cada intento de subida genera una ruta nueva (`crypto.randomUUID()` en `uploadGuestPhoto`) y `submit_photo` inserta siempre una fila nueva. Si el servidor **confirma** el registro y se pierde la respuesta (red de una fiesta), «Reintentar» sube otra copia, gasta un segundo disparo y duplica la foto; el tope del servidor se respeta igual, así que no se supera el cupo. Lo mismo si falla solo `submit_photo` («La foto se subió pero no pudimos registrarla»): el archivo anterior queda huérfano en Storage. Un fallo **antes** de que `submit_photo` confirme no gasta nada. Cerrarlo del todo pide generar la ruta una vez por foto y hacer `submit_photo` idempotente por `storage_path` (migración y prueba de base de datos); no entra en este PR. La ruta heredada `/i/:token` (Fase 0) además muestra el texto crudo de Supabase en ese error; se retira según la decisión D10.
 
 ## Verificación y límites
 - Pruebas: `CameraCapture.test.tsx` (envío, error, reintento, doble envío), `.composer.test.tsx` (bandeja detrás del botón), `.layout.test.tsx` (controles abajo, contador en la cabecera), `FilmRollCounter.test.tsx` (compacto).

@@ -366,8 +366,10 @@ export default function CameraCapture({
   }
 
   // La foto se conserva hasta que la subida salga bien: si falla (red compartida de
-  // una fiesta), sigue en la revisión y se reintenta con el mismo archivo. Un fallo no
-  // gasta el cupo (usePhotoCapture solo lo cuenta tras una subida exitosa).
+  // una fiesta), sigue en la revisión y se reintenta con el mismo archivo. Un fallo antes
+  // de que `submit_photo` confirme no gasta el cupo; si el servidor confirmó y se perdió la
+  // respuesta, el reintento sube otra copia (ruta nueva, sin clave de idempotencia) y gasta
+  // un segundo disparo. El tope del servidor se respeta igual.
   function handleSend() {
     if (!reviewBlob || state.phase === 'uploading') return;
     void capture(reviewBlob, reviewDisplayBlob);
@@ -521,7 +523,7 @@ export default function CameraCapture({
           </span>
           {/* Todo lo que se toca con el pulgar, en una sola fila junto al obturador. */}
           <div className="flex items-center justify-between gap-2 short:flex-wrap short:justify-center">
-            <button type="button" onClick={onClose} className={`${thumbButton} px-3 font-mono text-xs font-bold uppercase tracking-wider`}>
+            <button type="button" onClick={onClose} className={`${thumbButton} w-[4.5rem] font-mono text-xs font-bold uppercase tracking-wider`}>
               Cerrar
             </button>
             <button type="button" onClick={() => handleSwipeFrame('right')} aria-label="Marco anterior" className={thumbButton}>
@@ -541,7 +543,7 @@ export default function CameraCapture({
               type="button"
               onClick={() => setFacingMode((m) => (m === 'environment' ? 'user' : 'environment'))}
               aria-label="Cambiar cámara"
-              className={thumbButton}
+              className={`${thumbButton} w-[4.5rem]`}
             >
               <FlipCameraIcon />
             </button>
@@ -553,7 +555,8 @@ export default function CameraCapture({
         <ReviewScreen
           photoUrl={reviewUrl}
           remainingAfter={remaining - 1}
-          uploading={state.phase === 'uploading'}
+          // En el instante entre el éxito y el cierre de la revisión el cupo ya bajó: seguir en «Enviando…».
+          uploading={state.phase === 'uploading' || state.phase === 'success'}
           errorMessage={state.phase === 'error' ? state.message : null}
           onRetake={handleRetake}
           onSend={handleSend}
