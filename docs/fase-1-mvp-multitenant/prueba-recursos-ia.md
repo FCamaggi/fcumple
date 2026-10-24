@@ -4,7 +4,7 @@ Fecha: 2026-10-25. Es una prueba de un día para decidir si conviene tener un **
 
 ## Veredicto
 - **Para la fiesta del 30-oct: NO-GO.** El evento usa los marcos actuales. Faltan 5 días, producción se congela 24 a 48 horas antes y nada de lo que habría que construir (ver más abajo) está hecho ni probado en un teléfono.
-- **Para después de la fiesta: GO condicionado** a tres cosas que esta prueba no pudo cerrar: (1) leer los términos de OpenAI desde la fuente (hoy solo hay fuentes secundarias), (2) confirmar con Recraft si pasar por OpenRouter está cubierto por sus términos, y (3) generar las 10 piezas completas para ver si el estilo se mantiene.
+- **Para después de la fiesta: GO condicionado** a tres cosas que esta prueba no pudo cerrar: (1) confirmar con Recraft si pasar por OpenRouter está cubierto por sus términos (sigue abierto tras la revisión del 25-oct, ver más abajo), (2) comprobar en el panel de OpenRouter que el registro de prompts está apagado, y (3) generar las 10 piezas completas para ver si el estilo se mantiene. Los términos de OpenAI ya se leyeron desde su texto vigente (ver «Términos de uso y licencias»).
 
 ## Qué se hizo y cuánto costó
 Clave `OPENROUTER-KEY` con tope de 2 USD (nunca impresa). Gasto total: **0,186 USD**. Se generaron solo 3 imágenes, con texto, sin enviar a ningún servicio la invitación ni los marcos de la clienta (son material privado):
@@ -22,13 +22,21 @@ OpenRouter no decide quién es dueño de lo generado: su §6.1 dice que los dere
 
 | Fuente | Lo que dice (resumen) | Cómo se verificó |
 |---|---|---|
-| OpenRouter, Términos (actualizados 31-ago-2026) | §6.1: la propiedad del Output la fijan los términos de cada modelo. §6.2: si se activa el registro de prompts se concede a OpenRouter una licencia amplia, perpetua e irrevocable sobre prompts y respuestas. | Leído en la fuente. No se pudo comprobar desde aquí si esa opción está activada en la cuenta: **conviene revisarlo** antes de seguir. |
-| Recraft, Developer Terms (20-oct-2026) | §6.2: «eres dueño de los Assets que creas con la API, para uso personal o comercial»; prohíbe usarlos para entrenar modelos de IA y para crear servicios que compitan con Recraft. §1.4: el acceso por reventa o plataforma se rige por un acuerdo aparte. | Leído en la fuente. **No dice si OpenRouter está cubierto.** |
+| OpenRouter, Términos (actualizados 31-ago-2026) | §6.1: la propiedad del Output la fijan los términos de cada modelo. §6.2: si se activa el registro de prompts se concede a OpenRouter una licencia amplia, perpetua e irrevocable sobre prompts y respuestas. El registro es una opción que se activa (no viene activada por defecto según los términos; §6.5: sin activarla, OpenRouter no guarda los *Inputs* tras clasificarlos). | **Fuente primaria** (`openrouter.ai/terms`, 25-oct), leída con la herramienta de lectura, que resume el texto: las citas de §6.1 y §6.2 coinciden con lo leído antes, §6.5 es nueva. Lo que **no** se pudo comprobar: el ajuste real de *esta* cuenta (hay que entrar al panel). |
+| Recraft, Developer Terms (20-oct-2026) | §6.2: «eres dueño de los Assets que creas con la API, para uso personal o comercial»; prohíbe usarlos para entrenar modelos de IA y para crear servicios que compitan con Recraft. §1.4: el acceso por reventa o plataforma se rige por un acuerdo aparte. §3.5: quien ofrece una aplicación a terceros debe obligar a sus usuarios a términos «al menos tan protectores» como estos. §4.4: el compromiso de no entrenar con tus datos vale solo para el uso que hace Recraft, no el de terceros. | **Fuente primaria** (`recraft.ai/legal/developer-terms`, vigente desde el 20-oct-2026), releída el 25-oct. §1.4 habla de «reseller, marketplace, platform, or model distribution agreement», pero el texto **no nombra a OpenRouter**. La página del modelo en OpenRouter tampoco dice nada de licencias ni de retención de datos. **Sigue sin saberse si el acceso por OpenRouter está cubierto.** |
 | Recraft, Términos generales (21-oct-2026) | En el plan gratuito los Assets son de Recraft y sin uso comercial; en el de pago son del usuario. | Leído en la fuente. No se sabe a qué plan equivale la API por OpenRouter. |
-| OpenAI, Términos de uso (propiedad del Output) | Quien usa «es dueño del Output»; OpenAI cede los derechos que tenga, «si los hubiera»; otros usuarios pueden recibir resultados parecidos. | **Solo fuentes secundarias**: `openai.com` devuelve 403 a la herramienta de lectura. No se pudo leer el texto vigente. |
+| OpenAI, Términos de uso (vigentes desde el 1-ene-2026) | «you (a) retain your ownership rights in Input and (b) own the Output. We hereby assign to you all our right, title, and interest, if any, in and to Output.» Además: el *Output* puede no ser único y la cesión «does not extend to other users’ output or any Third Party Output». | **Texto de OpenAI, leído en una copia de la Wayback Machine** (captura del 23-oct-2026): `openai.com` devuelve 403 a la herramienta de lectura, así que el *acceso* es por un archivo de terceros, no por el sitio de OpenAI. No se comprobó que la copia sea idéntica a la página viva de hoy. |
+| OpenAI, Services Agreement y Business Terms (vigentes desde el 1-ene-2026) | §4.1: «Customer: (a) retains all ownership rights in Input; and (b) owns all Output. OpenAI hereby assigns to Customer all OpenAI’s right, title, and interest, if any, in and to Output.» §4.3: el cliente responde por todo uso del *Output*. §4.2: OpenAI no usa el contenido del cliente para mejorar sus servicios sin que este lo acepte. | **Igual**: texto de OpenAI vía Wayback (capturas del 23-oct y 8-oct-2026). El «Customer» de estos contratos es quien contrata la API con OpenAI; aquí sería OpenRouter, no nosotros. Qué contrato firma OpenRouter con OpenAI **no está publicado en lo que se leyó**. |
+| OpenAI, «Data controls in the OpenAI platform» | Los datos enviados a la API no se usan para entrenar salvo que se acepte; los registros de monitoreo de abuso se guardan hasta 30 días «por defecto» y pueden contener prompts y respuestas. | **Fuente primaria** (`developers.openai.com`, 25-oct), por la herramienta de lectura. Describe a quien usa la API de OpenAI directamente; cómo aplica detrás de OpenRouter no está dicho. |
 | vtracer | Licencia MIT, © 2024 Hao Fung Tsang. | Leído en el repositorio y en el paquete instalado. Sin restricciones para la salida. |
 | svgo | Licencia MIT. | No se leyó el texto en esta sesión; es la licencia que declara el proyecto. |
 | potrace | GPL-2+ (copyleft). | Fuente secundaria. **No se usó**: vtracer es MIT y alcanza. |
+
+**Qué se desprende (lectura propia, no asesoría legal):**
+- **OpenAI:** sus textos dicen que quien contrata la API es dueño del *Output* y que OpenAI cede lo que tuviera. La cadena hasta nosotros pasa por OpenRouter: OpenRouter §6.1 remite a «los términos del modelo», pero **ningún texto leído dice con palabras que OpenRouter nos traspase esa cesión**. Es una inferencia razonable, no una garantía escrita.
+- **Recraft:** la cesión a quien usa su API está escrita (§6.2), pero el acceso por una plataforma como OpenRouter cae en lo que §1.4 deja a «un acuerdo escrito aparte», y ese acuerdo no es público. **No se puede afirmar que la cesión alcance a lo generado por OpenRouter.** Para cerrarlo hay que preguntarle a Recraft o a OpenRouter por escrito.
+- **Registro de prompts:** según los términos de OpenRouter está apagado salvo que se active; el ajuste de la cuenta se ve solo en su panel (`openrouter.ai/settings/privacy`). Sigue pendiente mirarlo. Los prompts enviados fueron genéricos y sin datos personales.
+- Recraft prohíbe usar lo generado para entrenar modelos de IA (§6.2), y con ello perdería la cesión; no es nuestro caso. OpenAI deja al cliente la responsabilidad por el uso del *Output* (§4.3).
 
 Dos riesgos que ninguna licencia resuelve y que no son asesoría legal: lo generado por una IA puede no estar protegido por derechos de autor (en tal caso nadie, tampoco la organizadora, podría reclamarlo como exclusivo), y puede parecerse a obras existentes. **Regla para este repositorio: no se sube ninguna pieza generada mientras no haya una licencia clara y leída en la fuente.**
 
@@ -40,7 +48,7 @@ Dos riesgos que ninguna licencia resuelve y que no son asesoría legal: lo gener
 | Peso por pieza | Un marco completo: ~5 kB de JSON, 14 o 15 `path` de 116 caracteres de promedio (máximo 294). | 6,0 kB (orejas) y 6,5 kB (antifaz), cada una. | 2,8 kB, pero **el archivo original pesaba 23 kB**: ~17 kB eran un manifiesto C2PA en `<metadata>` que hubo que quitar. |
 | Costo por pieza | Horas de trabajo. | 0,053 USD | 0,080 USD |
 | Recolorear | Es una propiedad de la capa. | Sí, sustituyendo `currentColor` como texto antes de crear la imagen. | Igual (un solo `fill`). |
-| Licencia clara | Propia. | Pendiente (fuente primaria de OpenAI sin leer). | Pendiente (¿cubre OpenRouter?). |
+| Licencia clara | Propia. | Texto de OpenAI leído (cesión del *Output*); falta que algo escrito la traspase desde OpenRouter. | Pendiente: el texto de Recraft no dice si OpenRouter está cubierto. |
 | Consistencia de estilo | Total (las dibuja un script). | **No probada**: solo 2 piezas. | **No probada**: solo 1 pieza. |
 
 ## Hallazgos técnicos (comprobados)
@@ -62,7 +70,8 @@ Dos riesgos que ninguna licencia resuelve y que no son asesoría legal: lo gener
 
 ## Lo que esta prueba no verificó
 - Que el estilo se mantenga en las **10 piezas**; solo se generaron 3.
-- Los términos de OpenAI desde la fuente, y si Recraft cubre el acceso por OpenRouter.
-- Si el registro de prompts de OpenRouter está activado en la cuenta (los prompts enviados fueron genéricos y sin datos personales).
+- Si Recraft cubre el acceso por OpenRouter (revisado el 25-oct: el texto público no lo dice).
+- Que la copia de Wayback de los términos de OpenAI coincida con la página viva (no se pudo abrir `openai.com`).
+- Si el registro de prompts de OpenRouter está activado en la cuenta (los términos dicen que no lo está salvo que se active; el ajuste solo se ve en el panel).
 - Safari, y ninguna prueba en un teléfono real.
 - Si la aplicación debería avisar que una pieza fue hecha con IA.
