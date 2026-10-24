@@ -3035,12 +3035,17 @@ grant execute on function public.submit_photo(text, text, text) to anon, authent
 --    invitado, asi que no frena a nadie mas, y un reintento de una ruta ya
 --    registrada sigue devolviendo su fila sin gastar cupo.
 --
+--    Tras esperar el bloqueo se relee la fila del invitado: si el organizador
+--    le bajo el cupo, le quito la aprobacion automatica o lo rechazo mientras
+--    tanto, se decide con los valores nuevos.
+--
 -- 2. Rutas. El prefijo `{event_id}/{guest_id}/` se comprobaba, pero lo que
---    venia despues no: `../`, `./`, segmentos vacios o barras invertidas
---    quedaban guardados en photos.storage_path. Storage no resuelve `..`, pero
---    una ruta asi no es legitima y no debe llegar a la base. Se rechazan con
---    22000 (y no 22023, que el cliente muestra como «ya usaste todos los
---    disparos»).
+--    venia despues no: `../`, `./`, segmentos vacios, barras invertidas o una
+--    ruta enorme quedaban guardados en photos.storage_path. Storage no
+--    resuelve `..`, pero una ruta asi no es legitima y no debe llegar a la
+--    base. Ahora lo que sigue al prefijo es un solo nombre de archivo (lista
+--    blanca) y se rechaza con 22000 (y no 22023, que el cliente muestra como
+--    «ya usaste todos los disparos»).
 -- ---------------------------------------------------------------------------
 create or replace function public.submit_photo(
   p_token text,
@@ -3072,14 +3077,6 @@ begin
     raise exception 'no guest matches this token' using errcode = 'P0002';
   end if;
 
-  select e.camera_unlock into v_camera_unlock from public.events e where e.id = v_guest.event_id;
-  if v_camera_unlock = 'on_checkin' and v_guest.checked_in_at is null then
-    raise exception 'check-in required before taking photos' using errcode = '42501';
-  end if;
-  if v_camera_unlock = 'on_event_qr' and v_guest.camera_activated_at is null then
-    raise exception 'camera activation (event QR) required before taking photos' using errcode = '42501';
-  end if;
-
   v_prefix := v_guest.event_id::text || '/' || v_guest.id::text || '/';
   if left(p_storage_path, length(v_prefix)) <> v_prefix then
     raise exception 'storage_path must start with {event_id}/{guest_id}/' using errcode = '22023';
@@ -3089,20 +3086,38 @@ begin
     raise exception 'display_storage_path must start with {event_id}/{guest_id}/' using errcode = '22023';
   end if;
 
-  -- Ni `.` ni `..` como segmento, ni segmentos vacios (`//`), ni barras invertidas.
-  if p_storage_path ~ '(^|/)\.\.?(/|$)' or p_storage_path ~ '//' or position(E'\\' in p_storage_path) > 0 then
-    raise exception 'storage_path has an invalid segment' using errcode = '22000';
+  -- Lista blanca para lo que viene tras el prefijo: un solo nombre de archivo (el cliente genera
+  -- `{uuid}.jpg` y `{uuid}-display.jpg`) que empieza con letra o digito. Con eso no caben `.` ni `..`,
+  -- barras, `//`, un final vacio, barras invertidas, `%`, espacios ni saltos de linea, y el largo
+  -- queda acotado (sin esto, una ruta enorme rompia el indice unico con un error crudo).
+  if coalesce(substr(p_storage_path, length(v_prefix) + 1) !~ '^[A-Za-z0-9][A-Za-z0-9._-]{0,149}$', true) then
+    raise exception 'storage_path must be a single file name after the prefix' using errcode = '22000';
   end if;
   if p_display_storage_path is not null
-     and (p_display_storage_path ~ '(^|/)\.\.?(/|$)' or p_display_storage_path ~ '//'
-          or position(E'\\' in p_display_storage_path) > 0) then
-    raise exception 'display_storage_path has an invalid segment' using errcode = '22000';
+     and substr(p_display_storage_path, length(v_prefix) + 1) !~ '^[A-Za-z0-9][A-Za-z0-9._-]{0,149}$' then
+    raise exception 'display_storage_path must be a single file name after the prefix' using errcode = '22000';
   end if;
 
   -- Serializa las fotos de ESTE invitado: la segunda llamada espera a que la primera termine y asi su
-  -- conteo ya ve la fila nueva. Va antes de mirar si la ruta existe para que el reintento tambien
-  -- espere a un registro en curso en vez de chocar con el unique.
-  perform 1 from public.guests g where g.id = v_guest.id for update;
+  -- conteo ya ve la fila nueva. Se relee la fila ya con el bloqueo: si mientras esperaba el organizador
+  -- le bajo el cupo, le quito la aprobacion automatica o lo rechazo, se decide con los valores nuevos
+  -- (Postgres reevalua el `where` tras esperar, asi que un rechazado ya no aparece). `no key update`
+  -- basta para serializar entre llamadas y no choca con las claves foraneas de `photos`.
+  select * into v_guest
+  from public.guests g
+  where g.id = v_guest.id and g.approval_status = 'approved'
+  for no key update;
+  if not found then
+    raise exception 'no guest matches this token' using errcode = 'P0002';
+  end if;
+
+  select e.camera_unlock into v_camera_unlock from public.events e where e.id = v_guest.event_id;
+  if v_camera_unlock = 'on_checkin' and v_guest.checked_in_at is null then
+    raise exception 'check-in required before taking photos' using errcode = '42501';
+  end if;
+  if v_camera_unlock = 'on_event_qr' and v_guest.camera_activated_at is null then
+    raise exception 'camera activation (event QR) required before taking photos' using errcode = '42501';
+  end if;
 
   -- Reintento: la ruta ya esta registrada (el prefijo garantiza que es de este invitado).
   select * into v_photo from public.photos p where p.storage_path = p_storage_path;
