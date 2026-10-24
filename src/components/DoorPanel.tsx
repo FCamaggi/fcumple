@@ -90,7 +90,7 @@ export default function DoorPanel({ guests, onCheckIn, onOpenScanner }: DoorPane
         </p>
       )}
 
-      {query.trim() && matches.length === 0 && (
+      {approved.length > 0 && query.trim() && matches.length === 0 && (
         <p className="font-sans text-sm text-paper-100/60">No encontramos a nadie con ese nombre en la lista.</p>
       )}
 

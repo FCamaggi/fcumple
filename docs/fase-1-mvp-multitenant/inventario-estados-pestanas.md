@@ -48,3 +48,8 @@ Queda fuera, por no ser carga de datos: Inscripción y Ajustes (formularios) y l
 - **QR de Activación y de Enlace:** si no se puede generar, lo dicen («No pudimos generar el QR.») con «Reintentar», en vez de dejar un hueco. En Activación el texto es fijo a propósito: la dirección del QR lleva el código de activación y no debe mostrarse.
 
 Con esto quedan cubiertas las carencias del inventario, salvo las dos anotadas como límites del PR A y la vista previa (que tiene sus estados dentro del teléfono).
+
+### Límites conocidos del PR B
+- Al pulsar «Reintentar» en el QR, el aviso desaparece y no hay «Generando...» hasta que llega el QR; el botón con foco desaparece (igual que ya se anotó para «Hoy»).
+- Si falla el QR y a la vez la rotación del código, se muestran dos alertas seguidas.
+- Anterior a esta etapa: al rotar el código de activación el QR viejo (con su «Descargar QR») sigue visible hasta que se genera el nuevo; y al cambiar `:eventId` con la página montada se ve un instante el evento anterior.
