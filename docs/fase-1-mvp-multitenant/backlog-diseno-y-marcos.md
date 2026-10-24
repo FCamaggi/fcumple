@@ -85,7 +85,7 @@ La organizadora administra durante la fiesta, desde el teléfono.
 - Navegación móvil de las pestañas; las acciones del día de la fiesta a un toque (revisar fotos, publicar lote, ver quién activó la cámara, cuántas fotos faltan por revisar). *Hecho: etapa 1 (pestaña «Hoy») y etapa 2 (insignia en «Fotos», ver [`panel-fotos-por-revisar.md`](./panel-fotos-por-revisar.md)).*
 - Moderación rápida (swipe), con confirmaciones que no estorben.
 - Estados de carga, vacío y error en cada pestaña.
-- Revisar `GuestListPanel` (acciones en filas cortas) y `EnrollmentSettings` (formularios largos) en pantallas pequeñas.
+- Revisar `GuestListPanel` (acciones en filas cortas) y `EnrollmentSettings` (formularios largos) en pantallas pequeñas. *Hecho (etapa 4), ver [`revision-movil-panel.md`](./revision-movil-panel.md).*
 
 ## Épica E. Calidad transversal
 Accesibilidad (foco visible, lectores de pantalla, `prefers-reduced-motion`), rendimiento (peso del bundle y de las fuentes), una lista de verificación de QA para antes de una fiesta, y los pendientes de `marcos-y-stickers.md`.

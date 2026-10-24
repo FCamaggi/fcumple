@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import PanelState from './PanelState';
 import PhotoModerationPanel from './PhotoModerationPanel';
 import type { EventPhotos } from '../hooks/useEventPhotos';
@@ -39,6 +39,8 @@ const secondary =
  */
 export default function PartyDayTab({ event, guests, photos: state, onOpenTab, onRefresh }: PartyDayTabProps) {
   const [moderating, setModerating] = useState(false);
+  // Único por instancia: si algún día hay dos «Hoy» a la vez, cada lista apunta a su propio rótulo.
+  const missingLabelId = useId();
   const { photos, counts, error, publishError, notice, publishing, reload, handlePublish, source } = state;
 
   // Al abrir y al cerrar la revisión se vuelve a pedir la lista: lo revisado cambia los conteos.
@@ -124,16 +126,22 @@ export default function PartyDayTab({ event, guests, photos: state, onOpenTab, o
             {camera.missing.length === 0 ? (
               <p className="font-mono text-xs uppercase tracking-wide text-acid-400">Todos tienen la cámara.</p>
             ) : (
-              <ul className="flex flex-col gap-1 font-sans text-sm" aria-label="Les falta activar la cámara">
-                {listed.map((g) => (
-                  <li key={g.id} data-testid="missing-guest">
-                    {g.fullName}
-                  </li>
-                ))}
-                {camera.missing.length > listed.length && (
-                  <li className="text-paper-100/70">y {camera.missing.length - listed.length} más</li>
-                )}
-              </ul>
+              <>
+                {/* A la vista: sin rótulo, los nombres se leen como los que ya activaron. */}
+                <p id={missingLabelId} className="font-mono text-xs uppercase tracking-wide text-paper-100/70">
+                  Les falta activar:
+                </p>
+                <ul aria-labelledby={missingLabelId} className="flex flex-col gap-1 font-sans text-sm">
+                  {listed.map((g) => (
+                    <li key={g.id} data-testid="missing-guest">
+                      {g.fullName}
+                    </li>
+                  ))}
+                  {camera.missing.length > listed.length && (
+                    <li className="text-paper-100/70">y {camera.missing.length - listed.length} más</li>
+                  )}
+                </ul>
+              </>
             )}
           </>
         )}
