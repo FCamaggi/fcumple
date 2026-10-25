@@ -122,6 +122,7 @@ export function toPublicPreviewEvent(event: OrganizerEvent): EventPublic {
     enrollment: event.enrollment,
     subtitle: event.subtitle,
     theme: event.theme,
+    wishlist: event.wishlist,
   };
 }
 

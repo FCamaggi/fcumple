@@ -2,7 +2,9 @@ import AnnouncementFeed from './AnnouncementFeed';
 import CameraSection from './CameraSection';
 import PhotoCarousel from './PhotoCarousel';
 import RevealedRoll, { type RawRevealedPhoto } from './RevealedRoll';
+import WishlistSection from './WishlistSection';
 import type { CameraUnlock } from '../lib/platformApi';
+import type { WishlistConfig } from '../lib/wishlist';
 import type { PhotoQuota, Post } from '../types';
 
 export interface GuestHubViewProps {
@@ -14,6 +16,7 @@ export interface GuestHubViewProps {
   quota: PhotoQuota | null;
   posts: Post[];
   revealed: RawRevealedPhoto[];
+  wishlist?: WishlistConfig;
   refreshing: boolean;
   onOpenCamera: () => void;
   onShowQr: () => void;
@@ -33,6 +36,7 @@ export default function GuestHubView({
   quota,
   posts,
   revealed,
+  wishlist,
   refreshing,
   onOpenCamera,
   onShowQr,
@@ -95,6 +99,8 @@ export default function GuestHubView({
           </div>
         </section>
       )}
+
+      <WishlistSection wishlist={wishlist} />
 
       <AnnouncementFeed posts={posts} />
 

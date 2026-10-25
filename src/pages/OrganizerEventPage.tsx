@@ -19,6 +19,7 @@ import GuestListPanel from '../components/GuestListPanel';
 import PhotosTab from '../components/PhotosTab';
 import QrScanner from '../components/QrScanner';
 import ShareEventLink from '../components/ShareEventLink';
+import WishlistTab from '../components/WishlistTab';
 import {
   addGuests,
   getMyEvent,
@@ -43,6 +44,7 @@ type Tab =
   | 'vista'
   | 'enlace'
   | 'inscripcion'
+  | 'regalos'
   | 'puerta'
   | 'ajustes';
 
@@ -56,6 +58,7 @@ const TABS: Array<{ id: Tab; label: string }> = [
   { id: 'vista', label: 'Vista previa' },
   { id: 'enlace', label: 'Enlace' },
   { id: 'inscripcion', label: 'Inscripción' },
+  { id: 'regalos', label: 'Regalos' },
   { id: 'puerta', label: 'Puerta' },
   { id: 'ajustes', label: 'Ajustes' },
 ];
@@ -220,6 +223,7 @@ export default function OrganizerEventPage() {
               usedQuestionIds={QUESTION_IDS.filter((id) => guests.some((g) => g.answers[id]))}
             />
           )}
+          {tab === 'regalos' && <WishlistTab event={event} onUpdateEvent={handleSave} />}
           {tab === 'ajustes' && <EventSettingsPanel event={event} onSave={handleSave} />}
         </div>
 
