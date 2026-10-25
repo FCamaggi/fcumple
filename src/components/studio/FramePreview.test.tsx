@@ -27,7 +27,7 @@ afterEach(() => vi.unstubAllGlobals());
 
 describe('FramePreview', () => {
   it('dibuja un marco de plantilla con el mismo renderFrame de la cámara', () => {
-    render(<FramePreview template="banner" params={{ title: 'Hola' }} width={90} height={120} />);
+    render(<FramePreview template="capas" params={{ layers: [{ type: 'text', text: 'Hola', font: 'display', color: '#ffffff' }] }} width={90} height={120} />);
     expect(mock.texts()).toEqual(['Hola']);
   });
 

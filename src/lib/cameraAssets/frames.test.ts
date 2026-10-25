@@ -98,13 +98,6 @@ describe('plantillas', () => {
       validateFrameParams(defaultFrameParams(template, { eventName: 'x'.repeat(200), eventDate: '05/12/2026' })).ok,
     ).toBe(true);
   });
-
-  it('prellena textos con el nombre y la fecha del evento (recortados a 60)', () => {
-    const banner = defaultFrameParams('banner', { eventName: 'Cumple de Ana', eventDate: '05/12/2026' });
-    expect(banner).toMatchObject({ title: 'Cumple de Ana', subtitle: '05/12/2026', position: 'bottom' });
-    expect(defaultFrameParams('polaroid', { eventName: 'x'.repeat(200) }).caption).toHaveLength(MAX_TEXT_LENGTH);
-    expect(defaultFrameParams('polaroid').caption).toBeUndefined();
-  });
 });
 
 describe('plantilla capas', () => {
@@ -183,95 +176,48 @@ describe('plantilla capas', () => {
 });
 
 describe('renderFrame', () => {
-  it.each(FRAME_TEMPLATES.filter((t) => t !== 'capas'))('%s dibuja algo con parámetros por defecto y no deja el contexto sucio', (template) => {
+  it('dibuja las capas por defecto y no deja el contexto sucio', () => {
     const m = createMockCtx();
-    renderFrame(m.ctx, 600, 800, template, defaultFrameParams(template, { eventName: 'Cumple de Ana', eventDate: '05/12/2026' }));
+    renderFrame(m.ctx, 600, 800, 'capas', defaultFrameParams('capas', { eventName: 'Cumple de Ana' }));
 
-    expect(m.calls.length).toBeGreaterThan(2);
-    expect(m.count('save')).toBe(1);
-    expect(m.count('restore')).toBe(1);
+    expect(m.texts()).toEqual(['Cumple de Ana']);
+    expect(m.count('save')).toBe(m.count('restore'));
   });
 
-  it('no dibuja nada con una plantilla desconocida ni con tamaño cero', () => {
+  it.each(['hacker', 'border', 'polaroid', 'film', 'viewfinder', 'banner', 'glow'])(
+    'no dibuja nada con la plantilla %s (ya no existe)',
+    (template) => {
+      const m = createMockCtx();
+      renderFrame(m.ctx, 600, 800, template, { layers: [{ type: 'shape', shape: 'rect', w: 0.5, h: 0.2, fill: '#112233' }] });
+      expect(m.calls).toEqual([]);
+    },
+  );
+
+  it('no dibuja nada con tamaño cero o negativo', () => {
     const m = createMockCtx();
-    renderFrame(m.ctx, 600, 800, 'hacker', {});
-    renderFrame(m.ctx, 0, 800, 'border', {});
-    renderFrame(m.ctx, 600, -1, 'border', {});
+    renderFrame(m.ctx, 0, 800, 'capas', { layers: [] });
+    renderFrame(m.ctx, 600, -1, 'capas', { layers: [] });
     expect(m.calls).toEqual([]);
   });
 
   it('ignora parámetros inválidos en vez de dibujarlos', () => {
     const m = createMockCtx();
-    renderFrame(m.ctx, 600, 800, 'banner', { primaryColor: 'javascript:alert(1)', title: 'a'.repeat(500), textColor: 'red' });
+    renderFrame(m.ctx, 600, 800, 'capas', { layers: [{ type: 'text', text: 'a', color: 'javascript:alert(1)' }] });
     expect(m.fills()).not.toContain('javascript:alert(1)');
     expect(m.texts()).toEqual([]);
   });
 
-  it('borde: recorta el interior con la regla evenodd y usa el color pedido', () => {
-    const m = createMockCtx();
-    renderFrame(m.ctx, 600, 800, 'border', { primaryColor: '#123456', thickness: 0.1, radius: 0 });
-    expect(m.fills()).toContain('#123456');
-    expect(m.calls.find((c) => c.name === 'fill')?.args).toEqual(['evenodd']);
-    // El hueco interior se inset por el grosor: 0,1 × 600 = 60.
-    expect(m.calls.find((c) => c.name === 'moveTo')?.args).toEqual([60, 60]);
-  });
-
   it('es independiente de la resolución: la misma geometría relativa a 2 tamaños', () => {
+    const rectLayer = { type: 'shape', shape: 'rect', w: 0.5, h: 0.2, fill: '#000000' };
     const small = createMockCtx();
     const big = createMockCtx();
-    renderFrame(small.ctx, 300, 400, 'banner', { title: 'Hola', primaryColor: '#000000' });
-    renderFrame(big.ctx, 900, 1200, 'banner', { title: 'Hola', primaryColor: '#000000' });
+    renderFrame(small.ctx, 300, 400, 'capas', { layers: [rectLayer] });
+    renderFrame(big.ctx, 900, 1200, 'capas', { layers: [rectLayer] });
 
-    const rect = (m: ReturnType<typeof createMockCtx>) => m.calls.find((c) => c.name === 'fillRect')!.args as number[];
-    const [sx, sy, sw, sh] = rect(small);
-    const [bx, by, bw, bh] = rect(big);
-    expect([bx, by, bw, bh]).toEqual([sx * 3, sy * 3, sw * 3, sh * 3]);
-  });
-
-  it('banner: va arriba o abajo según position y dibuja título y subtítulo', () => {
-    const top = createMockCtx();
-    const bottom = createMockCtx();
-    renderFrame(top.ctx, 600, 800, 'banner', { title: 'Título', subtitle: 'Sub', position: 'top' });
-    renderFrame(bottom.ctx, 600, 800, 'banner', { title: 'Título', subtitle: 'Sub', position: 'bottom' });
-
-    expect(top.calls.find((c) => c.name === 'fillRect')!.args[1]).toBe(0);
-    expect(bottom.calls.find((c) => c.name === 'fillRect')!.args[1]).toBeGreaterThan(600);
-    expect(top.texts()).toEqual(['Título', 'Sub']);
-  });
-
-  it('polaroid: sin leyenda no dibuja texto; con leyenda, la dibuja', () => {
-    const without = createMockCtx();
-    const withCaption = createMockCtx();
-    renderFrame(without.ctx, 600, 800, 'polaroid', {});
-    renderFrame(withCaption.ctx, 600, 800, 'polaroid', { caption: 'Para siempre' });
-    expect(without.texts()).toEqual([]);
-    expect(withCaption.texts()).toEqual(['Para siempre']);
-  });
-
-  it('visor: dibuja REC y el texto de abajo', () => {
-    const m = createMockCtx();
-    renderFrame(m.ctx, 600, 800, 'viewfinder', { title: '05/12/2026' });
-    expect(m.texts()).toEqual(['REC', '05/12/2026']);
-    expect(m.count('stroke')).toBe(1);
-  });
-
-  it('rollo: dibuja las dos franjas y perforaciones', () => {
-    const m = createMockCtx();
-    renderFrame(m.ctx, 600, 800, 'film', { title: 'Noche' });
-    expect(m.count('fillRect')).toBe(2);
-    expect(m.count('arcTo')).toBeGreaterThan(8);
-    expect(m.texts()).toEqual(['Noche']);
-  });
-
-  it('destello: cuatro degradés que terminan transparentes', () => {
-    const m = createMockCtx();
-    renderFrame(m.ctx, 600, 800, 'glow', { primaryColor: '#ff0000', secondaryColor: '#0000ff' });
-    expect(m.gradients).toHaveLength(4);
-    for (const g of m.gradients) {
-      expect(g.stops[1][1]).toMatch(/, 0\)$/);
-    }
-    expect(m.gradients[0].stops[0][1]).toBe('rgba(255, 0, 0, 0.75)');
-    expect(m.gradients[2].stops[0][1]).toBe('rgba(0, 0, 255, 0.75)');
+    const firstMove = (m: ReturnType<typeof createMockCtx>) => m.calls.find((c) => c.name === 'moveTo' || c.name === 'fillRect')!.args as number[];
+    const s = firstMove(small);
+    const b = firstMove(big);
+    expect(b.map((v) => Math.round(v))).toEqual(s.map((v) => Math.round(v * 3)));
   });
 });
 

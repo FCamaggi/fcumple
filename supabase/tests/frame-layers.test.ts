@@ -181,11 +181,13 @@ describe('plantilla capas', () => {
     await expect(db.query(`insert into event_frames (event_id, template, label) values ($1, 'hacker', 'x')`, [ev.id])).rejects.toThrow(/check/);
   });
 
-  it('las capas solo valen en la plantilla capas', async () => {
+  it('las plantillas antiguas ya no existen: solo se acepta capas', async () => {
     const ev = await newEvent();
-    await expect(
-      db.query(`insert into event_frames (event_id, template, label, params) values ($1, 'border', 'x', $2)`, [ev.id, JSON.stringify({ layers: [] })]),
-    ).rejects.toThrow(/event_frames_layers_only_capas/);
+    for (const template of ['border', 'polaroid', 'film', 'viewfinder', 'banner', 'glow']) {
+      await expect(
+        db.query(`insert into event_frames (event_id, template, label, params) values ($1, $2, 'x', $3)`, [ev.id, template, JSON.stringify({ layers: [] })]),
+      ).rejects.toThrow(/event_frames_template_check/);
+    }
   });
 
   it('el tope sube a 16 KB solo con capas: sin ellas sigue en 2 KB', async () => {
@@ -197,7 +199,7 @@ describe('plantilla capas', () => {
     await expect(insertCapas(ev.id, layers)).resolves.toBeDefined();
 
     await expect(
-      db.query(`insert into event_frames (event_id, template, label, params) values ($1, 'border', 'x', $2)`, [
+      db.query(`insert into event_frames (event_id, template, label, params) values ($1, 'capas', 'x', $2)`, [
         ev.id,
         JSON.stringify({ title: 'a', primaryColor: '#000000', extra: 'x'.repeat(2100) }),
       ]),

@@ -9,14 +9,8 @@ vi.mock('../lib/briefApi', () => ({
 
 // El canvas real no existe en jsdom: el doble expone la plantilla y el texto que recibiría.
 vi.mock('../components/studio/FramePreview', () => ({
-  default: ({ template, params }: { template: string; params: Record<string, string> }) => (
-    <div
-      data-testid={`frame-${template}`}
-      data-title={params.title ?? ''}
-      data-subtitle={params.subtitle ?? ''}
-      data-caption={params.caption ?? ''}
-      data-primary={params.primaryColor ?? ''}
-    />
+  default: ({ template, params }: { template: string; params: { layers?: { text?: string }[] } }) => (
+    <div data-testid={`frame-${template}`} data-title={params.layers?.[0]?.text ?? ''} />
   ),
 }));
 
@@ -98,17 +92,13 @@ describe('ClientBriefPage', () => {
     expect(sample.style.fontFamily).toContain('Georgia');
   });
 
-  it('lleva el nombre y la fecha escritos a la vista previa del marco', async () => {
+  it('lleva el nombre escrito a la vista previa del marco', async () => {
     const user = userEvent.setup();
     renderPage();
 
     await user.type(screen.getByLabelText('Nombre'), 'Fran');
-    await user.type(screen.getByLabelText('Fecha'), '31 de octubre');
 
-    const banner = screen.getByTestId('frame-banner');
-    expect(banner).toHaveAttribute('data-title', 'Fran');
-    expect(banner).toHaveAttribute('data-subtitle', '31 de octubre');
-    expect(screen.getByTestId('frame-polaroid')).toHaveAttribute('data-caption', 'Fran');
+    expect(screen.getByTestId('frame-capas')).toHaveAttribute('data-title', 'Fran');
   });
 
   it('ofrece los dos marcos conversados y una opción para conversarlo en privado', () => {
@@ -133,9 +123,9 @@ describe('ClientBriefPage', () => {
     expect(option(/Mi cumpleaños/)).toHaveAttribute('aria-pressed', 'false');
     expect(option(/Halloween estilo Mean Girls/)).toHaveAttribute('aria-pressed', 'false');
 
-    await user.click(option(/Polaroid/));
+    await user.click(option(/Mi cumpleaños/));
     expect(option(/Lo conversamos en privado/)).toHaveAttribute('aria-pressed', 'false');
-    expect(option(/Polaroid/)).toHaveAttribute('aria-pressed', 'true');
+    expect(option(/Mi cumpleaños/)).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('respeta el tope de dos ambientes soltando el más antiguo', async () => {

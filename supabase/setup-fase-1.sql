@@ -3411,6 +3411,63 @@ as $$
     false);
 $$;
 
+-- ---------------------------------------------------------------------------
+-- 20261026100018_frames_solo_capas.sql
+-- ---------------------------------------------------------------------------
+-- ---------------------------------------------------------------------------
+-- Marcos: solo existe la plantilla 'capas'.
+--
+-- Las plantillas paramétricas antiguas (border, polaroid, film, viewfinder,
+-- banner, glow) se retiran de la app. Se borran los marcos que las usaban:
+-- los diseños de eventos reales viven como SQL de carga (docs/clientes/…) y se
+-- pueden volver a crear. events.default_frame_id queda en null por su FK.
+-- ---------------------------------------------------------------------------
+delete from public.event_frames where template <> 'capas';
+
+alter table public.event_frames drop constraint event_frames_template_check;
+alter table public.event_frames
+  add constraint event_frames_template_check
+  check (template = 'capas');
+
+-- Redundante: con una sola plantilla, las capas siempre valen.
+alter table public.event_frames drop constraint event_frames_layers_only_capas;
+
+-- ---------------------------------------------------------------------------
+-- Un evento nuevo arranca con un marco de capas (el nombre del evento al pie,
+-- igual que defaultFrameParams('capas') en el cliente) y unos emojis de ejemplo.
+-- ---------------------------------------------------------------------------
+create or replace function public.seed_event_camera()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  v_title text := left(btrim(new.name), 60);
+begin
+  insert into public.event_frames (event_id, template, label, params, sort_order) values
+    (new.id, 'capas', 'Título',
+     jsonb_build_object('layers',
+       case when v_title = '' then '[]'::jsonb
+       else jsonb_build_array(jsonb_build_object(
+         'type', 'text', 'text', v_title, 'x', 0.5, 'y', 0.92, 'size', 0.08, 'w', 1.6,
+         'font', 'display', 'color', '#ffffff', 'weight', 'bold'))
+       end), 0);
+
+  insert into public.event_stickers (event_id, kind, emoji, sort_order) values
+    (new.id, 'emoji', U&'\+01F389', 0),
+    (new.id, 'emoji', U&'\+01F382', 1),
+    (new.id, 'emoji', U&'\+002764\+00FE0F', 2),
+    (new.id, 'emoji', U&'\+01F4F8', 3),
+    (new.id, 'emoji', U&'\+01F973', 4),
+    (new.id, 'emoji', U&'\+002728', 5);
+
+  return new;
+end;
+$$;
+
+revoke execute on function public.seed_event_camera() from public, anon, authenticated;
+
 -- ===========================================================================
 -- 3 / 3  REGISTRO EN EL HISTORIAL DE MIGRACIONES
 -- ===========================================================================
@@ -3418,7 +3475,7 @@ do $$
 begin
   if to_regclass('supabase_migrations.schema_migrations') is not null then
     insert into supabase_migrations.schema_migrations (version)
-    values ('20261015100001'), ('20261015100002'), ('20261015100003'), ('20261015100004'), ('20261015100005'), ('20261015100006'), ('20261015100007'), ('20261015100008'), ('20261015100009'), ('20261018100010'), ('20261018100011'), ('20261023100012'), ('20261024100013'), ('20261024100014'), ('20261024100015'), ('20261025100016'), ('20261025100017'), ('20261026100017')
+    values ('20261015100001'), ('20261015100002'), ('20261015100003'), ('20261015100004'), ('20261015100005'), ('20261015100006'), ('20261015100007'), ('20261015100008'), ('20261015100009'), ('20261018100010'), ('20261018100011'), ('20261023100012'), ('20261024100013'), ('20261024100014'), ('20261024100015'), ('20261025100016'), ('20261025100017'), ('20261026100017'), ('20261026100018')
     on conflict (version) do nothing;
   end if;
 end

@@ -37,7 +37,7 @@ const event: OrganizerEvent = {
 };
 
 const frame = (id: string, label: string, over: Partial<studio.EventFrame> = {}): studio.EventFrame => ({
-  id, eventId: 'ev-1', template: 'border', label, params: { primaryColor: '#ff4fa3' }, enabled: true, sortOrder: 0, ...over,
+  id, eventId: 'ev-1', template: 'capas', label, params: { layers: [] }, enabled: true, sortOrder: 0, ...over,
 });
 
 function setup(frames: studio.EventFrame[], ev: OrganizerEvent = event) {
@@ -129,38 +129,20 @@ describe('CameraStudio: marcos', () => {
     expect(names[0]).toContain('Segundo');
   });
 
-  it('crea un marco: elige plantilla, edita y guarda', async () => {
-    vi.mocked(studio.createFrame).mockResolvedValue(frame('f9', 'Banner', { template: 'banner' }));
-    await load([]);
-
-    await userEvent.click(screen.getByRole('button', { name: 'Nuevo marco' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Plantilla Banner' }));
-
-    expect(screen.getByLabelText('Título')).toHaveValue('Cumple de Ana'); // prellenado con el evento
-    await userEvent.click(screen.getByRole('button', { name: 'Guardar marco' }));
-
-    await waitFor(() => expect(studio.createFrame).toHaveBeenCalledTimes(1));
-    const [eventId, input, order] = vi.mocked(studio.createFrame).mock.calls[0];
-    expect(eventId).toBe('ev-1');
-    expect(input).toMatchObject({ template: 'banner', label: 'Banner', params: { title: 'Cumple de Ana' } });
-    expect(order).toBe(0);
-    expect((await screen.findAllByText('Banner')).length).toBeGreaterThan(0);
-  });
-
-  it('ofrece la plantilla Capas: abre el editor visual y guarda las capas', async () => {
+  it('crea un marco: abre el estudio con el nombre del evento y guarda las capas', async () => {
     vi.mocked(studio.createFrame).mockResolvedValue(frame('f9', 'Capas', { template: 'capas' }));
     await load([]);
 
     await userEvent.click(screen.getByRole('button', { name: 'Nuevo marco' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Plantilla Capas' }));
 
     expect(screen.getByLabelText('Lienzo del marco')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Agregar emoji' }));
     await userEvent.click(screen.getByRole('button', { name: 'Guardar marco' }));
 
     await waitFor(() => expect(studio.createFrame).toHaveBeenCalledTimes(1));
-    const [, input] = vi.mocked(studio.createFrame).mock.calls[0];
+    const [, input, order] = vi.mocked(studio.createFrame).mock.calls[0];
     expect(input).toMatchObject({ template: 'capas', label: 'Capas' });
+    expect(order).toBe(0);
     expect(input.params.layers).toHaveLength(2); // el nombre del evento y el emoji
     expect(input.params.layers?.[0]).toMatchObject({ type: 'text', text: 'Cumple de Ana' });
   });
@@ -172,7 +154,6 @@ describe('CameraStudio: marcos', () => {
     await load([]);
 
     await userEvent.click(screen.getByRole('button', { name: 'Nuevo marco' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Plantilla Capas' }));
     const file = new File(['x'], 'overlay.png', { type: 'image/png' });
     await userEvent.upload(screen.getByLabelText('Elegir imagen'), file);
 
@@ -185,7 +166,7 @@ describe('CameraStudio: marcos', () => {
   });
 
   it('edita un marco existente', async () => {
-    vi.mocked(studio.updateFrame).mockResolvedValue(frame('f1', 'Renombrado', { params: { primaryColor: '#123456' } }));
+    vi.mocked(studio.updateFrame).mockResolvedValue(frame('f1', 'Renombrado', { params: { layers: [] } }));
     await load([frame('f1', 'Borde rosa')]);
 
     await userEvent.click(screen.getByRole('button', { name: 'Editar Borde rosa' }));
@@ -213,7 +194,7 @@ describe('CameraStudio: marcos', () => {
     await waitFor(() =>
       expect(studio.createFrame).toHaveBeenCalledWith(
         'ev-1',
-        { template: 'border', label: 'Borde rosa (copia)', params: { primaryColor: '#ff4fa3' } },
+        { template: 'capas', label: 'Borde rosa (copia)', params: { layers: [] } },
         1,
       ),
     );
@@ -238,7 +219,6 @@ describe('CameraStudio: marcos', () => {
     vi.mocked(studio.createFrame).mockRejectedValue(new Error('Llegaste al máximo de 20 marcos por evento.'));
     await load([]);
     await userEvent.click(screen.getByRole('button', { name: 'Nuevo marco' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Plantilla Borde' }));
     await userEvent.click(screen.getByRole('button', { name: 'Guardar marco' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('máximo de 20 marcos');
   });
@@ -372,16 +352,16 @@ describe('CameraStudio: edición solo en computador', () => {
     expect(screen.getByRole('button', { name: 'Editar Borde rosa' })).toBeInTheDocument();
   });
 
-  it('al volver a agrandar la ventana el selector de plantillas no reaparece abierto', async () => {
+  it('al volver a agrandar la ventana el estudio no reaparece abierto', async () => {
     const setEditable = stubEditQuery(true);
     await load([]);
     await userEvent.click(screen.getByRole('button', { name: 'Nuevo marco' }));
-    expect(screen.getByRole('group', { name: 'Elige una plantilla' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Lienzo del marco')).toBeInTheDocument();
 
     setEditable(false);
     setEditable(true);
 
-    expect(screen.queryByRole('group', { name: 'Elige una plantilla' })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Lienzo del marco')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Nuevo marco' })).toBeInTheDocument();
   });
 

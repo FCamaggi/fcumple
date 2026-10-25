@@ -38,7 +38,7 @@ const from = supabase.from as unknown as ReturnType<typeof vi.fn>;
 const frameRow = {
   id: 'f1',
   event_id: 'ev-1',
-  template: 'banner',
+  template: 'capas',
   label: 'Título',
   params: { primaryColor: '#111111', title: 'Hola', hack: 'x' },
   enabled: true,
@@ -70,17 +70,17 @@ describe('marcos', () => {
     const frames = await listFrames('ev-1');
     expect(from).toHaveBeenCalledWith('event_frames');
     expect(q.call('eq')).toEqual(['event_id', 'ev-1']);
-    expect(frames[0]).toMatchObject({ id: 'f1', template: 'banner', sortOrder: 2 });
+    expect(frames[0]).toMatchObject({ id: 'f1', template: 'capas', sortOrder: 2 });
     expect(frames[0].params).toEqual({ primaryColor: '#111111', title: 'Hola' });
   });
 
   it('createFrame valida antes de enviar y devuelve el marco', async () => {
     const q = chain({ data: frameRow, error: null });
     from.mockReturnValueOnce(q.proxy);
-    await createFrame('ev-1', { template: 'banner', label: '  Título ', params: { title: 'Hola' } }, 3);
+    await createFrame('ev-1', { template: 'capas', label: '  Título ', params: { title: 'Hola' } }, 3);
     expect(q.call('insert')![0]).toEqual({
       event_id: 'ev-1',
-      template: 'banner',
+      template: 'capas',
       label: 'Título',
       params: { title: 'Hola' },
       sort_order: 3,
@@ -88,8 +88,8 @@ describe('marcos', () => {
   });
 
   it('createFrame rechaza parámetros inválidos y etiquetas vacías sin llamar a la base', async () => {
-    await expect(createFrame('ev-1', { template: 'border', label: 'x', params: { primaryColor: 'rojo' } })).rejects.toThrow(/#RRGGBB/);
-    await expect(createFrame('ev-1', { template: 'border', label: '   ', params: {} })).rejects.toThrow(/nombre al marco/);
+    await expect(createFrame('ev-1', { template: 'capas', label: 'x', params: { primaryColor: 'rojo' } })).rejects.toThrow(/#RRGGBB/);
+    await expect(createFrame('ev-1', { template: 'capas', label: '   ', params: {} })).rejects.toThrow(/nombre al marco/);
     expect(from).not.toHaveBeenCalled();
   });
 
@@ -100,7 +100,7 @@ describe('marcos', () => {
     ['XX000', /No pudimos guardar el marco/],
   ])('createFrame traduce el código %s', async (code, message) => {
     from.mockReturnValueOnce(chain({ data: null, error: { code } }).proxy);
-    await expect(createFrame('ev-1', { template: 'border', label: 'x', params: {} })).rejects.toThrow(message);
+    await expect(createFrame('ev-1', { template: 'capas', label: 'x', params: {} })).rejects.toThrow(message);
   });
 
   it('updateFrame envía solo lo que cambia', async () => {
