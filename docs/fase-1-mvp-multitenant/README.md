@@ -47,6 +47,7 @@ Pagos y planes, Cloudflare R2, muro en vivo, descarga ZIP, marcos dinámicos con
 | [`prueba-recursos-ia.md`](./prueba-recursos-ia.md) | Prueba de un día de piezas de línea de una tinta con IA (costo, licencias, comparación con los marcos actuales y qué haría falta). **No-go para la fiesta.** |
 | [`moderacion-por-lotes.md`](./moderacion-por-lotes.md) | Agrupación por bloques horarios en el panel de moderación. **Descartado.** |
 | [`notas-temporales-b-c-descarga.md`](./notas-temporales-b-c-descarga.md) | **Temporal.** Marcos (B), vistas previas pendientes (C), descarga de calidad y capacidad del plan gratuito. |
+| [`plan-estudio-de-diseno.md`](./plan-estudio-de-diseno.md) | **Propuesta.** Pasar del editor de capas a un estudio de diseño con recursos, presets y paquetes; edición solo en computador; limpieza de la pantalla de cámara. |
 | [`briefs-de-cliente.md`](./briefs-de-cliente.md) | Formularios de opciones para el cliente de cada cumpleaños: página `/brief/:slug`, tabla de respuestas y cómo agregar uno nuevo. |
 | [`puesta-en-marcha.md`](./puesta-en-marcha.md) | Podar la Fase 0 del proyecto Supabase actual, aplicar la Fase 1, probar en un preview, checklist de punta a punta y merge. |
 | [`plan-de-trabajo.md`](./plan-de-trabajo.md) | Etapas ordenadas, dependencias y riesgos. |
