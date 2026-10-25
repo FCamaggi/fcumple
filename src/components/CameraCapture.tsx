@@ -184,6 +184,7 @@ export default function CameraCapture({
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const trackRef = useRef<MediaStreamTrack | null>(null);
+  const attemptRef = useRef<string | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [cameraReady, setCameraReady] = useState(false);
   const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
@@ -332,6 +333,7 @@ export default function CameraCapture({
           restriccionesDeDiagnostico(facingMode, orientation),
         );
         stream = opened.stream;
+        attemptRef.current = opened.attempt;
         if (cancelled) {
           stream.getTracks().forEach((t) => t.stop());
           return;
@@ -519,7 +521,7 @@ export default function CameraCapture({
 
   return (
     <div ref={rootRef} className="fixed inset-safe z-50 flex flex-col bg-ink-950" aria-label="Cámara de fotos">
-      {diagnosticoActivo() && <CameraDiagnostic videoRef={videoRef} trackRef={trackRef} aspect={aspect} />}
+      {diagnosticoActivo() && <CameraDiagnostic videoRef={videoRef} trackRef={trackRef} aspect={aspect} attemptRef={attemptRef} />}
       {/* Cabecera baja: el visor es lo que manda. El rótulo «Cámara // modo carrete» solo vive en las pantallas sin cámara. */}
       <div role="group" aria-label="Estado de la cámara" className="flex items-center justify-between gap-2 bg-ink-900 px-3 py-1">
         <div className="flex min-w-0 items-center gap-2">
