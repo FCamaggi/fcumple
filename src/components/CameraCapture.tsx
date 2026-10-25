@@ -2,7 +2,9 @@ import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } 
 import { motion, AnimatePresence, useReducedMotion, type PanInfo } from 'framer-motion';
 import { usePhotoCapture, type PhotoUploader } from '../hooks/usePhotoCapture';
 import { useOrientation } from '../hooks/useOrientation';
+import { useScrollLock } from '../hooks/useScrollLock';
 import { useFrameImages } from '../hooks/useFrameImages';
+import { aspectForOrientation, coverCrop } from '../lib/cameraFraming';
 import {
   getCameraControlsAvailability,
   type CameraControlsAvailability,
@@ -176,6 +178,8 @@ export default function CameraCapture({
 }: CameraCaptureProps) {
   const reduceMotion = useReducedMotion() ?? false;
   const orientation = useOrientation();
+  // La cámara cubre la pantalla: la página de atrás (cartelera, avisos) no debe moverse ni asomar.
+  useScrollLock();
   const { state, capture, reset } = usePhotoCapture(token, quota, onQuotaChange, upload);
   const shutterRef = useRef<HTMLButtonElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -207,7 +211,9 @@ export default function CameraCapture({
   const assetMap = useMemo(() => new Map(stickerOptions.map((o) => [o.id, o.asset])), [stickerOptions]);
   const [placements, setPlacements] = useState<StickerPlacement[]>([]);
   const [selectedUid, setSelectedUid] = useState<string | null>(null);
-  const [aspect, setAspect] = useState(3 / 4);
+  // El visor y la foto tienen siempre la proporción del teléfono, no la del video que entregue el navegador:
+  // así no salta al cargar ni queda una franja chica cuando el video llega apaisado (ver `cameraFraming`).
+  const aspect = aspectForOrientation(orientation);
   // Foto recién sacada, pendiente de "Repetir"/"Enviar" (Etapa 11, punto 4)
   // -- `capture(blob)` (la única llamada que de verdad sube y gasta un
   // disparo del rollo) sólo se dispara desde "Enviar", ver handleSend.
@@ -380,9 +386,14 @@ export default function CameraCapture({
     // `success` y la revisión de esta foto mostraría «Enviando…» sin poder enviarse.
     if (state.phase === 'success') reset();
 
-    const scale = Math.min(1, MAX_DIMENSION / Math.max(video.videoWidth, video.videoHeight));
-    canvas.width = Math.round(video.videoWidth * scale);
-    canvas.height = Math.round(video.videoHeight * scale);
+    // Con marcos y stickers la foto sale recortada al centro con la proporción del visor (el mismo recorte que
+    // hace `object-cover`): lo que se ve es lo que se graba. La cámara heredada sigue guardando el cuadro entero.
+    const crop = composer
+      ? coverCrop(video.videoWidth, video.videoHeight, aspect)
+      : { sx: 0, sy: 0, sw: video.videoWidth, sh: video.videoHeight };
+    const scale = Math.min(1, MAX_DIMENSION / Math.max(crop.sw, crop.sh));
+    canvas.width = Math.round(crop.sw * scale);
+    canvas.height = Math.round(crop.sh * scale);
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
@@ -396,7 +407,7 @@ export default function CameraCapture({
       ctx.translate(canvas.width, 0);
       ctx.scale(-1, 1);
     }
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    ctx.drawImage(video, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, canvas.width, canvas.height);
     ctx.restore();
 
     if (composer) {
@@ -559,10 +570,6 @@ export default function CameraCapture({
               muted
               playsInline
               aria-hidden
-              onLoadedMetadata={(e) => {
-                const v = e.currentTarget;
-                if (v.videoWidth > 0 && v.videoHeight > 0) setAspect(v.videoWidth / v.videoHeight);
-              }}
             />
             <canvas ref={canvasRef} className="hidden" aria-hidden />
           </ComposerStage>
