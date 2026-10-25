@@ -1,0 +1,3 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <path fill-rule="evenodd" d="M50 93 L43 81 L30 73 L19 76 L25 63 L11 50 L3 46 L15 39 L11 24 L24 14 L36 11 L43 3 L47 15 L50 25 L53 15 L59 5 L65 12 L78 14 L89 24 L86 39 L97 45 L86 51 L75 63 L81 74 L68 71 L57 81 Z M50 70 C69 53 75 35 66 25 C59 18 53 25 50 36 C47 25 41 18 34 25 C25 35 31 53 50 70 Z" fill="$acento" stroke="$fondo" stroke-width="2" stroke-linejoin="round"/>
+</svg>

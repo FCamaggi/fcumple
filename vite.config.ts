@@ -4,6 +4,14 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    alias: [
+      {
+        find: /^konva$/,
+        replacement: 'konva/lib/index.js',
+      },
+    ],
+  },
   server: {
     port: 5173,
   },
@@ -15,6 +23,11 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
     css: true,
+    server: {
+      deps: {
+        inline: ['konva', 'react-konva'],
+      },
+    },
     // supabase/tests runs against a real Postgres via `npm run test:db`
     // (supabase/vitest.config.ts), not under this jsdom config.
     exclude: ['node_modules/**', 'supabase/**', '.claude/**'],

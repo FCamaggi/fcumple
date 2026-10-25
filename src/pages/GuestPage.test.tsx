@@ -279,10 +279,12 @@ describe('GuestPage', () => {
     // getEventConfig (beforeEach) mocks eventDate as 2026-05-24T02:00:00Z.
     // Format the expected time the same way the component does, instead of
     // hardcoding a timezone-dependent string.
-    const expectedTime = new Date('2026-05-24T02:00:00Z').toLocaleTimeString('es-CL', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    const expectedTime = new Date('2026-05-24T02:00:00Z')
+      .toLocaleTimeString('es-CL', {
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+      .replace(/\s+/g, ' ');
     expect(screen.getByText(`Puertas ${expectedTime}`, { exact: false })).toBeInTheDocument();
     expect(screen.queryByText(/puertas por confirmar/i)).not.toBeInTheDocument();
   });

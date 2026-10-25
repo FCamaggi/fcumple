@@ -26,8 +26,14 @@ const NO_RESOLVER = async (): Promise<string> => {
  */
 export default function FramePreview({ template, params, width, height, label, resolveImageUrl }: FramePreviewProps) {
   const ref = useRef<HTMLCanvasElement>(null);
-  // Las capas no se leen si no hay con qué firmar las imágenes: así no se carga nada de más.
-  const assets = useLayerAssets(template === 'capas' && resolveImageUrl ? params.layers : undefined, resolveImageUrl ?? NO_RESOLVER);
+  // Las imágenes de Storage solo se firman si llega `resolveImageUrl`; los recursos `asset` (/packs/...) y fuentes web siempre se cargan.
+  const previewLayers =
+    template === 'capas'
+      ? resolveImageUrl
+        ? params.layers
+        : params.layers?.filter((l) => l.type !== 'image')
+      : undefined;
+  const assets = useLayerAssets(previewLayers, resolveImageUrl ?? NO_RESOLVER);
 
   useEffect(() => {
     const canvas = ref.current;

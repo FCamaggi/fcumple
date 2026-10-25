@@ -9,15 +9,24 @@
 
 import { MAX_LAYERS, anchorOffset, boxRect, layerSize, type FrameLayer } from './layers';
 
-export type NewLayerKind = 'text' | 'rect' | 'ellipse' | 'line' | 'path' | 'emoji' | 'image';
+export type NewLayerKind = 'text' | 'rect' | 'ellipse' | 'line' | 'path' | 'emoji' | 'image' | 'asset';
 
 /** Corazón en la caja de 100 × 100 que usan los trazos. */
 const HEART_PATH = 'M50 90 C10 60 0 30 25 15 C40 8 50 20 50 28 C50 20 60 8 75 15 C100 30 90 60 50 90 Z';
 
 const PINK = '#ff4fa3';
 
+export interface CreateLayerOptions {
+  src?: string;
+  full?: boolean;
+  asset?: string;
+  tint?: string;
+  w?: number;
+  h?: number;
+}
+
 /** Una capa nueva de cada tipo, centrada y con valores que se ven bien sobre una foto. */
-export function createLayer(kind: NewLayerKind, options: { src?: string; full?: boolean } = {}): FrameLayer {
+export function createLayer(kind: NewLayerKind, options: CreateLayerOptions = {}): FrameLayer {
   const at = { x: 0.5, y: 0.5 };
   switch (kind) {
     case 'text':
@@ -35,12 +44,22 @@ export function createLayer(kind: NewLayerKind, options: { src?: string; full?: 
     case 'image':
       if (options.full) return { type: 'image', src: options.src ?? '', full: true };
       return { type: 'image', src: options.src ?? '', ...at, w: 0.5, h: 0.5 };
+    case 'asset':
+      return {
+        type: 'asset',
+        asset: options.asset ?? 'pack:halloween-neon/murcielago',
+        ...at,
+        w: options.w ?? 0.25,
+        h: options.h ?? 0.25,
+        ...(options.tint ? { tint: options.tint } : {}),
+      };
   }
 }
 
 const isCover = (layer: FrameLayer) => layer.type === 'image' && layer.full === true;
 /** Una forma pegada a los bordes (`box`): como la imagen a pantalla completa, su lugar lo fijan los bordes, no se arrastra. */
 export const isBoxed = (layer: FrameLayer) => layer.type === 'shape' && layer.box !== undefined;
+export const isLocked = (layer: FrameLayer) => layer.locked === true;
 const round4 = (n: number) => Math.round(n * 10000) / 10000;
 const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, n));
 
@@ -159,7 +178,7 @@ export function hitTest(layers: FrameLayer[], px: number, py: number, w: number,
 
 /** Mueve la capa; dx y dy en píxeles del lienzo. La imagen a pantalla completa no se mueve. */
 export function moveLayer(layer: FrameLayer, dx: number, dy: number, w: number, h: number): FrameLayer {
-  if (isCover(layer) || isBoxed(layer)) return layer;
+  if (isCover(layer) || isBoxed(layer) || isLocked(layer)) return layer;
   return {
     ...layer,
     x: round4(clamp((layer.x ?? 0.5) + dx / w, -1, 2)),
@@ -169,7 +188,7 @@ export function moveLayer(layer: FrameLayer, dx: number, dy: number, w: number, 
 
 /** Escala el tamaño de la capa (no el grosor del borde). Corta en los límites que valida la base. */
 export function scaleLayer(layer: FrameLayer, factor: number): FrameLayer {
-  if (isCover(layer) || isBoxed(layer)) return layer;
+  if (isCover(layer) || isBoxed(layer) || isLocked(layer)) return layer;
   const side = (value: number) => round4(clamp(value * factor, 0.01, 4));
   switch (layer.type) {
     case 'text':
@@ -188,6 +207,8 @@ export function scaleLayer(layer: FrameLayer, factor: number): FrameLayer {
       };
     case 'image':
       return { ...layer, w: side(layer.w ?? 0.5), h: side(layer.h ?? 0.5) };
+    case 'asset':
+      return { ...layer, w: side(layer.w), h: side(layer.h) };
   }
 }
 

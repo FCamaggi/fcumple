@@ -128,6 +128,14 @@ function CommonFields({ layer, onChange }: LayerPropertiesProps) {
   return (
     <>
       <RangeField label="Opacidad" value={layer.opacity ?? 1} min={0} max={1} step={0.05} onChange={(opacity) => onChange({ ...layer, opacity })} />
+      <label className="flex items-center gap-2 font-sans text-sm text-paper-100">
+        <input
+          type="checkbox"
+          checked={layer.locked === true}
+          onChange={(e) => onChange(e.target.checked ? { ...layer, locked: true } : without(layer, 'locked'))}
+        />
+        Bloquear capa
+      </label>
       {!cover && (
         <>
           <RangeField label="Rotación" value={layer.rotation ?? 0} min={-180} max={180} step={1} onChange={(rotation) => onChange({ ...layer, rotation })} />
@@ -260,6 +268,14 @@ export default function LayerProperties({ layer, onChange }: LayerPropertiesProp
           />
           Cubrir toda la foto
         </label>
+      )}
+
+      {layer.type === 'asset' && (
+        <ColorField
+          label="Color del recurso"
+          value={layer.tint ?? '#ff2f92'}
+          onChange={(tint) => onChange({ ...layer, tint })}
+        />
       )}
 
       <CommonFields layer={layer} onChange={onChange} />

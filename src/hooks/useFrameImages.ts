@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { loadImage } from '../lib/cameraAssets/layers';
+import { getCachedPackAssetImage, resolvePackAssetUrl, setCachedPackAssetImage } from '../lib/cameraAssets/packs';
 import { FRAME_IMAGE_SRC, type FrameId } from '../lib/cameraFrames';
 
 type LoadedFrameImages = Partial<Record<FrameId, HTMLImageElement>>;
@@ -38,4 +40,44 @@ export function useFrameImages(): LoadedFrameImages {
   }, []);
 
   return images;
+}
+
+/**
+ * Precarga y cachea en memoria las imágenes de recursos de paquetes (`pack:<pack-id>/<asset-id>[@#rrggbb]`),
+ * recoloreando los SVG mediante `recolorSvgToDataUri` (mismo origen, 0 egress de Supabase).
+ */
+export function usePackAssetImages(assetKeys: readonly string[]): ReadonlyMap<string, CanvasImageSource> {
+  const keyStr = JSON.stringify(assetKeys);
+  const [loaded, setLoaded] = useState<ReadonlyMap<string, CanvasImageSource>>(() => new Map());
+
+  useEffect(() => {
+    const keys = JSON.parse(keyStr) as string[];
+    if (keys.length === 0) {
+      setLoaded(new Map());
+      return;
+    }
+    let cancelled = false;
+    void Promise.allSettled(
+      keys.map(async (key) => {
+        const cached = getCachedPackAssetImage(key);
+        if (cached) return [key, cached] as const;
+        const uri = await resolvePackAssetUrl(key);
+        const img = await loadImage(uri);
+        setCachedPackAssetImage(key, img);
+        return [key, img] as const;
+      }),
+    ).then((results) => {
+      if (cancelled) return;
+      const next = new Map<string, CanvasImageSource>();
+      for (const r of results) {
+        if (r.status === 'fulfilled') next.set(r.value[0], r.value[1]);
+      }
+      setLoaded(next);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [keyStr]);
+
+  return loaded;
 }

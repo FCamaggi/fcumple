@@ -15,6 +15,7 @@
  */
 
 import type { ValidationResult } from './frames';
+import { getCachedPackAssetImage, resolvePackAssetUrl, setCachedPackAssetImage } from './packs';
 import { LAYER_FONTS, drawFittedText, loadLayerFonts, type LayerFont } from './text';
 
 type Ctx = CanvasRenderingContext2D;
@@ -38,7 +39,7 @@ export interface LayerShadow {
   y: number;
 }
 
-interface LayerBase {
+export interface LayerBase {
   /** Fracción del ancho del lienzo donde cae el ancla (0 a 1; admite un poco fuera). */
   x?: number;
   /** Fracción del alto del lienzo. */
@@ -54,6 +55,8 @@ interface LayerBase {
   opacity?: number;
   anchor?: LayerAnchor;
   shadow?: LayerShadow;
+  /** Bloquea la selección y transformación en el estudio de diseño. */
+  locked?: boolean;
 }
 
 export interface TextLayer extends LayerBase {
@@ -113,10 +116,21 @@ export interface EmojiLayer extends LayerBase {
   size?: number;
 }
 
-export type FrameLayer = TextLayer | ShapeLayer | ImageLayer | EmojiLayer;
+export interface AssetLayer extends LayerBase {
+  type: 'asset';
+  /** Referencia 'pack:<pack-id>/<asset-id>' */
+  asset: string;
+  w: number;
+  h: number;
+  /** Color #RRGGBB opcional para recolorear SVGs recoloreables ($acento). */
+  tint?: string;
+}
+
+export type FrameLayer = TextLayer | ShapeLayer | ImageLayer | EmojiLayer | AssetLayer;
+export type Layer = FrameLayer;
 
 export interface FrameAssets {
-  /** Imágenes ya cargadas, por la ruta `src` de la capa. */
+  /** Imágenes ya cargadas, por la ruta `src` de la capa o clave `asset` (`pack:<pack-id>/<asset-id>[@#rrggbb]`). */
   images: ReadonlyMap<string, CanvasImageSource>;
 }
 
@@ -128,14 +142,16 @@ const COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
 const PATH_PATTERN = /^[MLCZ0-9.,\s-]+$/;
 const IMAGE_SRC_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/frames\/[A-Za-z0-9_-][A-Za-z0-9._-]{0,99}$/;
+const ASSET_REF_PATTERN = /^pack:[a-z0-9][a-z0-9-]{0,49}\/[a-z0-9][a-z0-9-]{0,49}$/;
 
 const BOX_EDGES = ['l', 't', 'r', 'b'];
-const COMMON_KEYS = ['type', 'x', 'y', 'dx', 'dy', 'rotation', 'opacity', 'anchor', 'shadow'];
+const COMMON_KEYS = ['type', 'x', 'y', 'dx', 'dy', 'rotation', 'opacity', 'anchor', 'shadow', 'locked'];
 const KEYS_BY_TYPE: Record<FrameLayer['type'], Set<string>> = {
   text: new Set([...COMMON_KEYS, 'text', 'size', 'font', 'color', 'weight', 'w', 'strokeColor', 'strokeWidth']),
   shape: new Set([...COMMON_KEYS, 'shape', 'w', 'h', 'fill', 'stroke', 'strokeWidth', 'radius', 'd', 'box']),
   image: new Set([...COMMON_KEYS, 'src', 'w', 'h', 'full']),
   emoji: new Set([...COMMON_KEYS, 'emoji', 'size']),
+  asset: new Set([...COMMON_KEYS, 'asset', 'w', 'h', 'tint']),
 };
 
 const fail = (error: string): ValidationResult => ({ ok: false, error });
@@ -172,6 +188,7 @@ function validateLayer(raw: unknown): ValidationResult {
   if ('rotation' in l && !isNumberIn(l.rotation, -360, 360)) return fail('La rotación va entre -360 y 360 grados.');
   if ('opacity' in l && !isNumberIn(l.opacity, 0, 1)) return fail('La opacidad va entre 0 y 1.');
   if ('anchor' in l && !LAYER_ANCHORS.includes(l.anchor as LayerAnchor)) return fail('Ancla desconocida.');
+  if ('locked' in l && typeof l.locked !== 'boolean') return fail('El bloqueo de la capa no es válido.');
   if ('shadow' in l) {
     const shadow = validateShadow(l.shadow);
     if (!shadow.ok) return shadow;
@@ -238,11 +255,23 @@ function validateLayer(raw: unknown): ValidationResult {
       if ('size' in l && !isNumberIn(l.size, 0.01, 1)) return fail('El tamaño del emoji está fuera de rango.');
       return { ok: true };
     }
+    case 'asset': {
+      if (typeof l.asset !== 'string' || !ASSET_REF_PATTERN.test(l.asset)) {
+        return fail('El recurso del paquete no es válido.');
+      }
+      if (!isNumberIn(l.w, 0, 4) || !isNumberIn(l.h, 0, 4)) {
+        return fail('El tamaño del recurso está fuera de rango.');
+      }
+      if ('tint' in l && !isColor(l.tint)) {
+        return fail('Los colores deben ser como #RRGGBB.');
+      }
+      return { ok: true };
+    }
   }
 }
 
 /** Valida la lista completa de capas (tope de cantidad incluido). */
-export function validateLayers(layers: unknown): ValidationResult {
+export function validateLayers(layers: unknown, _eventId?: string): ValidationResult {
   if (!Array.isArray(layers)) return fail('Las capas deben ser una lista.');
   if (layers.length > MAX_LAYERS) return fail(`Un marco puede tener hasta ${MAX_LAYERS} capas.`);
   for (const layer of layers) {
@@ -264,8 +293,13 @@ export function sanitizeLayers(raw: unknown): FrameLayer[] {
 }
 
 // ---------------------------------------------------------------------------
-// Imágenes
+// Imágenes y recursos de paquetes
 // ---------------------------------------------------------------------------
+
+/** Clave única de caché para una capa `asset` (incluye `tint` si recolorea el SVG). */
+export function assetLayerKey(layer: Pick<AssetLayer, 'asset' | 'tint'>): string {
+  return layer.tint ? `${layer.asset}@${layer.tint.toLowerCase()}` : layer.asset;
+}
 
 /** Tipografías de las capas de texto, sin repetir (las que no declaran una usan `sans`). */
 export function collectLayerFonts(layers: readonly FrameLayer[]): LayerFont[] {
@@ -287,7 +321,18 @@ export function collectImagePaths(layers: readonly FrameLayer[]): string[] {
   return paths;
 }
 
-function loadImage(url: string): Promise<CanvasImageSource> {
+/** Claves de recursos `asset` (`pack:<pack-id>/<asset-id>[@#rrggbb]`), sin repetir y en orden de aparición. */
+export function collectAssetKeys(layers: readonly FrameLayer[]): string[] {
+  const keys: string[] = [];
+  for (const layer of layers) {
+    if (layer.type !== 'asset') continue;
+    const key = assetLayerKey(layer);
+    if (!keys.includes(key)) keys.push(key);
+  }
+  return keys;
+}
+
+export function loadImage(url: string): Promise<CanvasImageSource> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     // Sin esto el canvas queda "contaminado" y no se puede exportar la foto.
@@ -299,24 +344,43 @@ function loadImage(url: string): Promise<CanvasImageSource> {
 }
 
 /**
- * Descarga las imágenes y las tipografías web de las capas antes de dibujar
+ * Descarga las imágenes, recursos de paquetes (`asset`) y tipografías web de las capas antes de dibujar
  * (`renderFrame` es síncrona). `resolveUrl` convierte la ruta de Storage en una URL; una imagen
  * que falla se deja fuera y el resto del marco se dibuja igual.
  */
 export async function prepareFrameAssets(
   layers: readonly FrameLayer[],
-  resolveUrl: (path: string) => string | Promise<string>,
+  resolveUrl: (path: string) => string | Promise<string> = (p) => p,
   load: (url: string) => Promise<CanvasImageSource> = loadImage,
   loadFonts: (fonts: readonly string[]) => Promise<void> = loadLayerFonts,
+  resolveAsset: (assetKey: string) => string | Promise<string> = resolvePackAssetUrl,
 ): Promise<FrameAssets> {
   const paths = collectImagePaths(layers);
-  const [results] = await Promise.all([
+  const assetKeys = collectAssetKeys(layers);
+  const useDefaultCache = load === loadImage && resolveAsset === resolvePackAssetUrl;
+
+  const [imageResults, assetResults] = await Promise.all([
     Promise.allSettled(paths.map(async (path) => load(await resolveUrl(path)))),
+    Promise.allSettled(
+      assetKeys.map(async (key) => {
+        if (useDefaultCache) {
+          const cached = getCachedPackAssetImage(key);
+          if (cached) return cached;
+        }
+        const uri = await resolveAsset(key);
+        const img = await load(uri);
+        if (useDefaultCache) setCachedPackAssetImage(key, img);
+        return img;
+      }),
+    ),
     loadFonts(collectLayerFonts(layers)),
   ]);
   const images = new Map<string, CanvasImageSource>();
-  results.forEach((result, i) => {
+  imageResults.forEach((result, i) => {
     if (result.status === 'fulfilled') images.set(paths[i], result.value);
+  });
+  assetResults.forEach((result, i) => {
+    if (result.status === 'fulfilled') images.set(assetKeys[i], result.value);
   });
   return { images };
 }
@@ -355,6 +419,8 @@ export function layerSize(layer: FrameLayer, unit: number): [number, number] {
       return [(layer.w ?? 0.2) * unit, layer.shape === 'line' ? 0 : (layer.h ?? 0.2) * unit];
     case 'image':
       return [(layer.w ?? 0) * unit, (layer.h ?? 0) * unit];
+    case 'asset':
+      return [layer.w * unit, layer.h * unit];
   }
 }
 
@@ -497,6 +563,11 @@ function drawLayer(ctx: Ctx, w: number, h: number, unit: number, layer: FrameLay
       break;
     case 'image': {
       const img = assets?.images.get(layer.src);
+      if (img && bw > 0 && bh > 0) ctx.drawImage(img, ox, oy, bw, bh);
+      break;
+    }
+    case 'asset': {
+      const img = assets?.images.get(assetLayerKey(layer)) ?? assets?.images.get(layer.asset);
       if (img && bw > 0 && bh > 0) ctx.drawImage(img, ox, oy, bw, bh);
       break;
     }
