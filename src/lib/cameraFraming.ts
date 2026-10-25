@@ -15,6 +15,24 @@ export function aspectForOrientation(orientation: FramingOrientation): number {
   return orientation === 'portrait' ? PORTRAIT_ASPECT : LANDSCAPE_ASPECT;
 }
 
+/** Cuánto puede diferir (en proporción) la imagen de un marco de la foto para no verse estirada. */
+export const FRAME_ASPECT_TOLERANCE = 0.06;
+
+/**
+ * ¿El marco calza con la foto? Un marco de imagen completa (PNG hecho para una proporción) se ve estirado
+ * en otra, así que solo se ofrece cuando su proporción es la de la foto. Un marco sin imagen completa
+ * (`undefined`: se dibuja con capas y se adapta solo) sirve siempre.
+ */
+export function frameFitsAspect(
+  frameAspect: number | undefined,
+  photoAspect: number,
+  tolerance = FRAME_ASPECT_TOLERANCE,
+): boolean {
+  if (frameAspect === undefined) return true;
+  if (!(frameAspect > 0) || !(photoAspect > 0)) return true;
+  return Math.abs(frameAspect / photoAspect - 1) <= tolerance;
+}
+
 export interface CropRect {
   sx: number;
   sy: number;

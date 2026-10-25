@@ -4,7 +4,7 @@ import { usePhotoCapture, type PhotoUploader } from '../hooks/usePhotoCapture';
 import { useOrientation } from '../hooks/useOrientation';
 import { useScrollLock } from '../hooks/useScrollLock';
 import { useFrameImages } from '../hooks/useFrameImages';
-import { aspectForOrientation, coverCrop } from '../lib/cameraFraming';
+import { aspectForOrientation, coverCrop, frameFitsAspect } from '../lib/cameraFraming';
 import {
   getCameraControlsAvailability,
   type CameraControlsAvailability,
@@ -194,12 +194,28 @@ export default function CameraCapture({
   const [controls, setControls] = useState<CameraControlsAvailability>(NO_CONTROLS);
   const [torchOn, setTorchOn] = useState(false);
   const composer = frames !== undefined || stickers !== undefined;
-  const frameOptions = useMemo(() => [NO_FRAME, ...(frames ?? [])], [frames]);
-  const [frameIndex, setFrameIndex] = useState(() => {
+  // El visor y la foto tienen siempre la proporción del teléfono, no la del video que entregue el navegador:
+  // así no salta al cargar ni queda una franja chica cuando el video llega apaisado (ver `cameraFraming`).
+  const aspect = aspectForOrientation(orientation);
+  // Un marco de imagen completa solo se ofrece si es de la proporción de la foto: en otra se vería estirado.
+  const frameOptions = useMemo(
+    () => [NO_FRAME, ...(frames ?? []).filter((f) => frameFitsAspect(f.aspect, aspect))],
+    [frames, aspect],
+  );
+  const indexOfInitialFrame = () => {
     if (!composer || !initialFrameId) return 0;
     const index = frameOptions.findIndex((f) => f.id === initialFrameId);
     return index >= 0 ? index : 0;
-  });
+  };
+  const [frameIndex, setFrameIndex] = useState(indexOfInitialFrame);
+  // Al girar el teléfono la lista cambia de marcos: se vuelve al marco por defecto en vez de caer en otro por posición.
+  const lastAspect = useRef(aspect);
+  useEffect(() => {
+    if (lastAspect.current === aspect) return;
+    lastAspect.current = aspect;
+    setFrameIndex(indexOfInitialFrame());
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo debe correr al cambiar la proporción
+  }, [aspect]);
   const frameCount = composer ? frameOptions.length : FRAME_IDS.length;
   const frameId = FRAME_IDS[frameIndex] ?? 'none';
   const currentFrame = composer ? (frameOptions[frameIndex] ?? NO_FRAME) : null;
@@ -211,9 +227,6 @@ export default function CameraCapture({
   const assetMap = useMemo(() => new Map(stickerOptions.map((o) => [o.id, o.asset])), [stickerOptions]);
   const [placements, setPlacements] = useState<StickerPlacement[]>([]);
   const [selectedUid, setSelectedUid] = useState<string | null>(null);
-  // El visor y la foto tienen siempre la proporción del teléfono, no la del video que entregue el navegador:
-  // así no salta al cargar ni queda una franja chica cuando el video llega apaisado (ver `cameraFraming`).
-  const aspect = aspectForOrientation(orientation);
   // Foto recién sacada, pendiente de "Repetir"/"Enviar" (Etapa 11, punto 4)
   // -- `capture(blob)` (la única llamada que de verdad sube y gasta un
   // disparo del rollo) sólo se dispara desde "Enviar", ver handleSend.

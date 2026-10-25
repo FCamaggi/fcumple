@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { renderFrame } from '../lib/cameraAssets/frames';
-import { prepareFrameAssets, sanitizeLayers } from '../lib/cameraAssets/layers';
+import { prepareFrameAssets, sanitizeLayers, type FrameAssets, type FrameLayer } from '../lib/cameraAssets/layers';
 import { getStickerImageUrl, listCameraAssets, type GuestFrame, type GuestSticker } from '../lib/platformGuestApi';
 import type { CameraFrameOption, CameraStickerOption } from '../components/camera/types';
 
@@ -30,6 +30,19 @@ export function loadImage(url: string): Promise<HTMLImageElement> {
     image.onerror = () => reject(new Error('image failed to load'));
     image.src = url;
   });
+}
+
+/**
+ * Proporción (ancho / alto) de la imagen de un marco de imagen completa, ya cargada; `undefined` si el marco no
+ * tiene una o su imagen no cargó (entonces no se esconde: se dibuja lo que haya).
+ */
+export function fullImageAspect(layers: readonly FrameLayer[], assets: FrameAssets | undefined): number | undefined {
+  const layer = layers.find((l) => l.type === 'image' && l.full === true);
+  if (!layer || layer.type !== 'image') return undefined;
+  const image = assets?.images.get(layer.src) as { naturalWidth?: number; naturalHeight?: number; width?: number; height?: number } | undefined;
+  const w = image?.naturalWidth || image?.width || 0;
+  const h = image?.naturalHeight || image?.height || 0;
+  return w > 0 && h > 0 ? w / h : undefined;
 }
 
 /**
@@ -66,12 +79,13 @@ export function useCameraAssets(
         // prepareFrameAssets nunca rechaza; lo que no carga se omite y el resto del marco se dibuja.
         const frameOptions: CameraFrameOption[] = await Promise.all(
           frames.map(async (f): Promise<CameraFrameOption> => {
-            const assets =
-              f.template === 'capas' ? await prepareFrameAssets(sanitizeLayers(f.params.layers), getStickerImageUrl) : undefined;
+            const layers = f.template === 'capas' ? sanitizeLayers(f.params.layers) : [];
+            const assets = f.template === 'capas' ? await prepareFrameAssets(layers, getStickerImageUrl) : undefined;
             return {
               id: f.id,
               label: f.label,
               draw: (ctx, width, height) => renderFrame(ctx, width, height, f.template, f.params, assets),
+              aspect: fullImageAspect(layers, assets),
             };
           }),
         );

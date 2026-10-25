@@ -1,5 +1,27 @@
 import { describe, expect, it } from 'vitest';
-import { LANDSCAPE_ASPECT, PORTRAIT_ASPECT, aspectForOrientation, coverCrop } from './cameraFraming';
+import { LANDSCAPE_ASPECT, PORTRAIT_ASPECT, aspectForOrientation, coverCrop, frameFitsAspect } from './cameraFraming';
+
+describe('frameFitsAspect', () => {
+  it('un marco sin proporción propia (capas) sirve siempre', () => {
+    expect(frameFitsAspect(undefined, PORTRAIT_ASPECT)).toBe(true);
+    expect(frameFitsAspect(undefined, LANDSCAPE_ASPECT)).toBe(true);
+  });
+
+  it('un marco de imagen solo calza con la proporción de la foto', () => {
+    expect(frameFitsAspect(1086 / 1448, PORTRAIT_ASPECT)).toBe(true); // 3:4 de ChatGPT
+    expect(frameFitsAspect(2400 / 1792, LANDSCAPE_ASPECT)).toBe(true); // 4:3 de Gemini (1,339)
+    expect(frameFitsAspect(1536 / 2752, PORTRAIT_ASPECT)).toBe(false); // 9:16 (0,558)
+    expect(frameFitsAspect(1, PORTRAIT_ASPECT)).toBe(false); // 1:1
+    expect(frameFitsAspect(1, LANDSCAPE_ASPECT)).toBe(false);
+    expect(frameFitsAspect(LANDSCAPE_ASPECT, PORTRAIT_ASPECT)).toBe(false); // un 4:3 en la cámara vertical
+    expect(frameFitsAspect(PORTRAIT_ASPECT, LANDSCAPE_ASPECT)).toBe(false);
+  });
+
+  it('con datos inválidos no esconde el marco', () => {
+    expect(frameFitsAspect(0, PORTRAIT_ASPECT)).toBe(true);
+    expect(frameFitsAspect(0.75, 0)).toBe(true);
+  });
+});
 
 describe('aspectForOrientation', () => {
   it('3:4 en vertical y 4:3 en horizontal', () => {
