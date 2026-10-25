@@ -28,7 +28,7 @@ import {
   type StickerPlacement,
 } from '../lib/cameraAssets/stickers';
 import ComposerStage from './camera/ComposerStage';
-import CameraDiagnostic, { diagnosticoActivo } from './camera/CameraDiagnostic';
+import CameraDiagnostic, { diagnosticoActivo, restriccionesDeDiagnostico } from './camera/CameraDiagnostic';
 import StickerTray from './camera/StickerTray';
 import type { CameraFrameOption, CameraStickerOption } from './camera/types';
 import FilmRollCounter from './FilmRollCounter';
@@ -329,7 +329,7 @@ export default function CameraCapture({
         return;
       }
       try {
-        const video = getCameraVideoConstraints(facingMode, orientation);
+        const video = restriccionesDeDiagnostico(facingMode, orientation) ?? getCameraVideoConstraints(facingMode, orientation);
         stream = await navigator.mediaDevices.getUserMedia({ video });
         if (cancelled) {
           stream.getTracks().forEach((t) => t.stop());

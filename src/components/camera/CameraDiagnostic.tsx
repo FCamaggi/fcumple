@@ -10,6 +10,23 @@ export function diagnosticoActivo(): boolean {
   }
 }
 
+/**
+ * Para comparar en el teléfono qué video entrega el navegador según lo que se le pide (`&c=`):
+ * `a` solo la cámara (como la Fase 0), `b` cámara y proporción, `c` cámara, proporción y tamaño ideal
+ * (lo actual). Sin `c=` o sin diagnóstico devuelve `null` y se usa lo de siempre.
+ */
+export function restriccionesDeDiagnostico(
+  facingMode: 'user' | 'environment',
+  orientation: 'portrait' | 'landscape',
+): MediaTrackConstraints | null {
+  if (!diagnosticoActivo()) return null;
+  const variante = new URLSearchParams(window.location.search).get('c');
+  const ratio = orientation === 'portrait' ? 3 / 4 : 4 / 3;
+  if (variante === 'a') return { facingMode };
+  if (variante === 'b') return { facingMode, aspectRatio: { ideal: ratio } };
+  return null;
+}
+
 interface Props {
   videoRef: RefObject<HTMLVideoElement>;
   trackRef: RefObject<MediaStreamTrack | null>;
@@ -35,6 +52,7 @@ export default function CameraDiagnostic({ videoRef, trackRef, aspect }: Props) 
       const visibleH = crop ? crop.sh / vh : 0;
       const zoom = crop ? 1 / Math.min(visibleW, visibleH) : 0;
       setLines([
+        `pedido: c=${new URLSearchParams(window.location.search).get('c') ?? 'actual'}`,
         `track: ${s.width ?? '—'}×${s.height ?? '—'}  ar ${fmt(s.aspectRatio)}  zoom ${fmt(s.zoom, 2)}`,
         `facing: ${s.facingMode ?? '—'}  fps ${fmt(s.frameRate, 0)}`,
         `video: ${vw}×${vh}  ar ${vh ? fmt(vw / vh) : '—'}`,
