@@ -1,3 +1,8 @@
+/**
+ * @deprecated [Fase 0 - Decisión D10]
+ * Este módulo pertenece al flujo de evento único e invitaciones individuales (/i/:token).
+ * No se utiliza en el flujo multi-tenant (/e/:slug) y será eliminado en la poda post-fiesta.
+ */
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
