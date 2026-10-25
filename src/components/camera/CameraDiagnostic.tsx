@@ -32,12 +32,37 @@ interface Props {
   trackRef: RefObject<MediaStreamTrack | null>;
   /** Proporción (ancho / alto) a la que hoy se recorta el video. */
   aspect: number;
+  /** Qué intento de `openCameraStream` dio el video actual. */
+  attemptRef?: RefObject<string | null>;
+}
+
+/** Copia al portapapeles; si el contexto no lo permite, cae a un textarea temporal. */
+async function copiar(texto: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(texto);
+    return true;
+  } catch {
+    const area = document.createElement('textarea');
+    area.value = texto;
+    area.style.position = 'fixed';
+    area.style.opacity = '0';
+    document.body.appendChild(area);
+    area.select();
+    try {
+      return document.execCommand('copy');
+    } catch {
+      return false;
+    } finally {
+      area.remove();
+    }
+  }
 }
 
 const fmt = (n: number | undefined, d = 3) => (typeof n === 'number' ? n.toFixed(d) : '—');
 
-export default function CameraDiagnostic({ videoRef, trackRef, aspect }: Props) {
+export default function CameraDiagnostic({ videoRef, trackRef, aspect, attemptRef }: Props) {
   const [lines, setLines] = useState<string[]>([]);
+  const [copiado, setCopiado] = useState<boolean | null>(null);
 
   useEffect(() => {
     const read = () => {
@@ -53,6 +78,7 @@ export default function CameraDiagnostic({ videoRef, trackRef, aspect }: Props) 
       const zoom = crop ? 1 / Math.min(visibleW, visibleH) : 0;
       setLines([
         `pedido: c=${new URLSearchParams(window.location.search).get('c') ?? 'actual'}`,
+        `intento: ${attemptRef?.current ?? '—'}`,
         `track: ${s.width ?? '—'}×${s.height ?? '—'}  ar ${fmt(s.aspectRatio)}  zoom ${fmt(s.zoom, 2)}`,
         `facing: ${s.facingMode ?? '—'}  fps ${fmt(s.frameRate, 0)}`,
         `video: ${vw}×${vh}  ar ${vh ? fmt(vw / vh) : '—'}`,
@@ -62,19 +88,32 @@ export default function CameraDiagnostic({ videoRef, trackRef, aspect }: Props) 
         `window: ${window.innerWidth}×${window.innerHeight}  dpr ${window.devicePixelRatio}`,
         `visualViewport: ${vv ? `${Math.round(vv.width)}×${Math.round(vv.height)} y${Math.round(vv.offsetTop)} esc ${fmt(vv.scale, 2)}` : '—'}`,
         `orient: ${window.screen?.orientation?.type ?? '—'}`,
+        `ua: ${navigator.userAgent}`,
       ]);
     };
     read();
     const id = window.setInterval(read, 500);
     return () => window.clearInterval(id);
-  }, [videoRef, trackRef, aspect]);
+  }, [videoRef, trackRef, aspect, attemptRef]);
 
   return (
-    <pre
-      aria-hidden
-      className="pointer-events-none absolute left-1 top-1 z-50 max-w-[96%] whitespace-pre-wrap rounded bg-black/75 p-2 font-mono text-xs leading-tight text-lime-300"
-    >
-      {lines.join('\n')}
-    </pre>
+    <div className="absolute left-1 top-1 z-50 flex max-w-[96%] flex-col items-start gap-1">
+      <pre
+        aria-hidden
+        className="pointer-events-none whitespace-pre-wrap rounded bg-black/75 p-2 font-mono text-xs leading-tight text-lime-300"
+      >
+        {lines.join('\n')}
+      </pre>
+      <button
+        type="button"
+        onClick={async () => {
+          setCopiado(await copiar(lines.join('\n')));
+          window.setTimeout(() => setCopiado(null), 2000);
+        }}
+        className="tap-target rounded bg-lime-300 px-3 font-mono text-xs font-bold uppercase text-black"
+      >
+        {copiado === null ? 'Copiar diagnóstico' : copiado ? 'Copiado' : 'No se pudo copiar'}
+      </button>
+    </div>
   );
 }
