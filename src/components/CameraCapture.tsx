@@ -29,7 +29,6 @@ import {
 } from '../lib/cameraAssets/stickers';
 import { openCameraStream, idealVideoConstraints } from '../lib/cameraStream';
 import ComposerStage from './camera/ComposerStage';
-import CameraDiagnostic, { diagnosticoActivo, restriccionesDeDiagnostico } from './camera/CameraDiagnostic';
 import StickerTray from './camera/StickerTray';
 import type { CameraFrameOption, CameraStickerOption } from './camera/types';
 import FilmRollCounter from './FilmRollCounter';
@@ -184,7 +183,6 @@ export default function CameraCapture({
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const trackRef = useRef<MediaStreamTrack | null>(null);
-  const attemptRef = useRef<string | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [cameraReady, setCameraReady] = useState(false);
   const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
@@ -330,7 +328,6 @@ export default function CameraCapture({
           (c) => navigator.mediaDevices.getUserMedia(c),
           facingMode,
           orientation,
-          restriccionesDeDiagnostico(facingMode, orientation),
           // Se miden los cuadros reales: en iOS `getSettings` puede decir otra cosa.
           async (candidate) => {
             const el = videoRef.current;
@@ -343,7 +340,6 @@ export default function CameraCapture({
           },
         );
         stream = opened.stream;
-        attemptRef.current = `${opened.attempt} [${opened.log.join(' → ')}]`;
         if (cancelled) {
           stream.getTracks().forEach((t) => t.stop());
           return;
@@ -531,7 +527,6 @@ export default function CameraCapture({
 
   return (
     <div ref={rootRef} className="fixed inset-safe z-50 flex flex-col bg-ink-950" aria-label="Cámara de fotos">
-      {diagnosticoActivo() && <CameraDiagnostic videoRef={videoRef} trackRef={trackRef} aspect={aspect} attemptRef={attemptRef} />}
       {/* Cabecera baja: el visor es lo que manda. El rótulo «Cámara // modo carrete» solo vive en las pantallas sin cámara. */}
       <div role="group" aria-label="Estado de la cámara" className="flex items-center justify-between gap-2 bg-ink-900 px-3 py-1">
         <div className="flex min-w-0 items-center gap-2">

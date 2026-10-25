@@ -12,6 +12,8 @@
 | #43 | Cámara: el visor y la foto tienen siempre la proporción del teléfono (3:4 vertical, 4:3 horizontal) y el video se **recorta** para llenarlos (`src/lib/cameraFraming.ts`: `coverCrop`); `useScrollLock` bloquea el scroll de la página de atrás. |
 | #44 | Cada marco de imagen completa declara su proporción (`fullImageAspect`) y la cámara solo lo ofrece si calza con la foto (`frameFitsAspect`). |
 
+| #46–#50 | **Zoom de la cámara resuelto (2026-10-25).** Se midió en un iPhone 11 (iOS 18.7, Safari 26.6) con un diagnóstico temporal ya retirado. Safari entrega el video **girado** si se piden `width`/`height`/`aspectRatio` (2048×1536 en vertical) y `getSettings()` no lo refleja; pedir solo `facingMode` llega derecho pero a 480×640 (la Fase 0). `src/lib/cameraStream.ts` (`openCameraStream`) pide lo ideal, **mide los cuadros reales** con el video reproduciéndose y, si vienen girados, reintenta con las medidas giradas y, al final, con la cámara sola. Resultado medido: 1536×2048 en vertical y 2048×1536 en horizontal, zoom aparente 1,00× en trasera y frontal. El efecto de la cámara depende de `orientation` y se reabre al girar. El «aviso de atrás» desapareció con el #45 (era el despliegue). |
+
 Herramientas que quedaron: `scripts/qa-estudio/capturas.mjs` (Estudio, presets × 4 proporciones) y `scripts/qa-estudio/camara.mjs` (cámara: proporción del visor, zoom aparente, scroll de fondo, con un video simulado de la forma que elijas).
 
 ## 2. Lo que pide el usuario (cuatro frentes)
@@ -35,6 +37,8 @@ Los cuatro diseños (A Esquinas, B Boleto, C Cumpleaños, D Burn Book) × cuatro
 Dos quejas concretas al probar en un teléfono real tras #43: **parece tener zoom** y **aún ve el componente de aviso de atrás**.
 
 ## 3. Hallazgos (separando lo medido de lo supuesto)
+
+### El zoom: RESUELTO en el #50 (ver la tabla de la sección 1). Lo de abajo es el análisis previo, útil como historia.
 
 ### El zoom: la sospecha del usuario es correcta en el mecanismo (verificado)
 El arreglo del PR #43 **no corrige la resolución: recorta el video** (`coverCrop` al disparar y `object-cover` en el visor). Si el video que entrega el teléfono no es 3:4, el visor muestra solo una parte. Medido con `camara.mjs` en una ventana de 390×844 (el visor siempre queda 390×520):
@@ -105,9 +109,9 @@ Total de los 16: **≈ 4 MB**. El validador de packs (`scripts/packs/validate-pa
 
 ## 6. Orden sugerido
 
-1. **Medir en el teléfono real** antes de decidir nada de la cámara: agregar un modo de diagnóstico temporal (por ejemplo `?diagnostico=1`) que muestre `track.getSettings()` (ancho, alto, `aspectRatio`, `zoom`), `video.videoWidth/Height`, el tamaño del visor y `window.innerWidth/Height` / `visualViewport`. Con eso se sabe si el zoom viene del recorte y cuánto. Pedir también una captura de lo que ve «atrás».
+1. ~~**Medir en el teléfono real**~~ (hecho, #46–#50) antes de decidir nada de la cámara: agregar un modo de diagnóstico temporal (por ejemplo `?diagnostico=1`) que muestre `track.getSettings()` (ancho, alto, `aspectRatio`, `zoom`), `video.videoWidth/Height`, el tamaño del visor y `window.innerWidth/Height` / `visualViewport`. Con eso se sabe si el zoom viene del recorte y cuánto. Pedir también una captura de lo que ve «atrás».
 2. **Frente D** (cámara como ruta propia): elimina de raíz el problema de «heredar», y es previo a tocar la captura.
-3. **Captura sin zoom** (parte del frente A, lado cámara): pedir la proporción al navegador, selector manual de proporción, recorte solo si es inevitable.
+3. **Captura sin zoom**: la apertura ya está resuelta (#50). Falta el selector manual de proporción (vertical: 3:4, 1:1, 9:16; horizontal: 4:3 o 1:1) y que el recorte, si lo hay, se vea en el visor.
 4. **Frente A, datos y editor** (migración, validación espejo, Estudio con variantes).
 5. **Frente B**, con la decisión de peso resuelta, y **frente C** (se puede hacer en paralelo en cualquier momento).
 
