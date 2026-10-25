@@ -171,6 +171,7 @@ export default function CameraStudio({ event, onEventChange }: CameraStudioProps
               : editing.frame.params
           }
           saving={saving}
+          eventSlug={event.slug}
           uploadImage={(file) => uploadFrameImage(event.id, file)}
           resolveImageUrl={resolveFrameImage}
           onSave={(label, params) => void handleSave(label, params)}

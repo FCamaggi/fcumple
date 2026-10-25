@@ -2,7 +2,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createMockCtx } from '../../test/mockCanvas';
 import {
   MAX_LAYERS,
+  assetLayerKey,
   boxRect,
+  collectAssetKeys,
   collectImagePaths,
   collectLayerFonts,
   drawLayers,
@@ -11,6 +13,7 @@ import {
   validateLayers,
   type FrameLayer,
 } from './layers';
+import { clearPackAssetCache, registerPackManifest, registerPackSvg } from './packs';
 
 const EVENT = '123e4567-e89b-42d3-a456-426614174000';
 const IMAGE_PATH = `${EVENT}/frames/overlay.png`;
@@ -31,6 +34,8 @@ describe('validateLayers', () => {
         { type: 'image', src: IMAGE_PATH, w: 0.5, h: 0.5 },
         { type: 'image', src: IMAGE_PATH, full: true },
         { type: 'emoji', emoji: '🦇', size: 0.1, rotation: -15, opacity: 0.8, anchor: 'tl' },
+        { type: 'asset', asset: 'pack:halloween-neon/murcielago', w: 0.2, h: 0.2 },
+        { type: 'asset', asset: 'pack:halloween-neon/orejas-conejita', w: 0.3, h: 0.3, tint: '#ff2f92', locked: true },
         { ...text, font: 'pacifico' },
         { ...rect, shadow: { color: '#000000', blur: 0.02, x: 0.01, y: 0.01 } },
       ]),
@@ -66,6 +71,13 @@ describe('validateLayers', () => {
     ['imagen de otra carpeta', [{ type: 'image', src: `${EVENT}/stickers/x.png`, w: 0.5, h: 0.5 }]],
     ['imagen con ../', [{ type: 'image', src: `${EVENT}/frames/../x.png`, w: 0.5, h: 0.5 }]],
     ['imagen sin tamaño ni full', [{ type: 'image', src: IMAGE_PATH }]],
+    ['asset sin prefijo pack:', [{ type: 'asset', asset: 'halloween-neon/murcielago', w: 0.2, h: 0.2 }]],
+    ['asset con ../', [{ type: 'asset', asset: 'pack:../evil/x', w: 0.2, h: 0.2 }]],
+    ['asset con mayúsculas', [{ type: 'asset', asset: 'pack:Halloween/Bat', w: 0.2, h: 0.2 }]],
+    ['asset sin tamaño w/h', [{ type: 'asset', asset: 'pack:halloween-neon/murcielago' }]],
+    ['asset con w fuera de rango', [{ type: 'asset', asset: 'pack:halloween-neon/murcielago', w: 5, h: 0.2 }]],
+    ['asset con tint inválido', [{ type: 'asset', asset: 'pack:halloween-neon/murcielago', w: 0.2, h: 0.2, tint: '$acento' }]],
+    ['locked no booleano', [{ ...rect, locked: 'true' }]],
     ['emoji vacío', [{ type: 'emoji', emoji: '', size: 0.1 }]],
     ['sombra con color inválido', [{ ...rect, shadow: { color: 'black', blur: 0.01, x: 0, y: 0 } }]],
     ['sombra con clave ajena', [{ ...rect, shadow: { color: '#000000', blur: 0.01, x: 0, y: 0, extra: 1 } }]],
@@ -378,5 +390,66 @@ describe('prepareFrameAssets', () => {
     );
 
     expect([...assets.images.keys()]).toEqual([other]);
+  });
+
+  it('resuelve, recolorea (recolorSvgToDataUri) y cachea recursos type: asset con y sin tint', async () => {
+    clearPackAssetCache();
+    registerPackManifest({
+      id: 'halloween-neon',
+      name: 'Halloween Neón',
+      version: 1,
+      visibility: 'public',
+      palette: { acento: '#ff2f92', fondo: '#0d0b12', texto: '#ffffff' },
+      assets: [
+        {
+          id: 'murcielago',
+          name: 'Murciélago',
+          category: 'ilustracion',
+          file: 'murcielago.svg',
+          format: 'svg',
+          recolorable: true,
+          license: { source: 'Propia', spdx: 'LicenseRef-Own', date: '2026-10-25' },
+        },
+      ],
+      presets: [],
+    });
+    registerPackSvg(
+      'halloween-neon',
+      'murcielago.svg',
+      '<svg xmlns="http://www.w3.org/2000/svg"><path fill="$acento" stroke="$fondo"/></svg>',
+    );
+
+    const loadedUrls: string[] = [];
+    const imgBase = { tag: 'base' } as unknown as CanvasImageSource;
+    const imgTinted = { tag: 'tinted' } as unknown as CanvasImageSource;
+    const load = vi.fn(async (url: string) => {
+      loadedUrls.push(url);
+      return url.includes(encodeURIComponent('#c8f23a')) ? imgTinted : imgBase;
+    });
+
+    const layers: FrameLayer[] = [
+      { type: 'asset', asset: 'pack:halloween-neon/murcielago', w: 0.2, h: 0.1 },
+      { type: 'asset', asset: 'pack:halloween-neon/murcielago', w: 0.2, h: 0.1, tint: '#C8F23A' },
+      { type: 'asset', asset: 'pack:halloween-neon/murcielago', w: 0.3, h: 0.15, tint: '#c8f23a' },
+    ];
+
+    expect(collectAssetKeys(layers)).toEqual([
+      'pack:halloween-neon/murcielago',
+      'pack:halloween-neon/murcielago@#c8f23a',
+    ]);
+    expect(assetLayerKey({ asset: 'pack:halloween-neon/murcielago', tint: '#FF2F92' })).toBe(
+      'pack:halloween-neon/murcielago@#ff2f92',
+    );
+
+    const assets = await prepareFrameAssets(layers, (p) => p, load, vi.fn().mockResolvedValue(undefined));
+    expect(load).toHaveBeenCalledTimes(2);
+    expect(loadedUrls[0]).toContain(encodeURIComponent('#ff2f92'));
+    expect(loadedUrls[1]).toContain(encodeURIComponent('#c8f23a'));
+
+    const m = createMockCtx();
+    drawLayers(m.ctx, 600, 800, 600, layers, assets);
+    expect(m.count('drawImage')).toBe(3);
+    expect(m.calls.filter((c) => c.name === 'drawImage')[0].args).toEqual([imgBase, -60, -30, 120, 60]);
+    expect(m.calls.filter((c) => c.name === 'drawImage')[1].args).toEqual([imgTinted, -60, -30, 120, 60]);
   });
 });

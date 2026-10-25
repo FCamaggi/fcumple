@@ -39,6 +39,10 @@ export function layerSummary(layer: FrameLayer): string {
       return layer.full ? 'Imagen a pantalla completa' : 'Imagen';
     case 'shape':
       return { rect: 'Rectángulo', ellipse: 'Elipse', line: 'Línea', path: 'Trazo' }[layer.shape];
+    case 'asset': {
+      const name = layer.asset.split('/')[1] ?? layer.asset;
+      return `Recurso: ${name}`;
+    }
   }
 }
 

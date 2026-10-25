@@ -21,6 +21,8 @@ interface FrameEditorProps {
   saving?: boolean;
   onSave: (label: string, params: FrameParams) => void;
   onCancel: () => void;
+  /** Slug del evento activo para cargar paquetes privados del evento. */
+  eventSlug?: string;
   /** Solo la plantilla `capas`: sube una imagen y devuelve su ruta en Storage. */
   uploadImage?: (file: File) => Promise<string>;
   /** Solo la plantilla `capas`: firma la ruta de una imagen para mostrarla. */
@@ -60,6 +62,7 @@ export default function FrameEditor({
   saving,
   onSave,
   onCancel,
+  eventSlug,
   uploadImage,
   resolveImageUrl,
 }: FrameEditorProps) {
@@ -221,6 +224,7 @@ export default function FrameEditor({
             key={field}
             layers={params.layers ?? []}
             onChange={(layers) => set('layers', layers)}
+            eventSlug={eventSlug}
             uploadImage={uploadImage}
             resolveImageUrl={resolveImageUrl}
           />

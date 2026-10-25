@@ -1,0 +1,579 @@
+{
+  "id": "halloween-neon",
+  "name": "Halloween Neón",
+  "version": 1,
+  "visibility": "public",
+  "palette": {
+    "acento": "#ff2f92",
+    "fondo": "#0d0b12",
+    "texto": "#ffffff"
+  },
+  "assets": [
+    {
+      "id": "orejas-conejita",
+      "name": "Cintillo de conejita neón",
+      "category": "ilustracion",
+      "file": "orejas-conejita.svg",
+      "format": "svg",
+      "recolorable": true,
+      "tags": ["halloween", "conejita", "mean-girls", "neon"],
+      "license": {
+        "source": "Generación propia con IA (Gemini) + vectorización local para fcumple",
+        "spdx": "LicenseRef-Proprietary-fcumple",
+        "date": "2026-10-25"
+      }
+    },
+    {
+      "id": "antifaz-cateye",
+      "name": "Antifaz veneciano cat-eye",
+      "category": "ilustracion",
+      "file": "antifaz-cateye.svg",
+      "format": "svg",
+      "recolorable": true,
+      "tags": ["halloween", "antifaz", "mascara", "neon"],
+      "license": {
+        "source": "Generación propia con IA (Gemini) + vectorización local para fcumple",
+        "spdx": "LicenseRef-Proprietary-fcumple",
+        "date": "2026-10-25"
+      }
+    },
+    {
+      "id": "murcielago",
+      "name": "Murciélago neón",
+      "category": "ilustracion",
+      "file": "murcielago.svg",
+      "format": "svg",
+      "recolorable": true,
+      "tags": ["halloween", "murcielago", "neon"],
+      "license": {
+        "source": "Generación propia con IA (Gemini) + vectorización local para fcumple",
+        "spdx": "LicenseRef-Proprietary-fcumple",
+        "date": "2026-10-25"
+      }
+    },
+    {
+      "id": "telarana",
+      "name": "Telaraña de esquina",
+      "category": "marco",
+      "file": "telarana.svg",
+      "format": "svg",
+      "recolorable": true,
+      "tags": ["halloween", "telarana", "esquina", "neon"],
+      "license": {
+        "source": "Generación propia con IA (Gemini) + vectorización local para fcumple",
+        "spdx": "LicenseRef-Proprietary-fcumple",
+        "date": "2026-10-25"
+      }
+    },
+    {
+      "id": "corazon-espinas",
+      "name": "Corazón punk de espinas",
+      "category": "sello",
+      "file": "corazon-espinas.svg",
+      "format": "svg",
+      "recolorable": true,
+      "tags": ["halloween", "corazon", "punk", "neon"],
+      "license": {
+        "source": "Generación propia con IA (Gemini) + vectorización local para fcumple",
+        "spdx": "LicenseRef-Proprietary-fcumple",
+        "date": "2026-10-25"
+      }
+    },
+    {
+      "id": "corazon-abierto",
+      "name": "Corazón abierto calado",
+      "category": "sello",
+      "file": "corazon-abierto.svg",
+      "format": "svg",
+      "recolorable": true,
+      "tags": ["corazon", "fiesta", "neon"],
+      "license": {
+        "source": "Generación propia con IA (Gemini) + vectorización local para fcumple",
+        "spdx": "LicenseRef-Proprietary-fcumple",
+        "date": "2026-10-25"
+      }
+    },
+    {
+      "id": "camara-retro",
+      "name": "Cámara descartable retro",
+      "category": "ilustracion",
+      "file": "camara-retro.svg",
+      "format": "svg",
+      "recolorable": true,
+      "tags": ["camara", "cumpleanos", "fiesta", "retro"],
+      "license": {
+        "source": "Generación propia con IA (Gemini) + vectorización local para fcumple",
+        "spdx": "LicenseRef-Proprietary-fcumple",
+        "date": "2026-10-25"
+      }
+    },
+    {
+      "id": "tiara",
+      "name": "Tiara princesa con perlas",
+      "category": "ilustracion",
+      "file": "tiara.svg",
+      "format": "svg",
+      "recolorable": true,
+      "tags": ["tiara", "corona", "cumpleanos", "mean-girls"],
+      "license": {
+        "source": "Generación propia con IA (Gemini) + vectorización local para fcumple",
+        "spdx": "LicenseRef-Proprietary-fcumple",
+        "date": "2026-10-25"
+      }
+    }
+  ],
+  "presets": [
+    {
+      "id": "halloween-boleto-neon",
+      "label": "Halloween Boleto Neón",
+      "description": "Entrada VIP con talón inferior translúcido, telaraña, conejita, antifaz y murciélagos.",
+      "layers": [
+        {
+          "type": "shape",
+          "shape": "rect",
+          "box": { "l": 0.026, "r": 0.026, "b": 0.026 },
+          "h": 0.185,
+          "fill": "$fondo",
+          "opacity": 0.84,
+          "radius": 0.018
+        },
+        {
+          "type": "shape",
+          "shape": "rect",
+          "box": { "l": 0.026, "t": 0.026, "r": 0.026, "b": 0.026 },
+          "stroke": "$acento",
+          "strokeWidth": 0.008,
+          "radius": 0.02,
+          "shadow": { "color": "$acento", "blur": 0.022, "x": 0, "y": 0 }
+        },
+        {
+          "type": "shape",
+          "shape": "line",
+          "box": { "l": 0.05, "r": 0.05, "b": 0.211 },
+          "stroke": "$acento",
+          "strokeWidth": 0.0055,
+          "shadow": { "color": "$acento", "blur": 0.012, "x": 0, "y": 0 }
+        },
+        {
+          "type": "asset",
+          "asset": "pack:halloween-neon/telarana",
+          "x": 0,
+          "y": 0,
+          "dx": 0.03,
+          "dy": 0.03,
+          "w": 0.28,
+          "h": 0.28,
+          "anchor": "tl",
+          "tint": "$acento",
+          "shadow": { "color": "$acento", "blur": 0.012, "x": 0, "y": 0 }
+        },
+        {
+          "type": "asset",
+          "asset": "pack:halloween-neon/orejas-conejita",
+          "x": 0,
+          "y": 1,
+          "dx": 0.15,
+          "dy": -0.266,
+          "w": 0.23,
+          "h": 0.23,
+          "rotation": -5,
+          "tint": "$acento",
+          "shadow": { "color": "$acento", "blur": 0.02, "x": 0, "y": 0 }
+        },
+        {
+          "type": "asset",
+          "asset": "pack:halloween-neon/antifaz-cateye",
+          "x": 1,
+          "y": 0,
+          "dx": -0.16,
+          "dy": 0.145,
+          "w": 0.21,
+          "h": 0.14,
+          "rotation": -10,
+          "tint": "$acento",
+          "shadow": { "color": "$acento", "blur": 0.02, "x": 0, "y": 0 }
+        },
+        {
+          "type": "asset",
+          "asset": "pack:halloween-neon/murcielago",
+          "x": 1,
+          "y": 0,
+          "dx": -0.31,
+          "dy": 0.075,
+          "w": 0.12,
+          "h": 0.075,
+          "rotation": -14,
+          "tint": "$acento"
+        },
+        {
+          "type": "asset",
+          "asset": "pack:halloween-neon/corazon-espinas",
+          "x": 1,
+          "y": 1,
+          "dx": -0.105,
+          "dy": -0.116,
+          "w": 0.092,
+          "h": 0.092,
+          "rotation": 10,
+          "tint": "$acento"
+        },
+        {
+          "type": "text",
+          "text": "HALLOWEEN PARTY",
+          "x": 0.5,
+          "y": 1,
+          "dy": -0.14,
+          "size": 0.092,
+          "w": 0.7,
+          "font": "anton",
+          "color": "$acento",
+          "strokeColor": "$fondo",
+          "strokeWidth": 0.012,
+          "shadow": { "color": "$acento", "blur": 0.022, "x": 0, "y": 0 }
+        },
+        {
+          "type": "text",
+          "text": "31 OCT · NOCHE DE BRUJAS",
+          "x": 0.5,
+          "y": 1,
+          "dy": -0.065,
+          "size": 0.026,
+          "w": 0.72,
+          "font": "mono",
+          "weight": "bold",
+          "color": "$texto"
+        }
+      ]
+    },
+    {
+      "id": "halloween-esquinas-abiertas",
+      "label": "Halloween Esquinas Abiertas",
+      "description": "Composición abierta sin bordes ni bloque inferior, con piezas neón en las esquinas.",
+      "layers": [
+        {
+          "type": "asset",
+          "asset": "pack:halloween-neon/telarana",
+          "x": 0,
+          "y": 0,
+          "dx": 0.012,
+          "dy": 0.012,
+          "w": 0.3,
+          "h": 0.3,
+          "anchor": "tl",
+          "tint": "$acento",
+          "shadow": { "color": "$acento", "blur": 0.02, "x": 0, "y": 0 }
+        },
+        {
+          "type": "asset",
+          "asset": "pack:halloween-neon/murcielago",
+          "x": 1,
+          "y": 0,
+          "dx": -0.14,
+          "dy": 0.075,
+          "w": 0.145,
+          "h": 0.092,
+          "rotation": -15,
+          "tint": "$acento"
+        },
+        {
+          "type": "asset",
+          "asset": "pack:halloween-neon/antifaz-cateye",
+          "x": 1,
+          "y": 0,
+          "dx": -0.13,
+          "dy": 0.21,
+          "w": 0.2,
+          "h": 0.135,
+          "rotation": -14,
+          "tint": "$acento"
+        },
+        {
+          "type": "asset",
+          "asset": "pack:halloween-neon/orejas-conejita",
+          "x": 0,
+          "y": 1,
+          "dx": 0.125,
+          "dy": -0.155,
+          "w": 0.225,
+          "h": 0.225,
+          "rotation": -8,
+          "tint": "$acento"
+        },
+        {
+          "type": "asset",
+          "asset": "pack:halloween-neon/camara-retro",
+          "x": 1,
+          "y": 1,
+          "dx": -0.12,
+          "dy": -0.21,
+          "w": 0.15,
+          "h": 0.12,
+          "rotation": -12,
+          "tint": "$acento"
+        },
+        {
+          "type": "asset",
+          "asset": "pack:halloween-neon/corazon-espinas",
+          "x": 1,
+          "y": 1,
+          "dx": -0.1,
+          "dy": -0.075,
+          "w": 0.082,
+          "h": 0.082,
+          "rotation": 12,
+          "tint": "$acento"
+        },
+        {
+          "type": "text",
+          "text": "HALLOWEEN NEÓN",
+          "x": 0.5,
+          "y": 1,
+          "dy": -0.105,
+          "size": 0.086,
+          "w": 0.58,
+          "font": "anton",
+          "color": "$acento",
+          "strokeColor": "$fondo",
+          "strokeWidth": 0.016,
+          "shadow": { "color": "$acento", "blur": 0.022, "x": 0, "y": 0 }
+        },
+        {
+          "type": "text",
+          "text": "NOCHE DE DISFRACES · 2026",
+          "x": 0.5,
+          "y": 1,
+          "dy": -0.038,
+          "size": 0.025,
+          "w": 0.58,
+          "font": "mono",
+          "weight": "bold",
+          "color": "$texto",
+          "strokeColor": "$fondo",
+          "strokeWidth": 0.01
+        }
+      ]
+    },
+    {
+      "id": "cumpleanos-fiesta-neon",
+      "label": "Cumpleaños Fiesta Neón",
+      "description": "Diseño de cumpleaños con tiara princesa, cámara descartable retro, corazones y cartel neón.",
+      "layers": [
+        {
+          "type": "shape",
+          "shape": "rect",
+          "box": { "l": 0.026, "r": 0.026, "b": 0.026 },
+          "h": 0.175,
+          "fill": "$fondo",
+          "opacity": 0.82,
+          "radius": 0.018
+        },
+        {
+          "type": "shape",
+          "shape": "rect",
+          "box": { "l": 0.026, "t": 0.026, "r": 0.026, "b": 0.026 },
+          "stroke": "$acento",
+          "strokeWidth": 0.0075,
+          "radius": 0.022,
+          "shadow": { "color": "$acento", "blur": 0.022, "x": 0, "y": 0 }
+        },
+        {
+          "type": "shape",
+          "shape": "line",
+          "box": { "l": 0.048, "r": 0.048, "b": 0.201 },
+          "stroke": "$acento",
+          "strokeWidth": 0.005,
+          "shadow": { "color": "$acento", "blur": 0.012, "x": 0, "y": 0 }
+        },
+        {
+          "type": "asset",
+          "asset": "pack:halloween-neon/tiara",
+          "x": 0,
+          "y": 0,
+          "dx": 0.135,
+          "dy": 0.11,
+          "w": 0.165,
+          "h": 0.165,
+          "rotation": -14,
+          "tint": "$acento",
+          "shadow": { "color": "$acento", "blur": 0.02, "x": 0, "y": 0 }
+        },
+        {
+          "type": "asset",
+          "asset": "pack:halloween-neon/camara-retro",
+          "x": 1,
+          "y": 0,
+          "dx": -0.155,
+          "dy": 0.12,
+          "w": 0.17,
+          "h": 0.135,
+          "rotation": 10,
+          "tint": "$acento"
+        },
+        {
+          "type": "asset",
+          "asset": "pack:halloween-neon/corazon-abierto",
+          "x": 0,
+          "y": 1,
+          "dx": 0.11,
+          "dy": -0.26,
+          "w": 0.065,
+          "h": 0.065,
+          "rotation": -12,
+          "tint": "$acento"
+        },
+        {
+          "type": "asset",
+          "asset": "pack:halloween-neon/corazon-espinas",
+          "x": 1,
+          "y": 1,
+          "dx": -0.105,
+          "dy": -0.266,
+          "w": 0.086,
+          "h": 0.086,
+          "rotation": -10,
+          "tint": "$acento"
+        },
+        {
+          "type": "text",
+          "text": "CUMPLEAÑOS",
+          "x": 0.5,
+          "y": 1,
+          "dy": -0.175,
+          "size": 0.024,
+          "w": 0.5,
+          "font": "mono",
+          "weight": "bold",
+          "color": "$texto"
+        },
+        {
+          "type": "text",
+          "text": "FIESTA NEÓN",
+          "x": 0.5,
+          "y": 1,
+          "dy": -0.095,
+          "size": 0.09,
+          "w": 0.62,
+          "font": "anton",
+          "color": "$acento",
+          "strokeColor": "$fondo",
+          "strokeWidth": 0.012,
+          "shadow": { "color": "$acento", "blur": 0.022, "x": 0, "y": 0 }
+        }
+      ]
+    },
+    {
+      "id": "burn-book",
+      "label": "Burn Book",
+      "description": "Cintas inclinadas estilo recorte Burn Book con Permanent Marker, Special Elite y sellos.",
+      "layers": [
+        {
+          "type": "shape",
+          "shape": "rect",
+          "x": 0.5,
+          "y": 0,
+          "dy": 0.076,
+          "w": 0.76,
+          "h": 0.076,
+          "fill": "$acento",
+          "stroke": "$fondo",
+          "strokeWidth": 0.006,
+          "radius": 0.01,
+          "rotation": -2.5,
+          "shadow": { "color": "$fondo", "blur": 0.016, "x": 0, "y": 0.004 }
+        },
+        {
+          "type": "text",
+          "text": "BURN BOOK",
+          "x": 0.5,
+          "y": 0,
+          "dy": 0.076,
+          "size": 0.052,
+          "w": 0.7,
+          "font": "marker",
+          "color": "$texto",
+          "strokeColor": "$fondo",
+          "strokeWidth": 0.008,
+          "rotation": -2.5
+        },
+        {
+          "type": "shape",
+          "shape": "rect",
+          "x": 0.5,
+          "y": 1,
+          "dx": 0.05,
+          "dy": -0.08,
+          "w": 0.7,
+          "h": 0.074,
+          "fill": "$fondo",
+          "opacity": 0.88,
+          "stroke": "$acento",
+          "strokeWidth": 0.006,
+          "radius": 0.01,
+          "rotation": 1.8,
+          "shadow": { "color": "$acento", "blur": 0.012, "x": 0, "y": 0 }
+        },
+        {
+          "type": "text",
+          "text": "Noche épica · 2026",
+          "x": 0.5,
+          "y": 1,
+          "dx": 0.05,
+          "dy": -0.08,
+          "size": 0.033,
+          "w": 0.64,
+          "font": "elite",
+          "color": "$texto",
+          "rotation": 1.8
+        },
+        {
+          "type": "asset",
+          "asset": "pack:halloween-neon/orejas-conejita",
+          "x": 0,
+          "y": 1,
+          "dx": 0.13,
+          "dy": -0.14,
+          "w": 0.225,
+          "h": 0.225,
+          "rotation": -8,
+          "tint": "$acento"
+        },
+        {
+          "type": "asset",
+          "asset": "pack:halloween-neon/antifaz-cateye",
+          "x": 1,
+          "y": 0,
+          "dx": -0.135,
+          "dy": 0.19,
+          "w": 0.195,
+          "h": 0.13,
+          "rotation": 12,
+          "tint": "$acento"
+        },
+        {
+          "type": "asset",
+          "asset": "pack:halloween-neon/corazon-espinas",
+          "x": 1,
+          "y": 1,
+          "dx": -0.1,
+          "dy": -0.19,
+          "w": 0.088,
+          "h": 0.088,
+          "rotation": 12,
+          "tint": "$acento"
+        },
+        {
+          "type": "asset",
+          "asset": "pack:halloween-neon/corazon-abierto",
+          "x": 0,
+          "y": 0,
+          "dx": 0.08,
+          "dy": 0.31,
+          "w": 0.052,
+          "h": 0.052,
+          "rotation": -14,
+          "tint": "$acento"
+        }
+      ]
+    }
+  ]
+}

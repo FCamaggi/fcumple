@@ -289,3 +289,80 @@ describe('LayerEditor: imágenes', () => {
     expect(latest).toEqual([]);
   });
 });
+
+describe('LayerEditor: Estudio Fase 1.5 (packs, presets, paleta, proporción, undo/redo, bloqueo)', () => {
+  it('aplica un preset de 1 clic desde la biblioteca de Presets y cambia la paleta de 3 roles', async () => {
+    const user = userEvent.setup();
+    render(<Harness />);
+
+    const presetBtn = await screen.findByRole('button', { name: /Aplicar preset Halloween Boleto Neón/i });
+    await user.click(presetBtn);
+
+    expect(latest.length).toBeGreaterThanOrEqual(4);
+    expect(validateLayers(latest)).toEqual({ ok: true });
+    expect(latest.some((l) => l.type === 'asset')).toBe(true);
+
+    // Cambiar a la paleta Ácido Lima actualiza los colores de acento/fondo/texto en bloque
+    const paletteBtn = screen.getByRole('button', { name: /Paleta Ácido Lima/i });
+    await user.click(paletteBtn);
+    expect(validateLayers(latest)).toEqual({ ok: true });
+    expect(
+      latest.some(
+        (l) =>
+          (l.type === 'asset' && l.tint === '#c8f23a') ||
+          (l.type === 'shape' && (l.stroke === '#c8f23a' || l.fill === '#c8f23a')),
+      ),
+    ).toBe(true);
+  });
+
+  it('filtra e inserta elementos vectoriales (asset) y permite cambiar su tinte', async () => {
+    const user = userEvent.setup();
+    render(<Harness />);
+
+    await user.click(screen.getByRole('tab', { name: 'Elementos' }));
+    const searchInput = await screen.findByLabelText('Buscar elementos');
+    await user.type(searchInput, 'murciélago');
+
+    const assetBtn = await screen.findByRole('button', { name: /Insertar Murciélago neón/i });
+    await user.click(assetBtn);
+
+    expect(latest).toHaveLength(1);
+    expect(latest[0]).toMatchObject({
+      type: 'asset',
+      asset: 'pack:halloween-neon/murcielago',
+    });
+
+    fireEvent.change(screen.getByLabelText('Color del recurso'), { target: { value: '#00ff88' } });
+    expect(latest[0]).toMatchObject({
+      type: 'asset',
+      tint: '#00ff88',
+    });
+    expect(validateLayers(latest)).toEqual({ ok: true });
+  });
+
+  it('alterna la proporción en vivo (3:4, 4:3, 9:16, 1:1) y soporta Undo/Redo y bloqueo de capa', async () => {
+    const user = userEvent.setup();
+    render(<Harness />);
+
+    await user.click(layerButton('Agregar texto'));
+    expect(latest).toHaveLength(1);
+
+    // Deshacer / Rehacer
+    await user.click(screen.getByRole('button', { name: 'Deshacer' }));
+    expect(latest).toHaveLength(0);
+
+    await user.click(screen.getByRole('button', { name: 'Rehacer' }));
+    expect(latest).toHaveLength(1);
+
+    // Conmutador de proporción
+    const ratio43 = screen.getByRole('button', { name: 'Proporción 4:3' });
+    await user.click(ratio43);
+    expect(ratio43).toHaveAttribute('aria-pressed', 'true');
+
+    // Bloquear capa desde las propiedades
+    const lockCheckbox = screen.getByLabelText('Bloquear capa');
+    await user.click(lockCheckbox);
+    expect(latest[0].locked).toBe(true);
+  });
+});
+

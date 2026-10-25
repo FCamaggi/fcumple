@@ -74,4 +74,19 @@ describe('useLayerAssets', () => {
     expect(result.current).toBeUndefined();
     expect(prepareFrameAssets).not.toHaveBeenCalled();
   });
+
+  it('una capa asset dispara la carga y recarga si cambia su tint', async () => {
+    const assetLayer: FrameLayer = { type: 'asset', asset: 'pack:halloween-neon/murcielago', w: 0.2, h: 0.2, tint: '#ff2f92' };
+    const { result, rerender } = renderHook(({ layers }) => useLayerAssets(layers), {
+      initialProps: { layers: [assetLayer] as unknown },
+    });
+    await waitFor(() => expect(result.current).toBe(assets));
+    expect(prepareFrameAssets).toHaveBeenCalledTimes(1);
+
+    rerender({ layers: [{ ...assetLayer, x: 0.8 }] });
+    expect(prepareFrameAssets).toHaveBeenCalledTimes(1);
+
+    rerender({ layers: [{ ...assetLayer, tint: '#c8f23a' }] });
+    await waitFor(() => expect(prepareFrameAssets).toHaveBeenCalledTimes(2));
+  });
 });

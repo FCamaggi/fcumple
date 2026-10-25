@@ -24,13 +24,19 @@ export function createMockCtx() {
           return { width: text.length * size * 0.5 };
         };
       }
-      if (prop === 'createLinearGradient') {
+      if (prop === 'createLinearGradient' || prop === 'createRadialGradient') {
         return (...args: unknown[]) => {
-          calls.push({ name: 'createLinearGradient', args });
+          calls.push({ name: prop, args });
           const gradient = { stops: [] as Array<[number, string]>, addColorStop(o: number, c: string) { this.stops.push([o, c]); } };
           gradients.push(gradient);
           return gradient;
         };
+      }
+      if (prop === 'getImageData' || prop === 'createImageData') {
+        return () => ({ data: new Uint8ClampedArray(4), width: 1, height: 1 });
+      }
+      if (prop === 'getTransform') {
+        return () => ({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 });
       }
       if (prop in target) return target[prop];
       return record(prop);
