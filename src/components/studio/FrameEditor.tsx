@@ -65,7 +65,7 @@ export default function FrameEditor({
           value={label}
           maxLength={60}
           onChange={(e) => setLabel(e.target.value)}
-          className={`${inputClass} max-w-md`}
+          className={`${inputClass} max-w-md border border-smoke-700/60 focus-visible:border-acid-400`}
         />
       </div>
 
@@ -83,7 +83,8 @@ export default function FrameEditor({
         </p>
       )}
 
-      <div className="flex gap-2">
+      {/* Siempre a la vista: el lienzo es alto y el botón quedaba fuera de la pantalla. */}
+      <div className="sticky bottom-0 z-10 flex gap-2 border-t border-smoke-700/60 bg-ink-950/95 py-3 backdrop-blur">
         <button
           type="submit"
           disabled={saving}

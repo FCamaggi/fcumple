@@ -181,7 +181,7 @@ export default function CameraStudio({ event, onEventChange }: CameraStudioProps
   }
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex max-w-xl flex-col gap-8">
       {error && (
         <p role="alert" className="font-mono text-xs uppercase tracking-wide text-flame-500">
           {error}

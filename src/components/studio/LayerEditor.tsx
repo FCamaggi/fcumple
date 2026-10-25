@@ -1,37 +1,19 @@
-import {
-  Suspense,
-  lazy,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type KeyboardEvent,
-  type PointerEvent,
-} from 'react';
-import { useLayerAssets } from '../../hooks/useLayerAssets';
+import { Suspense, lazy, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import {
   ASPECT_RATIOS,
   ASPECT_RATIO_DIMENSIONS,
-  applyKonvaNodeTransform,
+  fitStageSize,
   type CanvasAspectRatio,
 } from '../../lib/cameraAssets/konvaParity';
 import {
   addLayer,
   createLayer,
   duplicateLayer,
-  hitTest,
-  isBoxed,
-  isLocked,
-  layerBounds,
   moveLayer,
   removeLayer,
   reorderLayer,
-  rotationFromPointer,
-  scaleFactorFromPointers,
-  scaleLayer,
   updateLayer,
   type NewLayerKind,
-  type Point,
 } from '../../lib/cameraAssets/layerOps';
 import { MAX_LAYERS, type FrameLayer } from '../../lib/cameraAssets/layers';
 import {
@@ -42,6 +24,7 @@ import {
   materializePresetLayers,
   recolorLayersByPalette,
   type PackAssetCategory,
+  type PackAssetMeta,
   type PackManifest,
   type PackPalette,
   type PackPreset,
@@ -51,10 +34,6 @@ import LayerPanel from './LayerPanel';
 import LayerProperties from './LayerProperties';
 
 const LazyKonvaCanvasStage = lazy(() => import('./KonvaCanvasStage'));
-
-/** Tamaño base del lienzo de edición (3:4 vertical) en píxeles CSS. Las capas se miden relativas al lado menor (270). */
-export const STAGE_WIDTH = 270;
-export const STAGE_HEIGHT = 360;
 
 type LibraryTab = 'presets' | 'elementos' | 'texto' | 'subidas';
 
@@ -69,14 +48,6 @@ interface LayerEditorProps {
   resolveImageUrl?: (path: string) => Promise<string>;
 }
 
-interface Gesture {
-  kind: 'move' | 'scale' | 'rotate';
-  index: number;
-  start: Point;
-  /** La capa tal como estaba al empezar: cada movimiento se calcula desde ahí, sin acumular error. */
-  layer: FrameLayer;
-}
-
 /** Cuánto mueve una flecha (fracción del lienzo), y con Shift. */
 const NUDGE = 0.01;
 const NUDGE_BIG = 0.05;
@@ -88,14 +59,20 @@ const CATEGORY_FILTERS: Array<{ id: 'all' | PackAssetCategory; label: string }> 
   { id: 'sello', label: 'Sellos' },
 ];
 
-const smallToolbarBtn =
-  'h-8 border border-smoke-700/60 px-2.5 font-mono text-xs uppercase tracking-wider text-paper-100 disabled:opacity-40';
+const toolbarBtn =
+  'h-8 border border-smoke-700/60 px-2.5 font-mono text-xs uppercase tracking-wider text-paper-100 transition-colors hover:border-acid-400 disabled:opacity-40 disabled:hover:border-smoke-700/60';
+
+const columnClass = 'flex flex-col gap-3 border border-smoke-700/60 bg-ink-900 p-3';
 
 /**
  * Estudio de Diseño de 3 columnas (solo escritorio >= 1024px):
- * - Izquierda: Biblioteca con pestañas Presets, Elementos (búsqueda y filtro por categoría), Texto y Subidas.
- * - Centro: Barra de herramientas (conmutador de proporción 3:4 / 4:3 / 9:16 / 1:1, Undo/Redo, guía de caras) + Lienzo Konva.
- * - Derecha: Selector de paleta por roles ($acento, $fondo, $texto), lista de capas y propiedades de la capa seleccionada.
+ * - Izquierda (300 px): biblioteca con pestañas Presets, Elementos (búsqueda y filtro por categoría), Texto y Subidas.
+ * - Centro (el espacio que queda): barra de herramientas (proporción 3:4 / 4:3 / 9:16 / 1:1, deshacer y rehacer,
+ *   zona de caras) y el lienzo, que se ajusta al espacio disponible.
+ * - Derecha (300 px): paleta por roles ($acento, $fondo, $texto), lista de capas y propiedades de la capa elegida.
+ *
+ * El lienzo muestra lo que dibuja `renderFrame` (como la foto final); `KonvaCanvasStage` va encima solo para
+ * seleccionar, arrastrar, escalar y girar.
  */
 export default function LayerEditor({
   layers,
@@ -121,14 +98,32 @@ export default function LayerEditor({
   const [past, setPast] = useState<FrameLayer[][]>([]);
   const [future, setFuture] = useState<FrameLayer[][]>([]);
 
-  const stageDims = ASPECT_RATIO_DIMENSIONS[aspectRatio];
-  const stageWidth = stageDims.width;
-  const stageHeight = stageDims.height;
+  // El lienzo ocupa el espacio que dejan las columnas laterales, con la proporción elegida.
+  const areaRef = useRef<HTMLDivElement>(null);
+  const [area, setArea] = useState<{ width: number; height: number } | null>(null);
+  const stageSize = area
+    ? fitStageSize(aspectRatio, area.width, area.height)
+    : ASPECT_RATIO_DIMENSIONS[aspectRatio];
+  const stageWidth = stageSize.width;
+  const stageHeight = stageSize.height;
 
-  const stageRef = useRef<HTMLDivElement>(null);
-  const gesture = useRef<Gesture | null>(null);
   const layersRef = useRef(layers);
   layersRef.current = layers;
+
+  useEffect(() => {
+    const el = areaRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const measure = () =>
+      setArea({ width: el.clientWidth, height: Math.min(900, Math.max(360, window.innerHeight - 300)) });
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    window.addEventListener('resize', measure);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', measure);
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -169,18 +164,13 @@ export default function LayerEditor({
     onChange(next);
   }
 
-  const params = useMemo(() => ({ layers }), [layers]);
-  const previewLayers = useMemo(
-    () => (resolveImageUrl ? layers : layers.filter((l) => l.type !== 'image')),
-    [layers, resolveImageUrl],
+  // Mientras se arrastra o se transforma una capa, el lienzo la dibuja donde quedaría; al soltar se confirma.
+  const [live, setLive] = useState<{ index: number; layer: FrameLayer } | null>(null);
+  const params = useMemo(
+    () => ({ layers: live ? layers.map((l, i) => (i === live.index ? live.layer : l)) : layers }),
+    [layers, live],
   );
-  const konvaAssets = useLayerAssets(previewLayers, resolveImageUrl);
-
   const selectedLayer = selected >= 0 ? layers[selected] : undefined;
-  // Sin asas de escala ni de giro: una imagen a pantalla completa, una forma pegada a los bordes o una capa bloqueada no se transforman.
-  const isCover =
-    (selectedLayer?.type === 'image' && selectedLayer.full === true) ||
-    (selectedLayer ? isBoxed(selectedLayer) || isLocked(selectedLayer) : false);
 
   const replaceSelected = (layer: FrameLayer) =>
     commitLayers(layers.map((l, i) => (i === selected ? layer : l)));
@@ -263,62 +253,6 @@ export default function LayerEditor({
     setSelected(result.index);
   }
 
-  /** Coordenadas del puntero en el sistema del lienzo (por si la pantalla lo achica con CSS). */
-  function toStage(e: PointerEvent<HTMLElement>): Point {
-    const rect = stageRef.current?.getBoundingClientRect();
-    const scale = rect && rect.width > 0 ? rect.width / stageWidth : 1;
-    return { x: (e.clientX - (rect?.left ?? 0)) / scale, y: (e.clientY - (rect?.top ?? 0)) / scale };
-  }
-
-  function handlePointerDown(e: PointerEvent<HTMLDivElement>) {
-    if (e.button > 0) return;
-    const pos = toStage(e);
-    const handle = (e.target as HTMLElement).closest('[data-handle]')?.getAttribute('data-handle');
-
-    if ((handle === 'scale' || handle === 'rotate') && selectedLayer && !isLocked(selectedLayer)) {
-      gesture.current = { kind: handle, index: selected, start: pos, layer: selectedLayer };
-    } else {
-      const index = hitTest(layers, pos.x, pos.y, stageWidth, stageHeight);
-      setSelected(index);
-      gesture.current =
-        index >= 0 && !isLocked(layers[index])
-          ? { kind: 'move', index, start: pos, layer: layers[index] }
-          : null;
-    }
-    const stage = stageRef.current;
-    if (stage && typeof stage.setPointerCapture === 'function') stage.setPointerCapture(e.pointerId);
-  }
-
-  function handlePointerMove(e: PointerEvent<HTMLDivElement>) {
-    const g = gesture.current;
-    if (!g) return;
-    const pos = toStage(e);
-
-    let next: FrameLayer;
-    if (g.kind === 'move') {
-      next = moveLayer(g.layer, pos.x - g.start.x, pos.y - g.start.y, stageWidth, stageHeight);
-    } else {
-      const b = layerBounds(g.layer, stageWidth, stageHeight);
-      const center = { x: b.cx, y: b.cy };
-      next =
-        g.kind === 'scale'
-          ? scaleLayer(g.layer, scaleFactorFromPointers(center, g.start, pos))
-          : { ...g.layer, rotation: rotationFromPointer(center, pos) };
-    }
-    if (next !== g.layer) onChange(updateLayer(layersRef.current, g.index, next));
-  }
-
-  function endGesture() {
-    const g = gesture.current;
-    gesture.current = null;
-    if (!g) return;
-    const current = layersRef.current[g.index];
-    if (current && current !== g.layer) {
-      setPast((prev) => [...prev.slice(-29), layersRef.current.map((l, i) => (i === g.index ? g.layer : l))]);
-      setFuture([]);
-    }
-  }
-
   function confirmDelete() {
     if (selected < 0) return;
     if (!window.confirm('¿Borrar esta capa?')) return;
@@ -397,8 +331,6 @@ export default function LayerEditor({
     }
   }
 
-  const bounds = selectedLayer ? layerBounds(selectedLayer, stageWidth, stageHeight) : null;
-
   const filteredAssets = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return packs.flatMap((pack) =>
@@ -416,10 +348,16 @@ export default function LayerEditor({
   const atLimit = layers.length >= MAX_LAYERS;
 
   return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-12" aria-label="Estudio de diseño">
-      {/* ---- Columna Izquierda: Biblioteca (Presets, Elementos, Texto, Subidas) ---- */}
-      <aside className="flex flex-col gap-3 border border-smoke-700/60 bg-ink-900 p-3 lg:col-span-4" aria-label="Biblioteca de diseño">
-        <div className="grid grid-cols-4 gap-1" role="tablist" aria-label="Pestañas de biblioteca">
+    <div
+      className="grid grid-cols-1 gap-4 lg:grid-cols-[300px_minmax(0,1fr)_300px] lg:items-start"
+      aria-label="Estudio de diseño"
+    >
+      {/* ---- Columna izquierda: biblioteca (presets, piezas, texto, subidas) ---- */}
+      <aside
+        className={`${columnClass} lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto`}
+        aria-label="Biblioteca de diseño"
+      >
+        <div className="grid grid-cols-[1fr_1.4fr_1fr_1fr] gap-1" role="tablist" aria-label="Pestañas de biblioteca">
           {(
             [
               ['presets', 'Presets'],
@@ -434,8 +372,10 @@ export default function LayerEditor({
               role="tab"
               aria-selected={activeTab === id}
               onClick={() => setActiveTab(id)}
-              className={`h-8 px-2 font-mono text-xs uppercase tracking-wider ${
-                activeTab === id ? 'bg-acid-400 text-ink-950 font-bold' : 'bg-ink-950 text-paper-100/80'
+              className={`h-9 truncate px-1 font-mono text-xs uppercase transition-colors ${
+                activeTab === id
+                  ? 'bg-acid-400 font-bold text-ink-950'
+                  : 'bg-ink-950 text-paper-100/80 hover:text-paper-100'
               }`}
             >
               {label}
@@ -444,30 +384,21 @@ export default function LayerEditor({
         </div>
 
         {activeTab === 'presets' && (
-          <div className="flex flex-col gap-2" role="tabpanel" aria-label="Biblioteca de Presets">
+          <div className="flex flex-col gap-3" role="tabpanel" aria-label="Biblioteca de Presets">
             <p className="font-sans text-xs text-paper-100/70">
-              Elige un diseño completo de un clic y personaliza sus textos o su paleta de colores.
+              Un diseño completo con un clic. Después cambias textos, piezas y colores.
             </p>
-            <div className="flex flex-col gap-2">
+            {packs.length === 0 && <p className="font-sans text-xs text-paper-100/60">Cargando diseños...</p>}
+            <div className="grid grid-cols-2 gap-2">
               {packs.flatMap((pack) =>
                 pack.presets.map((preset) => (
-                  <button
+                  <PresetCard
                     key={`${pack.id}-${preset.id}`}
-                    type="button"
-                    aria-label={`Aplicar preset ${preset.label}`}
-                    onClick={() => handleApplyPreset(preset, pack.palette)}
-                    className="flex flex-col gap-1 border border-smoke-700/60 bg-ink-950 p-2.5 text-left transition hover:border-acid-400"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-mono text-xs font-bold uppercase tracking-wider text-hotpink-500">
-                        {preset.label}
-                      </span>
-                      <span className="font-mono text-xs uppercase text-paper-100/50">{pack.name}</span>
-                    </div>
-                    {preset.description && (
-                      <span className="font-sans text-xs text-paper-100/70">{preset.description}</span>
-                    )}
-                  </button>
+                    preset={preset}
+                    packName={pack.name}
+                    palette={{ ...pack.palette, ...palette }}
+                    onApply={() => handleApplyPreset(preset, pack.palette)}
+                  />
                 )),
               )}
             </div>
@@ -475,14 +406,14 @@ export default function LayerEditor({
         )}
 
         {activeTab === 'elementos' && (
-          <div className="flex flex-col gap-2" role="tabpanel" aria-label="Biblioteca de Elementos">
+          <div className="flex flex-col gap-3" role="tabpanel" aria-label="Biblioteca de Elementos">
             <input
               type="search"
               aria-label="Buscar elementos"
               placeholder="Buscar conejita, antifaz, tiara..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-ink-950 px-3 py-1.5 font-sans text-xs text-paper-100 outline-none border border-smoke-700/60"
+              className="border border-smoke-700/60 bg-ink-950 px-3 py-2 font-sans text-sm text-paper-100 outline-none focus-visible:border-acid-400"
             />
             <div className="flex flex-wrap gap-1" role="group" aria-label="Filtrar por categoría">
               {CATEGORY_FILTERS.map((cat) => (
@@ -491,27 +422,26 @@ export default function LayerEditor({
                   type="button"
                   onClick={() => setCategoryFilter(cat.id)}
                   aria-pressed={categoryFilter === cat.id}
-                  className={`px-2 py-1 font-mono text-xs uppercase ${
-                    categoryFilter === cat.id ? 'bg-hotpink-500 text-ink-950 font-bold' : 'bg-ink-950 text-paper-100/70'
+                  className={`h-8 px-2.5 font-mono text-xs uppercase tracking-wide transition-colors ${
+                    categoryFilter === cat.id
+                      ? 'bg-hotpink-500 font-bold text-ink-950'
+                      : 'bg-ink-950 text-paper-100/70 hover:text-paper-100'
                   }`}
                 >
                   {cat.label}
                 </button>
               ))}
             </div>
-            <div className="grid grid-cols-2 gap-1.5 max-h-64 overflow-y-auto">
+            <div className="grid grid-cols-2 gap-2">
               {filteredAssets.map(({ pack, asset }) => (
-                <button
+                <AssetCard
                   key={`${pack.id}/${asset.id}`}
-                  type="button"
+                  packId={pack.id}
+                  asset={asset}
+                  tint={palette.acento}
                   disabled={atLimit}
-                  aria-label={`Insertar ${asset.name}`}
-                  onClick={() => handleAddPackAsset(pack.id, asset.id)}
-                  className="flex flex-col items-start gap-1 border border-smoke-700/60 bg-ink-950 p-2 text-left hover:border-acid-400 disabled:opacity-40"
-                >
-                  <span className="font-sans text-xs font-medium text-paper-100">{asset.name}</span>
-                  <span className="font-mono text-xs uppercase text-paper-100/50">{asset.category}</span>
-                </button>
+                  onInsert={() => handleAddPackAsset(pack.id, asset.id)}
+                />
               ))}
               {filteredAssets.length === 0 && (
                 <p className="col-span-2 py-3 font-sans text-xs text-paper-100/60">
@@ -524,28 +454,28 @@ export default function LayerEditor({
 
         {activeTab === 'texto' && (
           <div className="flex flex-col gap-2" role="tabpanel" aria-label="Estilos de texto">
-            <p className="font-sans text-xs text-paper-100/70">Agrega un estilo tipográfico del paquete:</p>
+            <p className="font-sans text-xs text-paper-100/70">Agrega un estilo de texto ya diseñado:</p>
             <button
               type="button"
               disabled={atLimit}
               onClick={() => handleAddStyledText('titulo')}
-              className="border border-smoke-700/60 bg-ink-950 p-2.5 text-left font-display text-sm uppercase tracking-wider text-hotpink-500 hover:border-acid-400 disabled:opacity-40"
+              className="border border-smoke-700/60 bg-ink-950 p-3 text-left font-display text-base uppercase tracking-wider text-hotpink-500 transition-colors hover:border-acid-400 disabled:opacity-40"
             >
-              + Título Neón (Anton)
+              + Título neón (Anton)
             </button>
             <button
               type="button"
               disabled={atLimit}
               onClick={() => handleAddStyledText('subtitulo')}
-              className="border border-smoke-700/60 bg-ink-950 p-2.5 text-left font-mono text-xs uppercase tracking-wider text-paper-100 hover:border-acid-400 disabled:opacity-40"
+              className="border border-smoke-700/60 bg-ink-950 p-3 text-left font-mono text-xs font-bold uppercase tracking-wider text-paper-100 transition-colors hover:border-acid-400 disabled:opacity-40"
             >
-              + Subtítulo Boleto (Mono)
+              + Subtítulo boleto (Mono)
             </button>
             <button
               type="button"
               disabled={atLimit}
               onClick={() => handleAddStyledText('sello')}
-              className="border border-smoke-700/60 bg-ink-950 p-2.5 text-left font-sans text-xs font-bold uppercase tracking-wider text-acid-400 hover:border-acid-400 disabled:opacity-40"
+              className="border border-smoke-700/60 bg-ink-950 p-3 text-left font-sans text-sm font-bold uppercase tracking-wider text-acid-400 transition-colors hover:border-acid-400 disabled:opacity-40"
             >
               + Sello Burn Book (Marker)
             </button>
@@ -555,11 +485,11 @@ export default function LayerEditor({
         {activeTab === 'subidas' && (
           <div className="flex flex-col gap-2" role="tabpanel" aria-label="Subidas del evento">
             <p className="font-sans text-xs text-paper-100/70">
-              Sube ilustraciones o logos PNG/WebP con transparencia exclusivos de este evento.
+              Sube ilustraciones o logos PNG/WebP con transparencia, solo para este evento.
             </p>
             {uploadImage ? (
               <p className="font-mono text-xs text-acid-400">
-                Usa el botón «+ Imagen» en el panel de capas para subir un archivo a Storage.
+                Usa el botón «+ Imagen» del panel de capas para subir un archivo.
               </p>
             ) : (
               <p className="font-sans text-xs text-paper-100/50">Subida de archivos no disponible en esta vista.</p>
@@ -568,29 +498,37 @@ export default function LayerEditor({
         )}
       </aside>
 
-      {/* ---- Columna Central: Barra de Herramientas + Lienzo Konva ---- */}
-      <div className="flex flex-col items-center gap-3 lg:col-span-4">
+      {/* ---- Columna central: barra de herramientas + lienzo ---- */}
+      <div className="flex min-w-0 flex-col items-center gap-3">
         <div
-          className="flex flex-wrap items-center justify-center gap-1.5 border border-smoke-700/60 bg-ink-900 p-2 w-full"
+          className="flex w-full flex-wrap items-center gap-x-4 gap-y-2 border border-smoke-700/60 bg-ink-900 p-2"
           role="toolbar"
           aria-label="Herramientas del lienzo"
         >
-          <div className="flex items-center gap-1" role="group" aria-label="Proporción del lienzo">
-            {ASPECT_RATIOS.map((ratio) => (
-              <button
-                key={ratio}
-                type="button"
-                aria-label={`Proporción ${ratio}`}
-                aria-pressed={aspectRatio === ratio}
-                onClick={() => setAspectRatio(ratio)}
-                className={`h-7 px-2 font-mono text-xs ${
-                  aspectRatio === ratio ? 'bg-acid-400 text-ink-950 font-bold' : 'bg-ink-950 text-paper-100/80'
-                }`}
-              >
-                {ratio}
-              </button>
-            ))}
+          <div className="flex items-center gap-2" role="group" aria-label="Proporción del lienzo">
+            <span className="font-mono text-xs uppercase tracking-wider text-paper-100/50">Formato</span>
+            <div className="inline-flex">
+              {ASPECT_RATIOS.map((ratio) => (
+                <button
+                  key={ratio}
+                  type="button"
+                  aria-label={`Proporción ${ratio}`}
+                  aria-pressed={aspectRatio === ratio}
+                  title={ASPECT_RATIO_DIMENSIONS[ratio].label}
+                  onClick={() => setAspectRatio(ratio)}
+                  className={`h-8 min-w-11 px-2.5 font-mono text-xs transition-colors ${
+                    aspectRatio === ratio
+                      ? 'bg-acid-400 font-bold text-ink-950'
+                      : 'bg-ink-950 text-paper-100/80 hover:text-paper-100'
+                  }`}
+                >
+                  {ratio}
+                </button>
+              ))}
+            </div>
           </div>
+
+          <span aria-hidden="true" className="hidden h-6 w-px bg-smoke-700/60 sm:block" />
 
           <div className="flex items-center gap-1" role="group" aria-label="Historial">
             <button
@@ -598,114 +536,83 @@ export default function LayerEditor({
               onClick={handleUndo}
               disabled={past.length === 0}
               aria-label="Deshacer"
-              className={smallToolbarBtn}
+              title="Deshacer (Ctrl+Z)"
+              className={toolbarBtn}
             >
-              ↶
+              ↶ Deshacer
             </button>
             <button
               type="button"
               onClick={handleRedo}
               disabled={future.length === 0}
               aria-label="Rehacer"
-              className={smallToolbarBtn}
+              title="Rehacer (Ctrl+Y)"
+              className={toolbarBtn}
             >
-              ↷
+              Rehacer ↷
             </button>
           </div>
 
-          <label className="flex items-center gap-1.5 px-1 font-mono text-xs uppercase text-paper-100/80">
+          <span aria-hidden="true" className="hidden h-6 w-px bg-smoke-700/60 sm:block" />
+
+          <label className="flex min-h-8 cursor-pointer items-center gap-2 font-mono text-xs uppercase tracking-wide text-paper-100/80">
             <input
               type="checkbox"
               checked={showFaceGuide}
               onChange={(e) => setShowFaceGuide(e.target.checked)}
               aria-label="Zona segura para caras"
             />
-            Guía caras
+            Zona de caras
           </label>
         </div>
 
-        <div
-          ref={stageRef}
-          role="application"
-          aria-label="Lienzo del marco"
-          tabIndex={0}
-          style={{ width: stageWidth, height: stageHeight, touchAction: 'none' }}
-          className="relative shrink-0 cursor-crosshair select-none outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-acid-400"
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={endGesture}
-          onPointerCancel={endGesture}
-          onKeyDown={handleKeyDown}
-        >
-          <FramePreview
-            template="capas"
-            params={params}
-            width={stageWidth}
-            height={stageHeight}
-            resolveImageUrl={resolveImageUrl}
-            label="Vista previa del marco"
-          />
-
-          <Suspense fallback={null}>
-            <LazyKonvaCanvasStage
+        <div ref={areaRef} className="flex w-full justify-center bg-ink-950/60 py-6">
+          <div
+            role="application"
+            aria-label="Lienzo del marco"
+            tabIndex={0}
+            style={{ width: stageWidth, height: stageHeight, touchAction: 'none' }}
+            className="relative shrink-0 select-none shadow-[0_0_0_1px_rgba(255,255,255,0.12),0_12px_40px_rgba(0,0,0,0.55)] outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-acid-400"
+            onKeyDown={handleKeyDown}
+          >
+            <FramePreview
+              template="capas"
+              params={params}
               width={stageWidth}
               height={stageHeight}
-              layers={layers}
-              selected={selected}
-              assets={konvaAssets}
-              showFaceGuide={showFaceGuide}
-              onSelect={setSelected}
-              onChangeLayer={(index, nextLayer) => {
-                commitLayers(updateLayer(layersRef.current, index, nextLayer));
-              }}
+              resolveImageUrl={resolveImageUrl}
+              label="Vista previa del marco"
             />
-          </Suspense>
 
-          {selectedLayer && bounds && (
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute outline outline-1 outline-acid-400"
-              style={{
-                left: bounds.cx - bounds.width / 2,
-                top: bounds.cy - bounds.height / 2,
-                width: bounds.width,
-                height: Math.max(bounds.height, 2),
-                transform: `rotate(${bounds.rotation}deg)`,
-              }}
-            >
-              {!isCover && (
-                <>
-                  <span
-                    data-handle="scale"
-                    data-testid="handle-scale"
-                    className="pointer-events-auto absolute -bottom-2.5 -right-2.5 h-5 w-5 cursor-nwse-resize bg-acid-400"
-                  />
-                  <span
-                    data-handle="rotate"
-                    data-testid="handle-rotate"
-                    className="pointer-events-auto absolute -top-8 left-1/2 h-5 w-5 -translate-x-1/2 cursor-grab rounded-full bg-acid-400"
-                  />
-                </>
-              )}
-            </div>
-          )}
+            <Suspense fallback={null}>
+              <LazyKonvaCanvasStage
+                width={stageWidth}
+                height={stageHeight}
+                layers={layers}
+                selected={selected}
+                showFaceGuide={showFaceGuide}
+                onSelect={setSelected}
+                onPreviewLayer={(index, layer) => setLive(layer ? { index, layer } : null)}
+                onChangeLayer={(index, nextLayer) => {
+                  commitLayers(updateLayer(layersRef.current, index, nextLayer));
+                }}
+              />
+            </Suspense>
+          </div>
         </div>
 
-        <p className="max-w-[280px] text-center font-sans text-xs text-paper-100/60">
-          Toca una capa para elegirla y arrástrala. El cuadrado de la esquina cambia el tamaño; el círculo de arriba la
-          gira. Las piezas en las esquinas se anclan automáticamente para migrar entre 3:4, 4:3, 9:16 y 1:1.
+        <p className="max-w-md text-center font-sans text-xs text-paper-100/60">
+          Arrastra una pieza para moverla. Las esquinas cambian el tamaño y el círculo de arriba la gira. Con el lienzo
+          enfocado: flechas para mover, Supr para borrar, Ctrl+D para duplicar. Las piezas pegadas a una esquina se
+          reacomodan solas al cambiar de formato.
         </p>
       </div>
 
-      {/* ---- Columna Derecha: Paleta de Roles + Capas + Inspector de Propiedades ---- */}
-      <div className="flex min-w-[220px] flex-col gap-4 lg:col-span-4">
-        <section
-          className="flex flex-col gap-2 border border-smoke-700/60 bg-ink-900 p-3"
-          aria-label="Paleta de roles de color"
-        >
-          <span className="font-mono text-xs font-bold uppercase tracking-wider text-hotpink-500">
-            Paleta del diseño ($acento · $fondo · $texto)
-          </span>
+      {/* ---- Columna derecha: paleta + capas + propiedades ---- */}
+      <div className="flex min-w-0 flex-col gap-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto">
+        <section className={columnClass} aria-label="Paleta de roles de color">
+          <span className="font-mono text-xs font-bold uppercase tracking-wider text-hotpink-500">Paleta del diseño</span>
+          <p className="font-sans text-xs text-paper-100/60">Cambia los tres colores de todo el diseño a la vez.</p>
           <div className="flex flex-wrap gap-1">
             {PALETTE_PRESETS.map((preset) => (
               <button
@@ -713,7 +620,7 @@ export default function LayerEditor({
                 type="button"
                 aria-label={`Paleta ${preset.label}`}
                 onClick={() => handlePaletteChange(preset.palette)}
-                className="flex items-center gap-1 border border-smoke-700/60 bg-ink-950 px-2 py-1 font-mono text-xs text-paper-100 hover:border-acid-400"
+                className="flex h-8 items-center gap-1.5 border border-smoke-700/60 bg-ink-950 px-2 font-mono text-xs text-paper-100 transition-colors hover:border-acid-400"
               >
                 <span className="h-3 w-3 rounded-full" style={{ backgroundColor: preset.palette.acento }} />
                 <span>{preset.label}</span>
@@ -723,19 +630,19 @@ export default function LayerEditor({
           <div className="grid grid-cols-3 gap-2 pt-1">
             {(
               [
-                ['acento', 'Rol $acento'],
-                ['fondo', 'Rol $fondo'],
-                ['texto', 'Rol $texto'],
+                ['acento', 'Acento', 'Rol $acento'],
+                ['fondo', 'Fondo', 'Rol $fondo'],
+                ['texto', 'Letras', 'Rol $texto'],
               ] as const
-            ).map(([roleKey, roleLabel]) => (
+            ).map(([roleKey, roleText, roleLabel]) => (
               <label key={roleKey} className="flex flex-col gap-1 font-mono text-xs uppercase text-paper-100/70">
-                <span>{roleLabel}</span>
+                <span>{roleText}</span>
                 <input
                   type="color"
                   aria-label={roleLabel}
                   value={palette[roleKey]}
                   onChange={(e) => handlePaletteChange({ ...palette, [roleKey]: e.target.value })}
-                  className="h-7 w-full cursor-pointer border border-smoke-700/60 bg-ink-950"
+                  className="h-8 w-full cursor-pointer border border-smoke-700/60 bg-ink-950"
                 />
               </label>
             ))}
@@ -776,5 +683,83 @@ export default function LayerEditor({
         )}
       </div>
     </div>
+  );
+}
+
+/** Tarjeta de un preset: miniatura del diseño sobre una foto de ejemplo, con su nombre y descripción. */
+function PresetCard({
+  preset,
+  packName,
+  palette,
+  onApply,
+}: {
+  preset: PackPreset;
+  packName: string;
+  palette: PackPalette;
+  onApply: () => void;
+}) {
+  const params = useMemo(() => ({ layers: materializePresetLayers(preset, palette) as FrameLayer[] }), [preset, palette]);
+  return (
+    <button
+      type="button"
+      aria-label={`Aplicar preset ${preset.label}`}
+      onClick={onApply}
+      className="group flex flex-col gap-2 border border-smoke-700/60 bg-ink-950 p-2 text-left transition-colors hover:border-acid-400 focus-visible:border-acid-400"
+    >
+      <span className="flex justify-center bg-ink-900">
+        <FramePreview template="capas" params={params} width={108} height={144} label={`Miniatura de ${preset.label}`} />
+      </span>
+      <span className="font-mono text-xs font-bold uppercase leading-tight tracking-wide text-hotpink-500">
+        {preset.label}
+      </span>
+      <span className="font-mono text-xs uppercase text-paper-100/50">{packName}</span>
+      {preset.description && <span className="font-sans text-xs text-paper-100/70">{preset.description}</span>}
+    </button>
+  );
+}
+
+/** Tarjeta de una pieza del catálogo: miniatura recoloreada con el acento actual. */
+function AssetCard({
+  packId,
+  asset,
+  tint,
+  disabled,
+  onInsert,
+}: {
+  packId: string;
+  asset: PackAssetMeta;
+  tint: string;
+  disabled: boolean;
+  onInsert: () => void;
+}) {
+  const params = useMemo(
+    () => ({
+      layers: [
+        { type: 'asset', asset: `pack:${packId}/${asset.id}`, tint, x: 0.5, y: 0.5, w: 0.86, h: 0.86 },
+      ] as FrameLayer[],
+    }),
+    [packId, asset.id, tint],
+  );
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      aria-label={`Insertar ${asset.name}`}
+      onClick={onInsert}
+      className="flex flex-col gap-1.5 border border-smoke-700/60 bg-ink-950 p-2 text-left transition-colors hover:border-acid-400 focus-visible:border-acid-400 disabled:opacity-40"
+    >
+      <span className="flex justify-center bg-ink-900">
+        <FramePreview
+          template="capas"
+          params={params}
+          width={96}
+          height={96}
+          background="oscuro"
+          label={`Miniatura de ${asset.name}`}
+        />
+      </span>
+      <span className="font-sans text-xs font-medium leading-tight text-paper-100">{asset.name}</span>
+      <span className="font-mono text-xs uppercase text-paper-100/50">{asset.category}</span>
+    </button>
   );
 }
