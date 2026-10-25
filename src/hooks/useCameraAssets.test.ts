@@ -8,7 +8,26 @@ vi.mock('../lib/platformGuestApi', () => ({
 }));
 
 import { getStickerImageUrl, listCameraAssets } from '../lib/platformGuestApi';
-import { loadImage, useCameraAssets } from './useCameraAssets';
+import { fullImageAspect, loadImage, useCameraAssets } from './useCameraAssets';
+
+describe('fullImageAspect', () => {
+  const src = '123e4567-e89b-42d3-a456-426614174000/frames/a.webp';
+  const full = [{ type: 'image' as const, src, full: true }];
+  const withImage = (w: number, h: number) =>
+    ({ images: new Map([[src, { naturalWidth: w, naturalHeight: h } as unknown as CanvasImageSource]]) }) as never;
+
+  it('es ancho / alto de la imagen completa ya cargada', () => {
+    expect(fullImageAspect(full, withImage(1086, 1448))).toBeCloseTo(0.75, 3);
+    expect(fullImageAspect(full, withImage(2400, 1792))).toBeCloseTo(1.339, 3);
+  });
+
+  it('sin imagen completa, o si no cargó, no hay proporción (el marco no se esconde)', () => {
+    expect(fullImageAspect([], undefined)).toBeUndefined();
+    expect(fullImageAspect([{ type: 'image', src, w: 0.3, h: 0.3 }], withImage(100, 100))).toBeUndefined();
+    expect(fullImageAspect(full, undefined)).toBeUndefined();
+    expect(fullImageAspect(full, { images: new Map() } as never)).toBeUndefined();
+  });
+});
 
 const frames = [
   { id: 'f1', label: 'Borde', template: 'capas' as const, params: { layers: [] }, isDefault: false },

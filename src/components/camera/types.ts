@@ -5,6 +5,11 @@ export interface CameraFrameOption {
   id: string;
   label: string;
   draw: ((ctx: CanvasRenderingContext2D, width: number, height: number) => void) | null;
+  /**
+   * ancho / alto de la imagen del marco, si es de imagen completa (un PNG hecho para una proporción). La cámara
+   * solo ofrece el marco cuando calza con la foto. `undefined`: se dibuja con capas y sirve en cualquier proporción.
+   */
+  aspect?: number;
 }
 
 /**

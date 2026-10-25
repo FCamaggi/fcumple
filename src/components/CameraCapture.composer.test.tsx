@@ -354,6 +354,42 @@ describe('CameraCapture: encuadre fijo, sin importar el video del teléfono', ()
     expect(video.slice(1, 5)).toEqual([140, 0, 360, 480]);
   });
 
+  const framesConProporcion = (): CameraFrameOption[] => [
+    { id: 'v', label: 'Vertical 3:4', draw: vi.fn(), aspect: 1086 / 1448 },
+    { id: 'h', label: 'Horizontal 4:3', draw: vi.fn(), aspect: 2400 / 1792 },
+    { id: 'a', label: 'Alto 9:16', draw: vi.fn(), aspect: 1536 / 2752 },
+    { id: 'c', label: 'Cuadrado 1:1', draw: vi.fn(), aspect: 1 },
+    { id: 'l', label: 'Capas', draw: vi.fn() },
+  ];
+
+  const recorrer = async (user: ReturnType<typeof userEvent.setup>) => {
+    const vistos: string[] = [];
+    for (let i = 0; i < 6; i += 1) {
+      const rotulo = screen.getByText(/^Marco \/\//).textContent ?? '';
+      if (vistos.includes(rotulo)) break;
+      vistos.push(rotulo);
+      await user.click(screen.getByRole('button', { name: 'Siguiente marco' }));
+    }
+    return vistos.map((r) => r.replace('Marco // ', ''));
+  };
+
+  it('en vertical solo ofrece los marcos de imagen 3:4 y los de capas; no los estira', async () => {
+    mockCanvasPipeline();
+    mockCamera();
+    const user = userEvent.setup();
+    render(<CameraCapture token="tok" quota={quota} onClose={() => {}} frames={framesConProporcion()} stickers={[]} />);
+    expect(await recorrer(user)).toEqual(['Sin marco', 'Vertical 3:4', 'Capas']);
+  });
+
+  it('con el teléfono acostado solo ofrece los 4:3 y los de capas', async () => {
+    stubOrientation('landscape');
+    mockCanvasPipeline(640, 480);
+    mockCamera();
+    const user = userEvent.setup();
+    render(<CameraCapture token="tok" quota={quota} onClose={() => {}} frames={framesConProporcion()} stickers={[]} />);
+    expect(await recorrer(user)).toEqual(['Sin marco', 'Horizontal 4:3', 'Capas']);
+  });
+
   it('mientras la cámara está abierta la página de atrás no se desplaza, y se libera al cerrarla', () => {
     const { unmount } = render(
       <CameraCapture token="tok" quota={quota} onClose={() => {}} frames={makeFrames()} stickers={stickers} />,
