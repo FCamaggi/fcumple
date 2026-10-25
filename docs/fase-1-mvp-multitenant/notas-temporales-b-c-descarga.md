@@ -51,12 +51,10 @@ Conclusiones (estimación):
 - **El almacenamiento (1 GB) es de todo el proyecto**: en calidad alta no cabe una segunda fiesta con fotos acumuladas; habría que borrar las de la primera después de entregarlas o pasar a un plan de pago.
 - Lo razonable es ofrecer la descarga **una por una o «solo las mías»**.
 
-### Propuesta (sin decidir)
-1. Medir en un teléfono real qué resolución entrega hoy la cámara y cuánto pesa una foto de verdad (con y sin marco). Reemplaza los supuestos de arriba.
-2. Pedir `ideal: 1920×1080` (o 2048) a la cámara y subir el original a 2048 px, calidad 0,85, como punto medio. Mantener la copia de 640 px para la cartelera: es lo que cuida la salida de datos.
-3. Si la clienta quiere calidad máxima para imprimir: ofrecerla solo para la foto que el invitado abre, nunca en bloque.
-4. Antes de la fiesta, mirar en el panel de Supabase el uso real de almacenamiento y de salida, y decidir si conviene el plan Pro durante el mes de la fiesta (decisión del dueño; tiene costo).
-5. Riesgo aparte: un proyecto gratuito inactivo una semana se pausa. Ya hay un ping cada 3 días (`.github/workflows/keepalive.yml`), pero **solo corre si los secretos `SUPABASE_URL` y `SUPABASE_ANON_KEY` están en GitHub**; si no, termina sin error y sin avisar. Verificado el 2026-10-24: los dos secretos existen y la última ejecución (2026-10-23) hizo el ping de verdad (devolvió `[]`), así que el riesgo está cubierto.
+### Resolución y calidad implementada para la fiesta (2026-10-24)
+1. **Constraints en `getUserMedia`**: se solicita proporción 4:3 con resolución óptima (`getCameraVideoConstraints`), pidiendo `width: { ideal: 2048 }, height: { ideal: 1536 }, aspectRatio: { ideal: 4/3 }` en horizontal, y `1536×2048` con `aspectRatio: { ideal: 3/4 }` en vertical. Al usar `ideal`, si el dispositivo o sensor soporta menos, entrega su máximo disponible sin rechazar la cámara.
+2. **Foto original de descarga**: `MAX_DIMENSION` se subió a 2048 px y `JPEG_QUALITY` a 0,85 en `CameraCapture.tsx`.
+3. **Copia de visualización**: se mantiene `DISPLAY_MAX_DIMENSION = 640` a calidad 0,7 para preservar el bajo consumo de ancho de banda y egress en la cartelera y el carrusel.
 
 ## 3. Épica B: marcos
 

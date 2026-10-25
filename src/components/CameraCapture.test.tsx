@@ -6,7 +6,7 @@ vi.mock('../lib/photosApi', () => ({
   uploadPhoto: vi.fn(),
 }));
 
-import CameraCapture from './CameraCapture';
+import CameraCapture, { getCameraVideoConstraints, JPEG_QUALITY, MAX_DIMENSION } from './CameraCapture';
 import { uploadPhoto } from '../lib/photosApi';
 import type { CameraTrackCapabilities } from '../lib/cameraControls';
 import type { Photo } from '../types';
@@ -227,6 +227,44 @@ describe('CameraCapture', () => {
 
     await waitFor(() => expect(screen.getByRole('button', { name: /disparar/i })).toBeEnabled());
     expect(screen.queryByRole('button', { name: /flash/i })).not.toBeInTheDocument();
+  });
+
+  it('solicita resolución 4:3 con ideal de alta calidad y orientación correcta al abrir la cámara', async () => {
+    const track = makeTrack();
+    const { getUserMedia } = mockCamera(track);
+    render(<CameraCapture token="tok123" quota={{ quota: 5, used: 2 }} onClose={() => {}} />);
+
+    await waitFor(() => expect(getUserMedia).toHaveBeenCalledTimes(1));
+    const constraints = getUserMedia.mock.calls[0][0] as MediaStreamConstraints;
+    expect(constraints.video).toEqual(
+      expect.objectContaining({
+        facingMode: 'environment',
+        width: { ideal: expect.any(Number) },
+        height: { ideal: expect.any(Number) },
+        aspectRatio: { ideal: expect.any(Number) },
+      }),
+    );
+  });
+
+  it('getCameraVideoConstraints define proporción 4:3 en horizontal y 3:4 en vertical', () => {
+    expect(getCameraVideoConstraints('environment', 'landscape')).toEqual({
+      facingMode: 'environment',
+      width: { ideal: 2048 },
+      height: { ideal: 1536 },
+      aspectRatio: { ideal: 4 / 3 },
+    });
+
+    expect(getCameraVideoConstraints('user', 'portrait')).toEqual({
+      facingMode: 'user',
+      width: { ideal: 1536 },
+      height: { ideal: 2048 },
+      aspectRatio: { ideal: 3 / 4 },
+    });
+  });
+
+  it('MAX_DIMENSION y JPEG_QUALITY están configurados para descargas de alta calidad', () => {
+    expect(MAX_DIMENSION).toBe(2048);
+    expect(JPEG_QUALITY).toBe(0.85);
   });
 
   it('shows an icon button (not a text link) to flip between front and back camera', async () => {
