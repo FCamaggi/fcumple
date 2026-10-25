@@ -48,12 +48,12 @@ export interface OpenedCamera {
   stream: MediaStream;
   /** Qué intento dio el video: `ideal`, `girado` (medidas giradas) o `basico` (solo la cámara). */
   attempt: 'ideal' | 'girado' | 'basico';
-  /** Qué medidas dio cada intento, para el diagnóstico (`ideal 2048×1536 ✗`). */
+  /** Qué medidas dio cada intento, para depurar (`ideal 2048×1536 ✗`). */
   log: string[];
 }
 
 /**
- * Abre la cámara. `first` permite al diagnóstico forzar el primer pedido. Si el flujo llega con la
+ * Abre la cámara. Si el flujo llega con la
  * orientación contraria, lo cierra y prueba lo siguiente; si ningún intento calza se queda con el último
  * (el básico), que es el que entrega el navegador sin que se le pida nada.
  */
@@ -61,13 +61,12 @@ export async function openCameraStream(
   getUserMedia: (c: MediaStreamConstraints) => Promise<MediaStream>,
   facingMode: CameraFacing,
   orientation: CameraOrientation,
-  first?: MediaTrackConstraints | null,
   /** Mide los cuadros reales (video ya reproduciéndose); sin esto se confía en `getSettings`. */
   measure?: (stream: MediaStream) => Promise<VideoSize | null>,
 ): Promise<OpenedCamera> {
   const opposite: CameraOrientation = orientation === 'portrait' ? 'landscape' : 'portrait';
   const attempts: Array<[OpenedCamera['attempt'], MediaTrackConstraints]> = [
-    ['ideal', first ?? idealVideoConstraints(facingMode, orientation)],
+    ['ideal', idealVideoConstraints(facingMode, orientation)],
     ['girado', idealVideoConstraints(facingMode, opposite)],
     ['basico', { facingMode }],
   ];
