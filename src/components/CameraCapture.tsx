@@ -28,6 +28,7 @@ import {
   type StickerPlacement,
 } from '../lib/cameraAssets/stickers';
 import ComposerStage from './camera/ComposerStage';
+import CameraDiagnostic, { diagnosticoActivo } from './camera/CameraDiagnostic';
 import StickerTray from './camera/StickerTray';
 import type { CameraFrameOption, CameraStickerOption } from './camera/types';
 import FilmRollCounter from './FilmRollCounter';
@@ -517,6 +518,7 @@ export default function CameraCapture({
 
   return (
     <div ref={rootRef} className="fixed inset-safe z-50 flex flex-col bg-ink-950" aria-label="Cámara de fotos">
+      {diagnosticoActivo() && <CameraDiagnostic videoRef={videoRef} trackRef={trackRef} aspect={aspect} />}
       {/* Cabecera baja: el visor es lo que manda. El rótulo «Cámara // modo carrete» solo vive en las pantallas sin cámara. */}
       <div role="group" aria-label="Estado de la cámara" className="flex items-center justify-between gap-2 bg-ink-900 px-3 py-1">
         <div className="flex min-w-0 items-center gap-2">
