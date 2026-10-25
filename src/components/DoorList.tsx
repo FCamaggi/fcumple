@@ -1,3 +1,8 @@
+/**
+ * @deprecated [Fase 0 - Decisión D10]
+ * Este módulo pertenece al flujo de evento único e invitaciones individuales (/i/:token).
+ * No se utiliza en el flujo multi-tenant (/e/:slug) y será eliminado en la poda post-fiesta.
+ */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, useAnimationControls, useReducedMotion } from 'framer-motion';
 import type { EventConfig, Guest, RsvpStatus } from '../types';
