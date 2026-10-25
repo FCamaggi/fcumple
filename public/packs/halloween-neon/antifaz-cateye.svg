@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <path fill-rule="evenodd" d="M5 6 C22 18 39 32 50 47 C62 43 79 50 96 58 C89 74 77 93 61 92 C52 91 48 80 47 70 C38 75 22 73 12 58 C5 45 4 24 5 6 Z M17 31 C33 35 41 51 38 58 C25 58 16 46 17 31 Z M55 61 C62 55 75 59 82 67 C74 77 60 75 55 61 Z" fill="$fondo" stroke="$acento" stroke-width="3.5" stroke-linejoin="round"/>
+  <path d="M24 22 C2 27 28 30 33 31 C28 32 25 35 24 40 C23 35 20 32 15 31 C20 30 23 27 24 22 Z" fill="$texto"/>
+  <path d="M76 50 C77 54 79 56 83 57 C79 58 77 60 76 64 C75 60 73 58 69 57 C73 56 75 54 76 50 Z" fill="$texto"/>
+</svg>

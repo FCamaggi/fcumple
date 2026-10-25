@@ -1,0 +1,108 @@
+{
+  "id": "halloween-neon",
+  "name": "Halloween Neón",
+  "version": 1,
+  "visibility": "public",
+  "palette": {
+    "acento": "#ff2f92",
+    "fondo": "#0d0b12",
+    "texto": "#ffffff"
+  },
+  "assets": [
+    {
+      "id": "orejas-conejita",
+      "name": "Cintillo de conejita neón",
+      "category": "ilustracion",
+      "file": "orejas-conejita.svg",
+      "format": "svg",
+      "recolorable": true,
+      "tags": ["halloween", "conejita", "mean-girls", "neon"],
+      "license": {
+        "source": "Trazado propio para fcumple",
+        "spdx": "LicenseRef-Proprietary-fcumple",
+        "date": "2026-10-25"
+      }
+    },
+    {
+      "id": "antifaz-cateye",
+      "name": "Antifaz veneciano cat-eye",
+      "category": "ilustracion",
+      "file": "antifaz-cateye.svg",
+      "format": "svg",
+      "recolorable": true,
+      "tags": ["halloween", "antifaz", "mascara", "neon"],
+      "license": {
+        "source": "Trazado propio para fcumple",
+        "spdx": "LicenseRef-Proprietary-fcumple",
+        "date": "2026-10-25"
+      }
+    },
+    {
+      "id": "murcielago",
+      "name": "Murciélago neón",
+      "category": "ilustracion",
+      "file": "murcielago.svg",
+      "format": "svg",
+      "recolorable": true,
+      "tags": ["halloween", "murcielago", "neon"],
+      "license": {
+        "source": "Trazado propio para fcumple",
+        "spdx": "LicenseRef-Proprietary-fcumple",
+        "date": "2026-10-25"
+      }
+    }
+  ],
+  "presets": [
+    {
+      "id": "halloween-boleto-neon",
+      "label": "Halloween · Boleto Neón",
+      "description": "Entrada VIP con talón inferior, contorno en $acento y textos editables.",
+      "layers": [
+        {
+          "type": "shape",
+          "shape": "rect",
+          "box": { "l": 0.026, "r": 0.026, "b": 0.026 },
+          "h": 0.185,
+          "fill": "$fondo",
+          "opacity": 0.84,
+          "radius": 0.018
+        },
+        {
+          "type": "shape",
+          "shape": "rect",
+          "box": { "l": 0.026, "t": 0.026, "r": 0.026, "b": 0.026 },
+          "stroke": "$acento",
+          "strokeWidth": 0.008,
+          "radius": 0.02,
+          "shadow": { "color": "$acento", "blur": 0.022, "x": 0, "y": 0 }
+        },
+        {
+          "type": "text",
+          "text": "HALLOWEEN PARTY",
+          "x": 0.5,
+          "y": 1,
+          "dy": -0.14,
+          "size": 0.092,
+          "w": 0.72,
+          "font": "anton",
+          "color": "$acento",
+          "strokeColor": "$fondo",
+          "strokeWidth": 0.012,
+          "shadow": { "color": "$acento", "blur": 0.022, "x": 0, "y": 0 }
+        },
+        {
+          "type": "text",
+          "text": "31 OCT · NOCHE DE BRUJAS",
+          "x": 0.5,
+          "y": 1,
+          "dy": -0.065,
+          "size": 0.026,
+          "w": 0.72,
+          "font": "mono",
+          "weight": "bold",
+          "color": "$texto"
+        }
+      ]
+    }
+  ]
+}
