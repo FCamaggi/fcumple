@@ -37,9 +37,23 @@ function mockCamera() {
   vi.stubGlobal('navigator', { ...navigator, mediaDevices: { getUserMedia: vi.fn().mockResolvedValue(stream) } });
 }
 
-function mockCanvasPipeline() {
-  vi.spyOn(window.HTMLVideoElement.prototype, 'videoWidth', 'get').mockReturnValue(600);
-  vi.spyOn(window.HTMLVideoElement.prototype, 'videoHeight', 'get').mockReturnValue(800);
+/** jsdom no tiene orientación: el default es «horizontal». El teléfono real del invitado está en vertical. */
+function stubOrientation(orientation: 'portrait' | 'landscape') {
+  vi.stubGlobal('matchMedia', (query: string) => ({
+    matches: query.includes('orientation: portrait') ? orientation === 'portrait' : query.includes('pointer: fine'),
+    media: query,
+    onchange: null,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    addListener: () => {},
+    removeListener: () => {},
+    dispatchEvent: () => false,
+  }));
+}
+
+function mockCanvasPipeline(videoW = 600, videoH = 800) {
+  vi.spyOn(window.HTMLVideoElement.prototype, 'videoWidth', 'get').mockReturnValue(videoW);
+  vi.spyOn(window.HTMLVideoElement.prototype, 'videoHeight', 'get').mockReturnValue(videoH);
   const ctx = {
     save: vi.fn(),
     restore: vi.fn(),
@@ -67,8 +81,9 @@ beforeEach(() => {
   vi.spyOn(window.HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
   URL.createObjectURL = vi.fn(() => 'blob:mock');
   URL.revokeObjectURL = vi.fn();
-  // Contenedor de 400 × 600 y proporción 3:4 por defecto → escenario de 400 × 533.
+  // Contenedor de 400 × 600 y teléfono en vertical (3:4) → escenario de 400 × 533.
   restoreSize = mockElementSize(400, 600);
+  stubOrientation('portrait');
 });
 
 afterEach(() => {
@@ -273,5 +288,78 @@ describe('CameraCapture: modo compositor', () => {
     render(<CameraCapture token="tok" quota={quota} onClose={() => {}} frames={makeFrames()} stickers={stickers} />);
     await screen.findByText(/no permite acceder a la cámara/i);
     expect(document.querySelector('img[src^="/marcos/"]')).toBeNull();
+  });
+});
+
+describe('CameraCapture: encuadre fijo, sin importar el video del teléfono', () => {
+  const stageSize = () => {
+    const stage = screen.getByTestId('composer-stage');
+    return { w: parseFloat(stage.style.width), h: parseFloat(stage.style.height) };
+  };
+
+  it('el visor es 3:4 en vertical y no salta cuando el video llega con otra proporción', async () => {
+    mockCanvasPipeline(1080, 1920); // un teléfono que entrega 9:16
+    mockCamera();
+    render(<CameraCapture token="tok" quota={quota} onClose={() => {}} frames={makeFrames()} stickers={stickers} />);
+    const antes = stageSize();
+    expect(antes.w / antes.h).toBeCloseTo(3 / 4, 2);
+
+    const video = document.querySelector('video') as HTMLVideoElement;
+    video.dispatchEvent(new Event('loadedmetadata'));
+    await screen.findByRole('button', { name: /disparar/i });
+    expect(stageSize()).toEqual(antes);
+  });
+
+  it('el visor es 4:3 con el teléfono acostado', async () => {
+    stubOrientation('landscape');
+    mockCanvasPipeline(640, 480);
+    mockCamera();
+    render(<CameraCapture token="tok" quota={quota} onClose={() => {}} frames={makeFrames()} stickers={stickers} />);
+    const { w, h } = stageSize();
+    expect(w / h).toBeCloseTo(4 / 3, 2);
+  });
+
+  it('un video 9:16 se recorta al centro a 3:4 al disparar, y el marco se dibuja a ese tamaño', async () => {
+    const ctx = mockCanvasPipeline(1080, 1920);
+    mockCamera();
+    const user = userEvent.setup();
+    const frames = makeFrames();
+    render(<CameraCapture token="tok" quota={quota} onClose={() => {}} frames={frames} stickers={stickers} />);
+    await user.click(screen.getByRole('button', { name: 'Siguiente marco' }));
+
+    const shutter = screen.getByRole('button', { name: /disparar/i });
+    await waitFor(() => expect(shutter).toBeEnabled());
+    await user.click(shutter);
+    await screen.findByRole('button', { name: /enviar/i });
+
+    // drawImage(video, sx, sy, sw, sh, 0, 0, w, h): sale 1080 × 1440, con 240 px recortados arriba y abajo.
+    const video = ctx.drawImage.mock.calls.find((c) => (c as unknown[])[0] instanceof HTMLVideoElement) as unknown[];
+    expect(video.slice(1, 5)).toEqual([0, 240, 1080, 1440]);
+    const [, w, h] = (frames[0].draw as ReturnType<typeof vi.fn>).mock.calls.at(-1)!;
+    expect(w / h).toBeCloseTo(3 / 4, 3);
+  });
+
+  it('un video apaisado con el teléfono en vertical también sale 3:4 (se recortan los costados)', async () => {
+    const ctx = mockCanvasPipeline(640, 480);
+    mockCamera();
+    const user = userEvent.setup();
+    render(<CameraCapture token="tok" quota={quota} onClose={() => {}} frames={makeFrames()} stickers={stickers} />);
+
+    const shutter = await screen.findByRole('button', { name: /disparar/i });
+    await waitFor(() => expect(shutter).toBeEnabled());
+    await user.click(shutter);
+    await screen.findByRole('button', { name: /enviar/i });
+
+    const video = ctx.drawImage.mock.calls.find((c) => (c as unknown[])[0] instanceof HTMLVideoElement) as unknown[];
+    expect(video.slice(1, 5)).toEqual([140, 0, 360, 480]);
+  });
+
+  it('mientras la cámara está abierta la página de atrás no se desplaza, y se libera al cerrarla', () => {
+    const { unmount } = render(
+      <CameraCapture token="tok" quota={quota} onClose={() => {}} frames={makeFrames()} stickers={stickers} />,
+    );
+    expect(document.body.style.overflow).toBe('hidden');
+    unmount();
+    expect(document.body.style.overflow).toBe('');
   });
 });
