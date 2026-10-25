@@ -25,7 +25,7 @@ afterAll(async () => {
 describe('la migración sobre datos que ya existían', () => {
   it('lo que ya estaba revelado sigue visible, lo demás no, y los eventos existentes conservan su modo de cámara', async () => {
     const tmp = mkdtempSync(path.join(os.tmpdir(), 'fcumple-mig-'));
-    for (const f of readdirSync(MIGRATIONS).filter((n) => n.endsWith('.sql') && n !== NEW)) {
+    for (const f of readdirSync(MIGRATIONS).filter((n) => n.endsWith('.sql') && n < NEW)) {
       copyFileSync(path.join(MIGRATIONS, f), path.join(tmp, f));
     }
     await resetPublicSchema(db);
