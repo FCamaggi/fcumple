@@ -539,4 +539,12 @@ describe('OrganizerEventPage', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Cámara' }));
     expect(screen.getByTestId('camera-studio')).toBeInTheDocument();
   });
+
+  it('Regalos: muestra la gestión de lista de deseos y regalos', async () => {
+    vi.mocked(api.getMyEvent).mockResolvedValueOnce(event);
+    vi.mocked(api.listEventGuests).mockResolvedValueOnce([]);
+    renderEvent();
+    await userEvent.click(await screen.findByRole('button', { name: 'Regalos' }));
+    expect(screen.getByRole('heading', { name: /Visibilidad en la Cartelera/i })).toBeInTheDocument();
+  });
 });

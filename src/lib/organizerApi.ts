@@ -6,6 +6,7 @@ import {
   type GuestAnswers,
   type ResolvedEnrollment,
 } from './enrollmentConfig';
+import { resolveWishlist, type WishlistConfig } from './wishlist';
 import type { AccessMode } from './platformApi';
 import type { ModerationPhoto } from './photosApi';
 import type { Photo } from '../types';
@@ -41,6 +42,8 @@ export interface OrganizerEvent {
   defaultPhotoQuota: number;
   /** Qué le pide el organizador al invitado al inscribirse. */
   enrollment: ResolvedEnrollment;
+  /** Lista de deseos / regalos configurada por el organizador. */
+  wishlist?: WishlistConfig;
   createdAt: string;
 }
 
@@ -82,6 +85,7 @@ interface EventRow {
   subtitle: string | null;
   theme: unknown;
   activation_code: string;
+  wishlist?: unknown;
   created_at: string;
 }
 
@@ -122,6 +126,7 @@ function mapEvent(row: EventRow): OrganizerEvent {
     activationCode: row.activation_code,
     defaultPhotoQuota: row.default_photo_quota,
     enrollment: resolveEnrollmentConfig(row.enrollment_config),
+    wishlist: resolveWishlist(row.wishlist),
     createdAt: row.created_at,
   };
 }
@@ -217,6 +222,7 @@ export interface EventSettingsPatch {
   subtitle?: string | null;
   /** Solo el id del preset: los colores viven en `src/lib/theme.ts`. */
   theme?: { preset: string };
+  wishlist?: WishlistConfig;
 }
 
 export async function updateEvent(eventId: string, patch: EventSettingsPatch): Promise<OrganizerEvent> {
@@ -234,6 +240,7 @@ export async function updateEvent(eventId: string, patch: EventSettingsPatch): P
   if (patch.enrollment !== undefined) row.enrollment_config = serializeEnrollmentConfig(patch.enrollment);
   if (patch.subtitle !== undefined) row.subtitle = patch.subtitle;
   if (patch.theme !== undefined) row.theme = patch.theme;
+  if (patch.wishlist !== undefined) row.wishlist = patch.wishlist;
 
   const { data, error } = await supabase.from('events').update(row).eq('id', eventId).select('*').single();
   if (error) {

@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient';
 import { resolveEnrollmentConfig, type ResolvedEnrollment } from './enrollmentConfig';
+import { resolveWishlist, type WishlistConfig } from './wishlist';
 
 /**
  * Capa de acceso de la Fase 1 (plataforma multi-tenant): evento público e
@@ -28,6 +29,8 @@ export interface EventPublic {
   subtitle: string | null;
   /** Estilo del evento tal como lo guarda la base (`{preset}`); `resolveTheme` lo convierte en colores. */
   theme: unknown;
+  /** Lista de deseos / regalos configurada para los invitados. */
+  wishlist?: WishlistConfig;
 }
 
 /** Cuándo se habilita la cámara de un invitado: al inscribirse, al marcar su llegada, o al escanear el QR de la fiesta. */
@@ -71,6 +74,7 @@ interface EventRow {
   enrollment_config: unknown;
   subtitle: string | null;
   theme: unknown;
+  wishlist?: unknown;
 }
 
 interface AuthRow<O extends string> {
@@ -100,6 +104,7 @@ export async function getEventPublic(slug: string): Promise<EventPublic | null> 
     enrollment: resolveEnrollmentConfig(row.enrollment_config),
     subtitle: row.subtitle ?? null,
     theme: row.theme ?? {},
+    wishlist: resolveWishlist(row.wishlist),
   };
 }
 
