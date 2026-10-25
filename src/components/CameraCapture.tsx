@@ -331,9 +331,19 @@ export default function CameraCapture({
           facingMode,
           orientation,
           restriccionesDeDiagnostico(facingMode, orientation),
+          // Se miden los cuadros reales: en iOS `getSettings` puede decir otra cosa.
+          async (candidate) => {
+            const el = videoRef.current;
+            if (!el || cancelled) return null;
+            el.srcObject = candidate;
+            await el.play();
+            // Tras `play()` el navegador real ya tiene metadatos (readyState ≥ 1); sin ellos no hay nada que esperar.
+            for (let i = 0; i < 20 && !el.videoWidth && el.readyState >= 1; i++) await new Promise((r) => setTimeout(r, 50));
+            return el.videoWidth ? { w: el.videoWidth, h: el.videoHeight } : null;
+          },
         );
         stream = opened.stream;
-        attemptRef.current = opened.attempt;
+        attemptRef.current = `${opened.attempt} [${opened.log.join(' → ')}]`;
         if (cancelled) {
           stream.getTracks().forEach((t) => t.stop());
           return;
@@ -362,7 +372,7 @@ export default function CameraCapture({
       trackRef.current = null;
       stream?.getTracks().forEach((t) => t.stop());
     };
-  }, [facingMode, outOfShots]);
+  }, [facingMode, outOfShots, orientation]);
 
   async function handleTorchToggle() {
     const next = !torchOn;

@@ -23,19 +23,33 @@ export function idealVideoConstraints(facingMode: CameraFacing, orientation: Cam
   };
 }
 
-/** ¿El video que llegó tiene la orientación pedida? Si el navegador no informa medidas, se da por bueno. */
-export function streamMatchesOrientation(stream: MediaStream, orientation: CameraOrientation): boolean {
+export interface VideoSize {
+  w: number;
+  h: number;
+}
+
+/** ¿Esas medidas tienen la orientación pedida? Sin medidas (o cuadradas) se da por bueno. */
+export function sizeMatchesOrientation(size: VideoSize | null, orientation: CameraOrientation): boolean {
+  if (!size || !size.w || !size.h || size.w === size.h) return true;
+  return (size.w > size.h) === (orientation === 'landscape');
+}
+
+/** Medidas que declara el track (`getSettings`): en iOS pueden no coincidir con los cuadros reales. */
+export function settingsSize(stream: MediaStream): VideoSize | null {
   const settings = stream.getVideoTracks()[0]?.getSettings?.();
-  const w = settings?.width;
-  const h = settings?.height;
-  if (!w || !h || w === h) return true;
-  return (w > h) === (orientation === 'landscape');
+  return settings?.width && settings?.height ? { w: settings.width, h: settings.height } : null;
+}
+
+export function streamMatchesOrientation(stream: MediaStream, orientation: CameraOrientation): boolean {
+  return sizeMatchesOrientation(settingsSize(stream), orientation);
 }
 
 export interface OpenedCamera {
   stream: MediaStream;
   /** Qué intento dio el video: `ideal`, `girado` (medidas giradas) o `basico` (solo la cámara). */
   attempt: 'ideal' | 'girado' | 'basico';
+  /** Qué medidas dio cada intento, para el diagnóstico (`ideal 2048×1536 ✗`). */
+  log: string[];
 }
 
 /**
@@ -48,6 +62,8 @@ export async function openCameraStream(
   facingMode: CameraFacing,
   orientation: CameraOrientation,
   first?: MediaTrackConstraints | null,
+  /** Mide los cuadros reales (video ya reproduciéndose); sin esto se confía en `getSettings`. */
+  measure?: (stream: MediaStream) => Promise<VideoSize | null>,
 ): Promise<OpenedCamera> {
   const opposite: CameraOrientation = orientation === 'portrait' ? 'landscape' : 'portrait';
   const attempts: Array<[OpenedCamera['attempt'], MediaTrackConstraints]> = [
@@ -55,11 +71,15 @@ export async function openCameraStream(
     ['girado', idealVideoConstraints(facingMode, opposite)],
     ['basico', { facingMode }],
   ];
+  const log: string[] = [];
   let last: OpenedCamera | null = null;
   for (const [attempt, video] of attempts) {
     const stream = await getUserMedia({ video });
-    last = { stream, attempt };
-    if (streamMatchesOrientation(stream, orientation)) return last;
+    const size = (await measure?.(stream)) ?? settingsSize(stream);
+    const ok = sizeMatchesOrientation(size, orientation);
+    log.push(`${attempt} ${size ? `${size.w}×${size.h}` : 'sin medidas'} ${ok ? '✓' : '✗'}`);
+    last = { stream, attempt, log };
+    if (ok) return last;
     if (attempt !== 'basico') stream.getTracks().forEach((t) => t.stop());
   }
   return last as OpenedCamera;

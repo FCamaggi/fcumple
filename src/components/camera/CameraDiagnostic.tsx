@@ -1,4 +1,4 @@
-import { useEffect, useState, type RefObject } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
 import { coverCrop } from '../../lib/cameraFraming';
 
 /** Temporal: solo se monta con `?diagnostico=1`. Se borra cuando la captura sin zoom esté medida y resuelta. */
@@ -62,6 +62,7 @@ const fmt = (n: number | undefined, d = 3) => (typeof n === 'number' ? n.toFixed
 
 export default function CameraDiagnostic({ videoRef, trackRef, aspect, attemptRef }: Props) {
   const [lines, setLines] = useState<string[]>([]);
+  const cambios = useRef<string[]>([]);
   const [copiado, setCopiado] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -79,6 +80,7 @@ export default function CameraDiagnostic({ videoRef, trackRef, aspect, attemptRe
       setLines([
         `pedido: c=${new URLSearchParams(window.location.search).get('c') ?? 'actual'}`,
         `intento: ${attemptRef?.current ?? '—'}`,
+        `cambios de tamaño: ${cambios.current.join(' → ') || '—'}`,
         `track: ${s.width ?? '—'}×${s.height ?? '—'}  ar ${fmt(s.aspectRatio)}  zoom ${fmt(s.zoom, 2)}`,
         `facing: ${s.facingMode ?? '—'}  fps ${fmt(s.frameRate, 0)}`,
         `video: ${vw}×${vh}  ar ${vh ? fmt(vw / vh) : '—'}`,
@@ -91,9 +93,18 @@ export default function CameraDiagnostic({ videoRef, trackRef, aspect, attemptRe
         `ua: ${navigator.userAgent}`,
       ]);
     };
+    const video = videoRef.current;
+    const onResize = () => {
+      cambios.current = [...cambios.current, `${video?.videoWidth}×${video?.videoHeight}`].slice(-5);
+      read();
+    };
+    video?.addEventListener('resize', onResize);
     read();
     const id = window.setInterval(read, 500);
-    return () => window.clearInterval(id);
+    return () => {
+      window.clearInterval(id);
+      video?.removeEventListener('resize', onResize);
+    };
   }, [videoRef, trackRef, aspect, attemptRef]);
 
   return (

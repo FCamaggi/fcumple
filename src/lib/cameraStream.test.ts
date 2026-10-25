@@ -34,7 +34,7 @@ describe('openCameraStream', () => {
     const derecho = fakeStream(1536, 2048);
     const getUserMedia = vi.fn().mockResolvedValueOnce(girado.stream).mockResolvedValueOnce(derecho.stream);
     const opened = await openCameraStream(getUserMedia, 'user', 'portrait');
-    expect(opened).toEqual({ stream: derecho.stream, attempt: 'girado' });
+    expect(opened).toMatchObject({ stream: derecho.stream, attempt: 'girado' });
     expect(girado.stop).toHaveBeenCalled();
     expect(derecho.stop).not.toHaveBeenCalled();
     expect(getUserMedia.mock.calls[1][0]).toEqual({ video: idealVideoConstraints('user', 'landscape') });
@@ -55,5 +55,19 @@ describe('openCameraStream', () => {
     const getUserMedia = vi.fn().mockResolvedValue(fakeStream(480, 640).stream);
     await openCameraStream(getUserMedia, 'environment', 'portrait', { facingMode: 'environment' });
     expect(getUserMedia.mock.calls[0][0]).toEqual({ video: { facingMode: 'environment' } });
+  });
+
+  it('mide los cuadros reales cuando getSettings miente (iOS)', async () => {
+    const mentiroso = fakeStream(1536, 2048); // dice vertical...
+    const derecho = fakeStream(1536, 2048);
+    const getUserMedia = vi.fn().mockResolvedValueOnce(mentiroso.stream).mockResolvedValueOnce(derecho.stream);
+    const measure = vi
+      .fn()
+      .mockResolvedValueOnce({ w: 2048, h: 1536 }) // ...pero los cuadros llegan apaisados
+      .mockResolvedValueOnce({ w: 1536, h: 2048 });
+    const opened = await openCameraStream(getUserMedia, 'environment', 'portrait', null, measure);
+    expect(opened.attempt).toBe('girado');
+    expect(opened.log).toEqual(['ideal 2048×1536 ✗', 'girado 1536×2048 ✓']);
+    expect(mentiroso.stop).toHaveBeenCalled();
   });
 });
