@@ -27,6 +27,7 @@ import {
   scaleBy,
   type StickerPlacement,
 } from '../lib/cameraAssets/stickers';
+import { openCameraStream, idealVideoConstraints } from '../lib/cameraStream';
 import ComposerStage from './camera/ComposerStage';
 import CameraDiagnostic, { diagnosticoActivo, restriccionesDeDiagnostico } from './camera/CameraDiagnostic';
 import StickerTray from './camera/StickerTray';
@@ -73,13 +74,7 @@ export function getCameraVideoConstraints(
   facingMode: 'user' | 'environment',
   orientation: 'portrait' | 'landscape' = 'portrait',
 ): MediaTrackConstraints {
-  const isPortrait = orientation === 'portrait';
-  return {
-    facingMode,
-    width: { ideal: isPortrait ? 1536 : 2048 },
-    height: { ideal: isPortrait ? 2048 : 1536 },
-    aspectRatio: { ideal: isPortrait ? 3 / 4 : 4 / 3 },
-  };
+  return idealVideoConstraints(facingMode, orientation);
 }
 // Etapa 15: segunda copia "display" más liviana, pensada para navegar el
 // rollo revelado (RevealedRoll/PhotoLightbox) sin gastar el ancho de banda
@@ -329,8 +324,14 @@ export default function CameraCapture({
         return;
       }
       try {
-        const video = restriccionesDeDiagnostico(facingMode, orientation) ?? getCameraVideoConstraints(facingMode, orientation);
-        stream = await navigator.mediaDevices.getUserMedia({ video });
+        // Safari entrega el video girado si se le piden medidas; `openCameraStream` lo detecta y reintenta.
+        const opened = await openCameraStream(
+          (c) => navigator.mediaDevices.getUserMedia(c),
+          facingMode,
+          orientation,
+          restriccionesDeDiagnostico(facingMode, orientation),
+        );
+        stream = opened.stream;
         if (cancelled) {
           stream.getTracks().forEach((t) => t.stop());
           return;
