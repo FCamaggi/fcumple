@@ -156,6 +156,22 @@ describe('useCameraAssets', () => {
     expect(result.current.stickers).toEqual([]);
   });
 
+  it('usa la función de carga provista en vez de listCameraAssets cuando se especifica', async () => {
+    const customLoader = vi.fn().mockResolvedValue({
+      frames: [{ id: 'cf1', label: 'Marco propio', template: 'border' as const, params: {}, isDefault: true }],
+      stickers: [{ id: 'cs1', kind: 'emoji' as const, emoji: '🎈', storagePath: null }],
+    });
+    const { result } = renderHook(() => useCameraAssets('ev-1', true, customLoader));
+    expect(result.current.status).toBe('loading');
+
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+    expect(customLoader).toHaveBeenCalledTimes(1);
+    expect(listCameraAssets).not.toHaveBeenCalled();
+    expect(result.current.frames.map((f) => f.label)).toEqual(['Marco propio']);
+    expect(result.current.initialFrameId).toBe('cf1');
+    expect(result.current.stickers[0].asset).toEqual({ kind: 'emoji', emoji: '🎈' });
+  });
+
   it('descarta el resultado si el componente se desmonta antes de terminar', async () => {
     let resolve!: (v: { frames: typeof frames; stickers: never[] }) => void;
     vi.mocked(listCameraAssets).mockReturnValue(new Promise((r) => (resolve = r)));

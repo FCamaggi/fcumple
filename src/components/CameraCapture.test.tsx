@@ -169,6 +169,19 @@ describe('CameraCapture', () => {
     expect(screen.getByText('3')).toBeInTheDocument();
   });
 
+  it('muestra el aviso de vista previa de forma discreta en la cabecera activa y con cupo agotado', async () => {
+    const notice = 'Vista previa: las fotos no se guardan';
+    const { rerender } = render(
+      <CameraCapture token="tok123" quota={{ quota: 5, used: 2 }} onClose={() => {}} previewNotice={notice} />,
+    );
+    expect(screen.getByText(notice)).toBeInTheDocument();
+
+    rerender(
+      <CameraCapture token="tok123" quota={{ quota: 5, used: 5 }} onClose={() => {}} previewNotice={notice} />,
+    );
+    expect(screen.getByText(notice)).toBeInTheDocument();
+  });
+
   it('disables the shoot button until the camera stream is actually ready', async () => {
     render(<CameraCapture token="tok123" quota={{ quota: 5, used: 2 }} onClose={() => {}} />);
 

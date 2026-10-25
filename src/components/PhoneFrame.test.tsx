@@ -47,14 +47,16 @@ describe('PhoneFrame', () => {
     expect(iframe).toHaveStyle({ width: '390px', height: '844px' });
   });
 
-  it('limita lo que el iframe puede hacer: no navega el panel ni abre ventanas', () => {
+  it('limita lo que el iframe puede hacer: no navega el panel ni abre ventanas, pero permite usar la cámara', () => {
     render(<PhoneFrame src={SRC} label="x" state="activa" />);
 
-    const sandbox = (screen.getByTitle(/vista previa/i) as HTMLIFrameElement).getAttribute('sandbox') ?? '';
+    const iframe = screen.getByTitle(/vista previa/i) as HTMLIFrameElement;
+    const sandbox = iframe.getAttribute('sandbox') ?? '';
     expect(sandbox).toContain('allow-scripts');
     expect(sandbox).toContain('allow-same-origin');
     expect(sandbox).not.toContain('allow-top-navigation');
     expect(sandbox).not.toContain('allow-popups');
+    expect(iframe).toHaveAttribute('allow', 'camera');
   });
 
   it('manda el estado cuando el iframe avisa que está listo', () => {

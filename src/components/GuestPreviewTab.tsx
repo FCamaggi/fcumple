@@ -20,8 +20,8 @@ export default function GuestPreviewTab({ event }: { event: OrganizerEvent }) {
       <div className="flex flex-col gap-1">
         <span className="font-mono text-xs uppercase tracking-widest text-acid-400">Vista previa // lo que ve el invitado</span>
         <p className="font-sans text-sm text-paper-100/70">
-          Así se ve tu evento en un teléfono, con tu estilo y tus avisos publicados. Solo se mira: los botones no hacen
-          nada, no se crea ningún invitado y las personas y fotos son de ejemplo.
+          Así se ve tu evento en un teléfono, con tu estilo y tus avisos publicados. La cámara usa tu cámara de verdad
+          y no guarda nada; no se crea ningún invitado y las personas y fotos son de ejemplo.
         </p>
       </div>
 

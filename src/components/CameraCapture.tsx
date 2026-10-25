@@ -49,6 +49,8 @@ interface CameraCaptureProps {
   initialFrameId?: string | null;
   /** Nombre del evento: el boleto que acompaña al marco. Sin nombre no hay boleto. */
   eventName?: string;
+  /** Aviso discreto en la cabecera (p. ej. en la vista previa del panel). */
+  previewNotice?: string;
 }
 
 const NO_FRAME: CameraFrameOption = { id: 'none', label: 'Sin marco', draw: null };
@@ -150,6 +152,7 @@ export default function CameraCapture({
   stickers,
   initialFrameId,
   eventName,
+  previewNotice,
 }: CameraCaptureProps) {
   const reduceMotion = useReducedMotion() ?? false;
   const orientation = useOrientation();
@@ -451,7 +454,7 @@ export default function CameraCapture({
   if (outOfShots) {
     return (
       <div className="fixed inset-safe z-50 flex flex-col bg-ink-950" aria-label="Cámara de fotos">
-        <CameraHeader onClose={onClose} closeRef={closeRef} />
+        <CameraHeader onClose={onClose} closeRef={closeRef} previewNotice={previewNotice} />
         <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
           {/* El sello de la última foto no se pierde: sin esto el rollo agotado lo tapaba al instante. */}
           {state.phase === 'success' && (
@@ -471,7 +474,17 @@ export default function CameraCapture({
     <div ref={rootRef} className="fixed inset-safe z-50 flex flex-col bg-ink-950" aria-label="Cámara de fotos">
       {/* Cabecera baja: el visor es lo que manda. El rótulo «Cámara // modo carrete» solo vive en las pantallas sin cámara. */}
       <div role="group" aria-label="Estado de la cámara" className="flex items-center justify-between gap-2 bg-ink-900 px-3 py-1">
-        <FilmRollCounter quota={quota.quota} used={shownUsed} compact />
+        <div className="flex min-w-0 items-center gap-2">
+          <FilmRollCounter quota={quota.quota} used={shownUsed} compact />
+          {previewNotice && (
+            <span
+              className="truncate font-mono text-xs uppercase tracking-wider text-paper-100/70"
+              title={previewNotice}
+            >
+              {previewNotice}
+            </span>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           {controls.torch && (
             <button
@@ -744,16 +757,28 @@ function CameraHeader({
   onClose,
   closeRef,
   children,
+  previewNotice,
 }: {
   onClose: () => void;
   closeRef?: RefObject<HTMLButtonElement>;
   children?: ReactNode;
+  previewNotice?: string;
 }) {
   return (
     <header className="flex items-center justify-between gap-3 bg-ink-900 px-4 py-3 shadow-lg">
-      <span className="font-mono text-xs font-bold uppercase tracking-wider text-hotpink-500">
-        Cámara // modo carrete
-      </span>
+      <div className="flex min-w-0 items-center gap-2">
+        <span className="shrink-0 font-mono text-xs font-bold uppercase tracking-wider text-hotpink-500">
+          Cámara // modo carrete
+        </span>
+        {previewNotice && (
+          <span
+            className="truncate font-mono text-xs uppercase tracking-wider text-paper-100/70"
+            title={previewNotice}
+          >
+            {previewNotice}
+          </span>
+        )}
+      </div>
       <div className="flex items-center gap-3">
         {children}
         <button
