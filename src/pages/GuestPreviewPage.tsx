@@ -1,9 +1,12 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
+import CameraCapture from '../components/CameraCapture';
 import EventHeader from '../components/EventHeader';
 import GuestHubView from '../components/GuestHubView';
 import IdentifyForm from '../components/IdentifyForm';
 import ThemeScope from '../components/ThemeScope';
+import { useCameraAssets } from '../hooks/useCameraAssets';
+import type { PhotoUploader } from '../hooks/usePhotoCapture';
 import {
   PREVIEW_NOTE_TYPE,
   PREVIEW_READY_TYPE,
@@ -17,7 +20,8 @@ import {
 } from '../lib/guestPreview';
 import { getMyEvent, type OrganizerEvent } from '../lib/organizerApi';
 import { listAllPosts } from '../lib/postsApi';
-import type { Post } from '../types';
+import { listPreviewCameraAssets } from '../lib/previewCameraAssets';
+import type { PhotoQuota, Post } from '../types';
 
 type Load =
   | { status: 'loading' }
@@ -41,6 +45,15 @@ function blockSubmit(e: FormEvent) {
   e.stopPropagation();
 }
 
+const fakeUpload: PhotoUploader = async () => ({
+  id: 'preview-photo',
+  guestId: 'preview-guest',
+  storagePath: 'preview/photo.jpg',
+  displayStoragePath: null,
+  status: 'approved',
+  createdAt: new Date().toISOString(),
+});
+
 /**
  * `/panel/e/:eventId/vista-previa` — lo que ve un invitado, para la organizadora. Se abre dentro de un iframe del
  * panel (`PhoneFrame`) para que las reglas de pantalla (puntos de quiebre, 100dvh, capas fijas) midan un teléfono y
@@ -54,7 +67,28 @@ export default function GuestPreviewPage() {
   const [draft, setDraft] = useState<PreviewDraftPost | null>(null);
   const [themeId, setThemeId] = useState<string | null>(null);
   const [load, setLoad] = useState<Load>({ status: 'loading' });
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [cameraQuota, setCameraQuota] = useState<PhotoQuota | null>(null);
   const refreshSeq = useRef(0);
+
+  // El preset que se está probando manda sobre el guardado; ya viene validado contra `THEME_PRESETS`.
+  const event = useMemo(() => {
+    if (load.status !== 'ready') return null;
+    return themeId ? { ...load.event, theme: { preset: themeId } } : load.event;
+  }, [load, themeId]);
+
+  const cameraAssets = useCameraAssets(
+    eventId,
+    cameraOpen,
+    useCallback(() => {
+      if (!event) return Promise.resolve({ frames: [], stickers: [] });
+      return listPreviewCameraAssets(event);
+    }, [event]),
+  );
+
+  useEffect(() => {
+    setCameraOpen(false);
+  }, [state]);
 
   useEffect(() => {
     let cancelled = false;
@@ -145,7 +179,7 @@ export default function GuestPreviewPage() {
       </div>
     );
   }
-  if (load.status === 'error' || !scenario) {
+  if (load.status === 'error' || !scenario || !event) {
     return (
       <div className={centered}>
         <p role="alert" className="max-w-xs text-center font-mono text-xs uppercase tracking-wider text-flame-500">
@@ -155,8 +189,6 @@ export default function GuestPreviewPage() {
     );
   }
 
-  // El preset que se está probando manda sobre el guardado; ya viene validado contra `THEME_PRESETS`.
-  const event = themeId ? { ...load.event, theme: { preset: themeId } } : load.event;
   const publicEvent = toPublicPreviewEvent(event);
 
   if (scenario.screen === 'identify') {
@@ -183,10 +215,29 @@ export default function GuestPreviewPage() {
           posts={scenario.posts}
           revealed={scenario.revealed}
           refreshing={false}
-          onOpenCamera={noop}
+          onOpenCamera={() => {
+            const quotaTotal = scenario.quota?.quota ?? event.defaultPhotoQuota ?? 5;
+            setCameraQuota({ quota: quotaTotal, used: 0 });
+            setCameraOpen(true);
+          }}
           onShowQr={noop}
           onRefresh={noop}
         />
+
+        {cameraOpen && cameraQuota && (
+          <CameraCapture
+            token=""
+            quota={cameraQuota}
+            onQuotaChange={setCameraQuota}
+            onClose={() => setCameraOpen(false)}
+            upload={fakeUpload}
+            frames={cameraAssets.frames}
+            stickers={cameraAssets.stickers}
+            initialFrameId={cameraAssets.initialFrameId}
+            eventName={event.name}
+            previewNotice="Vista previa: las fotos no se guardan"
+          />
+        )}
       </div>
     </ThemeScope>
   );

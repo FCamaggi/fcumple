@@ -75,9 +75,9 @@ describe('GuestPreviewTab', () => {
     expect(screen.getByRole('status')).toBeEmptyDOMElement();
   });
 
-  it('explica que solo se mira: los botones no hacen nada y la gente es de ejemplo', () => {
+  it('explica que la cámara usa tu cámara de verdad sin guardar nada y que la gente es de ejemplo', () => {
     render(<GuestPreviewTab event={event} />);
 
-    expect(screen.getByText(/solo se mira/i)).toBeInTheDocument();
+    expect(screen.getByText(/la cámara usa tu cámara de verdad y no guarda nada/i)).toBeInTheDocument();
   });
 });

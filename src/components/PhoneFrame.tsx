@@ -105,6 +105,7 @@ export default function PhoneFrame({ src, label, state, draft = null, themeId = 
           title={`Vista previa: ${label}`}
           src={src}
           sandbox="allow-scripts allow-same-origin"
+          allow="camera"
           onLoad={send}
           className="block border-0"
           style={{

@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { renderFrame } from '../lib/cameraAssets/frames';
 import { prepareFrameAssets, sanitizeLayers } from '../lib/cameraAssets/layers';
-import { getStickerImageUrl, listCameraAssets } from '../lib/platformGuestApi';
+import { getStickerImageUrl, listCameraAssets, type GuestFrame, type GuestSticker } from '../lib/platformGuestApi';
 import type { CameraFrameOption, CameraStickerOption } from '../components/camera/types';
 
 export type CameraAssetsStatus = 'idle' | 'loading' | 'ready' | 'error';
+export type CameraAssetsLoader = () => Promise<{ frames: GuestFrame[]; stickers: GuestSticker[] }>;
 
 export interface CameraAssets {
   status: CameraAssetsStatus;
@@ -35,9 +36,18 @@ export function loadImage(url: string): Promise<HTMLImageElement> {
  * Marcos y stickers activos del evento del invitado, listos para la cámara: los
  * marcos como funciones de dibujo y las imágenes ya cargadas. Un sticker cuya
  * imagen no carga simplemente no aparece; nunca bloquea la cámara.
+ *
+ * El tercer parámetro permite pasar una función de carga propia (por ejemplo la
+ * de la vista previa del organizador, que lee con su sesión y no con un token).
  */
-export function useCameraAssets(token: string, enabled: boolean): CameraAssets {
+export function useCameraAssets(
+  token: string,
+  enabled: boolean,
+  loadFn?: CameraAssetsLoader,
+): CameraAssets {
   const [assets, setAssets] = useState<CameraAssets>(EMPTY);
+  const loadFnRef = useRef(loadFn);
+  loadFnRef.current = loadFn;
 
   useEffect(() => {
     if (!enabled) {
@@ -49,7 +59,8 @@ export function useCameraAssets(token: string, enabled: boolean): CameraAssets {
 
     async function load() {
       try {
-        const { frames, stickers } = await listCameraAssets(token);
+        const loader = loadFnRef.current ?? (() => listCameraAssets(token));
+        const { frames, stickers } = await loader();
 
         // Un marco de capas necesita sus imágenes y tipografías ya cargadas: renderFrame es síncrona.
         // prepareFrameAssets nunca rechaza; lo que no carga se omite y el resto del marco se dibuja.
