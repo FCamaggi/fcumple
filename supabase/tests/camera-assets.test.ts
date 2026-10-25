@@ -17,7 +17,7 @@ afterAll(async () => {
   await db.end();
 });
 
-const insertFrame = (eventId: string, params: unknown, template = 'border', label = 'Marco') =>
+const insertFrame = (eventId: string, params: unknown, template = 'capas', label = 'Marco') =>
   db.query('insert into event_frames (event_id, template, label, params) values ($1, $2, $3, $4) returning *', [
     eventId,
     template,
@@ -34,12 +34,12 @@ async function newEvent(owner = alice) {
 }
 
 describe('ejemplos al crear un evento', () => {
-  it('un evento nuevo trae 3 marcos y 6 emojis de ejemplo, activos y validos', async () => {
+  it('un evento nuevo trae 1 marco de capas y 6 emojis de ejemplo, activos y validos', async () => {
     const ev = await createEvent(db, alice, { name: 'Cumple de Ana' });
     const frames = await db.query('select template, enabled, params from event_frames where event_id = $1 order by sort_order', [ev.id]);
-    expect(frames.rows.map((r) => r.template)).toEqual(['border', 'polaroid', 'banner']);
+    expect(frames.rows.map((r) => r.template)).toEqual(['capas']);
     expect(frames.rows.every((r) => r.enabled)).toBe(true);
-    expect(frames.rows[2].params.title).toBe('Cumple de Ana');
+    expect(frames.rows[0].params.layers[0]).toMatchObject({ type: 'text', text: 'Cumple de Ana' });
 
     const stickers = await db.query('select kind, emoji from event_stickers where event_id = $1 order by sort_order', [ev.id]);
     expect(stickers.rows).toHaveLength(6);
@@ -48,8 +48,8 @@ describe('ejemplos al crear un evento', () => {
 
   it('un nombre de evento muy largo no rompe los ejemplos (se recorta a 60)', async () => {
     const ev = await createEvent(db, alice, { name: 'x'.repeat(120) });
-    const frame = await db.query(`select params from event_frames where event_id = $1 and template = 'banner'`, [ev.id]);
-    expect(frame.rows[0].params.title).toHaveLength(60);
+    const frame = await db.query(`select params from event_frames where event_id = $1 and template = 'capas'`, [ev.id]);
+    expect(frame.rows[0].params.layers[0].text).toHaveLength(60);
   });
 });
 
@@ -93,14 +93,14 @@ describe('validacion de los parametros de un marco', () => {
   it('rechaza params que no es un objeto', async () => {
     const ev = await newEvent();
     await expect(
-      db.query(`insert into event_frames (event_id, template, label, params) values ($1, 'border', 'x', '[1,2]')`, [ev.id]),
+      db.query(`insert into event_frames (event_id, template, label, params) values ($1, 'capas', 'x', '[1,2]')`, [ev.id]),
     ).rejects.toThrow(/event_frames_params_valid/);
   });
 
   it('rechaza una plantilla desconocida y una etiqueta vacia', async () => {
     const ev = await newEvent();
     await expect(insertFrame(ev.id, {}, 'hacker')).rejects.toThrow(/check/);
-    await expect(insertFrame(ev.id, {}, 'border', '   ')).rejects.toThrow(/check/);
+    await expect(insertFrame(ev.id, {}, 'capas', '   ')).rejects.toThrow(/check/);
   });
 });
 
@@ -132,7 +132,7 @@ describe('stickers: consistencia y topes', () => {
 
   it('tope de 20 marcos y 40 stickers por evento', async () => {
     const ev = await newEvent();
-    for (let i = 0; i < 20; i++) await insertFrame(ev.id, {}, 'border', `Marco ${i}`);
+    for (let i = 0; i < 20; i++) await insertFrame(ev.id, {}, 'capas', `Marco ${i}`);
     await expect(insertFrame(ev.id, {})).rejects.toMatchObject({ code: '53400' });
 
     for (let i = 0; i < 40; i++) {
@@ -181,7 +181,7 @@ describe('RLS: solo el organizador escribe, y solo en lo suyo', () => {
     expect(stickersSeen.rows.some((r) => r.event_id === b.id)).toBe(false);
 
     await expect(
-      asUser(db, alice, () => db.query(`insert into event_frames (event_id, template, label) values ($1, 'border', 'x')`, [b.id])),
+      asUser(db, alice, () => db.query(`insert into event_frames (event_id, template, label) values ($1, 'capas', 'x')`, [b.id])),
     ).rejects.toMatchObject({ code: '42501' });
     await expect(
       asUser(db, alice, () => db.query(`insert into event_stickers (event_id, kind, emoji) values ($1, 'emoji', 'a')`, [b.id])),
@@ -194,7 +194,7 @@ describe('RLS: solo el organizador escribe, y solo en lo suyo', () => {
   it('el organizador crea, edita y borra lo suyo', async () => {
     const ev = await newEvent();
     const created = await asUser(db, alice, () =>
-      db.query(`insert into event_frames (event_id, template, label, params) values ($1, 'glow', 'Brillo', '{"primaryColor":"#00ff00"}') returning id`, [ev.id]),
+      db.query(`insert into event_frames (event_id, template, label, params) values ($1, 'capas', 'Brillo', '{"layers":[]}') returning id`, [ev.id]),
     );
     const id = created.rows[0].id;
     await asUser(db, alice, () => db.query(`update event_frames set enabled = false where id = $1`, [id]));
@@ -217,9 +217,9 @@ describe('list_event_camera_assets', () => {
     const other = await newEvent(bob);
     const guest = await createGuest(db, ev.id, 'Ana Rojas');
 
-    const first = (await insertFrame(ev.id, { primaryColor: '#111111' }, 'border', 'Primero')).rows[0];
-    await insertFrame(ev.id, {}, 'film', 'Apagado').then((r) => db.query('update event_frames set enabled = false where id = $1', [r.rows[0].id]));
-    await insertFrame(other.id, {}, 'glow', 'Ajeno');
+    const first = (await insertFrame(ev.id, { layers: [] }, 'capas', 'Primero')).rows[0];
+    await insertFrame(ev.id, {}, 'capas', 'Apagado').then((r) => db.query('update event_frames set enabled = false where id = $1', [r.rows[0].id]));
+    await insertFrame(other.id, {}, 'capas', 'Ajeno');
     await db.query('update events set default_frame_id = $1 where id = $2', [first.id, ev.id]);
     await db.query(`insert into event_stickers (event_id, kind, emoji, sort_order) values ($1, 'emoji', 'b', 2), ($1, 'emoji', 'a', 1)`, [ev.id]);
     await db.query(`insert into event_stickers (event_id, kind, emoji, enabled) values ($1, 'emoji', 'z', false)`, [ev.id]);
@@ -230,7 +230,7 @@ describe('list_event_camera_assets', () => {
     const stickers = rows.filter((r) => r.asset_type === 'sticker');
 
     expect(frames.map((f) => f.label)).toEqual(['Primero']);
-    expect(frames[0]).toMatchObject({ template: 'border', is_default: true, params: { primaryColor: '#111111' } });
+    expect(frames[0]).toMatchObject({ template: 'capas', is_default: true, params: { layers: [] } });
     expect(stickers.map((s) => s.emoji)).toEqual(['a', 'b']);
   });
 

@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-  FRAME_TEMPLATES,
-  TEMPLATE_DESCRIPTIONS,
   TEMPLATE_LABELS,
   defaultFrameParams,
   type FrameParams,
@@ -61,7 +59,6 @@ export default function CameraStudio({ event, onEventChange }: CameraStudioProps
   const [frames, setFrames] = useState<EventFrame[] | null>(null);
   const [stickers, setStickers] = useState<EventSticker[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [picking, setPicking] = useState(false);
   const [editing, setEditing] = useState<Editing>(null);
   const [saving, setSaving] = useState(false);
   const canEdit = useCanEditDesigns();
@@ -69,7 +66,6 @@ export default function CameraStudio({ event, onEventChange }: CameraStudioProps
   useEffect(() => {
     if (!canEdit) {
       setEditing(null);
-      setPicking(false);
     }
   }, [canEdit]);
   // Sube con «Reintentar» para volver a leer marcos y stickers.
@@ -185,7 +181,7 @@ export default function CameraStudio({ event, onEventChange }: CameraStudioProps
   }
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex max-w-xl flex-col gap-8">
       {error && (
         <p role="alert" className="font-mono text-xs uppercase tracking-wide text-flame-500">
           {error}
@@ -314,35 +310,10 @@ export default function CameraStudio({ event, onEventChange }: CameraStudioProps
           })}
         </ul>
 
-        {!canEdit ? null : picking ? (
-          <div className="flex flex-col gap-2" role="group" aria-label="Elige una plantilla">
-            <p className="font-sans text-sm text-paper-100/80">Elige una plantilla:</p>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {FRAME_TEMPLATES.map((template) => (
-                <button
-                  key={template}
-                  type="button"
-                  onClick={() => {
-                    setPicking(false);
-                    setEditing({ kind: 'new', template });
-                  }}
-                  className="flex flex-col items-center gap-1 bg-ink-900 p-2"
-                  aria-label={`Plantilla ${TEMPLATE_LABELS[template]}`}
-                >
-                  <FramePreview template={template} params={defaultFrameParams(template, { eventName: event.name })} width={72} height={96} />
-                  <span className="font-mono text-xs uppercase tracking-wider text-paper-100">{TEMPLATE_LABELS[template]}</span>
-                  <span className="text-center font-sans text-xs text-paper-100/60">{TEMPLATE_DESCRIPTIONS[template]}</span>
-                </button>
-              ))}
-            </div>
-            <button type="button" className={`${smallButton} w-fit`} onClick={() => setPicking(false)}>
-              Cancelar
-            </button>
-          </div>
-        ) : (
+        {canEdit && (
           <button
             type="button"
-            onClick={() => setPicking(true)}
+            onClick={() => setEditing({ kind: 'new', template: 'capas' })}
             className="h-10 w-fit bg-acid-400 px-4 font-display text-xs uppercase tracking-wider text-ink-950"
           >
             Nuevo marco

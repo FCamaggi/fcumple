@@ -1,5 +1,5 @@
 import FramePreview from '../components/studio/FramePreview';
-import { FONT_STACKS, type FrameFont, type FrameParams } from '../lib/cameraAssets/frames';
+import { FONT_STACKS, defaultFrameParams, type FrameFont, type FrameParams } from '../lib/cameraAssets/frames';
 import type { BriefFrame, BriefOption, BriefPalette, BriefQuestion } from './types';
 
 /** Lo que ya eligió la persona y alimenta las vistas previas de las demás preguntas. */
@@ -174,32 +174,9 @@ function BunnyFrame({ ctx }: { ctx: BriefContext }) {
   );
 }
 
-/** Parámetros reales de la cámara para cada plantilla de ejemplo, con la paleta y los textos elegidos. */
-function frameParams(frame: Exclude<BriefFrame, 'conejita'>, ctx: BriefContext): FrameParams {
-  const { palette, font, name, date } = ctx;
-  switch (frame) {
-    case 'banner':
-      return {
-        primaryColor: palette.accent,
-        textColor: palette.bg,
-        font,
-        position: 'bottom',
-        title: name || 'Francisca',
-        subtitle: date || 'Tu fecha',
-      };
-    case 'polaroid':
-      return { primaryColor: '#ffffff', textColor: '#222222', font, thickness: 0.05, caption: name || 'Francisca' };
-    case 'film':
-      return { primaryColor: palette.bg, textColor: palette.accent, font: 'typewriter', title: date || name || 'Tu fecha' };
-    case 'viewfinder':
-      return { primaryColor: '#ffffff', textColor: '#ffffff', font: 'mono', thickness: 0.008, title: date || 'Tu fecha' };
-    case 'glow':
-      return { primaryColor: palette.accent, secondaryColor: palette.soft, thickness: 0.18 };
-    case 'border':
-      return { primaryColor: palette.accent, thickness: 0.04, radius: 0.05 };
-    case 'capas':
-      return { layers: [] };
-  }
+/** Parámetros reales de la cámara para el marco de ejemplo, con el nombre elegido. */
+function frameParams(_frame: Exclude<BriefFrame, 'conejita'>, ctx: BriefContext): FrameParams {
+  return defaultFrameParams('capas', { eventName: ctx.name || 'Francisca' });
 }
 
 /** Dibuja la vista previa de una opción según `question.visual`; sin `visual`, no dibuja nada. */

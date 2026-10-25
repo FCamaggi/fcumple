@@ -28,6 +28,27 @@ export const ASPECT_RATIO_DIMENSIONS: Record<
   '1:1': { width: 270, height: 270, label: '1:1 Cuadrado', shortLabel: '1:1' },
 };
 
+/** Cuánto se permite achicar o agrandar el lienzo respecto de su tamaño base. */
+export const STAGE_SCALE_MIN = 0.6;
+export const STAGE_SCALE_MAX = 3;
+
+/**
+ * Tamaño en píxeles CSS del lienzo de edición para el espacio disponible: la
+ * proporción se conserva y el lienzo crece hasta ocupar el ancho o el alto que
+ * haya, dentro de `STAGE_SCALE_MIN`–`STAGE_SCALE_MAX`. Las capas se miden
+ * relativas al lado menor, así que cualquier tamaño dibuja lo mismo.
+ */
+export function fitStageSize(
+  ratio: CanvasAspectRatio,
+  availableWidth: number,
+  availableHeight: number,
+): { width: number; height: number } {
+  const base = ASPECT_RATIO_DIMENSIONS[ratio];
+  const fit = Math.min(availableWidth / base.width, availableHeight / base.height);
+  const scale = clamp(Number.isFinite(fit) ? fit : 1, STAGE_SCALE_MIN, STAGE_SCALE_MAX);
+  return { width: Math.round(base.width * scale), height: Math.round(base.height * scale) };
+}
+
 export const ROTATION_SNAP_ANGLES = [-180, -135, -90, -45, 0, 45, 90, 135, 180] as const;
 export const ROTATION_SNAP_TOLERANCE = 5;
 export const SMART_GUIDE_SNAP_PX = 6;

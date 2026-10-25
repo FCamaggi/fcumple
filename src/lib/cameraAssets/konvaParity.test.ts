@@ -6,6 +6,7 @@ import {
   ASPECT_RATIO_DIMENSIONS,
   applyKonvaNodeTransform,
   computeSmartGuides,
+  fitStageSize,
   layerToKonvaGeometry,
   pixelToAnchoredPosition,
   snapRotationAngle,
@@ -207,5 +208,36 @@ describe('Paridad Konva <-> renderFrame (Etapa 1.5.3)', () => {
     expect(pixelToAnchoredPosition(27, 36, 270, 360)).toEqual({ x: 0, y: 0, dx: 0.1, dy: 0.1333 });
     expect(pixelToAnchoredPosition(135, 180, 270, 360)).toEqual({ x: 0.5, y: 0.5 });
     expect(pixelToAnchoredPosition(243, 324, 270, 360)).toEqual({ x: 1, y: 1, dx: -0.1, dy: -0.1333 });
+  });
+});
+
+describe('fitStageSize', () => {
+  it('con espacio de sobra crece hasta el tope y conserva la proporción', () => {
+    const { width, height } = fitStageSize('3:4', 5000, 5000);
+    expect(width / height).toBeCloseTo(270 / 360, 2);
+    expect(width).toBe(810); // 270 × 3
+  });
+
+  it('manda el eje más escaso: el alto en vertical, el ancho en horizontal', () => {
+    expect(fitStageSize('3:4', 900, 540)).toEqual({ width: 405, height: 540 });
+    expect(fitStageSize('4:3', 540, 900)).toEqual({ width: 540, height: 405 });
+  });
+
+  it('no baja del mínimo ni se rompe con valores no finitos', () => {
+    expect(fitStageSize('1:1', 10, 10)).toEqual({ width: 162, height: 162 }); // 270 × 0,6
+    expect(fitStageSize('1:1', Number.NaN, 400)).toEqual({ width: 270, height: 270 });
+  });
+
+  it.each(ASPECT_RATIOS)('%s: la geometría de las capas escala con el lienzo (paridad a cualquier tamaño)', (ratio) => {
+    const layer: FrameLayer = { type: 'asset', asset: 'pack:halloween-neon/tiara', x: 1, y: 0, dx: -0.04, dy: 0.04, w: 0.3, h: 0.3, rotation: 8 };
+    const base = ASPECT_RATIO_DIMENSIONS[ratio];
+    const big = fitStageSize(ratio, 5000, 5000);
+    const k = big.width / base.width;
+    const a = layerToKonvaGeometry(layer, base.width, base.height);
+    const b = layerToKonvaGeometry(layer, big.width, big.height);
+    for (const key of ['x', 'y', 'width', 'height', 'cx', 'cy'] as const) {
+      expect(b[key]).toBeCloseTo(a[key] * k, 0);
+    }
+    expect(b.rotation).toBe(a.rotation);
   });
 });

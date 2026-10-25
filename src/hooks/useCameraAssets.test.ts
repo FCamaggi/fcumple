@@ -11,8 +11,8 @@ import { getStickerImageUrl, listCameraAssets } from '../lib/platformGuestApi';
 import { loadImage, useCameraAssets } from './useCameraAssets';
 
 const frames = [
-  { id: 'f1', label: 'Borde', template: 'border' as const, params: { primaryColor: '#112233' }, isDefault: false },
-  { id: 'f2', label: 'Título', template: 'banner' as const, params: { title: 'Hola' }, isDefault: true },
+  { id: 'f1', label: 'Borde', template: 'capas' as const, params: { layers: [] }, isDefault: false },
+  { id: 'f2', label: 'Título', template: 'capas' as const, params: { layers: [{ type: 'text' as const, text: 'Hola', font: 'display' as const, color: '#ffffff' }] }, isDefault: true },
 ];
 
 // Imagen que "carga" al instante, o que falla si la URL contiene "roto".
@@ -158,7 +158,7 @@ describe('useCameraAssets', () => {
 
   it('usa la función de carga provista en vez de listCameraAssets cuando se especifica', async () => {
     const customLoader = vi.fn().mockResolvedValue({
-      frames: [{ id: 'cf1', label: 'Marco propio', template: 'border' as const, params: {}, isDefault: true }],
+      frames: [{ id: 'cf1', label: 'Marco propio', template: 'capas' as const, params: {}, isDefault: true }],
       stickers: [{ id: 'cs1', kind: 'emoji' as const, emoji: '🎈', storagePath: null }],
     });
     const { result } = renderHook(() => useCameraAssets('ev-1', true, customLoader));

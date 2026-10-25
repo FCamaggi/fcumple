@@ -48,10 +48,10 @@ async page => {
     { id: 'po2', title: 'Concurso de disfraces', subtitle: null, body: 'A las 00:30 elegimos al mejor disfraz. Hay premio.', cover_image_path: null, published_at: iso(6 * H), created_at: iso(7 * H), images: [] },
     { id: 'po3', title: 'Un título de aviso bastante largo para ver cómo se parte en dos o tres líneas en un teléfono chico', subtitle: 'Y un subtítulo también largo para probar el desborde del texto', body: 'Texto largo. '.repeat(60), cover_image_path: 'posts/cover-3.jpg', published_at: iso(9 * H), created_at: iso(10 * H), images: [] },
   ];
+  const textLayer = (text, y) => ({ type: 'text', text, x: 0.5, y, size: 0.08, w: 1.6, font: 'display', color: '#ffffff', weight: 'bold' });
   const frames = [
-    { id: 'f1', event_id: EVENT_ID, template: 'border', label: 'Borde rosa', params: { primaryColor: '#ff4fa3', thickness: 0.04, radius: 0.05 }, enabled: true, sort_order: 0, is_default: true, asset_type: 'frame' },
-    { id: 'f2', event_id: EVENT_ID, template: 'polaroid', label: 'Polaroid', params: { primaryColor: '#ffffff', textColor: '#222222', font: 'hand', thickness: 0.05, caption: 'PUTI HALLOWEEN' }, enabled: true, sort_order: 1, is_default: false, asset_type: 'frame' },
-    { id: 'f3', event_id: EVENT_ID, template: 'banner', label: 'Banner', params: { primaryColor: '#111111', textColor: '#ffffff', font: 'display', position: 'bottom', title: 'PUTI HALLOWEEN', subtitle: '30/10/2026' }, enabled: true, sort_order: 2, is_default: false, asset_type: 'frame' },
+    { id: 'f1', event_id: EVENT_ID, template: 'capas', label: 'Título', params: { layers: [textLayer('PUTI HALLOWEEN', 0.92)] }, enabled: true, sort_order: 0, is_default: true, asset_type: 'frame' },
+    { id: 'f2', event_id: EVENT_ID, template: 'capas', label: 'Fecha', params: { layers: [textLayer('30/10/2026', 0.08)] }, enabled: true, sort_order: 1, is_default: false, asset_type: 'frame' },
   ];
   const stickers = ['🎃', '👻', '🦇', '💖', '🕷️', '🧛'].map((e, i) => ({ id: `s${i}`, event_id: EVENT_ID, kind: 'emoji', emoji: e, storage_path: null, enabled: true, sort_order: i, asset_type: 'sticker' }));
 

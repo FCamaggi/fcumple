@@ -161,7 +161,8 @@ export default function OrganizerEventPage() {
   return (
     <ThemeScope theme={event.theme}>
       <div className={shell}>
-        <div className="mx-auto flex max-w-xl flex-col gap-6">
+        {/* La cámara es el estudio de diseño: en escritorio usa todo el ancho; el resto del panel, una columna. */}
+        <div className={`mx-auto flex max-w-xl flex-col gap-6 ${tab === 'camara' ? 'lg:max-w-7xl' : ''}`}>
           <header className="flex flex-col gap-1">
             <Link to="/panel" className="inline-flex min-h-11 items-center font-mono text-xs uppercase tracking-wider text-paper-100/60 underline">
               ← Tus eventos

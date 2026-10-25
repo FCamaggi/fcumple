@@ -91,7 +91,7 @@ const francisca: BriefDefinition = {
     {
       id: 'marcos',
       title: '¿Qué marcos para las fotos?',
-      help: 'Son solo referencias para que veas el estilo: el diseño de cada marco se hace después. Marcamos los dos que conversamos primero; abajo hay otros ejemplos. Se ven con tu paleta, tus letras y tus textos.',
+      help: 'Son solo referencias para que veas el estilo: el diseño de cada marco se hace después. Marcamos los dos que conversamos. Se ven con tu paleta, tus letras y tus textos.',
       selection: 'multi',
       visual: 'frame',
       options: [
@@ -99,7 +99,7 @@ const francisca: BriefDefinition = {
           id: 'cumple',
           label: 'Mi cumpleaños',
           hint: 'Con tu nombre y la fecha.',
-          frame: 'banner',
+          frame: 'capas',
         },
         {
           id: 'conejita',
@@ -107,10 +107,6 @@ const francisca: BriefDefinition = {
           hint: 'Orejas de conejita, antifaz y bodies. Se diseña a medida.',
           frame: 'conejita',
         },
-        { id: 'polaroid', label: 'Polaroid', hint: 'Ejemplo: marco blanco con tu nombre.', frame: 'polaroid' },
-        { id: 'film', label: 'Rollo de cine', hint: 'Ejemplo: franja con la fecha.', frame: 'film' },
-        { id: 'viewfinder', label: 'Visor de cámara', hint: 'Ejemplo: esquinas y REC.', frame: 'viewfinder' },
-        { id: 'glow', label: 'Destello de color', hint: 'Ejemplo: degradé en los bordes.', frame: 'glow' },
         { id: 'privado', label: 'Lo conversamos en privado', hint: 'No elijo ahora.', exclusive: true },
       ],
       notePlaceholder: 'Algo que hayas visto y te guste, o cómo imaginas el tuyo...',

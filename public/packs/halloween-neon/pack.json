@@ -134,7 +134,7 @@
           "box": { "l": 0.026, "r": 0.026, "b": 0.026 },
           "h": 0.185,
           "fill": "$fondo",
-          "opacity": 0.84,
+          "opacity": 0.74,
           "radius": 0.018
         },
         {
@@ -161,8 +161,8 @@
           "y": 0,
           "dx": 0.03,
           "dy": 0.03,
-          "w": 0.28,
-          "h": 0.28,
+          "w": 0.26,
+          "h": 0.26,
           "anchor": "tl",
           "tint": "$acento",
           "shadow": { "color": "$acento", "blur": 0.012, "x": 0, "y": 0 }
@@ -172,10 +172,10 @@
           "asset": "pack:halloween-neon/orejas-conejita",
           "x": 0,
           "y": 1,
-          "dx": 0.15,
-          "dy": -0.266,
-          "w": 0.23,
-          "h": 0.23,
+          "dx": 0.13,
+          "dy": -0.3,
+          "w": 0.22,
+          "h": 0.22,
           "rotation": -5,
           "tint": "$acento",
           "shadow": { "color": "$acento", "blur": 0.02, "x": 0, "y": 0 }
@@ -203,7 +203,8 @@
           "w": 0.12,
           "h": 0.12,
           "rotation": -14,
-          "tint": "$acento"
+          "tint": "$acento",
+          "shadow": { "color": "$acento", "blur": 0.016, "x": 0, "y": 0 }
         },
         {
           "type": "asset",
@@ -215,7 +216,8 @@
           "w": 0.092,
           "h": 0.092,
           "rotation": 10,
-          "tint": "$acento"
+          "tint": "$acento",
+          "shadow": { "color": "$acento", "blur": 0.016, "x": 0, "y": 0 }
         },
         {
           "type": "text",
@@ -242,6 +244,59 @@
           "font": "mono",
           "weight": "bold",
           "color": "$texto"
+        },
+        {
+          "type": "shape",
+          "shape": "path",
+          "d": "M50 0C54 34 66 46 100 50C66 54 54 66 50 100C46 66 34 54 0 50C34 46 46 34 50 0Z",
+          "x": 0,
+          "y": 0,
+          "dx": 0.36,
+          "dy": 0.07,
+          "w": 0.045,
+          "h": 0.045,
+          "fill": "$texto",
+          "shadow": { "color": "$acento", "blur": 0.018, "x": 0, "y": 0 }
+        },
+        {
+          "type": "shape",
+          "shape": "path",
+          "d": "M50 0C54 34 66 46 100 50C66 54 54 66 50 100C46 66 34 54 0 50C34 46 46 34 50 0Z",
+          "x": 1,
+          "y": 0,
+          "dx": -0.07,
+          "dy": 0.34,
+          "w": 0.04,
+          "h": 0.04,
+          "fill": "$texto",
+          "shadow": { "color": "$acento", "blur": 0.018, "x": 0, "y": 0 },
+          "rotation": 12
+        },
+        {
+          "type": "shape",
+          "shape": "path",
+          "d": "M50 0C54 34 66 46 100 50C66 54 54 66 50 100C46 66 34 54 0 50C34 46 46 34 50 0Z",
+          "x": 0,
+          "y": 0.5,
+          "dx": 0.06,
+          "dy": -0.08,
+          "w": 0.032,
+          "h": 0.032,
+          "fill": "$texto",
+          "shadow": { "color": "$acento", "blur": 0.018, "x": 0, "y": 0 }
+        },
+        {
+          "type": "shape",
+          "shape": "path",
+          "d": "M50 0C54 34 66 46 100 50C66 54 54 66 50 100C46 66 34 54 0 50C34 46 46 34 50 0Z",
+          "x": 1,
+          "y": 1,
+          "dx": -0.06,
+          "dy": -0.4,
+          "w": 0.036,
+          "h": 0.036,
+          "fill": "$texto",
+          "shadow": { "color": "$acento", "blur": 0.018, "x": 0, "y": 0 }
         }
       ]
     },
@@ -257,8 +312,8 @@
           "y": 0,
           "dx": 0.012,
           "dy": 0.012,
-          "w": 0.3,
-          "h": 0.3,
+          "w": 0.27,
+          "h": 0.27,
           "anchor": "tl",
           "tint": "$acento",
           "shadow": { "color": "$acento", "blur": 0.02, "x": 0, "y": 0 }
@@ -273,7 +328,8 @@
           "w": 0.145,
           "h": 0.145,
           "rotation": -15,
-          "tint": "$acento"
+          "tint": "$acento",
+          "shadow": { "color": "$acento", "blur": 0.016, "x": 0, "y": 0 }
         },
         {
           "type": "asset",
@@ -285,7 +341,8 @@
           "w": 0.2,
           "h": 0.2,
           "rotation": -14,
-          "tint": "$acento"
+          "tint": "$acento",
+          "shadow": { "color": "$acento", "blur": 0.016, "x": 0, "y": 0 }
         },
         {
           "type": "asset",
@@ -297,7 +354,8 @@
           "w": 0.225,
           "h": 0.225,
           "rotation": -8,
-          "tint": "$acento"
+          "tint": "$acento",
+          "shadow": { "color": "$acento", "blur": 0.016, "x": 0, "y": 0 }
         },
         {
           "type": "asset",
@@ -309,7 +367,8 @@
           "w": 0.15,
           "h": 0.15,
           "rotation": -12,
-          "tint": "$acento"
+          "tint": "$acento",
+          "shadow": { "color": "$acento", "blur": 0.016, "x": 0, "y": 0 }
         },
         {
           "type": "asset",
@@ -321,7 +380,8 @@
           "w": 0.082,
           "h": 0.082,
           "rotation": 12,
-          "tint": "$acento"
+          "tint": "$acento",
+          "shadow": { "color": "$acento", "blur": 0.016, "x": 0, "y": 0 }
         },
         {
           "type": "text",
@@ -350,6 +410,72 @@
           "color": "$texto",
           "strokeColor": "$fondo",
           "strokeWidth": 0.01
+        },
+        {
+          "type": "shape",
+          "shape": "path",
+          "d": "M50 0C54 34 66 46 100 50C66 54 54 66 50 100C46 66 34 54 0 50C34 46 46 34 50 0Z",
+          "x": 0,
+          "y": 0,
+          "dx": 0.34,
+          "dy": 0.07,
+          "w": 0.045,
+          "h": 0.045,
+          "fill": "$texto",
+          "shadow": { "color": "$acento", "blur": 0.018, "x": 0, "y": 0 }
+        },
+        {
+          "type": "shape",
+          "shape": "path",
+          "d": "M50 0C54 34 66 46 100 50C66 54 54 66 50 100C46 66 34 54 0 50C34 46 46 34 50 0Z",
+          "x": 1,
+          "y": 0,
+          "dx": -0.06,
+          "dy": 0.4,
+          "w": 0.04,
+          "h": 0.04,
+          "fill": "$texto",
+          "shadow": { "color": "$acento", "blur": 0.018, "x": 0, "y": 0 },
+          "rotation": 10
+        },
+        {
+          "type": "shape",
+          "shape": "path",
+          "d": "M50 0C54 34 66 46 100 50C66 54 54 66 50 100C46 66 34 54 0 50C34 46 46 34 50 0Z",
+          "x": 0,
+          "y": 0.5,
+          "dx": 0.05,
+          "dy": 0.12,
+          "w": 0.03,
+          "h": 0.03,
+          "fill": "$texto",
+          "shadow": { "color": "$acento", "blur": 0.018, "x": 0, "y": 0 }
+        },
+        {
+          "type": "shape",
+          "shape": "path",
+          "d": "M50 0C54 34 66 46 100 50C66 54 54 66 50 100C46 66 34 54 0 50C34 46 46 34 50 0Z",
+          "x": 1,
+          "y": 1,
+          "dx": -0.05,
+          "dy": -0.31,
+          "w": 0.036,
+          "h": 0.036,
+          "fill": "$texto",
+          "shadow": { "color": "$acento", "blur": 0.018, "x": 0, "y": 0 }
+        },
+        {
+          "type": "shape",
+          "shape": "path",
+          "d": "M50 0C54 34 66 46 100 50C66 54 54 66 50 100C46 66 34 54 0 50C34 46 46 34 50 0Z",
+          "x": 0,
+          "y": 1,
+          "dx": 0.07,
+          "dy": -0.3,
+          "w": 0.034,
+          "h": 0.034,
+          "fill": "$texto",
+          "shadow": { "color": "$acento", "blur": 0.018, "x": 0, "y": 0 }
         }
       ]
     },
@@ -364,7 +490,7 @@
           "box": { "l": 0.026, "r": 0.026, "b": 0.026 },
           "h": 0.175,
           "fill": "$fondo",
-          "opacity": 0.82,
+          "opacity": 0.72,
           "radius": 0.018
         },
         {
@@ -407,7 +533,8 @@
           "w": 0.17,
           "h": 0.17,
           "rotation": 10,
-          "tint": "$acento"
+          "tint": "$acento",
+          "shadow": { "color": "$acento", "blur": 0.016, "x": 0, "y": 0 }
         },
         {
           "type": "asset",
@@ -419,7 +546,8 @@
           "w": 0.065,
           "h": 0.065,
           "rotation": -12,
-          "tint": "$acento"
+          "tint": "$acento",
+          "shadow": { "color": "$acento", "blur": 0.016, "x": 0, "y": 0 }
         },
         {
           "type": "asset",
@@ -431,7 +559,8 @@
           "w": 0.086,
           "h": 0.086,
           "rotation": -10,
-          "tint": "$acento"
+          "tint": "$acento",
+          "shadow": { "color": "$acento", "blur": 0.016, "x": 0, "y": 0 }
         },
         {
           "type": "text",
@@ -458,6 +587,59 @@
           "strokeColor": "$fondo",
           "strokeWidth": 0.012,
           "shadow": { "color": "$acento", "blur": 0.022, "x": 0, "y": 0 }
+        },
+        {
+          "type": "shape",
+          "shape": "path",
+          "d": "M50 0C54 34 66 46 100 50C66 54 54 66 50 100C46 66 34 54 0 50C34 46 46 34 50 0Z",
+          "x": 0,
+          "y": 0,
+          "dx": 0.3,
+          "dy": 0.06,
+          "w": 0.04,
+          "h": 0.04,
+          "fill": "$texto",
+          "shadow": { "color": "$acento", "blur": 0.018, "x": 0, "y": 0 }
+        },
+        {
+          "type": "shape",
+          "shape": "path",
+          "d": "M50 0C54 34 66 46 100 50C66 54 54 66 50 100C46 66 34 54 0 50C34 46 46 34 50 0Z",
+          "x": 1,
+          "y": 0,
+          "dx": -0.06,
+          "dy": 0.3,
+          "w": 0.036,
+          "h": 0.036,
+          "fill": "$texto",
+          "shadow": { "color": "$acento", "blur": 0.018, "x": 0, "y": 0 },
+          "rotation": 10
+        },
+        {
+          "type": "shape",
+          "shape": "path",
+          "d": "M50 0C54 34 66 46 100 50C66 54 54 66 50 100C46 66 34 54 0 50C34 46 46 34 50 0Z",
+          "x": 0,
+          "y": 0.5,
+          "dx": 0.05,
+          "dy": -0.05,
+          "w": 0.03,
+          "h": 0.03,
+          "fill": "$texto",
+          "shadow": { "color": "$acento", "blur": 0.018, "x": 0, "y": 0 }
+        },
+        {
+          "type": "shape",
+          "shape": "path",
+          "d": "M50 0C54 34 66 46 100 50C66 54 54 66 50 100C46 66 34 54 0 50C34 46 46 34 50 0Z",
+          "x": 1,
+          "y": 0.5,
+          "dx": -0.05,
+          "dy": 0.05,
+          "w": 0.034,
+          "h": 0.034,
+          "fill": "$texto",
+          "shadow": { "color": "$acento", "blur": 0.018, "x": 0, "y": 0 }
         }
       ]
     },
@@ -505,7 +687,7 @@
           "w": 0.7,
           "h": 0.074,
           "fill": "$fondo",
-          "opacity": 0.88,
+          "opacity": 0.8,
           "stroke": "$acento",
           "strokeWidth": 0.006,
           "radius": 0.01,
@@ -535,7 +717,8 @@
           "w": 0.225,
           "h": 0.225,
           "rotation": -8,
-          "tint": "$acento"
+          "tint": "$acento",
+          "shadow": { "color": "$acento", "blur": 0.016, "x": 0, "y": 0 }
         },
         {
           "type": "asset",
@@ -547,7 +730,8 @@
           "w": 0.195,
           "h": 0.195,
           "rotation": 12,
-          "tint": "$acento"
+          "tint": "$acento",
+          "shadow": { "color": "$acento", "blur": 0.016, "x": 0, "y": 0 }
         },
         {
           "type": "asset",
@@ -559,7 +743,8 @@
           "w": 0.088,
           "h": 0.088,
           "rotation": 12,
-          "tint": "$acento"
+          "tint": "$acento",
+          "shadow": { "color": "$acento", "blur": 0.016, "x": 0, "y": 0 }
         },
         {
           "type": "asset",
@@ -571,7 +756,34 @@
           "w": 0.052,
           "h": 0.052,
           "rotation": -14,
-          "tint": "$acento"
+          "tint": "$acento",
+          "shadow": { "color": "$acento", "blur": 0.016, "x": 0, "y": 0 }
+        },
+        {
+          "type": "shape",
+          "shape": "path",
+          "d": "M50 0C54 34 66 46 100 50C66 54 54 66 50 100C46 66 34 54 0 50C34 46 46 34 50 0Z",
+          "x": 1,
+          "y": 1,
+          "dx": -0.05,
+          "dy": -0.3,
+          "w": 0.036,
+          "h": 0.036,
+          "fill": "$texto",
+          "shadow": { "color": "$acento", "blur": 0.018, "x": 0, "y": 0 }
+        },
+        {
+          "type": "shape",
+          "shape": "path",
+          "d": "M50 0C54 34 66 46 100 50C66 54 54 66 50 100C46 66 34 54 0 50C34 46 46 34 50 0Z",
+          "x": 0,
+          "y": 0,
+          "dx": 0.07,
+          "dy": 0.15,
+          "w": 0.034,
+          "h": 0.034,
+          "fill": "$texto",
+          "shadow": { "color": "$acento", "blur": 0.018, "x": 0, "y": 0 }
         }
       ]
     }

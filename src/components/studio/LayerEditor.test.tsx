@@ -5,9 +5,30 @@ import userEvent from '@testing-library/user-event';
 import { createMockCtx } from '../../test/mockCanvas';
 import { installPointerEventPolyfill } from '../../test/pointerEvents';
 import { MAX_LAYERS, validateLayers, type FrameLayer } from '../../lib/cameraAssets/layers';
-import LayerEditor, { STAGE_HEIGHT, STAGE_WIDTH } from './LayerEditor';
+import LayerEditor from './LayerEditor';
 
 installPointerEventPolyfill();
+
+// Konva no corre en jsdom: el doble expone sus callbacks (selección, vista en vivo y confirmación) como botones.
+vi.mock('./KonvaCanvasStage', () => ({
+  default: (props: {
+    layers: { x?: number }[];
+    selected: number;
+    onSelect: (i: number) => void;
+    onPreviewLayer?: (i: number, layer: unknown) => void;
+    onChangeLayer: (i: number, layer: unknown) => void;
+  }) => (
+    <div data-testid="konva-stub" data-selected={props.selected}>
+      <button type="button" onClick={() => props.onSelect(0)}>stub-seleccionar</button>
+      <button type="button" onClick={() => props.onSelect(-1)}>stub-deseleccionar</button>
+      <button type="button" onClick={() => props.onPreviewLayer?.(0, { type: 'text', text: 'EN VIVO', x: 0.3, y: 0.5, font: 'sans', color: '#ffffff' })}>
+        stub-vista
+      </button>
+      <button type="button" onClick={() => props.onPreviewLayer?.(0, null)}>stub-fin-vista</button>
+      <button type="button" onClick={() => props.onChangeLayer(0, { ...props.layers[0], x: 0.3 })}>stub-soltar</button>
+    </div>
+  ),
+}));
 
 const EVENT = '123e4567-e89b-42d3-a456-426614174000';
 
@@ -172,63 +193,57 @@ describe('LayerEditor: orden, duplicar y borrar', () => {
 });
 
 describe('LayerEditor: lienzo', () => {
-  const center = { clientX: STAGE_WIDTH / 2, clientY: STAGE_HEIGHT / 2 };
-
-  it('tocar una capa la selecciona y arrastrarla la mueve', () => {
+  it('el lienzo interactivo selecciona y deselecciona capas', async () => {
+    const user = userEvent.setup();
     render(<Harness initial={[rect]} />);
-    fireEvent.pointerDown(stage(), { ...center, pointerId: 1 });
+    expect(await screen.findByTestId('konva-stub')).toHaveAttribute('data-selected', '-1');
+
+    await user.click(screen.getByRole('button', { name: 'stub-seleccionar' }));
     expect(screen.getByLabelText('Relleno')).toBeInTheDocument();
 
-    fireEvent.pointerMove(stage(), { clientX: center.clientX + STAGE_WIDTH * 0.1, clientY: center.clientY, pointerId: 1 });
-    fireEvent.pointerUp(stage(), { pointerId: 1 });
-    expect(latest[0].x).toBeCloseTo(0.6, 3);
-    expect(latest[0].y).toBeCloseTo(0.5, 3);
-  });
-
-  it('tocar una zona vacía deselecciona', () => {
-    render(<Harness initial={[rect]} />);
-    fireEvent.pointerDown(stage(), { ...center, pointerId: 1 });
-    fireEvent.pointerUp(stage(), { pointerId: 1 });
-    expect(screen.getByLabelText('Relleno')).toBeInTheDocument();
-
-    fireEvent.pointerDown(stage(), { clientX: 2, clientY: 2, pointerId: 1 });
-    fireEvent.pointerUp(stage(), { pointerId: 1 });
+    await user.click(screen.getByRole('button', { name: 'stub-deseleccionar' }));
     expect(screen.queryByLabelText('Relleno')).not.toBeInTheDocument();
   });
 
-  it('el asa de escala agranda la capa en proporción a la distancia al centro', async () => {
+  it('soltar una capa confirma el cambio una sola vez y se puede deshacer', async () => {
+    const user = userEvent.setup();
     render(<Harness initial={[rect]} />);
-    fireEvent.pointerDown(stage(), { ...center, pointerId: 1 });
-    fireEvent.pointerUp(stage(), { pointerId: 1 });
+    await user.click(await screen.findByRole('button', { name: 'stub-soltar' }));
 
-    const handle = await screen.findByTestId('handle-scale');
-    const startX = center.clientX + 40;
-    fireEvent.pointerDown(handle, { clientX: startX, clientY: center.clientY, pointerId: 2 });
-    fireEvent.pointerMove(stage(), { clientX: center.clientX + 80, clientY: center.clientY, pointerId: 2 });
-    fireEvent.pointerUp(stage(), { pointerId: 2 });
-
-    expect(latest[0]).toMatchObject({ w: 0.8, h: 0.4 });
+    expect(latest[0].x).toBeCloseTo(0.3, 3);
+    await user.click(screen.getByRole('button', { name: 'Deshacer' }));
+    expect(latest[0].x).toBeCloseTo(0.5, 3);
   });
 
-  it('el asa de rotación gira la capa hacia el puntero', async () => {
+  it('durante el gesto dibuja la capa donde quedaría, sin confirmarla', async () => {
+    const user = userEvent.setup();
+    const m = createMockCtx();
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(m.ctx);
+    render(<Harness initial={[text]} />);
+
+    await user.click(await screen.findByRole('button', { name: 'stub-vista' }));
+    expect(m.texts()).toContain('EN VIVO');
+    expect(latest[0]).toMatchObject({ text: 'Cumpleaños Fran' }); // nada confirmado todavía
+
+    m.calls.length = 0;
+    await user.click(screen.getByRole('button', { name: 'stub-fin-vista' }));
+    expect(m.texts()).toContain('Cumpleaños Fran');
+    expect(m.texts()).not.toContain('EN VIVO');
+  });
+
+  it('ya no hay asas DOM: el escalado y el giro los hace el Transformer', async () => {
+    const user = userEvent.setup();
     render(<Harness initial={[rect]} />);
-    fireEvent.pointerDown(stage(), { ...center, pointerId: 1 });
-    fireEvent.pointerUp(stage(), { pointerId: 1 });
-
-    const handle = await screen.findByTestId('handle-rotate');
-    fireEvent.pointerDown(handle, { clientX: center.clientX, clientY: 10, pointerId: 2 });
-    fireEvent.pointerMove(stage(), { clientX: center.clientX + 100, clientY: center.clientY, pointerId: 2 });
-    fireEvent.pointerUp(stage(), { pointerId: 2 });
-
-    expect(latest[0].rotation).toBe(90);
+    await user.click(await screen.findByRole('button', { name: 'stub-seleccionar' }));
+    expect(screen.queryByTestId('handle-scale')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('handle-rotate')).not.toBeInTheDocument();
   });
 
   it('las flechas mueven la capa seleccionada y Suprimir la borra', async () => {
     const user = userEvent.setup();
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     render(<Harness initial={[rect]} />);
-    fireEvent.pointerDown(stage(), { ...center, pointerId: 1 });
-    fireEvent.pointerUp(stage(), { pointerId: 1 });
+    await user.click(await screen.findByRole('button', { name: 'stub-seleccionar' }));
 
     stage().focus();
     await user.keyboard('{ArrowRight}');
@@ -238,6 +253,26 @@ describe('LayerEditor: lienzo', () => {
 
     await user.keyboard('{Delete}');
     expect(latest).toEqual([]);
+  });
+
+  it('Ctrl+D duplica y Ctrl+Z deshace', async () => {
+    const user = userEvent.setup();
+    render(<Harness initial={[rect]} />);
+    await user.click(await screen.findByRole('button', { name: 'stub-seleccionar' }));
+
+    stage().focus();
+    await user.keyboard('{Control>}d{/Control}');
+    expect(latest).toHaveLength(2);
+    await user.keyboard('{Control>}z{/Control}');
+    expect(latest).toHaveLength(1);
+  });
+
+  it('en jsdom el lienzo mide 270×360 (sin ResizeObserver) y lo cambia la proporción', async () => {
+    const user = userEvent.setup();
+    render(<Harness />);
+    expect(stage()).toHaveStyle({ width: '270px', height: '360px' });
+    await user.click(screen.getByRole('button', { name: 'Proporción 9:16' }));
+    expect(stage()).toHaveStyle({ width: '270px', height: '480px' });
   });
 });
 
@@ -262,7 +297,7 @@ describe('LayerEditor: imágenes', () => {
     expect(validateLayers(latest)).toEqual({ ok: true });
   });
 
-  it('una imagen a pantalla completa se puede alternar y no se arrastra', async () => {
+  it('una imagen puede alternarse a pantalla completa', async () => {
     const user = userEvent.setup();
     const src = `${EVENT}/frames/abc.webp`;
     render(<Harness initial={[{ type: 'image', src, x: 0.5, y: 0.5, w: 0.5, h: 0.5 }]} />);
@@ -271,9 +306,6 @@ describe('LayerEditor: imágenes', () => {
     await user.click(screen.getByLabelText('Cubrir toda la foto'));
     expect(latest[0]).toMatchObject({ full: true });
 
-    fireEvent.pointerDown(stage(), { clientX: 100, clientY: 100, pointerId: 1 });
-    fireEvent.pointerMove(stage(), { clientX: 200, clientY: 200, pointerId: 1 });
-    fireEvent.pointerUp(stage(), { pointerId: 1 });
     expect(latest[0]).toMatchObject({ full: true, x: 0.5 });
     expect(screen.queryByTestId('handle-scale')).not.toBeInTheDocument();
   });

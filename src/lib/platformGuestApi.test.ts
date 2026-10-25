@@ -194,7 +194,7 @@ describe('listCameraAssets', () => {
   it('separa marcos y stickers, limpia los parámetros y marca el marco por defecto', async () => {
     rpc.mockResolvedValueOnce({
       data: [
-        { asset_type: 'frame', id: 'f1', label: 'Borde', template: 'border', params: { primaryColor: '#112233', hack: 1 }, emoji: null, storage_path: null, is_default: true },
+        { asset_type: 'frame', id: 'f1', label: 'Borde', template: 'capas', params: { primaryColor: '#112233', hack: 1 }, emoji: null, storage_path: null, is_default: true },
         { asset_type: 'sticker', id: 's1', label: null, template: null, params: null, emoji: '🎉', storage_path: null, is_default: false },
         { asset_type: 'sticker', id: 's2', label: null, template: null, params: null, emoji: null, storage_path: 'ev/stickers/a.webp', is_default: false },
       ],
@@ -205,7 +205,7 @@ describe('listCameraAssets', () => {
 
     expect(rpc).toHaveBeenCalledWith('list_event_camera_assets', { p_token: 'tok' });
     expect(assets.frames).toEqual([
-      { id: 'f1', label: 'Borde', template: 'border', params: { primaryColor: '#112233' }, isDefault: true },
+      { id: 'f1', label: 'Borde', template: 'capas', params: { primaryColor: '#112233' }, isDefault: true },
     ]);
     expect(assets.stickers).toEqual([
       { id: 's1', kind: 'emoji', emoji: '🎉', storagePath: null },
