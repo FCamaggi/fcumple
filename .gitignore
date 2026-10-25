@@ -39,3 +39,6 @@ docs/clientes/
 
 # Salida de scripts/qa-movil (capturas y mediciones; se regeneran)
 scripts/qa-movil/salida/
+
+# Salida de scripts/qa-estudio (capturas del Estudio; se regeneran)
+scripts/qa-estudio/salida/

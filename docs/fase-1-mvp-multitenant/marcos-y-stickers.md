@@ -1,5 +1,9 @@
 # Marcos y stickers por evento (Fase 1)
 
+> **Vigencia (2026-10-25).** Las plantillas paramétricas `border`, `polaroid`, `film`, `viewfinder`, `banner` y `glow` **ya no existen**: se retiraron del motor (`frames.ts`), del editor y de la base. Solo queda `capas`. La migración `20261026100018_frames_solo_capas.sql` borra los marcos que las usaban, deja `template = 'capas'` y hace que un evento nuevo arranque con un marco de capas con su nombre. Los diseños reales de un evento se recargan desde sus SQL (por ejemplo `docs/clientes/francisca/marcos/cargar-marcos-v3.sql`). Las secciones de abajo que describen esas plantillas son el diseño original y quedan como registro.
+>
+> **Estudio de diseño.** En escritorio (≥ 1024 px) la pestaña Cámara usa todo el ancho y el lienzo se ajusta al espacio disponible (`fitStageSize`). Lo que se ve lo dibuja `renderFrame`, igual que la foto final; `KonvaCanvasStage` va encima solo para seleccionar, arrastrar, escalar y girar (cajas invisibles más `Transformer`), así que la paridad es exacta por construcción. Verificación visual: un script de Playwright con el Supabase simulado de `scripts/qa-movil/mock.js` aplica cada preset en las cuatro proporciones.
+
 ## Principio
 
 **Solo el organizador diseña la experiencia de cámara.** El invitado no crea ni sube nada: elige entre lo que el organizador dejó activo.
