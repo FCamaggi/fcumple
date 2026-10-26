@@ -8,26 +8,7 @@ vi.mock('../lib/platformGuestApi', () => ({
 }));
 
 import { getStickerImageUrl, listCameraAssets } from '../lib/platformGuestApi';
-import { fullImageAspect, loadImage, useCameraAssets } from './useCameraAssets';
-
-describe('fullImageAspect', () => {
-  const src = '123e4567-e89b-42d3-a456-426614174000/frames/a.webp';
-  const full = [{ type: 'image' as const, src, full: true }];
-  const withImage = (w: number, h: number) =>
-    ({ images: new Map([[src, { naturalWidth: w, naturalHeight: h } as unknown as CanvasImageSource]]) }) as never;
-
-  it('es ancho / alto de la imagen completa ya cargada', () => {
-    expect(fullImageAspect(full, withImage(1086, 1448))).toBeCloseTo(0.75, 3);
-    expect(fullImageAspect(full, withImage(2400, 1792))).toBeCloseTo(1.339, 3);
-  });
-
-  it('sin imagen completa, o si no cargó, no hay proporción (el marco no se esconde)', () => {
-    expect(fullImageAspect([], undefined)).toBeUndefined();
-    expect(fullImageAspect([{ type: 'image', src, w: 0.3, h: 0.3 }], withImage(100, 100))).toBeUndefined();
-    expect(fullImageAspect(full, undefined)).toBeUndefined();
-    expect(fullImageAspect(full, { images: new Map() } as never)).toBeUndefined();
-  });
-});
+import { loadImage, useCameraAssets } from './useCameraAssets';
 
 const frames = [
   { id: 'f1', label: 'Borde', template: 'capas' as const, params: { layers: [] }, isDefault: false },
@@ -71,7 +52,7 @@ describe('useCameraAssets', () => {
     expect(result.current.initialFrameId).toBe('f2');
 
     const m = createMockCtx();
-    result.current.frames[1].draw!(m.ctx, 600, 800);
+    result.current.frames[1].draw!(m.ctx, 600, 800, '3:4');
     expect(m.texts()).toEqual(['Hola']);
   });
 
@@ -99,7 +80,7 @@ describe('useCameraAssets', () => {
 
     expect(getStickerImageUrl).toHaveBeenCalledWith(src);
     const m = createMockCtx();
-    result.current.frames[0].draw!(m.ctx, 600, 800);
+    result.current.frames[0].draw!(m.ctx, 600, 800, '3:4');
     expect(m.count('drawImage')).toBe(1);
     expect(m.texts()).toEqual(['Cumpleaños Fran']);
   });
@@ -124,7 +105,7 @@ describe('useCameraAssets', () => {
     await waitFor(() => expect(result.current.status).toBe('ready'));
 
     const m = createMockCtx();
-    result.current.frames[0].draw!(m.ctx, 600, 800);
+    result.current.frames[0].draw!(m.ctx, 600, 800, '3:4');
     expect(m.count('drawImage')).toBe(0);
     expect(m.texts()).toEqual(['Hola']);
   });
@@ -199,6 +180,101 @@ describe('useCameraAssets', () => {
     resolve({ frames, stickers: [] });
     await Promise.resolve();
     expect(result.current.status).toBe('loading');
+  });
+});
+
+describe('useCameraAssets: un diseño por proporción', () => {
+  const ev = '123e4567-e89b-42d3-a456-426614174000';
+  const img34 = `${ev}/frames/tres-cuatro.png`;
+  const img11 = `${ev}/frames/cuadrado.png`;
+  const label = (text: string) => ({ type: 'text' as const, text, font: 'sans' as const });
+  const variantFrame = {
+    id: 'v1',
+    label: 'Por proporción',
+    template: 'capas' as const,
+    isDefault: false,
+    params: {
+      layers: [label('Vertical')],
+      variants: {
+        '3:4': { layers: [{ type: 'image' as const, src: img34, full: true }, label('Vertical')] },
+        '1:1': { layers: [{ type: 'image' as const, src: img11, full: true }, label('Cuadrado')] },
+      },
+    },
+  };
+
+  it('cada marco declara en `ratios` las proporciones donde tiene diseño, sin cargar imágenes', async () => {
+    vi.mocked(listCameraAssets).mockResolvedValue({
+      frames: [
+        variantFrame,
+        { id: 'viejo', label: 'Antiguo', template: 'capas' as const, isDefault: false, params: { layers: [label('Hola')] } },
+        { id: 'vacio', label: 'Vacío', template: 'capas' as const, isDefault: false, params: {} },
+      ],
+      stickers: [],
+    });
+    const { result } = renderHook(() => useCameraAssets('tok', true));
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+
+    const [conVariantes, antiguo, vacio] = result.current.frames;
+    expect(conVariantes.ratios).toEqual(['3:4', '1:1']);
+    expect(antiguo.ratios).toEqual(['3:4', '4:3', '9:16', '1:1']); // sin variantes, `layers` vale para todas (orden de VARIANT_RATIOS)
+    expect(vacio.ratios).toEqual([]);
+  });
+
+  it('dibuja las capas de la proporción pedida', async () => {
+    vi.mocked(listCameraAssets).mockResolvedValue({ frames: [variantFrame], stickers: [] });
+    const { result } = renderHook(() => useCameraAssets('tok', true));
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+    await result.current.frames[0].ensure!('1:1');
+
+    const vertical = createMockCtx();
+    result.current.frames[0].draw!(vertical.ctx, 600, 800, '3:4');
+    expect(vertical.texts()).toEqual(['Vertical']);
+
+    const cuadrado = createMockCtx();
+    result.current.frames[0].draw!(cuadrado.ctx, 600, 600, '1:1');
+    expect(cuadrado.texts()).toEqual(['Cuadrado']);
+  });
+
+  it('carga ya las imágenes de 3:4 y las demás proporciones solo al pedirlas con ensure', async () => {
+    vi.mocked(listCameraAssets).mockResolvedValue({ frames: [variantFrame], stickers: [] });
+    const { result } = renderHook(() => useCameraAssets('tok', true));
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+
+    expect(getStickerImageUrl).toHaveBeenCalledWith(img34);
+    expect(getStickerImageUrl).not.toHaveBeenCalledWith(img11);
+    const antes = createMockCtx();
+    result.current.frames[0].draw!(antes.ctx, 600, 600, '1:1');
+    expect(antes.count('drawImage')).toBe(0); // todavía no se cargó
+
+    await result.current.frames[0].ensure!('1:1');
+    expect(getStickerImageUrl).toHaveBeenCalledWith(img11);
+    const despues = createMockCtx();
+    result.current.frames[0].draw!(despues.ctx, 600, 600, '1:1');
+    expect(despues.count('drawImage')).toBe(1);
+  });
+
+  it('ensure es idempotente: no vuelve a firmar ni cargar lo ya cargado', async () => {
+    vi.mocked(listCameraAssets).mockResolvedValue({ frames: [variantFrame], stickers: [] });
+    const { result } = renderHook(() => useCameraAssets('tok', true));
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+
+    await Promise.all([result.current.frames[0].ensure!('1:1'), result.current.frames[0].ensure!('1:1')]);
+    await result.current.frames[0].ensure!('1:1');
+    await result.current.frames[0].ensure!('3:4');
+    const llamadas = vi.mocked(getStickerImageUrl).mock.calls.filter(([p]) => p === img11);
+    expect(llamadas).toHaveLength(1);
+  });
+
+  it('ensure de una proporción sin diseño no falla ni dibuja nada', async () => {
+    vi.mocked(listCameraAssets).mockResolvedValue({ frames: [variantFrame], stickers: [] });
+    const { result } = renderHook(() => useCameraAssets('tok', true));
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+
+    await expect(result.current.frames[0].ensure!('9:16')).resolves.toBeUndefined();
+    const m = createMockCtx();
+    result.current.frames[0].draw!(m.ctx, 540, 960, '9:16');
+    expect(m.texts()).toEqual([]);
+    expect(m.count('drawImage')).toBe(0);
   });
 });
 

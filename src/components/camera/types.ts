@@ -1,15 +1,20 @@
+import type { VariantRatio } from '../../lib/cameraAssets/frames';
 import type { StickerAsset } from '../../lib/cameraAssets/stickers';
 
-/** Un marco listo para dibujar. `draw === null` es "Sin marco". */
+/**
+ * Un marco listo para la cámara. `draw === null` representa "Sin marco".
+ */
 export interface CameraFrameOption {
+  /** Identificador único del marco (o 'none' para sin marco). */
   id: string;
+  /** Nombre visible del marco en el carrusel o selector. */
   label: string;
-  draw: ((ctx: CanvasRenderingContext2D, width: number, height: number) => void) | null;
-  /**
-   * ancho / alto de la imagen del marco, si es de imagen completa (un PNG hecho para una proporción). La cámara
-   * solo ofrece el marco cuando calza con la foto. `undefined`: se dibuja con capas y sirve en cualquier proporción.
-   */
-  aspect?: number;
+  /** Dibuja el marco sobre el canvas con el tamaño y la proporción indicados (`null` para "Sin marco"). */
+  draw: ((ctx: CanvasRenderingContext2D, width: number, height: number, ratio: VariantRatio) => void) | null;
+  /** Proporciones donde el marco tiene diseño disponible; `undefined` si vale para todas. */
+  ratios?: readonly VariantRatio[];
+  /** Carga los recursos gráficos de esa proporción bajo demanda; es idempotente. */
+  ensure?: (ratio: VariantRatio) => Promise<void>;
 }
 
 /**
