@@ -1,5 +1,41 @@
 import { describe, expect, it, vi } from 'vitest';
-import { FONT_LABELS, FONT_STACKS, FRAME_FONTS, LAYER_FONTS, WEB_FONTS, loadLayerFonts } from './text';
+import {
+  CATALOG_FONTS,
+  FONT_LABELS,
+  FONT_STACKS,
+  FRAME_FONTS,
+  LAYER_FONTS,
+  WEB_FONTS,
+  fontOptionLabel,
+  fontsOffered,
+  loadLayerFonts,
+} from './text';
+
+describe('catálogo corto de tipografías del Estudio', () => {
+  it('son las cuatro elegidas sobre los diseños reales: Anton, Pacifico, Permanent Marker y Special Elite', () => {
+    expect(CATALOG_FONTS).toEqual(['anton', 'pacifico', 'marker', 'elite']);
+    for (const font of CATALOG_FONTS) expect((WEB_FONTS as readonly string[]).includes(font)).toBe(true);
+  });
+
+  it('el Estudio ofrece solo el catálogo, y la tipografía actual de la capa si es antigua', () => {
+    expect(fontsOffered()).toEqual([...CATALOG_FONTS]);
+    expect(fontsOffered('pacifico')).toEqual([...CATALOG_FONTS]);
+    expect(fontsOffered('display')).toEqual([...CATALOG_FONTS, 'display']);
+    expect(fontsOffered('playfair')).toEqual([...CATALOG_FONTS, 'playfair']);
+    expect(fontsOffered('no-existe')).toEqual([...CATALOG_FONTS]);
+  });
+
+  it('las antiguas se rotulan «(antigua)» y las del catálogo no', () => {
+    expect(fontOptionLabel('anton')).toBe(FONT_LABELS.anton);
+    expect(fontOptionLabel('display')).toBe(`${FONT_LABELS.display} (antigua)`);
+    expect(fontOptionLabel('playfair')).toBe(`${FONT_LABELS.playfair} (antigua)`);
+  });
+
+  it('las once siguen siendo válidas y se dibujan: un marco guardado con una antigua no pierde su texto', () => {
+    expect(LAYER_FONTS).toHaveLength(11);
+    for (const font of LAYER_FONTS) expect(FONT_STACKS[font], font).toBeTruthy();
+  });
+});
 
 describe('tipografías de las capas', () => {
   it('las plantillas conservan las seis del sistema; las capas suman las cinco de Francisca', () => {

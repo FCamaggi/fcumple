@@ -145,7 +145,7 @@ describe('plantilla capas', () => {
     expect(defaultFrameParams('capas').layers).toEqual([]);
     const withName = defaultFrameParams('capas', { eventName: 'Cumpleaños Fran' });
     expect(validateFrameParams(withName)).toEqual({ ok: true });
-    expect(withName.layers?.[0]).toMatchObject({ type: 'text', text: 'Cumpleaños Fran' });
+    expect(withName.layers?.[0]).toMatchObject({ type: 'text', text: 'Cumpleaños Fran', font: 'anton' });
   });
 
   it('renderFrame dibuja las capas, y sin capas no dibuja nada más que el save/restore', () => {

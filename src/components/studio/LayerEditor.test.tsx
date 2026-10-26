@@ -110,10 +110,40 @@ describe('LayerEditor: propiedades', () => {
     expect(validateLayers(latest)).toEqual({ ok: true });
   });
 
-  it('texto: ofrece las tipografías de Francisca', async () => {
+  it('texto: ofrece solo el catálogo corto de cuatro tipografías', async () => {
     await select(0, [text]);
     const options = within(screen.getByLabelText('Tipografía')).getAllByRole('option').map((o) => o.textContent);
-    expect(options).toEqual(expect.arrayContaining(['Afiche (Anton)', 'Glam (Playfair)', 'Rosa (Pacifico)', 'Marcador (Permanent Marker)', 'Máquina vieja (Special Elite)']));
+    expect(options).toEqual(['Afiche (Anton)', 'Rosa (Pacifico)', 'Marcador (Permanent Marker)', 'Máquina vieja (Special Elite)']);
+  });
+
+  it('texto: una capa con una tipografía antigua la conserva y la rotula «(antigua)», sin cambiarla en silencio', async () => {
+    await select(0, [{ ...text, font: 'display' } as FrameLayer]);
+    const select_ = screen.getByLabelText('Tipografía') as HTMLSelectElement;
+    const options = within(select_).getAllByRole('option').map((o) => o.textContent);
+    expect(options).toEqual([
+      'Afiche (Anton)',
+      'Rosa (Pacifico)',
+      'Marcador (Permanent Marker)',
+      'Máquina vieja (Special Elite)',
+      'Titular (antigua)',
+    ]);
+    expect(select_.value).toBe('display');
+  });
+
+  it('texto: los estilos de texto ya diseñados usan solo tipografías del catálogo', async () => {
+    const user = userEvent.setup();
+    render(<Harness />);
+    await user.click(screen.getByRole('tab', { name: 'Texto' }));
+
+    await user.click(screen.getByRole('button', { name: /Subtítulo boleto/ }));
+    expect(latest.at(-1)).toMatchObject({ type: 'text', font: 'elite' });
+    await user.click(screen.getByRole('button', { name: /Título cursiva/ }));
+    expect(latest.at(-1)).toMatchObject({ type: 'text', font: 'pacifico' });
+    await user.click(screen.getByRole('button', { name: /Título neón/ }));
+    expect(latest.at(-1)).toMatchObject({ type: 'text', font: 'anton' });
+    await user.click(screen.getByRole('button', { name: /Sello Burn Book/ }));
+    expect(latest.at(-1)).toMatchObject({ type: 'text', font: 'marker' });
+    expect(validateLayers(latest)).toEqual({ ok: true });
   });
 
   it('forma: cambia relleno, borde y radio', async () => {
