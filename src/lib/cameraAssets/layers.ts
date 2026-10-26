@@ -25,6 +25,8 @@ export const MAX_LAYER_TEXT_LENGTH = 60;
 export const MAX_PATH_LENGTH = 600;
 /** Tope, en caracteres del JSON, de `params` cuando trae capas (el resto conserva 2048). La base lo mide en bytes: ver migración. */
 export const MAX_LAYERS_PARAMS_LENGTH = 16384;
+/** Tope, en caracteres del JSON, de `params` completo cuando trae `variants` (cada variante conserva el de arriba). La base lo mide en bytes: ver migración. */
+export const MAX_VARIANTS_PARAMS_LENGTH = 65536;
 
 export const LAYER_ANCHORS = ['center', 'tl', 'tr', 'bl', 'br'] as const;
 export type LayerAnchor = (typeof LAYER_ANCHORS)[number];
