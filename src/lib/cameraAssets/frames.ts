@@ -240,7 +240,7 @@ export function defaultFrameParams(template: FrameTemplate, ctx: FrameDefaultsCo
     case 'capas':
       return {
         layers: name
-          ? [{ type: 'text', text: name, x: 0.5, y: 0.92, size: 0.08, w: 1.6, font: 'display', color: '#ffffff', weight: 'bold' }]
+          ? [{ type: 'text', text: name, x: 0.5, y: 0.92, size: 0.08, w: 1.6, font: 'anton', color: '#ffffff', weight: 'bold' }]
           : [],
       };
   }

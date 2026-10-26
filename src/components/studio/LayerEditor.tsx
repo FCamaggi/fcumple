@@ -207,7 +207,7 @@ export default function LayerEditor({
     setSelected(result.index);
   }
 
-  function handleAddStyledText(presetKind: 'titulo' | 'subtitulo' | 'sello') {
+  function handleAddStyledText(presetKind: 'titulo' | 'subtitulo' | 'sello' | 'cursiva') {
     const layer: FrameLayer =
       presetKind === 'titulo'
         ? {
@@ -224,6 +224,21 @@ export default function LayerEditor({
             strokeWidth: 0.012,
             shadow: { color: palette.acento, blur: 0.02, x: 0, y: 0 },
           }
+        : presetKind === 'cursiva'
+          ? {
+              type: 'text',
+              text: 'Cumpleaños Fran',
+              x: 0.5,
+              y: 1,
+              dy: -0.12,
+              size: 0.09,
+              w: 0.68,
+              font: 'pacifico',
+              color: palette.texto,
+              strokeColor: palette.acento,
+              strokeWidth: 0.006,
+              shadow: { color: palette.acento, blur: 0.03, x: 0, y: 0 },
+            }
         : presetKind === 'subtitulo'
           ? {
               type: 'text',
@@ -233,7 +248,7 @@ export default function LayerEditor({
               dy: -0.05,
               size: 0.028,
               w: 0.7,
-              font: 'mono',
+              font: 'elite',
               weight: 'bold',
               color: palette.texto,
             }
@@ -449,10 +464,18 @@ export default function LayerEditor({
             <button
               type="button"
               disabled={atLimit}
+              onClick={() => handleAddStyledText('cursiva')}
+              className="border border-smoke-700/60 bg-ink-950 p-3 text-left font-sans text-sm font-bold uppercase tracking-wider text-hotpink-500 transition-colors hover:border-acid-400 disabled:opacity-40"
+            >
+              + Título cursiva (Pacifico)
+            </button>
+            <button
+              type="button"
+              disabled={atLimit}
               onClick={() => handleAddStyledText('subtitulo')}
               className="border border-smoke-700/60 bg-ink-950 p-3 text-left font-mono text-xs font-bold uppercase tracking-wider text-paper-100 transition-colors hover:border-acid-400 disabled:opacity-40"
             >
-              + Subtítulo boleto (Mono)
+              + Subtítulo boleto (Elite)
             </button>
             <button
               type="button"

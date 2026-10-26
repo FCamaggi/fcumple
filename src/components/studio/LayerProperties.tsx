@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { LAYER_ANCHORS, type FrameLayer, type LayerAnchor, type LayerShadow } from '../../lib/cameraAssets/layers';
 import { isSingleEmoji } from '../../lib/cameraAssets/stickers';
-import { FONT_LABELS, LAYER_FONTS, type LayerFont } from '../../lib/cameraAssets/text';
+import { fontOptionLabel, fontsOffered, type LayerFont } from '../../lib/cameraAssets/text';
 
 interface LayerPropertiesProps {
   layer: FrameLayer;
@@ -193,9 +193,9 @@ export default function LayerProperties({ layer, onChange }: LayerPropertiesProp
               onChange={(e) => onChange({ ...layer, font: e.target.value as LayerFont })}
               className={inputClass}
             >
-              {LAYER_FONTS.map((font) => (
+              {fontsOffered(layer.font ?? 'sans').map((font) => (
                 <option key={font} value={font}>
-                  {FONT_LABELS[font]}
+                  {fontOptionLabel(font)}
                 </option>
               ))}
             </select>

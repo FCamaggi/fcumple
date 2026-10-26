@@ -18,6 +18,56 @@ export type WebFont = (typeof WEB_FONTS)[number];
 export const LAYER_FONTS = [...FRAME_FONTS, ...WEB_FONTS] as const;
 export type LayerFont = (typeof LAYER_FONTS)[number];
 
+/**
+ * Catálogo acotado de 4 tipografías que ofrece el Estudio de marcos:
+ * - Anton (Afiche): titular de bloque con fuerte impacto.
+ * - Pacifico (Rosa): caligrafía fluida y festiva.
+ * - Permanent Marker (Marcador): estilo rotulador y sello informal.
+ * - Special Elite (Máquina vieja): estética mecánica y boleto vintage.
+ *
+ * Elegidas comparando las 11 familias tipográficas disponibles sobre diseños reales.
+ *
+ * IMPORTANTE: Las 11 tipografías históricas (FRAME_FONTS + WEB_FONTS) se mantienen
+ * completamente válidas en LAYER_FONTS, FONT_LABELS, FONT_STACKS, WEB_FONT_FACES
+ * y en las validaciones de base de datos. Existen marcos ya guardados y briefs
+ * específicos (como Francisca en visuals.tsx) que utilizan fuentes del sistema o
+ * Playfair. Quitarlas de la validación o del dibujo rompería el renderizado de marcos
+ * existentes y haría desaparecer sus textos.
+ */
+export const CATALOG_FONTS = ['anton', 'pacifico', 'marker', 'elite'] as const;
+export type CatalogFont = (typeof CATALOG_FONTS)[number];
+
+/** Comprueba si una tipografía dada pertenece al catálogo corto ofrecido por el Estudio. */
+export function isCatalogFont(font: unknown): font is CatalogFont {
+  return typeof font === 'string' && (CATALOG_FONTS as readonly string[]).includes(font);
+}
+
+/**
+ * Tipografías que ofrece el selector del Estudio:
+ * Devuelve el catálogo de 4 tipografías recomendadas y, únicamente si la capa actual
+ * tiene configurada una tipografía válida de LAYER_FONTS que no forme parte del catálogo
+ * (p. ej. una fuente de sistema o Playfair de un marco guardado previamente), la añade
+ * al final de las opciones para que no se pierda al editar.
+ * Un valor de `current` no reconocido o indefinido no añade ninguna opción adicional.
+ */
+export function fontsOffered(current?: string): LayerFont[] {
+  const result: LayerFont[] = [...CATALOG_FONTS];
+  if (current && (LAYER_FONTS as readonly string[]).includes(current) && !isCatalogFont(current)) {
+    result.push(current as LayerFont);
+  }
+  return result;
+}
+
+/**
+ * Nombre para mostrar en el selector de tipografías:
+ * Usa el nombre amigable de FONT_LABELS para las tipografías del catálogo y agrega
+ * el sufijo «(antigua)» a cualquier otra fuente histórica que conserve una capa.
+ */
+export function fontOptionLabel(font: LayerFont): string {
+  const label = FONT_LABELS[font];
+  return isCatalogFont(font) ? label : `${label} (antigua)`;
+}
+
 export const FONT_LABELS: Record<LayerFont, string> = {
   sans: 'Moderna',
   serif: 'Clásica',
