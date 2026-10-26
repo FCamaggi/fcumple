@@ -12,8 +12,10 @@
  * sincronizados.
  */
 
+import { ASPECT_RATIOS, type CanvasAspectRatio } from './konvaParity';
 import {
   MAX_LAYERS_PARAMS_LENGTH,
+  MAX_VARIANTS_PARAMS_LENGTH,
   drawLayers,
   roundedRectPath,
   sanitizeLayers,
@@ -43,9 +45,22 @@ export interface FrameParams {
   /** 0 a 1, relativo al lado menor. */
   radius?: number;
   position?: 'top' | 'bottom';
-  /** Solo la plantilla `capas`: ver `layers.ts`. */
+  /**
+   * Solo la plantilla `capas`: ver `layers.ts`. Es la compatibilidad de antes de las variantes: sin
+   * `variants` vale para todas las proporciones; con ellas es un espejo de la variante 3:4.
+   */
   layers?: FrameLayer[];
+  /** Solo la plantilla `capas`: un diseño independiente por proporción. Una clave ausente = sin diseño. */
+  variants?: FrameVariants;
 }
+
+/** Proporciones en las que un marco puede tener su propio diseño. */
+export const VARIANT_RATIOS = ASPECT_RATIOS;
+export type VariantRatio = CanvasAspectRatio;
+export interface FrameVariant {
+  layers: FrameLayer[];
+}
+export type FrameVariants = Partial<Record<VariantRatio, FrameVariant>>;
 
 export type FrameField = keyof FrameParams;
 
@@ -80,7 +95,31 @@ const KNOWN_KEYS = new Set<string>([
   'radius',
   'position',
   'layers',
+  'variants',
 ]);
+
+function isPlainObject(v: unknown): v is Record<string, unknown> {
+  return typeof v === 'object' && v !== null && !Array.isArray(v);
+}
+
+/** Misma regla que `valid_frame_variants` en la base de datos. */
+function validateVariants(variants: unknown): ValidationResult {
+  if (!isPlainObject(variants)) return { ok: false, error: 'Las variantes del marco no son válidas.' };
+  for (const [ratio, variant] of Object.entries(variants)) {
+    if (!(VARIANT_RATIOS as readonly string[]).includes(ratio)) {
+      return { ok: false, error: `Proporción desconocida: ${ratio}.` };
+    }
+    if (!isPlainObject(variant) || Object.keys(variant).some((k) => k !== 'layers') || !('layers' in variant)) {
+      return { ok: false, error: `La variante ${ratio} no es válida.` };
+    }
+    if (JSON.stringify(variant).length > MAX_LAYERS_PARAMS_LENGTH) {
+      return { ok: false, error: `La variante ${ratio} tiene demasiados datos.` };
+    }
+    const result = validateLayers(variant.layers);
+    if (!result.ok) return result;
+  }
+  return { ok: true };
+}
 
 /** Misma regla que `valid_frame_params` en la base de datos. */
 export function validateFrameParams(params: unknown): ValidationResult {
@@ -90,7 +129,8 @@ export function validateFrameParams(params: unknown): ValidationResult {
   const p = params as Record<string, unknown>;
 
   // Con capas el tope sube (ver `MAX_LAYERS_PARAMS_LENGTH`); el resto de las plantillas conserva 2 KB.
-  const maxLength = 'layers' in p ? MAX_LAYERS_PARAMS_LENGTH : 2048;
+  // Con variantes el total sube a `MAX_VARIANTS_PARAMS_LENGTH` y cada variante (y `layers`) conserva el de capas.
+  const maxLength = 'variants' in p ? MAX_VARIANTS_PARAMS_LENGTH : 'layers' in p ? MAX_LAYERS_PARAMS_LENGTH : 2048;
   if (JSON.stringify(p).length > maxLength) return { ok: false, error: 'El marco tiene demasiados datos.' };
 
   for (const key of Object.keys(p)) {
@@ -118,7 +158,14 @@ export function validateFrameParams(params: unknown): ValidationResult {
   if ('position' in p && p.position !== 'top' && p.position !== 'bottom') {
     return { ok: false, error: 'La posición debe ser arriba o abajo.' };
   }
-  if ('layers' in p) return validateLayers(p.layers);
+  if ('layers' in p) {
+    if ('variants' in p && JSON.stringify(p.layers).length > MAX_LAYERS_PARAMS_LENGTH) {
+      return { ok: false, error: 'El marco tiene demasiados datos.' };
+    }
+    const result = validateLayers(p.layers);
+    if (!result.ok) return result;
+  }
+  if ('variants' in p) return validateVariants(p.variants);
   return { ok: true };
 }
 
@@ -134,11 +181,49 @@ export function sanitizeFrameParams(raw: unknown): FrameParams {
     if (!KNOWN_KEYS.has(key)) continue;
     if (key === 'layers') {
       if (Array.isArray(value)) out.layers = sanitizeLayers(value);
+    } else if (key === 'variants') {
+      if (isPlainObject(value)) {
+        const variants: FrameVariants = {};
+        for (const ratio of VARIANT_RATIOS) {
+          const variant = value[ratio];
+          if (isPlainObject(variant) && Array.isArray(variant.layers)) {
+            variants[ratio] = { layers: sanitizeLayers(variant.layers) };
+          }
+        }
+        out.variants = variants;
+      }
     } else if (validateFrameParams({ [key]: value }).ok) {
       out[key] = value;
     }
   }
   return out as FrameParams;
+}
+
+/**
+ * Las capas que se dibujan para una proporción. Con `variants`, la de esa proporción (`undefined` si el
+ * marco no tiene diseño para ella). Sin `variants` (marcos de antes), `layers` vale para todas.
+ */
+export function variantLayers(params: FrameParams, ratio: VariantRatio): FrameLayer[] | undefined {
+  if (params.variants) return params.variants[ratio]?.layers;
+  return params.layers;
+}
+
+/** Deja `layers` igual a la variante 3:4 (o lo quita si no existe): lo que lee la cámara hasta que use las variantes. */
+export function mirrorVariantsToLayers(params: FrameParams): FrameParams {
+  const { layers: _old, ...rest } = params;
+  const base = params.variants?.['3:4']?.layers;
+  return base ? { ...rest, layers: base } : rest;
+}
+
+/**
+ * Devuelve `params` con las capas de `ratio` reemplazadas, sin tocar las demás variantes. Un marco de antes
+ * (solo `layers`) primero se reparte en las cuatro proporciones, igual que hace la migración.
+ */
+export function withVariant(params: FrameParams, ratio: VariantRatio, layers: FrameLayer[]): FrameParams {
+  const current: FrameVariants =
+    params.variants ??
+    (params.layers ? Object.fromEntries(VARIANT_RATIOS.map((r) => [r, { layers: params.layers }])) : {});
+  return mirrorVariantsToLayers({ ...params, variants: { ...current, [ratio]: { layers } } });
 }
 
 export interface FrameDefaultsContext {
