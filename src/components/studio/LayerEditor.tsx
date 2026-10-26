@@ -21,13 +21,11 @@ import {
   PALETTE_PRESETS,
   getCachedPacksForEvent,
   loadPacksForEvent,
-  materializePresetLayers,
   recolorLayersByPalette,
   type PackAssetCategory,
   type PackAssetMeta,
   type PackManifest,
   type PackPalette,
-  type PackPreset,
 } from '../../lib/cameraAssets/packs';
 import FramePreview from './FramePreview';
 import LayerPanel from './LayerPanel';
@@ -35,7 +33,7 @@ import LayerProperties from './LayerProperties';
 
 const LazyKonvaCanvasStage = lazy(() => import('./KonvaCanvasStage'));
 
-type LibraryTab = 'presets' | 'elementos' | 'texto' | 'subidas';
+type LibraryTab = 'elementos' | 'texto' | 'subidas';
 
 interface LayerEditorProps {
   layers: FrameLayer[];
@@ -68,7 +66,7 @@ const columnClass = 'flex flex-col gap-3 border border-smoke-700/60 bg-ink-900 p
 
 /**
  * Estudio de Diseño de 3 columnas (solo escritorio >= 1024px):
- * - Izquierda (300 px): biblioteca con pestañas Presets, Elementos (búsqueda y filtro por categoría), Texto y Subidas.
+ * - Izquierda (300 px): biblioteca con pestañas Elementos (búsqueda y filtro por categoría), Texto y Subidas.
  * - Centro (el espacio que queda): barra de herramientas (proporción 3:4 / 4:3 / 9:16 / 1:1, deshacer y rehacer,
  *   zona de caras) y el lienzo, que se ajusta al espacio disponible.
  * - Derecha (300 px): paleta por roles ($acento, $fondo, $texto), lista de capas y propiedades de la capa elegida.
@@ -90,7 +88,7 @@ export default function LayerEditor({
   const [error, setError] = useState<string | null>(null);
 
   // Estado del Estudio (pestaña de biblioteca, búsqueda, categoría, proporción, paleta, guía e historial Undo/Redo)
-  const [activeTab, setActiveTab] = useState<LibraryTab>('presets');
+  const [activeTab, setActiveTab] = useState<LibraryTab>('elementos');
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<'all' | PackAssetCategory>('all');
   const [internalAspectRatio, setAspectRatio] = useState<CanvasAspectRatio>('3:4');
@@ -194,13 +192,6 @@ export default function LayerEditor({
     if (layers.length > 0) {
       commitLayers(updated);
     }
-  }
-
-  function handleApplyPreset(preset: PackPreset, packPalette: PackPalette) {
-    const effectivePalette: PackPalette = { ...packPalette, ...palette };
-    const nextLayers = materializePresetLayers(preset, effectivePalette);
-    commitLayers(nextLayers);
-    setSelected(-1);
   }
 
   function handleAddPackAsset(packId: string, assetId: string) {
@@ -366,15 +357,14 @@ export default function LayerEditor({
       className="grid grid-cols-1 gap-4 lg:grid-cols-[300px_minmax(0,1fr)_300px] lg:items-start"
       aria-label="Estudio de diseño"
     >
-      {/* ---- Columna izquierda: biblioteca (presets, piezas, texto, subidas) ---- */}
+      {/* ---- Columna izquierda: biblioteca (elementos, texto, subidas) ---- */}
       <aside
         className={`${columnClass} lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto`}
         aria-label="Biblioteca de diseño"
       >
-        <div className="grid grid-cols-[1fr_1.4fr_1fr_1fr] gap-1" role="tablist" aria-label="Pestañas de biblioteca">
+        <div className="grid grid-cols-3 gap-1" role="tablist" aria-label="Pestañas de biblioteca">
           {(
             [
-              ['presets', 'Presets'],
               ['elementos', 'Elementos'],
               ['texto', 'Texto'],
               ['subidas', 'Subidas'],
@@ -396,28 +386,6 @@ export default function LayerEditor({
             </button>
           ))}
         </div>
-
-        {activeTab === 'presets' && (
-          <div className="flex flex-col gap-3" role="tabpanel" aria-label="Biblioteca de Presets">
-            <p className="font-sans text-xs text-paper-100/70">
-              Un diseño completo con un clic. Después cambias textos, piezas y colores.
-            </p>
-            {packs.length === 0 && <p className="font-sans text-xs text-paper-100/60">Cargando diseños...</p>}
-            <div className="grid grid-cols-2 gap-2">
-              {packs.flatMap((pack) =>
-                pack.presets.map((preset) => (
-                  <PresetCard
-                    key={`${pack.id}-${preset.id}`}
-                    preset={preset}
-                    packName={pack.name}
-                    palette={{ ...pack.palette, ...palette }}
-                    onApply={() => handleApplyPreset(preset, pack.palette)}
-                  />
-                )),
-              )}
-            </div>
-          </div>
-        )}
 
         {activeTab === 'elementos' && (
           <div className="flex flex-col gap-3" role="tabpanel" aria-label="Biblioteca de Elementos">
@@ -446,6 +414,7 @@ export default function LayerEditor({
                 </button>
               ))}
             </div>
+            {packs.length === 0 && <p className="font-sans text-xs text-paper-100/60">Cargando elementos...</p>}
             <div className="grid grid-cols-2 gap-2">
               {filteredAssets.map(({ pack, asset }) => (
                 <AssetCard
@@ -457,7 +426,7 @@ export default function LayerEditor({
                   onInsert={() => handleAddPackAsset(pack.id, asset.id)}
                 />
               ))}
-              {filteredAssets.length === 0 && (
+              {packs.length > 0 && filteredAssets.length === 0 && (
                 <p className="col-span-2 py-3 font-sans text-xs text-paper-100/60">
                   No encontramos elementos para esa búsqueda.
                 </p>
@@ -701,38 +670,6 @@ export default function LayerEditor({
         )}
       </div>
     </div>
-  );
-}
-
-/** Tarjeta de un preset: miniatura del diseño sobre una foto de ejemplo, con su nombre y descripción. */
-function PresetCard({
-  preset,
-  packName,
-  palette,
-  onApply,
-}: {
-  preset: PackPreset;
-  packName: string;
-  palette: PackPalette;
-  onApply: () => void;
-}) {
-  const params = useMemo(() => ({ layers: materializePresetLayers(preset, palette) as FrameLayer[] }), [preset, palette]);
-  return (
-    <button
-      type="button"
-      aria-label={`Aplicar preset ${preset.label}`}
-      onClick={onApply}
-      className="group flex flex-col gap-2 border border-smoke-700/60 bg-ink-950 p-2 text-left transition-colors hover:border-acid-400 focus-visible:border-acid-400"
-    >
-      <span className="flex justify-center bg-ink-900">
-        <FramePreview template="capas" params={params} width={108} height={144} label={`Miniatura de ${preset.label}`} />
-      </span>
-      <span className="font-mono text-xs font-bold uppercase leading-tight tracking-wide text-hotpink-500">
-        {preset.label}
-      </span>
-      <span className="font-mono text-xs uppercase text-paper-100/50">{packName}</span>
-      {preset.description && <span className="font-sans text-xs text-paper-100/70">{preset.description}</span>}
-    </button>
   );
 }
 

@@ -322,17 +322,24 @@ describe('LayerEditor: imágenes', () => {
   });
 });
 
-describe('LayerEditor: Estudio Fase 1.5 (packs, presets, paleta, proporción, undo/redo, bloqueo)', () => {
-  it('aplica un preset de 1 clic desde la biblioteca de Presets y cambia la paleta de 3 roles', async () => {
+describe('LayerEditor: Estudio Fase 1.5 (packs, paleta, proporción, undo/redo, bloqueo)', () => {
+  it('no ofrece presets: la biblioteca arranca en Elementos con Texto y Subidas', async () => {
+    render(<Harness />);
+
+    expect(screen.queryByRole('tab', { name: 'Presets' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Aplicar preset/i })).not.toBeInTheDocument();
+    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['Elementos', 'Texto', 'Subidas']);
+    expect(screen.getByRole('tab', { name: 'Elementos' })).toHaveAttribute('aria-selected', 'true');
+    expect(await screen.findByLabelText('Buscar elementos')).toBeInTheDocument();
+  });
+
+  it('la paleta de 3 roles recolorea en bloque lo ya insertado', async () => {
     const user = userEvent.setup();
     render(<Harness />);
 
-    const presetBtn = await screen.findByRole('button', { name: /Aplicar preset Halloween Boleto Neón/i });
-    await user.click(presetBtn);
-
-    expect(latest.length).toBeGreaterThanOrEqual(4);
-    expect(validateLayers(latest)).toEqual({ ok: true });
-    expect(latest.some((l) => l.type === 'asset')).toBe(true);
+    await user.click(await screen.findByRole('button', { name: /Insertar Murciélago neón/i }));
+    expect(latest).toHaveLength(1);
+    expect(latest[0]).toMatchObject({ type: 'asset', asset: 'pack:halloween-neon/murcielago' });
 
     // Cambiar a la paleta Ácido Lima actualiza los colores de acento/fondo/texto en bloque
     const paletteBtn = screen.getByRole('button', { name: /Paleta Ácido Lima/i });

@@ -9,8 +9,6 @@
 //   editar      abre el primer marco en el estudio (por defecto)
 //   nuevo       «Nuevo marco»
 //   lista       la pestaña Cámara sin abrir el editor
-//   presets     aplica cada preset en 3:4, 4:3, 9:16 y 1:1 y guarda el lienzo de cada combinación
-//               (GUIA=0 oculta la zona de caras)
 //   elementos   la pestaña Elementos de la biblioteca
 //   interactuar selecciona la capa de texto con el ratón y la arrastra, guardando tres capturas
 //
@@ -48,8 +46,6 @@ function cargarPlaywright() {
 }
 
 const EVENT_ID = '11111111-1111-4111-8111-111111111111';
-const PRESETS = ['Halloween Boleto Neón', 'Halloween Esquinas Abiertas', 'Cumpleaños Fiesta Neón', 'Burn Book'];
-const RATIOS = ['3:4', '4:3', '9:16', '1:1'];
 
 const [modo = 'editar', ancho = '1440', alto = '900'] = process.argv.slice(2);
 const OUT = path.join(here, 'salida');
@@ -87,20 +83,7 @@ await page.waitForTimeout(1500);
 
 const lienzo = page.getByLabel('Lienzo del marco');
 
-if (modo === 'presets') {
-  const guia = process.env.GUIA !== '0';
-  const casilla = page.getByLabel('Zona segura para caras');
-  if ((await casilla.isChecked()) !== guia) await casilla.click();
-  for (const [i, preset] of PRESETS.entries()) {
-    await page.getByRole('button', { name: new RegExp(`Aplicar preset ${preset}`, 'i') }).click();
-    for (const ratio of RATIOS) {
-      await page.getByRole('button', { name: `Proporción ${ratio}` }).click();
-      await page.waitForTimeout(700);
-      await lienzo.screenshot({ path: path.join(OUT, `preset-${i + 1}-${ratio.replace(':', 'x')}.png`) });
-    }
-    await page.getByRole('button', { name: 'Proporción 3:4' }).click();
-  }
-} else if (modo === 'elementos') {
+if (modo === 'elementos') {
   await page.getByRole('tab', { name: 'Elementos' }).click();
   await page.waitForTimeout(1200);
   await page.getByLabel('Biblioteca de diseño').screenshot({ path: path.join(OUT, 'elementos.png') });

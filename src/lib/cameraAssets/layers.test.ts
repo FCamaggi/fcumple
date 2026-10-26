@@ -411,7 +411,6 @@ describe('prepareFrameAssets', () => {
           license: { source: 'Propia', spdx: 'LicenseRef-Own', date: '2026-10-25' },
         },
       ],
-      presets: [],
     });
     registerPackSvg(
       'halloween-neon',
