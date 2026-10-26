@@ -1,5 +1,5 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { installPointerEventPolyfill, mockElementSize } from '../test/pointerEvents';
 import CameraCapture from './CameraCapture';
@@ -354,11 +354,11 @@ describe('CameraCapture: encuadre fijo, sin importar el video del teléfono', ()
     expect(video.slice(1, 5)).toEqual([140, 0, 360, 480]);
   });
 
+  // Cada marco declara en qué proporciones tiene diseño; `undefined` = en todas.
   const framesConProporcion = (): CameraFrameOption[] => [
-    { id: 'v', label: 'Vertical 3:4', draw: vi.fn(), aspect: 1086 / 1448 },
-    { id: 'h', label: 'Horizontal 4:3', draw: vi.fn(), aspect: 2400 / 1792 },
-    { id: 'a', label: 'Alto 9:16', draw: vi.fn(), aspect: 1536 / 2752 },
-    { id: 'c', label: 'Cuadrado 1:1', draw: vi.fn(), aspect: 1 },
+    { id: 'v', label: 'Vertical', draw: vi.fn(), ratios: ['3:4', '1:1'] },
+    { id: 'h', label: 'Horizontal', draw: vi.fn(), ratios: ['4:3'] },
+    { id: 'a', label: 'Alto', draw: vi.fn(), ratios: ['9:16', '1:1'] },
     { id: 'l', label: 'Capas', draw: vi.fn() },
   ];
 
@@ -373,21 +373,268 @@ describe('CameraCapture: encuadre fijo, sin importar el video del teléfono', ()
     return vistos.map((r) => r.replace('Marco // ', ''));
   };
 
-  it('en vertical solo ofrece los marcos de imagen 3:4 y los de capas; no los estira', async () => {
+  const ratioButton = (ratio: string) => screen.getByRole('button', { name: `Proporción ${ratio}` });
+
+  it('en vertical ofrece 3:4 (elegida), 1:1 y 9:16, y no 4:3', async () => {
+    mockCanvasPipeline();
+    mockCamera();
+    render(<CameraCapture token="tok" quota={quota} onClose={() => {}} frames={framesConProporcion()} stickers={[]} />);
+    const group = screen.getByRole('group', { name: 'Proporción de la foto' });
+    expect(group).toBeInTheDocument();
+    expect(ratioButton('3:4')).toHaveAttribute('aria-pressed', 'true');
+    expect(ratioButton('1:1')).toHaveAttribute('aria-pressed', 'false');
+    expect(ratioButton('9:16')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Proporción 4:3' })).not.toBeInTheDocument();
+  });
+
+  it('con el teléfono acostado ofrece solo 4:3 (elegida) y 1:1', async () => {
+    stubOrientation('landscape');
+    mockCanvasPipeline(640, 480);
+    mockCamera();
+    render(<CameraCapture token="tok" quota={quota} onClose={() => {}} frames={framesConProporcion()} stickers={[]} />);
+    expect(ratioButton('4:3')).toHaveAttribute('aria-pressed', 'true');
+    expect(ratioButton('1:1')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Proporción 9:16' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Proporción 3:4' })).not.toBeInTheDocument();
+  });
+
+  it('un marco sin diseño para la proporción elegida se oculta del carrusel', async () => {
     mockCanvasPipeline();
     mockCamera();
     const user = userEvent.setup();
     render(<CameraCapture token="tok" quota={quota} onClose={() => {}} frames={framesConProporcion()} stickers={[]} />);
-    expect(await recorrer(user)).toEqual(['Sin marco', 'Vertical 3:4', 'Capas']);
+    expect(await recorrer(user)).toEqual(['Sin marco', 'Vertical', 'Capas']); // 3:4
+
+    await user.click(ratioButton('1:1'));
+    expect(await recorrer(user)).toEqual(['Sin marco', 'Vertical', 'Alto', 'Capas']);
+
+    await user.click(ratioButton('9:16'));
+    expect(await recorrer(user)).toEqual(['Sin marco', 'Alto', 'Capas']);
   });
 
-  it('con el teléfono acostado solo ofrece los 4:3 y los de capas', async () => {
+  it('acostado el carrusel muestra los marcos que tienen 4:3 y, en 1:1, los que tienen cuadrado', async () => {
     stubOrientation('landscape');
     mockCanvasPipeline(640, 480);
     mockCamera();
     const user = userEvent.setup();
     render(<CameraCapture token="tok" quota={quota} onClose={() => {}} frames={framesConProporcion()} stickers={[]} />);
-    expect(await recorrer(user)).toEqual(['Sin marco', 'Horizontal 4:3', 'Capas']);
+    expect(await recorrer(user)).toEqual(['Sin marco', 'Horizontal', 'Capas']);
+    await user.click(ratioButton('1:1'));
+    expect(await recorrer(user)).toEqual(['Sin marco', 'Vertical', 'Alto', 'Capas']);
+  });
+
+  it('al cambiar de proporción el visor toma exactamente esa forma, sin tocar la cámara', async () => {
+    mockCanvasPipeline();
+    mockCamera();
+    const user = userEvent.setup();
+    render(<CameraCapture token="tok" quota={quota} onClose={() => {}} frames={framesConProporcion()} stickers={[]} />);
+    const abierta = vi.mocked(navigator.mediaDevices.getUserMedia).mock.calls.length;
+
+    await user.click(ratioButton('1:1'));
+    let { w, h } = stageSize();
+    expect(w / h).toBeCloseTo(1, 2);
+    await user.click(ratioButton('9:16'));
+    ({ w, h } = stageSize());
+    expect(w / h).toBeCloseTo(9 / 16, 2);
+    await user.click(ratioButton('3:4'));
+    ({ w, h } = stageSize());
+    expect(w / h).toBeCloseTo(3 / 4, 2);
+
+    expect(vi.mocked(navigator.mediaDevices.getUserMedia).mock.calls.length).toBe(abierta); // no se reabrió
+  });
+
+  it('dispara con la proporción elegida: recorta el video a esa forma y dibuja el marco con ella', async () => {
+    const ctx = mockCanvasPipeline(600, 800);
+    mockCamera();
+    const user = userEvent.setup();
+    const frames = framesConProporcion();
+    render(<CameraCapture token="tok" quota={quota} onClose={() => {}} frames={frames} stickers={[]} />);
+    await user.click(ratioButton('1:1'));
+    await user.click(screen.getByRole('button', { name: 'Siguiente marco' })); // Vertical (tiene 1:1)
+
+    const shutter = screen.getByRole('button', { name: /disparar/i });
+    await waitFor(() => expect(shutter).toBeEnabled());
+    await user.click(shutter);
+    await screen.findByRole('button', { name: /enviar/i });
+
+    const video = ctx.drawImage.mock.calls.find((c) => (c as unknown[])[0] instanceof HTMLVideoElement) as unknown[];
+    expect(video.slice(1, 5)).toEqual([0, 100, 600, 600]); // cuadrado centrado: se pierden 100 px arriba y abajo
+    const [, w, h, ratio] = (frames[0].draw as ReturnType<typeof vi.fn>).mock.calls.at(-1)!;
+    expect(w).toBe(h);
+    expect(ratio).toBe('1:1');
+  });
+
+  it('9:16 recorta los costados de un video 3:4', async () => {
+    const ctx = mockCanvasPipeline(600, 800);
+    mockCamera();
+    const user = userEvent.setup();
+    render(<CameraCapture token="tok" quota={quota} onClose={() => {}} frames={framesConProporcion()} stickers={[]} />);
+    await user.click(ratioButton('9:16'));
+
+    const shutter = screen.getByRole('button', { name: /disparar/i });
+    await waitFor(() => expect(shutter).toBeEnabled());
+    await user.click(shutter);
+    await screen.findByRole('button', { name: /enviar/i });
+
+    const video = ctx.drawImage.mock.calls.find((c) => (c as unknown[])[0] instanceof HTMLVideoElement) as unknown[];
+    expect(video.slice(1, 5)).toEqual([75, 0, 450, 800]);
+  });
+
+  it('al cambiar de proporción vuelve al marco por defecto en vez de caer en otro por posición', async () => {
+    mockCanvasPipeline();
+    mockCamera();
+    const user = userEvent.setup();
+    render(<CameraCapture token="tok" quota={quota} onClose={() => {}} frames={framesConProporcion()} stickers={[]} />);
+    await user.click(screen.getByRole('button', { name: 'Siguiente marco' }));
+    expect(screen.getByText('Marco // Vertical')).toBeInTheDocument();
+    await user.click(ratioButton('9:16'));
+    expect(screen.getByText('Marco // Sin marco')).toBeInTheDocument();
+  });
+
+  it('pide cargar los recursos de la proporción cuando se elige', async () => {
+    mockCanvasPipeline();
+    mockCamera();
+    const user = userEvent.setup();
+    const ensure = vi.fn().mockResolvedValue(undefined);
+    const frames: CameraFrameOption[] = [{ id: 'v', label: 'Vertical', draw: vi.fn(), ratios: ['3:4', '1:1'], ensure }];
+    render(<CameraCapture token="tok" quota={quota} onClose={() => {}} frames={frames} stickers={[]} />);
+    await waitFor(() => expect(ensure).toHaveBeenCalledWith('3:4'));
+    await user.click(ratioButton('1:1'));
+    await waitFor(() => expect(ensure).toHaveBeenCalledWith('1:1'));
+  });
+
+  /** Un marco cuyos recursos de 1:1 tardan en cargar hasta que el test los libere. */
+  function marcoConCargaLenta() {
+    let liberar: () => void = () => undefined;
+    const puerta = new Promise<void>((resolve) => (liberar = resolve));
+    const draw = vi.fn();
+    const ensure = vi.fn((r: string) => (r === '1:1' ? puerta : Promise.resolve()));
+    const frame: CameraFrameOption = { id: 'v', label: 'Vertical', draw, ratios: ['3:4', '1:1'], ensure };
+    return { frame, draw, liberar };
+  }
+
+  it('redibuja el marco del visor cuando terminan de cargar los recursos de la proporción', async () => {
+    mockCanvasPipeline();
+    mockCamera();
+    const user = userEvent.setup();
+    const { frame, draw, liberar } = marcoConCargaLenta();
+    render(<CameraCapture token="tok" quota={quota} onClose={() => {}} frames={[frame]} stickers={[]} />);
+    await user.click(ratioButton('1:1'));
+    await user.click(screen.getByRole('button', { name: 'Siguiente marco' }));
+    const antes = draw.mock.calls.length;
+
+    liberar();
+    await waitFor(() => expect(draw.mock.calls.length).toBeGreaterThan(antes));
+    expect(draw.mock.calls.at(-1)![3]).toBe('1:1');
+  });
+
+  it('no deja disparar con un marco elegido mientras cargan sus recursos, pero sí sin marco', async () => {
+    mockCanvasPipeline();
+    mockCamera();
+    const user = userEvent.setup();
+    const { frame, liberar } = marcoConCargaLenta();
+    render(<CameraCapture token="tok" quota={quota} onClose={() => {}} frames={[frame]} stickers={[]} />);
+    const shutter = await screen.findByRole('button', { name: /disparar/i });
+    await waitFor(() => expect(shutter).toBeEnabled());
+
+    await user.click(ratioButton('1:1'));
+    expect(shutter).toBeEnabled(); // «Sin marco»: no hay nada que esperar
+    await user.click(screen.getByRole('button', { name: 'Siguiente marco' })); // Vertical, aún cargando
+    expect(shutter).toBeDisabled();
+
+    liberar();
+    await waitFor(() => expect(shutter).toBeEnabled());
+  });
+
+  it('el obturador espera solo al marco elegido, no a los demás marcos de la proporción', async () => {
+    mockCanvasPipeline();
+    mockCamera();
+    const user = userEvent.setup();
+    let liberar: () => void = () => undefined;
+    const puerta = new Promise<void>((resolve) => (liberar = resolve));
+    const frames: CameraFrameOption[] = [
+      { id: 'rapido', label: 'Rápido', draw: vi.fn(), ratios: ['3:4', '1:1'], ensure: vi.fn(async () => undefined) },
+      { id: 'lento', label: 'Lento', draw: vi.fn(), ratios: ['3:4', '1:1'], ensure: vi.fn((r: string) => (r === '1:1' ? puerta : Promise.resolve())) },
+    ];
+    render(<CameraCapture token="tok" quota={quota} onClose={() => {}} frames={frames} stickers={[]} />);
+    const shutter = await screen.findByRole('button', { name: /disparar/i });
+    await waitFor(() => expect(shutter).toBeEnabled());
+
+    await user.click(ratioButton('1:1'));
+    await user.click(screen.getByRole('button', { name: 'Siguiente marco' })); // Rápido
+    await waitFor(() => expect(shutter).toBeEnabled()); // no espera a «Lento»
+    await user.click(screen.getByRole('button', { name: 'Siguiente marco' })); // Lento
+    expect(shutter).toBeDisabled();
+    liberar();
+    await waitFor(() => expect(shutter).toBeEnabled());
+  });
+
+  it('volver a una proporción ya cargada no la vuelve a cargar ni bloquea el obturador', async () => {
+    mockCanvasPipeline();
+    mockCamera();
+    const user = userEvent.setup();
+    const { frame, liberar } = marcoConCargaLenta();
+    render(<CameraCapture token="tok" quota={quota} onClose={() => {}} frames={[frame]} stickers={[]} />);
+    const shutter = await screen.findByRole('button', { name: /disparar/i });
+    await user.click(ratioButton('1:1'));
+    await user.click(screen.getByRole('button', { name: 'Siguiente marco' }));
+    liberar();
+    await waitFor(() => expect(shutter).toBeEnabled());
+
+    await user.click(ratioButton('3:4'));
+    await user.click(ratioButton('1:1'));
+    await user.click(screen.getByRole('button', { name: 'Siguiente marco' }));
+    expect(shutter).toBeEnabled(); // sin pasar por «cargando»
+    expect(screen.queryByText('Cargando marco…')).not.toBeInTheDocument();
+    expect(vi.mocked(frame.ensure!).mock.calls.filter(([r]) => r === '1:1')).toHaveLength(1);
+  });
+
+  it('si los recursos de un marco no responden, el obturador se libera tras una espera máxima', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      mockCanvasPipeline();
+      mockCamera();
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      const colgado: CameraFrameOption = {
+        id: 'v',
+        label: 'Vertical',
+        draw: vi.fn(),
+        ratios: ['3:4', '1:1'],
+        ensure: vi.fn((r: string) => (r === '1:1' ? new Promise<void>(() => undefined) : Promise.resolve())),
+      };
+      render(<CameraCapture token="tok" quota={quota} onClose={() => {}} frames={[colgado]} stickers={[]} />);
+      const shutter = await screen.findByRole('button', { name: /disparar/i });
+      await waitFor(() => expect(shutter).toBeEnabled());
+      await user.click(ratioButton('1:1'));
+      await user.click(screen.getByRole('button', { name: 'Siguiente marco' }));
+      expect(shutter).toBeDisabled();
+
+      await act(async () => {
+        vi.advanceTimersByTime(10_000);
+      });
+      await waitFor(() => expect(shutter).toBeEnabled());
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('el aviso «Cargando marco…» se anuncia a los lectores de pantalla', async () => {
+    mockCanvasPipeline();
+    mockCamera();
+    const user = userEvent.setup();
+    const { frame } = marcoConCargaLenta();
+    render(<CameraCapture token="tok" quota={quota} onClose={() => {}} frames={[frame]} stickers={[]} />);
+    await user.click(ratioButton('1:1'));
+    await user.click(screen.getByRole('button', { name: 'Siguiente marco' }));
+    expect(screen.getByText('Cargando marco…').closest('[role="status"]')).not.toBeNull();
+  });
+
+  it('la cámara heredada (sin marcos ni stickers) no muestra selector de proporción', async () => {
+    mockCanvasPipeline();
+    mockCamera();
+    render(<CameraCapture token="tok" quota={quota} onClose={() => {}} />);
+    await screen.findByRole('button', { name: /disparar/i });
+    expect(screen.queryByRole('group', { name: 'Proporción de la foto' })).not.toBeInTheDocument();
   });
 
   it('mientras la cámara está abierta la página de atrás no se desplaza, y se libera al cerrarla', () => {

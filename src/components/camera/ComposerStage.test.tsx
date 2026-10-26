@@ -49,6 +49,7 @@ function setup(
   render(
     <ComposerStage
       aspect={1}
+      ratio="1:1"
       frame={extra.frame ?? null}
       placements={placements}
       options={options}
@@ -77,10 +78,11 @@ describe('ComposerStage', () => {
 
     expect(m.count('clearRect')).toBe(1);
     expect(draw).toHaveBeenCalledTimes(1);
-    const [ctx, w, h] = draw.mock.calls[0];
+    const [ctx, w, h, ratio] = draw.mock.calls[0];
     expect(ctx).toBe(m.ctx);
     // devicePixelRatio de jsdom = 1
     expect([w, h]).toEqual([400, 400]);
+    expect(ratio).toBe('1:1'); // el marco dibuja el diseño de la proporción del visor
   });
 
   it('"Sin marco" (draw nulo) limpia el canvas y no dibuja nada', () => {
