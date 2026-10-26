@@ -1,9 +1,12 @@
 /**
- * Encuadre de la cámara del invitado. El visor y la foto final tienen SIEMPRE la misma proporción, la del
- * teléfono (3:4 en vertical, 4:3 en horizontal), sin importar qué video entregue el navegador: algunos
- * teléfonos dan 9:16, otros 4:3 apaisado aun estando en vertical. El video se recorta al centro para
- * llenar ese encuadre, igual en el visor (`object-cover`) y al disparar (`coverCrop`).
+ * Encuadre de la cámara del invitado. El visor y la foto final tienen SIEMPRE la misma proporción,
+ * la que elige el invitado entre las permitidas (por defecto 3:4 en vertical, 4:3 en horizontal),
+ * sin importar qué video entregue el navegador: algunos teléfonos dan 9:16, otros 4:3 apaisado
+ * aun estando en vertical. El video se recorta al centro para llenar ese encuadre, igual en el
+ * visor (`object-cover`) y al disparar (`coverCrop`).
  */
+
+import type { VariantRatio } from './cameraAssets/frames';
 
 export type FramingOrientation = 'portrait' | 'landscape';
 
@@ -15,22 +18,39 @@ export function aspectForOrientation(orientation: FramingOrientation): number {
   return orientation === 'portrait' ? PORTRAIT_ASPECT : LANDSCAPE_ASPECT;
 }
 
-/** Cuánto puede diferir (en proporción) la imagen de un marco de la foto para no verse estirada. */
-export const FRAME_ASPECT_TOLERANCE = 0.06;
+const PORTRAIT_RATIOS: readonly VariantRatio[] = ['3:4', '1:1', '9:16'];
+const LANDSCAPE_RATIOS: readonly VariantRatio[] = ['4:3', '1:1'];
+
+/** Proporciones disponibles para la foto según la orientación del teléfono. */
+export function ratiosForOrientation(orientation: FramingOrientation): readonly VariantRatio[] {
+  return orientation === 'portrait' ? PORTRAIT_RATIOS : LANDSCAPE_RATIOS;
+}
+
+/** Proporción por defecto al abrir la cámara o girar el teléfono. */
+export function defaultRatio(orientation: FramingOrientation): VariantRatio {
+  return orientation === 'portrait' ? '3:4' : '4:3';
+}
+
+const RATIO_ASPECTS: Record<VariantRatio, number> = {
+  '3:4': 3 / 4,
+  '4:3': 4 / 3,
+  '1:1': 1,
+  '9:16': 9 / 16,
+};
+
+/** Proporción numérica (ancho / alto) de una proporción fotográfica. */
+export function ratioAspect(ratio: VariantRatio): number {
+  return RATIO_ASPECTS[ratio];
+}
 
 /**
- * ¿El marco calza con la foto? Un marco de imagen completa (PNG hecho para una proporción) se ve estirado
- * en otra, así que solo se ofrece cuando su proporción es la de la foto. Un marco sin imagen completa
- * (`undefined`: se dibuja con capas y se adapta solo) sirve siempre.
+ * Resuelve la proporción activa: conserva la elegida por el invitado si la orientación
+ * actual la permite; si no (o si aún no eligió ninguna), vuelve a la por defecto.
  */
-export function frameFitsAspect(
-  frameAspect: number | undefined,
-  photoAspect: number,
-  tolerance = FRAME_ASPECT_TOLERANCE,
-): boolean {
-  if (frameAspect === undefined) return true;
-  if (!(frameAspect > 0) || !(photoAspect > 0)) return true;
-  return Math.abs(frameAspect / photoAspect - 1) <= tolerance;
+export function resolveRatio(orientation: FramingOrientation, chosen?: VariantRatio): VariantRatio {
+  const allowed = ratiosForOrientation(orientation);
+  if (chosen && allowed.includes(chosen)) return chosen;
+  return defaultRatio(orientation);
 }
 
 export interface CropRect {

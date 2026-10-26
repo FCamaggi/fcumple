@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import type { VariantRatio } from '../../lib/cameraAssets/frames';
 import {
   EMOJI_FONT_STACK,
   applyPinch,
@@ -11,12 +12,16 @@ import type { CameraFrameOption, CameraStickerOption } from './types';
 interface ComposerStageProps {
   /** ancho / alto del video: el escenario tiene EXACTAMENTE la proporción de la foto final. */
   aspect: number;
+  /** Proporción fotográfica elegida (3:4, 4:3, 1:1, 9:16). */
+  ratio: VariantRatio;
   frame: CameraFrameOption | null;
   placements: StickerPlacement[];
   options: ReadonlyMap<string, CameraStickerOption>;
   selectedUid: string | null;
   onSelect: (uid: string | null) => void;
   onChange: (next: StickerPlacement) => void;
+  /** Contador incremental para forzar el redibujado del marco cuando terminan de cargar recursos. */
+  drawVersion?: number;
   /** El <video> en vivo. */
   children: ReactNode;
 }
@@ -69,12 +74,14 @@ interface Gesture {
  */
 export default function ComposerStage({
   aspect,
+  ratio,
   frame,
   placements,
   options,
   selectedUid,
   onSelect,
   onChange,
+  drawVersion,
   children,
 }: ComposerStageProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -85,7 +92,7 @@ export default function ComposerStage({
   const pointers = useRef(new Map<number, { x: number; y: number }>());
   const gesture = useRef<Gesture | null>(null);
 
-  // El marco se redibuja al cambiar de marco o de tamaño del escenario.
+  // El marco se redibuja al cambiar de marco, de proporción, de tamaño del escenario o de versión de dibujo.
   useEffect(() => {
     const canvas = overlayRef.current;
     if (!canvas || stage.w <= 0) return;
@@ -95,8 +102,8 @@ export default function ComposerStage({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    frame?.draw?.(ctx, canvas.width, canvas.height);
-  }, [frame, stage.w, stage.h]);
+    frame?.draw?.(ctx, canvas.width, canvas.height, ratio);
+  }, [frame, stage.w, stage.h, ratio, drawVersion]);
 
   function placementOf(uid: string) {
     return placements.find((p) => p.uid === uid) ?? null;

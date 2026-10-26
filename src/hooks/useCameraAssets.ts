@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { renderFrame } from '../lib/cameraAssets/frames';
-import { prepareFrameAssets, sanitizeLayers, type FrameAssets, type FrameLayer } from '../lib/cameraAssets/layers';
+import {
+  VARIANT_RATIOS,
+  renderFrame,
+  sanitizeFrameParams,
+  variantLayers,
+  type VariantRatio,
+} from '../lib/cameraAssets/frames';
+import { prepareFrameAssets, type FrameAssets } from '../lib/cameraAssets/layers';
 import { getStickerImageUrl, listCameraAssets, type GuestFrame, type GuestSticker } from '../lib/platformGuestApi';
 import type { CameraFrameOption, CameraStickerOption } from '../components/camera/types';
 
@@ -33,19 +39,6 @@ export function loadImage(url: string): Promise<HTMLImageElement> {
 }
 
 /**
- * Proporción (ancho / alto) de la imagen de un marco de imagen completa, ya cargada; `undefined` si el marco no
- * tiene una o su imagen no cargó (entonces no se esconde: se dibuja lo que haya).
- */
-export function fullImageAspect(layers: readonly FrameLayer[], assets: FrameAssets | undefined): number | undefined {
-  const layer = layers.find((l) => l.type === 'image' && l.full === true);
-  if (!layer || layer.type !== 'image') return undefined;
-  const image = assets?.images.get(layer.src) as { naturalWidth?: number; naturalHeight?: number; width?: number; height?: number } | undefined;
-  const w = image?.naturalWidth || image?.width || 0;
-  const h = image?.naturalHeight || image?.height || 0;
-  return w > 0 && h > 0 ? w / h : undefined;
-}
-
-/**
  * Marcos y stickers activos del evento del invitado, listos para la cámara: los
  * marcos como funciones de dibujo y las imágenes ya cargadas. Un sticker cuya
  * imagen no carga simplemente no aparece; nunca bloquea la cámara.
@@ -75,23 +68,71 @@ export function useCameraAssets(
         const loader = loadFnRef.current ?? (() => listCameraAssets(token));
         const { frames, stickers } = await loader();
 
-        // Un marco de capas necesita sus imágenes y tipografías ya cargadas: renderFrame es síncrona.
-        // prepareFrameAssets nunca rechaza; lo que no carga se omite y el resto del marco se dibuja.
-        const frameOptions: CameraFrameOption[] = await Promise.all(
-          frames.map(async (f): Promise<CameraFrameOption> => {
-            const layers = f.template === 'capas' ? sanitizeLayers(f.params.layers) : [];
-            const assets = f.template === 'capas' ? await prepareFrameAssets(layers, getStickerImageUrl) : undefined;
+        // Por cada marco se crea su función de dibujo y la carga bajo demanda (ensure)
+        // por proporción. La carga inicial solo asegura '3:4'.
+        const frameOptions: CameraFrameOption[] = frames.map((f): CameraFrameOption => {
+          if (f.template !== 'capas') {
             return {
               id: f.id,
               label: f.label,
-              draw: (ctx, width, height) => renderFrame(ctx, width, height, f.template, f.params, assets),
-              aspect: fullImageAspect(layers, assets),
+              draw: null,
+              ratios: [],
+              ensure: async () => {},
             };
-          }),
-        );
+          }
 
-        const stickerOptions = (
-          await Promise.all(
+          const sanitized = sanitizeFrameParams(f.params);
+          const ratios = VARIANT_RATIOS.filter((r) => variantLayers(sanitized, r) !== undefined);
+          const assetsCache = new Map<VariantRatio, FrameAssets>();
+          const promiseCache = new Map<VariantRatio, Promise<void>>();
+
+          const ensure = (ratio: VariantRatio): Promise<void> => {
+            const cachedPromise = promiseCache.get(ratio);
+            if (cachedPromise) return cachedPromise;
+            if (assetsCache.has(ratio)) return Promise.resolve();
+
+            const layers = variantLayers(sanitized, ratio);
+            if (layers === undefined) {
+              const p = Promise.resolve();
+              promiseCache.set(ratio, p);
+              return p;
+            }
+
+            const p = (async () => {
+              const prepared = await prepareFrameAssets(layers, getStickerImageUrl);
+              assetsCache.set(ratio, prepared);
+            })();
+            promiseCache.set(ratio, p);
+            return p;
+          };
+
+          const draw = (
+            ctx: CanvasRenderingContext2D,
+            width: number,
+            height: number,
+            ratio: VariantRatio,
+          ) => {
+            const layers = variantLayers(sanitized, ratio);
+            if (!layers) return;
+            const { variants: _ignored, ...paramsWithoutVariants } = sanitized;
+            const frameParams = { ...paramsWithoutVariants, layers };
+            const assetsForRatio = assetsCache.get(ratio);
+            renderFrame(ctx, width, height, f.template, frameParams, assetsForRatio);
+          };
+
+          return {
+            id: f.id,
+            label: f.label,
+            draw,
+            ratios,
+            ensure,
+          };
+        });
+
+        // Asegurar 3:4 para todos los marcos en la carga inicial y cargar stickers en paralelo.
+        const [, stickerOptions] = await Promise.all([
+          Promise.all(frameOptions.map((opt) => opt.ensure?.('3:4'))),
+          Promise.all(
             stickers.map(async (s): Promise<CameraStickerOption | null> => {
               if (s.kind === 'emoji' && s.emoji) {
                 return { id: s.id, label: s.emoji, asset: { kind: 'emoji', emoji: s.emoji } };
@@ -107,14 +148,16 @@ export function useCameraAssets(
               }
               return null;
             }),
-          )
-        ).filter((o): o is CameraStickerOption => o !== null);
+          ),
+        ]);
+
+        const validStickers = stickerOptions.filter((o): o is CameraStickerOption => o !== null);
 
         if (active) {
           setAssets({
             status: 'ready',
             frames: frameOptions,
-            stickers: stickerOptions,
+            stickers: validStickers,
             initialFrameId: frames.find((f) => f.isDefault)?.id ?? null,
           });
         }

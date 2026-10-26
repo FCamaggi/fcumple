@@ -4,7 +4,8 @@ import { usePhotoCapture, type PhotoUploader } from '../hooks/usePhotoCapture';
 import { useOrientation } from '../hooks/useOrientation';
 import { useScrollLock } from '../hooks/useScrollLock';
 import { useFrameImages } from '../hooks/useFrameImages';
-import { aspectForOrientation, coverCrop, frameFitsAspect } from '../lib/cameraFraming';
+import { coverCrop, ratioAspect, ratiosForOrientation, resolveRatio } from '../lib/cameraFraming';
+import type { VariantRatio } from '../lib/cameraAssets/frames';
 import {
   getCameraControlsAvailability,
   type CameraControlsAvailability,
@@ -61,6 +62,7 @@ let placementCounter = 0;
 
 export const MAX_DIMENSION = 2048;
 export const JPEG_QUALITY = 0.85;
+export const FRAME_ENSURE_TIMEOUT_MS = 8000;
 
 /**
  * Constraints de resolución y proporción para la cámara web/móvil:
@@ -189,13 +191,15 @@ export default function CameraCapture({
   const [controls, setControls] = useState<CameraControlsAvailability>(NO_CONTROLS);
   const [torchOn, setTorchOn] = useState(false);
   const composer = frames !== undefined || stickers !== undefined;
-  // El visor y la foto tienen siempre la proporción del teléfono, no la del video que entregue el navegador:
-  // así no salta al cargar ni queda una franja chica cuando el video llega apaisado (ver `cameraFraming`).
-  const aspect = aspectForOrientation(orientation);
-  // Un marco de imagen completa solo se ofrece si es de la proporción de la foto: en otra se vería estirado.
+  const [chosenRatio, setChosenRatio] = useState<VariantRatio | undefined>(undefined);
+  const ratio = resolveRatio(orientation, chosenRatio);
+  // El visor y la foto tienen la proporción elegida entre las permitidas (o la del teléfono por defecto):
+  // así no salta al cargar ni queda una franja chica cuando el video llega con otra forma (ver `cameraFraming`).
+  const aspect = ratioAspect(ratio);
+  // Un marco sin diseño para la proporción elegida se oculta del carrusel.
   const frameOptions = useMemo(
-    () => [NO_FRAME, ...(frames ?? []).filter((f) => frameFitsAspect(f.aspect, aspect))],
-    [frames, aspect],
+    () => [NO_FRAME, ...(frames ?? []).filter((f) => !f.ratios || f.ratios.includes(ratio))],
+    [frames, ratio],
   );
   const indexOfInitialFrame = () => {
     if (!composer || !initialFrameId) return 0;
@@ -203,17 +207,85 @@ export default function CameraCapture({
     return index >= 0 ? index : 0;
   };
   const [frameIndex, setFrameIndex] = useState(indexOfInitialFrame);
-  // Al girar el teléfono la lista cambia de marcos: se vuelve al marco por defecto en vez de caer en otro por posición.
-  const lastAspect = useRef(aspect);
+  const [loadedKeys, setLoadedKeys] = useState<ReadonlySet<string>>(() => new Set<string>());
+  const loadedKeysRef = useRef(loadedKeys);
+  loadedKeysRef.current = loadedKeys;
+  const [drawVersion, setDrawVersion] = useState(0);
+
+  const currentFrame = composer ? (frameOptions[frameIndex] ?? NO_FRAME) : null;
+  const currentKey = currentFrame ? `${currentFrame.id}:${ratio}` : '';
+  const isFrameLoading = Boolean(
+    composer &&
+      currentFrame?.draw &&
+      currentFrame.ensure &&
+      !loadedKeys.has(currentKey),
+  );
+
+  // Al cambiar la proporción de la foto la lista cambia de marcos: se vuelve al marco por defecto en vez de caer en otro por posición.
+  const lastRatio = useRef(ratio);
   useEffect(() => {
-    if (lastAspect.current === aspect) return;
-    lastAspect.current = aspect;
+    if (lastRatio.current === ratio) return;
+    lastRatio.current = ratio;
     setFrameIndex(indexOfInitialFrame());
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo debe correr al cambiar la proporción
-  }, [aspect]);
+  }, [ratio]);
+
+  // En modo compositor carga bajo demanda los recursos de la proporción elegida para los marcos visibles.
+  useEffect(() => {
+    if (!composer) return;
+    let cancelled = false;
+    const activeTimers = new Set<ReturnType<typeof setTimeout>>();
+
+    for (const frame of frameOptions) {
+      if (!frame.id || frame.id === 'none') continue;
+      const key = `${frame.id}:${ratio}`;
+      if (loadedKeysRef.current.has(key)) continue;
+
+      if (!frame.ensure) {
+        setLoadedKeys((prev) => {
+          if (prev.has(key)) return prev;
+          const next = new Set(prev);
+          next.add(key);
+          loadedKeysRef.current = next;
+          return next;
+        });
+        setDrawVersion((v) => v + 1);
+        continue;
+      }
+
+      let timer: ReturnType<typeof setTimeout>;
+      const timeoutPromise = new Promise<void>((resolve) => {
+        timer = setTimeout(() => {
+          activeTimers.delete(timer);
+          resolve();
+        }, FRAME_ENSURE_TIMEOUT_MS);
+        activeTimers.add(timer);
+      });
+      const loadPromise = frame.ensure(ratio).catch(() => undefined);
+
+      void Promise.race([loadPromise, timeoutPromise]).then(() => {
+        clearTimeout(timer);
+        activeTimers.delete(timer);
+        if (cancelled) return;
+        setLoadedKeys((prev) => {
+          if (prev.has(key)) return prev;
+          const next = new Set(prev);
+          next.add(key);
+          loadedKeysRef.current = next;
+          return next;
+        });
+        setDrawVersion((v) => v + 1);
+      });
+    }
+
+    return () => {
+      cancelled = true;
+      for (const t of activeTimers) clearTimeout(t);
+      activeTimers.clear();
+    };
+  }, [composer, ratio, frameOptions]);
   const frameCount = composer ? frameOptions.length : FRAME_IDS.length;
   const frameId = FRAME_IDS[frameIndex] ?? 'none';
-  const currentFrame = composer ? (frameOptions[frameIndex] ?? NO_FRAME) : null;
   const frameImages = useFrameImages();
 
   // Stickers sobre la foto (modo compositor).
@@ -402,6 +474,7 @@ export default function CameraCapture({
   }
 
   function handleShoot() {
+    if (isFrameLoading) return;
     const video = videoRef.current;
     const canvas = canvasRef.current;
     if (!video || !canvas || video.videoWidth === 0 || video.videoHeight === 0) return;
@@ -409,7 +482,7 @@ export default function CameraCapture({
     // `success` y la revisión de esta foto mostraría «Enviando…» sin poder enviarse.
     if (state.phase === 'success') reset();
 
-    // Con marcos y stickers la foto sale recortada al centro con la proporción del visor (el mismo recorte que
+    // Con marcos y stickers la foto sale recortada al centro con la proporción elegida para el visor (el mismo recorte que
     // hace `object-cover`): lo que se ve es lo que se graba. La cámara heredada sigue guardando el cuadro entero.
     const crop = composer
       ? coverCrop(video.videoWidth, video.videoHeight, aspect)
@@ -436,7 +509,7 @@ export default function CameraCapture({
     if (composer) {
       // Orden: foto → stickers → marco (el marco queda siempre encima).
       drawStickers(ctx, canvas.width, canvas.height, placements, assetMap);
-      currentFrame?.draw?.(ctx, canvas.width, canvas.height);
+      currentFrame?.draw?.(ctx, canvas.width, canvas.height, ratio);
     } else {
       drawFrame(ctx, frameId === 'none' ? null : (frameImages[frameId] ?? null), canvas.width, canvas.height);
     }
@@ -528,7 +601,7 @@ export default function CameraCapture({
   return (
     <div ref={rootRef} className="fixed inset-safe z-50 flex flex-col bg-ink-950" aria-label="Cámara de fotos">
       {/* Cabecera baja: el visor es lo que manda. El rótulo «Cámara // modo carrete» solo vive en las pantallas sin cámara. */}
-      <div role="group" aria-label="Estado de la cámara" className="flex items-center justify-between gap-2 bg-ink-900 px-3 py-1">
+      <div role="group" aria-label="Estado de la cámara" className="flex flex-wrap items-center justify-between gap-2 bg-ink-900 px-3 py-1">
         <div className="flex min-w-0 items-center gap-2">
           <FilmRollCounter quota={quota.quota} used={shownUsed} compact />
           {previewNotice && (
@@ -540,7 +613,28 @@ export default function CameraCapture({
             </span>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {composer && (
+            <div role="group" aria-label="Proporción de la foto" className="flex items-center gap-1">
+              {ratiosForOrientation(orientation).map((r) => {
+                const active = r === ratio;
+                return (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => setChosenRatio(r)}
+                    aria-label={`Proporción ${r}`}
+                    aria-pressed={active}
+                    className={`tap-target px-2 font-mono text-xs font-bold uppercase tracking-wider ${
+                      active ? 'bg-paper-100 text-ink-950' : 'bg-smoke-700/40 text-paper-100'
+                    }`}
+                  >
+                    {r}
+                  </button>
+                );
+              })}
+            </div>
+          )}
           {controls.torch && (
             <button
               type="button"
@@ -578,12 +672,14 @@ export default function CameraCapture({
         ) : composer ? (
           <ComposerStage
             aspect={aspect}
+            ratio={ratio}
             frame={currentFrame}
             placements={placements}
             options={optionMap}
             selectedUid={selectedUid}
             onSelect={setSelectedUid}
             onChange={(next) => setPlacements((current) => current.map((p) => (p.uid === next.uid ? next : p)))}
+            drawVersion={drawVersion}
           >
             {/* eslint-disable-next-line jsx-a11y/media-has-caption -- live camera preview, no captionable content */}
             <video
@@ -659,6 +755,11 @@ export default function CameraCapture({
             >
               Marco // {currentFrame ? currentFrame.label : FRAME_LABELS[frameId]}
             </span>
+            {isFrameLoading && (
+              <span role="status" className="shrink-0 font-mono text-xs uppercase tracking-wider text-paper-100/70">
+                Cargando marco…
+              </span>
+            )}
             {eventName && (
               <span
                 data-testid="boleto-evento"
@@ -679,7 +780,7 @@ export default function CameraCapture({
 
             <ShutterButton
               buttonRef={shutterRef}
-              disabled={!cameraReady || !!cameraError || state.phase === 'uploading' || !!reviewUrl}
+              disabled={!cameraReady || !!cameraError || state.phase === 'uploading' || !!reviewUrl || isFrameLoading}
               uploading={state.phase === 'uploading'}
               onClick={handleShoot}
             />
@@ -920,10 +1021,8 @@ function ChevronIcon({ direction }: { direction: 'left' | 'right' }) {
  * Guías decorativas de encuadre -- puramente visuales (pointer-events-none,
  * aria-hidden), viven adentro del contenedor del <video> así que nunca
  * pueden tapar el botón de disparo ni el control de torch, que son un
- * bloque hermano fuera de este contenedor. El aspecto del marco cambia
- * según la orientación real del dispositivo (useOrientation), no un
- * breakpoint fijo -- girar el teléfono con la cámara abierta reacomoda la
- * guía en vivo.
+ * bloque hermano fuera de este contenedor. La guía solo se usa en la cámara heredada
+ * (la que conserva la proporción por defecto del teléfono según useOrientation).
  */
 function FramingGuide({ orientation }: { orientation: 'portrait' | 'landscape' }) {
   return (
