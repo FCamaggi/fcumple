@@ -1,12 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { validateLayers } from './layers';
+import { validateLayers, type Layer } from './layers';
 import {
   clearPackAssetCache,
   isRoleOrHexColor,
   loadPacksForEvent,
-  materializePresetLayers,
   parseAssetRef,
   recolorLayersByPalette,
   recolorSvgToDataUri,
@@ -66,7 +65,7 @@ describe('packs y roles de color (Etapa 2.1)', () => {
     ).toThrow(/no permitidos/);
   });
 
-  it('el paquete público halloween-neon en public/packs/ trae las 8 piezas y los 4 presets completos válidos', () => {
+  it('el paquete público halloween-neon en public/packs/ trae las 8 piezas y ya no trae presets', () => {
     const packDir = path.resolve(process.cwd(), 'public', 'packs', 'halloween-neon');
     const raw = JSON.parse(fs.readFileSync(path.join(packDir, 'pack.json'), 'utf8')) as PackManifest;
     expect(validatePackManifest(raw)).toEqual({ ok: true });
@@ -80,26 +79,12 @@ describe('packs y roles de color (Etapa 2.1)', () => {
       'camara-retro',
       'tiara',
     ]);
-    expect(raw.presets.map((p) => p.id)).toEqual([
-      'halloween-boleto-neon',
-      'halloween-esquinas-abiertas',
-      'cumpleanos-fiesta-neon',
-      'burn-book',
-    ]);
+    expect(raw).not.toHaveProperty('presets');
 
     for (const asset of raw.assets) {
       const svgText = fs.readFileSync(path.join(packDir, asset.file), 'utf8');
       const uri = recolorSvgToDataUri(svgText, raw.palette);
       expect(uri).toContain(encodeURIComponent(raw.palette.acento));
-    }
-
-    for (const preset of raw.presets) {
-      const layers = materializePresetLayers(preset, raw.palette, { acento: '#ff6b00' });
-      const res = validateLayers(layers, '00000000-0000-0000-0000-000000000001');
-      expect(res).toEqual({ ok: true });
-      expect(layers.some((l) => l.type === 'asset')).toBe(true);
-      expect(JSON.stringify(layers)).toContain('#ff6b00');
-      expect(JSON.stringify(layers)).not.toContain('$acento');
     }
   });
 
@@ -123,7 +108,6 @@ describe('packs y roles de color (Etapa 2.1)', () => {
           license: { source: 'Propia', spdx: 'LicenseRef-Own', date: '2026-10-25' },
         },
       ],
-      presets: [],
     };
     registerPackManifest(privatePack);
 
@@ -138,9 +122,17 @@ describe('packs y roles de color (Etapa 2.1)', () => {
   });
 
   it('recolorLayersByPalette cambia en bloque los 3 roles ($acento, $fondo, $texto) incluyendo tint y shadow', () => {
-    const packDir = path.resolve(process.cwd(), 'public', 'packs', 'halloween-neon');
-    const raw = JSON.parse(fs.readFileSync(path.join(packDir, 'pack.json'), 'utf8')) as PackManifest;
-    const initial = materializePresetLayers(raw.presets[0], PALETTE);
+    const initial = [
+      { type: 'asset', asset: 'pack:halloween-neon/murcielago', w: 0.2, h: 0.2, tint: PALETTE.acento },
+      { type: 'shape', shape: 'rect', w: 0.5, h: 0.2, fill: PALETTE.fondo, stroke: PALETTE.acento },
+      {
+        type: 'text',
+        text: 'Hola',
+        font: 'sans',
+        color: PALETTE.texto,
+        shadow: { color: PALETTE.acento, blur: 0.02, x: 0, y: 0 },
+      },
+    ] as Layer[];
     const nextPalette: PackPalette = { acento: '#c8f23a', fondo: '#110b1a', texto: '#f5efff' };
 
     const recolored = recolorLayersByPalette(initial, PALETTE, nextPalette);
@@ -171,9 +163,10 @@ describe('packs y roles de color (Etapa 2.1)', () => {
           license: { source: 'Propia', spdx: 'LicenseRef-Own', date: '2026-10-25' },
         },
       ],
-      presets: [],
     };
     expect(validatePackManifest(base)).toEqual({ ok: true });
+    // Los paquetes que aún traigan `presets` siguen validando: el campo se ignora.
+    expect(validatePackManifest({ ...base, presets: [{ id: 'viejo', label: 'Viejo', layers: [] }] })).toEqual({ ok: true });
     expect(validatePackManifest({ ...base, eventSlug: undefined }).ok).toBe(false);
     expect(
       validatePackManifest({

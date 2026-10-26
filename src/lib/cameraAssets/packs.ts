@@ -57,14 +57,6 @@ export interface PackAssetMeta {
   license: PackAssetLicense;
 }
 
-export interface PackPreset {
-  id: string;
-  label: string;
-  description?: string;
-  /** Capas del preset; los colores pueden ser `#RRGGBB` o un rol (`$acento`, `$fondo`, `$texto`). */
-  layers: Record<string, unknown>[];
-}
-
 export interface PackManifest {
   id: string;
   name: string;
@@ -74,7 +66,6 @@ export interface PackManifest {
   eventSlug?: string;
   palette: PackPalette;
   assets: PackAssetMeta[];
-  presets: PackPreset[];
 }
 
 export const MAX_SVG_BYTES = 60 * 1024;
@@ -146,34 +137,6 @@ export function recolorSvgToDataUri(svgText: string, palette: PackPalette): stri
     .replaceAll('currentColor', palette.acento);
 
   return `data:image/svg+xml;utf8,${encodeURIComponent(colored)}`;
-}
-
-/**
- * Copia las capas de un preset al diseño de un evento resolviendo los roles
- * `$acento`, `$fondo` y `$texto` a colores `#RRGGBB` concretos.
- */
-export function materializePresetLayers(
-  preset: PackPreset,
-  basePalette: PackPalette,
-  overrides?: Partial<PackPalette>,
-): Layer[] {
-  const palette: PackPalette = { ...basePalette, ...overrides };
-  return preset.layers.map((raw) => {
-    const next: Record<string, unknown> = { ...raw };
-    for (const key of ['color', 'strokeColor', 'fill', 'stroke', 'tint'] as const) {
-      if (typeof next[key] === 'string') {
-        next[key] = resolveRoleColor(next[key] as string, palette);
-      }
-    }
-    if (next.shadow && typeof next.shadow === 'object' && next.shadow !== null) {
-      const sh = { ...(next.shadow as Record<string, unknown>) };
-      if (typeof sh.color === 'string') {
-        sh.color = resolveRoleColor(sh.color, palette);
-      }
-      next.shadow = sh;
-    }
-    return next as unknown as Layer;
-  });
 }
 
 /**
@@ -295,10 +258,6 @@ export function validatePackManifest(raw: unknown): ValidationResult {
     ) {
       return { ok: false, error: `El recurso ${a.id} debe declarar su licencia completa (source, spdx, date).` };
     }
-  }
-
-  if (!Array.isArray(m.presets)) {
-    return { ok: false, error: 'El paquete debe incluir la lista presets.' };
   }
 
   return { ok: true };

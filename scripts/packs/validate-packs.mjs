@@ -87,7 +87,7 @@ for (const dir of dirs) {
     fail(`${dir}: el paquete pesa ${totalBytes} B (máximo: ${MAX_PACK_BYTES} B)`);
   } else {
     console.log(
-      `OK pack "${manifest.id}" (${manifest.visibility}): ${manifest.assets?.length ?? 0} recursos, ${manifest.presets?.length ?? 0} presets, ${totalBytes} B`,
+      `OK pack "${manifest.id}" (${manifest.visibility}): ${manifest.assets?.length ?? 0} recursos, ${totalBytes} B`,
     );
   }
 }
