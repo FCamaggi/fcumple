@@ -1,5 +1,13 @@
 import { useState } from 'react';
-import { validateFrameParams, type FrameParams, type FrameTemplate } from '../../lib/cameraAssets/frames';
+import {
+  VARIANT_RATIOS,
+  validateFrameParams,
+  variantLayers,
+  withVariant,
+  type FrameParams,
+  type FrameTemplate,
+  type VariantRatio,
+} from '../../lib/cameraAssets/frames';
 import LayerEditor from './LayerEditor';
 
 interface FrameEditorProps {
@@ -25,7 +33,7 @@ const labelClass = 'font-mono text-xs uppercase tracking-wider text-paper-100/70
  * a la vez la vista previa.
  */
 export default function FrameEditor({
-  template,
+  template: _template,
   initialLabel,
   initialParams,
   saving,
@@ -37,7 +45,17 @@ export default function FrameEditor({
 }: FrameEditorProps) {
   const [label, setLabel] = useState(initialLabel);
   const [params, setParams] = useState<FrameParams>(initialParams);
+  const [ratio, setRatio] = useState<VariantRatio>(() => {
+    if (variantLayers(initialParams, '3:4') !== undefined) return '3:4';
+    return VARIANT_RATIOS.find((r) => variantLayers(initialParams, r) !== undefined) ?? '3:4';
+  });
   const [error, setError] = useState<string | null>(null);
+
+  const activeLayers = variantLayers(params, ratio);
+  const copySource: VariantRatio | undefined =
+    variantLayers(params, '3:4') !== undefined
+      ? '3:4'
+      : VARIANT_RATIOS.find((r) => variantLayers(params, r) !== undefined);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -69,13 +87,66 @@ export default function FrameEditor({
         />
       </div>
 
-      <LayerEditor
-        layers={params.layers ?? []}
-        onChange={(layers) => setParams((current) => ({ ...current, layers }))}
-        eventSlug={eventSlug}
-        uploadImage={uploadImage}
-        resolveImageUrl={resolveImageUrl}
-      />
+      <div className="flex items-center gap-2" role="group" aria-label="Proporción del diseño">
+        <span className="font-mono text-xs uppercase tracking-wider text-paper-100/50">Formato</span>
+        <div className="inline-flex">
+          {VARIANT_RATIOS.map((r) => {
+            const hasDesign = variantLayers(params, r) !== undefined;
+            return (
+              <button
+                key={r}
+                type="button"
+                aria-label={hasDesign ? `Proporción ${r}` : `Proporción ${r}, sin diseño`}
+                aria-pressed={ratio === r}
+                onClick={() => setRatio(r)}
+                className={`h-8 min-w-11 px-2.5 font-mono text-xs transition-colors ${
+                  ratio === r
+                    ? 'bg-acid-400 font-bold text-ink-950'
+                    : 'bg-ink-950 text-paper-100/80 hover:text-paper-100'
+                }`}
+              >
+                {r}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {activeLayers ? (
+        <LayerEditor
+          key={ratio}
+          aspectRatio={ratio}
+          layers={activeLayers}
+          onChange={(layers) => setParams((c) => withVariant(c, ratio, layers))}
+          eventSlug={eventSlug}
+          uploadImage={uploadImage}
+          resolveImageUrl={resolveImageUrl}
+        />
+      ) : (
+        <div className="flex flex-col items-center gap-3 border border-smoke-700/60 bg-ink-900 p-6 text-center">
+          <p className="font-mono text-xs uppercase tracking-wider text-paper-100/70">Sin diseño para {ratio}</p>
+          <div className="flex flex-wrap justify-center gap-2">
+            <button
+              type="button"
+              onClick={() => setParams((c) => withVariant(c, ratio, []))}
+              className="h-9 bg-acid-400 px-4 font-display text-xs uppercase tracking-wider text-ink-950"
+            >
+              Empezar vacía
+            </button>
+            {copySource && (
+              <button
+                type="button"
+                onClick={() =>
+                  setParams((c) => withVariant(c, ratio, [...(variantLayers(c, copySource) ?? [])]))
+                }
+                className="h-9 border border-smoke-700/60 bg-ink-950 px-4 font-mono text-xs uppercase tracking-wider text-paper-100 transition-colors hover:border-acid-400"
+              >
+                Copiar desde {copySource}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {error && (
         <p role="alert" className="font-mono text-xs uppercase tracking-wide text-flame-500">

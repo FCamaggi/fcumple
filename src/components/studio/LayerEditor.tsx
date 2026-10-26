@@ -40,6 +40,8 @@ type LibraryTab = 'presets' | 'elementos' | 'texto' | 'subidas';
 interface LayerEditorProps {
   layers: FrameLayer[];
   onChange: (layers: FrameLayer[]) => void;
+  /** Proporción fija del lienzo cuando el marco administra un diseño por proporción. */
+  aspectRatio?: CanvasAspectRatio;
   /** Slug del evento activo para cargar paquetes privados además de los públicos. */
   eventSlug?: string;
   /** Sube una imagen y devuelve su ruta en Storage. Sin esto no se ofrece agregar imágenes. */
@@ -77,6 +79,7 @@ const columnClass = 'flex flex-col gap-3 border border-smoke-700/60 bg-ink-900 p
 export default function LayerEditor({
   layers,
   onChange,
+  aspectRatio: fixedAspectRatio,
   eventSlug,
   uploadImage,
   resolveImageUrl,
@@ -90,7 +93,8 @@ export default function LayerEditor({
   const [activeTab, setActiveTab] = useState<LibraryTab>('presets');
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<'all' | PackAssetCategory>('all');
-  const [aspectRatio, setAspectRatio] = useState<CanvasAspectRatio>('3:4');
+  const [internalAspectRatio, setAspectRatio] = useState<CanvasAspectRatio>('3:4');
+  const aspectRatio = fixedAspectRatio ?? internalAspectRatio;
   const [showFaceGuide, setShowFaceGuide] = useState(true);
   const [palette, setPalette] = useState<PackPalette>(DEFAULT_PACK_PALETTE);
   const [packs, setPacks] = useState<PackManifest[]>(() => getCachedPacksForEvent(eventSlug));
@@ -109,6 +113,15 @@ export default function LayerEditor({
 
   const layersRef = useRef(layers);
   layersRef.current = layers;
+
+  // FrameEditor desmonta este editor al cambiar de proporción: una subida que termina después ya no debe escribir en ella.
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     const el = areaRef.current;
@@ -319,15 +332,16 @@ export default function LayerEditor({
     setError(null);
     try {
       const src = await uploadImage(file);
+      if (!mountedRef.current) return;
       const result = addLayer(layersRef.current, createLayer('image', { src }));
       if (result.index >= 0) {
         commitLayers(result.layers);
         setSelected(result.index);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No pudimos subir la imagen.');
+      if (mountedRef.current) setError(err instanceof Error ? err.message : 'No pudimos subir la imagen.');
     } finally {
-      setUploading(false);
+      if (mountedRef.current) setUploading(false);
     }
   }
 
@@ -505,30 +519,34 @@ export default function LayerEditor({
           role="toolbar"
           aria-label="Herramientas del lienzo"
         >
-          <div className="flex items-center gap-2" role="group" aria-label="Proporción del lienzo">
-            <span className="font-mono text-xs uppercase tracking-wider text-paper-100/50">Formato</span>
-            <div className="inline-flex">
-              {ASPECT_RATIOS.map((ratio) => (
-                <button
-                  key={ratio}
-                  type="button"
-                  aria-label={`Proporción ${ratio}`}
-                  aria-pressed={aspectRatio === ratio}
-                  title={ASPECT_RATIO_DIMENSIONS[ratio].label}
-                  onClick={() => setAspectRatio(ratio)}
-                  className={`h-8 min-w-11 px-2.5 font-mono text-xs transition-colors ${
-                    aspectRatio === ratio
-                      ? 'bg-acid-400 font-bold text-ink-950'
-                      : 'bg-ink-950 text-paper-100/80 hover:text-paper-100'
-                  }`}
-                >
-                  {ratio}
-                </button>
-              ))}
-            </div>
-          </div>
+          {!fixedAspectRatio && (
+            <>
+              <div className="flex items-center gap-2" role="group" aria-label="Proporción del lienzo">
+                <span className="font-mono text-xs uppercase tracking-wider text-paper-100/50">Formato</span>
+                <div className="inline-flex">
+                  {ASPECT_RATIOS.map((ratio) => (
+                    <button
+                      key={ratio}
+                      type="button"
+                      aria-label={`Proporción ${ratio}`}
+                      aria-pressed={aspectRatio === ratio}
+                      title={ASPECT_RATIO_DIMENSIONS[ratio].label}
+                      onClick={() => setAspectRatio(ratio)}
+                      className={`h-8 min-w-11 px-2.5 font-mono text-xs transition-colors ${
+                        aspectRatio === ratio
+                          ? 'bg-acid-400 font-bold text-ink-950'
+                          : 'bg-ink-950 text-paper-100/80 hover:text-paper-100'
+                      }`}
+                    >
+                      {ratio}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-          <span aria-hidden="true" className="hidden h-6 w-px bg-smoke-700/60 sm:block" />
+              <span aria-hidden="true" className="hidden h-6 w-px bg-smoke-700/60 sm:block" />
+            </>
+          )}
 
           <div className="flex items-center gap-1" role="group" aria-label="Historial">
             <button
