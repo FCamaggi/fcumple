@@ -104,7 +104,8 @@ export default function GuestListPanel({
 
   const pending = guests.filter((g) => g.approvalStatus === 'pending');
   const members = guests.filter((g) => g.approvalStatus !== 'pending');
-  const entered = members.filter((g) => g.claimedAt).length;
+  const totalMembers = members.reduce((sum, g) => sum + 1 + g.plusOnesConfirmed, 0);
+  const totalEntered = members.filter((g) => g.claimedAt).reduce((sum, g) => sum + 1 + g.plusOnesConfirmed, 0);
 
   async function run(action: () => Promise<void>) {
     try {
@@ -211,7 +212,7 @@ export default function GuestListPanel({
       <section aria-label="Invitados" className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="font-mono text-xs font-bold uppercase tracking-widest text-laser-500">
-            Invitados: {members.length} · han entrado: {entered}
+            Invitados: {totalMembers} · han entrado: {totalEntered}
           </h2>
           {guests.length > 0 && (
             <button
