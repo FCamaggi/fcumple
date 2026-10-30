@@ -144,11 +144,11 @@ describe('GuestListPanel: respuestas de la inscripción', () => {
 describe('GuestListPanel', () => {
   it('cuenta invitados y quienes ya entraron, y muestra el estado de cada uno', () => {
     setup([
-      guest({ id: '1', fullName: 'Ana Rojas', claimedAt: '2026-10-15T20:00:00Z' }),
+      guest({ id: '1', fullName: 'Ana Rojas', claimedAt: '2026-10-15T20:00:00Z', plusOnesConfirmed: 1 }),
       guest({ id: '2', fullName: 'Beto Mora' }),
       guest({ id: '3', fullName: 'Carla Diaz', claimedAt: '2026-10-15T20:00:00Z', checkedInAt: '2026-10-15T21:00:00Z' }),
     ]);
-    expect(screen.getByText('Invitados: 3 · han entrado: 2')).toBeInTheDocument();
+    expect(screen.getByText('Invitados: 4 · han entrado: 3')).toBeInTheDocument();
     expect(screen.getByText('Entró')).toBeInTheDocument();
     expect(screen.getByText('Aún no entra')).toBeInTheDocument();
     expect(screen.getByText('Llegó')).toBeInTheDocument();

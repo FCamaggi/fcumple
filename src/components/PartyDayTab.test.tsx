@@ -220,7 +220,7 @@ describe('PartyDayTab: cámara', () => {
   });
 
   it('si todos la activaron lo celebra y no lista a nadie', async () => {
-    renderTab({ guests: [guest('a', { cameraActivatedAt: '2026-10-30T23:10:00Z' })] });
+    renderTab({ guests: [guest('a', { cameraActivatedAt: '2026-10-30T23:10:00Z', plusOnesConfirmed: 0 })] });
 
     expect(screen.getByText('1 de 1 activaron la cámara')).toBeInTheDocument();
     expect(screen.getByText(/todos tienen la cámara/i)).toBeInTheDocument();

@@ -46,7 +46,7 @@ describe('countModerationPhotos', () => {
 
 describe('summarizeCamera', () => {
   const guests = [
-    guest({ id: 'a', claimedAt: '2026-10-30T20:00:00Z', cameraActivatedAt: '2026-10-30T23:10:00Z' }),
+    guest({ id: 'a', claimedAt: '2026-10-30T20:00:00Z', cameraActivatedAt: '2026-10-30T23:10:00Z', plusOnesConfirmed: 1 }),
     guest({ id: 'b', claimedAt: '2026-10-30T20:00:00Z', checkedInAt: '2026-10-30T23:00:00Z' }),
     guest({ id: 'c', claimedAt: '2026-10-30T20:00:00Z' }),
     guest({ id: 'd' }),
@@ -54,8 +54,8 @@ describe('summarizeCamera', () => {
 
   it('con QR del evento, activó quien escaneó el código', () => {
     const s = summarizeCamera('on_event_qr', guests);
-    expect(s.total).toBe(4);
-    expect(s.activated).toBe(1);
+    expect(s.total).toBe(5);
+    expect(s.activated).toBe(2);
     expect(s.missing.map((g) => g.id)).toEqual(['b', 'c', 'd']);
   });
 
@@ -67,8 +67,8 @@ describe('summarizeCamera', () => {
 
   it('al identificarse la cámara está disponible para todos, también para quien aún no entra', () => {
     const s = summarizeCamera('on_identify', guests);
-    expect(s.total).toBe(4);
-    expect(s.activated).toBe(4);
+    expect(s.total).toBe(5);
+    expect(s.activated).toBe(5);
     expect(s.missing).toEqual([]);
   });
 

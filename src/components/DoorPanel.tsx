@@ -24,7 +24,8 @@ export default function DoorPanel({ guests, onCheckIn, onOpenScanner }: DoorPane
   const [error, setError] = useState<string | null>(null);
 
   const approved = useMemo(() => guests.filter((g) => g.approvalStatus === 'approved'), [guests]);
-  const arrived = approved.filter((g) => g.checkedInAt).length;
+  const totalApproved = approved.reduce((sum, g) => sum + 1 + g.plusOnesConfirmed, 0);
+  const totalArrived = approved.filter((g) => g.checkedInAt).reduce((sum, g) => sum + 1 + g.plusOnesConfirmed, 0);
 
   const matches = useMemo(() => {
     const needle = fold(query).trim();
@@ -52,7 +53,7 @@ export default function DoorPanel({ guests, onCheckIn, onOpenScanner }: DoorPane
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-2">
         <h2 className="font-mono text-xs font-bold uppercase tracking-widest text-laser-500">
-          Han llegado: {arrived} de {approved.length}
+          Han llegado: {totalArrived} de {totalApproved}
         </h2>
         <button
           type="button"

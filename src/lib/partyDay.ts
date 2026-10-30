@@ -42,7 +42,9 @@ function hasCamera(mode: CameraUnlock, guest: OrganizerGuest): boolean {
 export function summarizeCamera(mode: CameraUnlock, guests: readonly OrganizerGuest[]): CameraSummary {
   const expected = guests.filter((g) => g.approvalStatus === 'approved' && g.status !== 'declined');
   const missing = expected.filter((g) => !hasCamera(mode, g));
-  return { total: expected.length, activated: expected.length - missing.length, missing };
+  const total = expected.reduce((sum, g) => sum + 1 + g.plusOnesConfirmed, 0);
+  const activated = expected.filter(g => !missing.includes(g)).reduce((sum, g) => sum + 1 + g.plusOnesConfirmed, 0);
+  return { total, activated, missing };
 }
 
 const HOUR = 3_600_000;
