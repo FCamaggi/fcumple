@@ -214,7 +214,7 @@ export default function OrganizerEventPage() {
           {tab === 'avisos' && <PostsPanel eventId={event.id} />}
           {tab === 'activacion' && <ActivationTab event={event} onEventChange={setEvent} />}
           {tab === 'camara' && <CameraStudio event={event} onEventChange={setEvent} />}
-          {tab === 'fotos' && <PhotosTab photos={photos} />}
+          {tab === 'fotos' && <PhotosTab photos={photos} eventSlug={event.slug} />}
           {tab === 'vista' && <GuestPreviewTab event={event} />}
           {tab === 'enlace' && <ShareEventLink event={event} />}
           {tab === 'inscripcion' && (
