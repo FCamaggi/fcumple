@@ -2,8 +2,11 @@ import { useState } from 'react';
 import PanelState from './PanelState';
 import PhotoModerationPanel from './PhotoModerationPanel';
 import type { EventPhotos } from '../hooks/useEventPhotos';
+import ExportPhotos from './ExportPhotos';
 
 interface PhotosTabProps {
+  /** Para nombrar el archivo descargado. */
+  eventSlug?: string;
   /** Las fotos del evento: las pide la página del panel y las comparte con «Hoy» y con la insignia de «Fotos». */
   photos: EventPhotos;
 }
@@ -14,7 +17,7 @@ interface PhotosTabProps {
  * todas las aprobadas que faltaban. Reutiliza `PhotoModerationPanel` con las funciones de la Fase 1 (que
  * trabajan sobre ESTE evento).
  */
-export default function PhotosTab({ photos: state }: PhotosTabProps) {
+export default function PhotosTab({ photos: state, eventSlug = 'evento' }: PhotosTabProps) {
   const [moderating, setModerating] = useState(false);
   const { photos, counts, error, publishError, notice, publishing, reload, handlePublish, source } = state;
 
@@ -72,6 +75,8 @@ export default function PhotosTab({ photos: state }: PhotosTabProps) {
           {publishing ? 'Publicando...' : `Publicar ${counts.unpublished} aprobada(s)`}
         </button>
       </div>
+
+      {photos && photos.length > 0 && <ExportPhotos photos={photos} eventSlug={eventSlug} />}
 
       {moderating && <PhotoModerationPanel onClose={() => setReviewOpen(false)} source={source} />}
     </div>

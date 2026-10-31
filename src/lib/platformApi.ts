@@ -23,6 +23,8 @@ export interface EventPublic {
   cameraUnlock: CameraUnlock;
   rsvpEnabled: boolean;
   photosRevealed: boolean;
+  /** Hora límite de la cámara (ISO). Pasada, ya no entran fotos nuevas. `null` = sin límite. */
+  cameraClosesAt?: string | null;
   /** Qué le pide el organizador al inscribirse (+1, comentario, preguntas, bienvenida). */
   enrollment: ResolvedEnrollment;
   /** Línea debajo del título (p. ej. «Cumpleaños Fran» bajo «PUTI HALLOWEEN»). */
@@ -71,6 +73,7 @@ interface EventRow {
   camera_unlock: CameraUnlock;
   rsvp_enabled: boolean;
   photos_revealed: boolean;
+  camera_closes_at?: string | null;
   enrollment_config: unknown;
   subtitle: string | null;
   theme: unknown;
@@ -101,6 +104,7 @@ export async function getEventPublic(slug: string): Promise<EventPublic | null> 
     cameraUnlock: row.camera_unlock,
     rsvpEnabled: row.rsvp_enabled,
     photosRevealed: row.photos_revealed,
+    cameraClosesAt: row.camera_closes_at ?? null,
     enrollment: resolveEnrollmentConfig(row.enrollment_config),
     subtitle: row.subtitle ?? null,
     theme: row.theme ?? {},

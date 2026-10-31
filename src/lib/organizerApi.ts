@@ -27,6 +27,8 @@ export interface OrganizerEvent {
   location: string | null;
   accessMode: AccessMode;
   cameraUnlock: CameraUnlock;
+  /** Hora límite de la cámara (ISO): pasada, la base rechaza las fotos nuevas. `null` = sin límite. */
+  cameraClosesAt?: string | null;
   rsvpEnabled: boolean;
   framesEnabled: boolean;
   stickersEnabled: boolean;
@@ -75,6 +77,7 @@ interface EventRow {
   location: string | null;
   access_mode: AccessMode;
   camera_unlock: CameraUnlock;
+  camera_closes_at?: string | null;
   rsvp_enabled: boolean;
   frames_enabled: boolean;
   stickers_enabled: boolean;
@@ -116,6 +119,7 @@ function mapEvent(row: EventRow): OrganizerEvent {
     location: row.location,
     accessMode: row.access_mode,
     cameraUnlock: row.camera_unlock,
+    cameraClosesAt: row.camera_closes_at ?? null,
     rsvpEnabled: row.rsvp_enabled,
     framesEnabled: row.frames_enabled,
     stickersEnabled: row.stickers_enabled,
@@ -213,6 +217,8 @@ export interface EventSettingsPatch {
   location?: string | null;
   accessMode?: AccessMode;
   cameraUnlock?: CameraUnlock;
+  /** ISO, o `null` para quitar el límite. */
+  cameraClosesAt?: string | null;
   rsvpEnabled?: boolean;
   framesEnabled?: boolean;
   stickersEnabled?: boolean;
@@ -232,6 +238,7 @@ export async function updateEvent(eventId: string, patch: EventSettingsPatch): P
   if (patch.location !== undefined) row.location = patch.location;
   if (patch.accessMode !== undefined) row.access_mode = patch.accessMode;
   if (patch.cameraUnlock !== undefined) row.camera_unlock = patch.cameraUnlock;
+  if (patch.cameraClosesAt !== undefined) row.camera_closes_at = patch.cameraClosesAt;
   if (patch.rsvpEnabled !== undefined) row.rsvp_enabled = patch.rsvpEnabled;
   if (patch.framesEnabled !== undefined) row.frames_enabled = patch.framesEnabled;
   if (patch.stickersEnabled !== undefined) row.stickers_enabled = patch.stickersEnabled;

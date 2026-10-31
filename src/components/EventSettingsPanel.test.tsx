@@ -45,6 +45,53 @@ describe('EventSettingsPanel', () => {
     expect(await screen.findByRole('status')).toHaveTextContent('Ajustes guardados.');
   });
 
+  describe('hora límite de la cámara', () => {
+    it('guarda la hora que se escribe y no la reenvía si no se toca', async () => {
+      const onSave = vi.fn().mockResolvedValue(undefined);
+      render(<EventSettingsPanel event={event} onSave={onSave} />);
+      expect(screen.getByLabelText(/La cámara se cierra a las/)).toHaveValue('');
+
+      fireEvent.change(screen.getByLabelText(/La cámara se cierra a las/), { target: { value: '2026-10-31T03:00' } });
+      await userEvent.click(screen.getByRole('button', { name: 'Guardar ajustes' }));
+      expect(onSave).toHaveBeenCalledWith(
+        expect.objectContaining({ cameraClosesAt: localInputToIso('2026-10-31T03:00') }),
+      );
+
+      onSave.mockClear();
+      render(<EventSettingsPanel event={{ ...event, cameraClosesAt: '2026-10-31T06:00:00.000Z' }} onSave={onSave} />);
+      await userEvent.click(screen.getAllByRole('button', { name: 'Guardar ajustes' })[1]);
+      expect(onSave.mock.calls[0][0]).not.toHaveProperty('cameraClosesAt');
+    });
+
+    it('se puede quitar el límite dejando la hora vacía', async () => {
+      const onSave = vi.fn().mockResolvedValue(undefined);
+      render(<EventSettingsPanel event={{ ...event, cameraClosesAt: '2026-10-31T06:00:00.000Z' }} onSave={onSave} />);
+      fireEvent.change(screen.getByLabelText(/La cámara se cierra a las/), { target: { value: '' } });
+      await userEvent.click(screen.getByRole('button', { name: 'Guardar ajustes' }));
+      expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ cameraClosesAt: null }));
+    });
+
+    it('«Cerrar la cámara ahora» pide confirmación y guarda la hora actual', async () => {
+      const onSave = vi.fn().mockResolvedValue(undefined);
+      const confirm = vi.spyOn(window, 'confirm');
+      render(<EventSettingsPanel event={event} onSave={onSave} />);
+
+      confirm.mockReturnValueOnce(false);
+      await userEvent.click(screen.getByRole('button', { name: 'Cerrar la cámara ahora' }));
+      expect(onSave).not.toHaveBeenCalled();
+
+      confirm.mockReturnValueOnce(true);
+      const before = Date.now();
+      await userEvent.click(screen.getByRole('button', { name: 'Cerrar la cámara ahora' }));
+      expect(onSave).toHaveBeenCalledTimes(1);
+      const sent = Date.parse(onSave.mock.calls[0][0].cameraClosesAt);
+      expect(sent).toBeGreaterThanOrEqual(before);
+      expect(sent).toBeLessThanOrEqual(Date.now());
+      expect(await screen.findByRole('status')).toHaveTextContent('La cámara quedó cerrada.');
+      confirm.mockRestore();
+    });
+  });
+
   it('muestra la fecha del evento y guarda la que se escribe', async () => {
     const onSave = vi.fn().mockResolvedValue(undefined);
     render(<EventSettingsPanel event={{ ...event, startsAt: '2026-10-30T23:30:00.000Z' }} onSave={onSave} />);

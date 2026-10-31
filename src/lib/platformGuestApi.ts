@@ -128,7 +128,9 @@ export async function uploadGuestPhoto(identity: GuestIdentity, blob: Blob, disp
 
   if (error) {
     throw new Error(
-      error.code === '22023'
+      error.code === '55000'
+        ? 'La cámara de este evento ya cerró. Ya no se pueden tomar más fotos.'
+        : error.code === '22023'
         ? 'Ya usaste todos los disparos de tu rollo.'
         : error.code === '42501'
           ? 'La cámara todavía no está habilitada para ti. Pasa por la puerta para que marquen tu llegada.'
