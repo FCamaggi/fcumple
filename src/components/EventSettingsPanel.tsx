@@ -37,11 +37,31 @@ export default function EventSettingsPanel({ event, onSave }: EventSettingsPanel
   const [photoQuota, setPhotoQuota] = useState(String(event.defaultPhotoQuota));
   const [accessMode, setAccessMode] = useState<AccessMode>(event.accessMode);
   const [cameraUnlock, setCameraUnlock] = useState<CameraUnlock>(event.cameraUnlock);
+  const [cameraClosesAt, setCameraClosesAt] = useState(isoToLocalInput(event.cameraClosesAt ?? null));
   const [showPreview, setShowPreview] = useState(false);
   // La dirección no lleva el estilo ni cambia al elegir otro: si cambiara, el iframe se recargaría con cada opción.
   const [previewSrc] = useState(() => `/panel/e/${event.id}/vista-previa?estado=activa`);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
+
+  // «Cerrar ahora»: guarda al tiro (no espera al botón de abajo) para que el cierre sea inmediato.
+  async function handleCloseNow() {
+    if (!window.confirm('¿Cerrar la cámara ahora? Nadie podrá tomar más fotos. Puedes reabrirla borrando o cambiando la hora.')) {
+      return;
+    }
+    setMessage(null);
+    setSaving(true);
+    try {
+      const now = new Date().toISOString();
+      await onSave({ cameraClosesAt: now });
+      setCameraClosesAt(isoToLocalInput(now));
+      setMessage({ kind: 'ok', text: 'La cámara quedó cerrada.' });
+    } catch (err) {
+      setMessage({ kind: 'error', text: err instanceof Error ? err.message : 'No pudimos cerrar la cámara.' });
+    } finally {
+      setSaving(false);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -67,6 +87,10 @@ export default function EventSettingsPanel({ event, onSave }: EventSettingsPanel
         defaultPhotoQuota: quota,
         accessMode,
         cameraUnlock,
+        // Solo si la tocó, igual que la fecha: así no se reescribe la hora al guardar otra cosa.
+        ...(cameraClosesAt !== isoToLocalInput(event.cameraClosesAt ?? null)
+          ? { cameraClosesAt: localInputToIso(cameraClosesAt) }
+          : {}),
       });
       setMessage({ kind: 'ok', text: 'Ajustes guardados.' });
     } catch (err) {
@@ -208,6 +232,31 @@ export default function EventSettingsPanel({ event, onSave }: EventSettingsPanel
             </option>
           ))}
         </select>
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <label htmlFor="ev-camera-closes" className={labelClass}>
+          La cámara se cierra a las <span className="text-paper-100/50">opcional</span>
+        </label>
+        <input
+          id="ev-camera-closes"
+          type="datetime-local"
+          value={cameraClosesAt}
+          onChange={(e) => setCameraClosesAt(e.target.value)}
+          className={fieldClass}
+        />
+        <p className="font-sans text-xs text-paper-100/60">
+          Pasada esta hora nadie puede tomar fotos nuevas; las ya tomadas no se pierden. Es la hora de tu dispositivo.
+          Déjala vacía para no poner límite.
+        </p>
+        <button
+          type="button"
+          onClick={() => void handleCloseNow()}
+          disabled={saving}
+          className="h-11 border border-flame-500 px-3 font-mono text-xs uppercase tracking-wider text-flame-500 disabled:opacity-60"
+        >
+          Cerrar la cámara ahora
+        </button>
       </div>
 
       <p className="font-sans text-xs text-paper-100/60">

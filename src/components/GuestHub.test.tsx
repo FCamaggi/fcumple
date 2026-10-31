@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 vi.mock('../lib/platformGuestApi', () => ({
@@ -129,6 +129,35 @@ describe('GuestHub', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'cerrar cámara' }));
     expect(screen.queryByTestId('camera')).not.toBeInTheDocument();
+  });
+
+  it('con la hora límite pasada no ofrece la cámara y lo dice', async () => {
+    setup({ event: { cameraClosesAt: new Date(Date.now() - 60_000).toISOString() } });
+    expect(await screen.findByText(/ya cerró/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Abrir cámara' })).not.toBeInTheDocument();
+  });
+
+  it('con la hora límite en el futuro sigue ofreciendo la cámara', async () => {
+    setup({ event: { cameraClosesAt: new Date(Date.now() + 3_600_000).toISOString() } });
+    expect(await screen.findByRole('button', { name: 'Abrir cámara' })).toBeInTheDocument();
+    expect(screen.queryByText(/ya cerró/)).not.toBeInTheDocument();
+  });
+
+  it('si la hora llega con la página abierta, la cámara abierta se cierra sola', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      setup({ event: { cameraClosesAt: new Date(Date.now() + 5_000).toISOString() } });
+      await userEvent.click(await screen.findByRole('button', { name: 'Abrir cámara' }));
+      expect(screen.getByTestId('camera')).toBeInTheDocument();
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(6_000);
+      });
+      expect(screen.queryByTestId('camera')).not.toBeInTheDocument();
+      expect(screen.getByText(/ya cerró/)).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('con on_checkin y sin llegada marcada bloquea la cámara y no pide el cupo', async () => {

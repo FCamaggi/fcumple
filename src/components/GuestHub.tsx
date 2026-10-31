@@ -43,6 +43,21 @@ export default function GuestHub({ slug, token, event, guest, onGuestChange }: G
     event.cameraUnlock === 'on_identify' ||
     (event.cameraUnlock === 'on_checkin' && guest.checkedInAt !== null) ||
     (event.cameraUnlock === 'on_event_qr' && guest.cameraActivatedAt !== null);
+  // Hora límite del evento: pasada, la base ya no recibe fotos nuevas. Se reevalúa justo al llegar la hora para que
+  // la cámara se cierre sola aunque el invitado tenga la página abierta.
+  const [now, setNow] = useState(() => Date.now());
+  const closesAtMs = event.cameraClosesAt ? Date.parse(event.cameraClosesAt) : NaN;
+  const cameraClosed = !Number.isNaN(closesAtMs) && now >= closesAtMs;
+  useEffect(() => {
+    if (Number.isNaN(closesAtMs) || Date.now() >= closesAtMs) return;
+    // setTimeout se pasma por encima de ~24 días: basta acotarlo y volver a mirar.
+    const timer = window.setTimeout(() => setNow(Date.now()), Math.min(closesAtMs - Date.now() + 250, 2 ** 31 - 1));
+    return () => window.clearTimeout(timer);
+  }, [closesAtMs, now]);
+  useEffect(() => {
+    if (cameraClosed) setShowCamera(false);
+  }, [cameraClosed]);
+
   // Marcos y stickers del evento: se cargan antes de ofrecer la cámara para que abra con todo listo.
   const cameraAssets = useCameraAssets(token, cameraUnlocked);
   const cameraReady = cameraAssets.status === 'ready' || cameraAssets.status === 'error';
@@ -117,6 +132,7 @@ export default function GuestHub({ slug, token, event, guest, onGuestChange }: G
         cameraUnlock={event.cameraUnlock}
         cameraUnlocked={cameraUnlocked}
         cameraReady={cameraReady}
+        cameraClosed={cameraClosed}
         headcount={headcount}
         quota={quota}
         posts={posts}
@@ -128,7 +144,7 @@ export default function GuestHub({ slug, token, event, guest, onGuestChange }: G
         onRefresh={() => void refreshGuest()}
       />
 
-      {showCamera && quota && (
+      {showCamera && quota && !cameraClosed && (
         <CameraCapture
           token={token}
           quota={quota}

@@ -12,6 +12,8 @@ export interface GuestHubViewProps {
   cameraUnlocked: boolean;
   /** Marcos y stickers ya cargados: antes de eso no se ofrece abrir la cámara. */
   cameraReady: boolean;
+  /** Pasó la hora límite del evento: no se ofrece la cámara. */
+  cameraClosed?: boolean;
   headcount: number | null;
   quota: PhotoQuota | null;
   posts: Post[];
@@ -32,6 +34,7 @@ export default function GuestHubView({
   cameraUnlock,
   cameraUnlocked,
   cameraReady,
+  cameraClosed = false,
   headcount,
   quota,
   posts,
@@ -50,9 +53,20 @@ export default function GuestHubView({
         </p>
       )}
 
-      {cameraUnlocked && quota && cameraReady && <CameraSection quota={quota} onOpen={onOpenCamera} />}
+      {cameraClosed && (
+        <section className="flex flex-col gap-2 bg-ink-900 p-4 shadow-2xl" aria-label="Cámara cerrada">
+          <span className="font-mono text-xs font-bold uppercase tracking-wider text-hotpink-500">
+            Cámara // cerrada
+          </span>
+          <p className="font-sans text-sm text-paper-100/80">
+            La cámara de este evento ya cerró: no se pueden tomar más fotos. Las que sacaste siguen guardadas.
+          </p>
+        </section>
+      )}
 
-      {!cameraUnlocked && cameraUnlock === 'on_event_qr' && (
+      {!cameraClosed && cameraUnlocked && quota && cameraReady && <CameraSection quota={quota} onOpen={onOpenCamera} />}
+
+      {!cameraClosed && !cameraUnlocked && cameraUnlock === 'on_event_qr' && (
         <section className="flex flex-col gap-3 bg-ink-900 p-4 shadow-2xl" aria-label="Cámara bloqueada">
           <span className="font-mono text-xs font-bold uppercase tracking-wider text-hotpink-500">
             Cámara // aún bloqueada
@@ -72,7 +86,7 @@ export default function GuestHubView({
         </section>
       )}
 
-      {!cameraUnlocked && cameraUnlock !== 'on_event_qr' && (
+      {!cameraClosed && !cameraUnlocked && cameraUnlock !== 'on_event_qr' && (
         <section className="flex flex-col gap-3 bg-ink-900 p-4 shadow-2xl" aria-label="Cámara bloqueada">
           <span className="font-mono text-xs font-bold uppercase tracking-wider text-hotpink-500">
             Cámara // aún bloqueada
