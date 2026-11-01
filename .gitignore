@@ -42,3 +42,6 @@ scripts/qa-movil/salida/
 
 # Salida de scripts/qa-estudio (capturas del Estudio; se regeneran)
 scripts/qa-estudio/salida/
+
+# Respaldos locales de tenants (contienen datos personales; privados)
+respaldos/
