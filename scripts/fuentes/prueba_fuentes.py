@@ -98,8 +98,8 @@ class TestFuentesRoundTrip(unittest.TestCase):
 
         # 3. Execute armar-fuente.py via CLI
         armar_script = os.path.join(CURRENT_DIR, "armar-fuente.py")
-        family_name = "Raffa Test Serif"
-        slug_id = "raffa-test-serif"
+        family_name = "Prueba Serif"
+        slug_id = "prueba-serif"
 
         cmd = [
             sys.executable,
@@ -180,18 +180,32 @@ class TestFuentesRoundTrip(unittest.TestCase):
         space_name = cmap[ord(" ")]
         self.assertGreater(hmtx[space_name][0], 0)
 
-        # 7. Assert rendering "Raffa" with PIL ImageFont from the OTF produces ink
+        # The middle dot is rebuilt from the period, centered at half the x-height
+        # (image models draw ";" or a low "." in that cell).
+        from fontTools.pens.boundsPen import BoundsPen
+
+        def glyph_bounds(ch: str):
+            pen = BoundsPen(glyph_set)
+            glyph_set[cmap[ord(ch)]].draw(pen)
+            return pen.bounds
+
+        _, dot_y0, _, dot_y1 = glyph_bounds("·")
+        _, period_y0, _, period_y1 = glyph_bounds(".")
+        self.assertAlmostEqual((dot_y0 + dot_y1) / 2, 175, delta=2)
+        self.assertAlmostEqual(dot_y1 - dot_y0, period_y1 - period_y0, delta=2)
+
+        # 7. Assert rendering "Fiesta" with PIL ImageFont from the OTF produces ink
         pil_font = ImageFont.truetype(otf_path, 60)
         test_img = Image.new("L", (350, 120), 255)
         test_draw = ImageDraw.Draw(test_img)
-        test_draw.text((20, 20), "Raffa", fill=0, font=pil_font)
+        test_draw.text((20, 20), "Fiesta", fill=0, font=pil_font)
 
         ink_pixels = int((np.array(test_img) < 128).sum())
-        print(f"\n[Verificación PIL] Píxeles de tinta renderizados para 'Raffa': {ink_pixels}")
+        print(f"\n[Verificación PIL] Píxeles de tinta renderizados para 'Fiesta': {ink_pixels}")
         self.assertGreater(
             ink_pixels,
             100,
-            "Renderizar el texto 'Raffa' con la fuente OTF generada no produjo tinta.",
+            "Renderizar el texto 'Fiesta' con la fuente OTF generada no produjo tinta.",
         )
 
 

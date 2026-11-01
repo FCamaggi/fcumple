@@ -7,6 +7,7 @@ import os
 import re
 import sys
 import unicodedata
+from types import SimpleNamespace
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
@@ -15,7 +16,9 @@ import potrace
 import scipy.ndimage as ndi
 from fontTools import agl
 from fontTools.fontBuilder import FontBuilder
+from fontTools.pens.boundsPen import BoundsPen
 from fontTools.pens.t2CharStringPen import T2CharStringPen
+from fontTools.pens.transformPen import TransformPen
 
 # Import layout constants as fallbacks
 try:
@@ -181,11 +184,23 @@ def detect_grid_lines(
 # Each side bearing as a fraction of the cap height (0.03 -> 21 units). Set from --espaciado.
 SIDE_BEARING_RATIO = 0.03
 
+# --metricas cuerpo: measure width on the body band (slanted scripts). Default: bounding box.
+BODY_METRICS = False
+
+# Vertical center of the rebuilt middle dot, in font units (half the x-height).
+MIDDLE_DOT_CENTER = 175.0
+
+
+def has_top_mark(char: str) -> bool:
+    """True for letters with a mark above (accents, diaeresis, tilde, i/j tittle)."""
+    return char in "ij" or len(unicodedata.normalize("NFD", char)) > 1
+
 
 def extract_cell_glyph(
     cell_crop: np.ndarray,
     cap_ratio: float,
     baseline_ratio: float,
+    keep_top_marks: bool = False,
 ) -> Optional[Tuple[Any, int, int]]:
     """Crop, threshold, clean corner labels/guides, and vectorize a glyph with potrace.
 
@@ -207,6 +222,9 @@ def extract_cell_glyph(
     if num_features == 0:
         return None
 
+    areas = ndi.sum(ink_mask, labeled, range(1, num_features + 1))
+    largest = float(max(areas)) if len(areas) else 0.0
+
     cleaned_mask = np.zeros_like(ink_mask)
     for idx in range(1, num_features + 1):
         component = labeled == idx
@@ -217,12 +235,33 @@ def extract_cell_glyph(
         if area < 4:
             continue
 
-        max_y = ys.max()
-        max_x = xs.max()
+        min_y, max_y = ys.min(), ys.max()
+        min_x, max_x = xs.min(), xs.max()
 
         # Drop small components situated strictly inside the top-left corner
         is_in_corner = (max_y < ch_h * 0.28) and (max_x < ch_w * 0.28)
         if is_in_corner and area < 300:
+            continue
+
+        # Image models redraw the grid slightly off, so slivers of the cell border
+        # survive the crop: thin, long and parallel to a side.
+        box_w, box_h = max_x - min_x + 1, max_y - min_y + 1
+        if (box_w <= max(3, ch_w * 0.025) and box_h > ch_h * 0.3) or (
+            box_h <= max(3, ch_h * 0.025) and box_w > ch_w * 0.3
+        ):
+            continue
+
+        # A small piece touching the crop edge belongs to a neighbour cell (a tail
+        # from the row above, a swash from the side). Accents and dots float free.
+        touches_edge = min_y == 0 or min_x == 0 or max_y == ch_h - 1 or max_x == ch_w - 1
+        if touches_edge and area < largest * 0.15:
+            continue
+        # A detached piece touching the edge and lying wholly above the cap line or
+        # below the baseline is the tail or top of the letter in the next row.
+        # Accents and tittles of tall letters can touch the top edge too: keep them.
+        above = max_y < ch_h * cap_ratio and not keep_top_marks
+        outside_zone = above or min_y > ch_h * baseline_ratio
+        if touches_edge and outside_zone and area < largest:
             continue
 
         cleaned_mask[component] = True
@@ -265,6 +304,15 @@ def extract_cell_glyph(
 
     min_gx = min(all_x)
     max_gx = max(all_x)
+    # With --metricas cuerpo, width comes from the body band (lower half of the cap height, about the
+    # x-height), so slanted strokes, swashes and tails may overhang into the
+    # neighbours as in real script and italic fonts. Glyphs with no ink in the
+    # band (apostrophe, accents) fall back to the full bounding box.
+    band_top = int(round(y_baseline_px - dy_px * 0.5))
+    band_bottom = int(round(y_baseline_px))
+    band_cols = np.where(cleaned_mask[max(band_top, 0):max(band_bottom, 1)].any(axis=0))[0]
+    if BODY_METRICS and band_cols.size:
+        min_gx, max_gx = float(band_cols.min()), float(band_cols.max() + 1)
     glyph_font_width = (max_gx - min_gx) * scale
 
     # Side bearings proportional to the cap height (700 units); see --espaciado
@@ -345,6 +393,22 @@ def build_font(
     charstrings["space"] = space_pen.getCharString()
     metrics["space"] = (300, 0)
     cmap[ord(" ")] = "space"
+
+    # Image models rarely draw the middle dot right (they draw ";" or a low "."),
+    # so it is always rebuilt from the period, lifted to half the x-height.
+    if "." in glyphs_dict and "·" in glyphs_dict:
+        dot_cs, dot_adv, dot_lsb = glyphs_dict["."]
+        # A standalone charstring needs a minimal CFF private dict to be drawn.
+        dot_cs.private = SimpleNamespace(nominalWidthX=0, defaultWidthX=0, Subrs=[])
+        dot_cs.globalSubrs = []
+        bounds_pen = BoundsPen(None)
+        dot_cs.draw(bounds_pen)
+        if bounds_pen.bounds:
+            _, y_min, _, y_max = bounds_pen.bounds
+            lift = MIDDLE_DOT_CENTER - (y_min + y_max) / 2.0
+            mid_pen = T2CharStringPen(dot_adv, glyphSet=None)
+            dot_cs.draw(TransformPen(mid_pen, (1, 0, 0, 1, 0, lift)))
+            glyphs_dict["·"] = (mid_pen.getCharString(), dot_adv, dot_lsb)
 
     # 3. Add charset glyphs
     for char, (cs, adv_w, lsb) in glyphs_dict.items():
@@ -465,7 +529,7 @@ def assemble_font_pipeline(
             y1 = detected_y[r + 1] - 2
 
             crop = arr[y0:y1, x0:x1]
-            extracted = extract_cell_glyph(crop, cap_ratio, baseline_ratio)
+            extracted = extract_cell_glyph(crop, cap_ratio, baseline_ratio, has_top_mark(char))
 
             if extracted is None:
                 sheet_empty += 1
@@ -542,13 +606,13 @@ def main() -> None:
     parser.add_argument(
         "--familia",
         required=True,
-        help="Nombre de la familia tipográfica (p. ej. 'Raffa Gala').",
+        help="Nombre de la familia tipográfica (p. ej. 'Gala Romana').",
     )
     parser.add_argument(
         "--id",
         dest="slug_id",
         default=None,
-        help="Identificador slug opcional para los archivos generados (p. ej. 'raffa-gala').",
+        help="Identificador slug opcional para los archivos generados (p. ej. 'gala-romana').",
     )
 
     parser.add_argument(
@@ -558,9 +622,23 @@ def main() -> None:
         help="Margen a cada lado de una letra, como fracción de la altura de las mayúsculas (por defecto 0.03).",
     )
 
+    parser.add_argument(
+        "--metricas",
+        choices=["caja", "cuerpo"],
+        default="caja",
+        help=(
+            "Cómo se mide el ancho de cada letra: «caja» usa el contorno completo (letras rectas); "
+            "«cuerpo» usa solo la franja entre la línea de base y la altura de las minúsculas, para "
+            "que los rasgos de una caligrafía inclinada se monten sobre la letra vecina."
+        ),
+    )
+
     args = parser.parse_args()
-    global SIDE_BEARING_RATIO
+    if args.espaciado < 0 or args.espaciado > 0.5:
+        parser.error("--espaciado debe estar entre 0 y 0.5.")
+    global SIDE_BEARING_RATIO, BODY_METRICS
     SIDE_BEARING_RATIO = args.espaciado
+    BODY_METRICS = args.metricas == "cuerpo"
 
     try:
         assemble_font_pipeline(

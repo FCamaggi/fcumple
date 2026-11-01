@@ -71,12 +71,29 @@ Guarda los resultados como:
 Ejecuta `armar-fuente.py` indicando la carpeta con las hojas rellenas, la carpeta de salida y el nombre de la familia:
 
 ```bash
-python scripts/fuentes/armar-fuente.py /ruta/a/hojas_rellenas /ruta/a/fuentes_salida --familia "Raffa Gala" [--id raffa-gala]
+python scripts/fuentes/armar-fuente.py /ruta/a/hojas_rellenas /ruta/a/fuentes_salida --familia "Gala Romana" [--id gala-romana]
 ```
 
 El script imprimirá en pantalla una tabla de resumen con el estado de cada celda y los archivos generados.
 
-`--espaciado` fija el margen a cada lado de una letra como fracción de la altura de las mayúsculas (por defecto `0.03`). Súbelo para una fuente más aireada, por ejemplo en mayúsculas grabadas, o bájalo para una caligrafía que debe enlazar.
+`--espaciado` fija el margen a cada lado de una letra como fracción de la altura de las mayúsculas (por defecto `0.03`, entre 0 y 0.5). Súbelo para una fuente más aireada, por ejemplo en mayúsculas grabadas, o bájalo para una caligrafía que debe enlazar.
+
+`--metricas` elige cómo se mide el ancho de cada letra:
+- `caja` (por defecto) usa el contorno completo. Sirve para letras rectas.
+- `cuerpo` usa solo la franja entre la línea de base y la altura de las minúsculas. Así los rasgos y las colas de una caligrafía inclinada se montan sobre la letra vecina, como en una fuente cursiva real.
+
+Valores que funcionaron con hojas reales de Gemini:
+
+| Estilo | `--espaciado` | `--metricas` |
+|---|---|---|
+| Caligrafía inclinada | 0.04 | cuerpo |
+| Romana con versalitas | 0.05 | caja |
+| Art déco alta y angosta | 0.03 | caja |
+
+Limpieza automática de cada celda:
+- se descartan las astillas finas y largas del borde, porque el modelo redibuja la cuadrícula un poco corrida;
+- se descartan las piezas sueltas que tocan el borde y quedan enteras sobre la línea de mayúsculas o bajo la línea de base, que son colas o cabezas de las letras de la fila vecina; en las letras con tilde, diéresis o punto se conserva lo de arriba;
+- el «·» siempre se reconstruye a partir del punto, subido a media altura de las minúsculas, porque los modelos dibujan «;» o un punto bajo.
 
 **Requisitos:** Python 3 con Pillow, numpy, scipy, fontTools, brotli (para WOFF2) y `potracer`, la versión en Python puro de potrace. Conviene instalarlos en un entorno virtual fuera del repositorio: `python3 -m venv <dir> && <dir>/bin/pip install pillow numpy scipy fonttools brotli potracer`.
 
@@ -88,9 +105,11 @@ Los archivos de salida se guardarán en el directorio indicado:
 - `<id>.otf`: Fuente OpenType con contornos PostScript (CFF) para diseño e instalación.
 - `<id>.woff2`: Fuente web optimizada y comprimida para la aplicación de cámara.
 
-Para integrar la fuente generada en el catálogo de marcos de la aplicación:
-1. Copia el archivo `<id>.woff2` a `public/fonts/` o al storage de assets de cámara.
-2. Registra el nombre en el catálogo de fuentes correspondientes.
+Para que la cámara pueda usar la fuente generada:
+1. Copia `<id>.woff2` a `public/fonts/`.
+2. Agrega el id a `WEB_FONTS` y `CATALOG_FONTS`, con su `FONT_LABELS`, su `FONT_STACKS` (la familia primero) y su `WEB_FONT_FACES` (con `loadFontFile`), en `src/lib/cameraAssets/text.ts`.
+3. Agrega una migración que amplíe la lista de fuentes de `valid_frame_layer`, regenera `supabase/setup-fase-1.sql` (`npm run build:setup-sql`) y suma la migración a la lista de `supabase/tests/prune.test.ts`.
+4. Usa un nombre de familia neutro: este repositorio es público y la fuente no debe llevar el nombre de un cliente.
 
 ---
 
@@ -100,7 +119,7 @@ El archivo `prueba_fuentes.py` incluye una prueba de integración unitaria (`uni
 1. Genera las plantillas vacías.
 2. Rellena las plantillas utilizando una fuente TrueType instalada en el sistema (`DejaVuSerif.ttf`), simulando el comportamiento del LLM (reescala a 1600x1066 y añade ruido).
 3. Ejecuta `armar-fuente.py`.
-4. Valida que el archivo OTF cargue con `fontTools`, contenga entradas en el `cmap` para todos los caracteres del repertorio, que los glifos tengan contornos vectoriales no vacíos y anchos de avance positivos, y que renderizar la palabra `"Raffa"` con PIL produzca tinta en pantalla.
+4. Valida que el archivo OTF cargue con `fontTools`, contenga entradas en el `cmap` para todos los caracteres del repertorio, que los glifos tengan contornos vectoriales no vacíos y anchos de avance positivos, y que renderizar la palabra `"Fiesta"` con PIL produzca tinta en pantalla.
 
 Para ejecutar la prueba:
 
