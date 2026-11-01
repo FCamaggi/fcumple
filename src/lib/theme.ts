@@ -93,6 +93,20 @@ export const THEME_PRESETS: ThemePreset[] = [
       error: '#ff6b6b',
     },
   },
+  {
+    id: 'gala',
+    label: 'Gala (negro, dorado y rojo)',
+    colors: {
+      bg: '#0e0c0b',
+      surface: '#1a1715',
+      border: '#4a3f33',
+      text: '#f4eee3',
+      accent: '#c9a55a',
+      label: '#ddc48a',
+      emphasis: '#e0605a',
+      error: '#f2875c',
+    },
+  },
 ];
 
 /** El tema de un evento a partir de lo que guarda la base (`events.theme`). Nunca lanza. */
