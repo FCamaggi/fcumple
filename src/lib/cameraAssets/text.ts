@@ -11,7 +11,19 @@ export type FrameFont = (typeof FRAME_FONTS)[number];
  * Tipografías web (autoalojadas con @fontsource) que solo usan las capas, elegidas
  * para el estilo de cada cliente. Se descargan al usarlas, no al abrir la app.
  */
-export const WEB_FONTS = ['anton', 'playfair', 'pacifico', 'marker', 'elite', 'cinzel', 'vibes', 'cormorant'] as const;
+export const WEB_FONTS = [
+  'anton',
+  'playfair',
+  'pacifico',
+  'marker',
+  'elite',
+  'cinzel',
+  'vibes',
+  'cormorant',
+  'gala-caligrafia',
+  'gala-romana',
+  'gala-deco',
+] as const;
 export type WebFont = (typeof WEB_FONTS)[number];
 
 /** Todas las que admite una capa de texto: las del sistema más las web. */
@@ -27,6 +39,8 @@ export type LayerFont = (typeof LAYER_FONTS)[number];
  * - Cinzel (Grabada): romanas de inscripción, para eventos formales.
  * - Great Vibes (Caligrafía): caligrafía de diploma o invitación.
  * - Cormorant Garamond (Editorial): serifa fina y elegante.
+ * - Gala Caligrafía, Gala Romana y Gala Déco (propias): dibujadas por IA sobre la plantilla de
+ *   `scripts/fuentes/` y armadas con `armar-fuente.py`; se sirven desde `public/fonts/<id>.woff2`.
  *
  * Las cuatro primeras se eligieron comparando las 11 familias de entonces sobre diseños reales; las tres
  * formales se sumaron para eventos más serios (titulaciones, matrimonios).
@@ -38,7 +52,18 @@ export type LayerFont = (typeof LAYER_FONTS)[number];
  * Playfair. Quitarlas de la validación o del dibujo rompería el renderizado de marcos
  * existentes y haría desaparecer sus textos.
  */
-export const CATALOG_FONTS = ['anton', 'pacifico', 'marker', 'elite', 'cinzel', 'vibes', 'cormorant'] as const;
+export const CATALOG_FONTS = [
+  'anton',
+  'pacifico',
+  'marker',
+  'elite',
+  'cinzel',
+  'vibes',
+  'cormorant',
+  'gala-caligrafia',
+  'gala-romana',
+  'gala-deco',
+] as const;
 export type CatalogFont = (typeof CATALOG_FONTS)[number];
 
 /** Comprueba si una tipografía dada pertenece al catálogo corto ofrecido por el Estudio. */
@@ -87,6 +112,9 @@ export const FONT_LABELS: Record<LayerFont, string> = {
   cinzel: 'Grabada (Cinzel)',
   vibes: 'Caligrafía (Great Vibes)',
   cormorant: 'Editorial (Cormorant)',
+  'gala-caligrafia': 'Caligrafía gala (propia)',
+  'gala-romana': 'Romana gala (propia)',
+  'gala-deco': 'Déco gala (propia)',
 };
 
 /** Pilas de fuentes: las del sistema no descargan nada y el canvas las resuelve igual que el DOM. */
@@ -105,7 +133,41 @@ export const FONT_STACKS: Record<LayerFont, string> = {
   cinzel: '"Cinzel", "Trajan Pro", Georgia, serif',
   vibes: '"Great Vibes", "Snell Roundhand", "Brush Script MT", cursive',
   cormorant: '"Cormorant Garamond", Garamond, Georgia, serif',
+  'gala-caligrafia': '"Gala Caligrafia", "Great Vibes", "Snell Roundhand", cursive',
+  'gala-romana': '"Gala Romana", "Cinzel", Georgia, serif',
+  'gala-deco': '"Gala Deco", "Arial Narrow", sans-serif',
 };
+
+export interface FontFileDeps {
+  createFace: (family: string, source: string) => { load: () => Promise<unknown> };
+  add: (face: unknown) => void;
+}
+
+const defaultFontFileDeps: FontFileDeps = {
+  createFace: (family, source) => new FontFace(family, source),
+  add: (face) => document.fonts.add(face as FontFace),
+};
+
+const fontFileLoads = new Map<string, Promise<void>>();
+
+/**
+ * Registra una fuente propia servida como archivo (`public/fonts/<id>.woff2`): no viene de
+ * @fontsource, así que no hay CSS que importar. Descarga el archivo y la suma a `document.fonts`.
+ */
+export function loadFontFile(family: string, url: string, deps: FontFileDeps = defaultFontFileDeps): Promise<void> {
+  // Each frame preparation asks for its fonts again: download and register each file once.
+  // A failed load is forgotten so the next frame can retry it.
+  const cached = fontFileLoads.get(url);
+  if (cached) return cached;
+  const loading = (async () => {
+    const face = deps.createFace(family, `url(${url})`);
+    await face.load();
+    deps.add(face);
+  })();
+  fontFileLoads.set(url, loading);
+  loading.catch(() => fontFileLoads.delete(url));
+  return loading;
+}
 
 /** Qué CSS importar (registra el @font-face) y qué pesos esperar antes de dibujar en el canvas. */
 const WEB_FONT_FACES: Record<WebFont, { family: string; weights: number[]; load: () => Promise<unknown> }> = {
@@ -133,6 +195,9 @@ const WEB_FONT_FACES: Record<WebFont, { family: string; weights: number[]; load:
         import('@fontsource/cormorant-garamond/latin-700.css'),
       ]),
   },
+  'gala-caligrafia': { family: 'Gala Caligrafia', weights: [400], load: () => loadFontFile('Gala Caligrafia', '/fonts/gala-caligrafia.woff2') },
+  'gala-romana': { family: 'Gala Romana', weights: [400], load: () => loadFontFile('Gala Romana', '/fonts/gala-romana.woff2') },
+  'gala-deco': { family: 'Gala Deco', weights: [400], load: () => loadFontFile('Gala Deco', '/fonts/gala-deco.woff2') },
 };
 
 export interface FontLoaders {

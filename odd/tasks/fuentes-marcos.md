@@ -18,10 +18,10 @@ Entrega: `ask-on-risk`. Tests: Vitest (`npm test`) y la suite de base de datos (
 
 | ID | Specs | Ruta | Estado |
 |---|---|---|---|
-| T1 | S4 | inline (repo privado del cliente) | Hecho: 3 prompts L1-L3 en `raffaella/marcos/prompts-ia.md` (repo privado). Falta que el dueño los genere |
+| T1 | S4 | inline (repo privado del cliente) | Hecho: 3 prompts L1-L3 en `<cliente>/marcos/prompts-ia.md` (repo privado). Falta que el dueño los genere |
 | T2 | S3 | delegada a agy (flash, worktree aislado `worker/agy-969213`), en paralelo con T3; superficie `scripts/fuentes/` | Hecho y revisado: el round trip pasa (OK). Corregido: márgenes laterales 0.08 → 0.03 con `--espaciado`, y requisitos en el README. Falta integrarlo a la rama (lo decide el dueño) |
 | T3 | S5 | inline: migración (riesgo, ítems 1 y 5) | GREEN: typecheck; 1583 unit; 376 db; build. Verificador independiente: PASS en 6/6 checks, sin bloqueos. Sin commit: espera el OK del dueño |
-| T4 | S3 | inline, después de T2 y T3: las fuentes generadas entran a la app con el mismo mecanismo de T3 | pendiente |
+| T4 | S3 | inline, rama `feat/fuentes-propias`: 3 fuentes generadas (gala-caligrafia, gala-romana, gala-deco) en `public/fonts`, `loadFontFile` y la migración 20261102100022; mejoras de `armar-fuente.py` con hojas reales | GREEN: tsc; 1585 unit; 376 db; build; round trip OK |
 
 ## Log
 
@@ -33,4 +33,19 @@ Entrega: `ask-on-risk`. Tests: Vitest (`npm test`) y la suite de base de datos (
   - Herramientas disponibles: fontTools 4.46 y brotli. Faltan potrace y fontforge, así que se usará `potracer` en un venv fuera del repo.
 - L4: T3. RED observado: 4 unit, y la paridad de la base sin la migración. GREEN: suites completas. `GuestPage > renders the guest name once found` falló una vez con la suite completa y pasó solo y en la segunda corrida: es intermitente y no tiene que ver con el cambio.
 - L5: verificador independiente de T3: PASS. La función es idéntica salvo la lista de fuentes, hay paridad entre cliente y base, `setup-fase-1.sql` está sincronizado (sha256 estable) y las fuentes antiguas siguen siendo válidas. Tests: 335 unit (cameraAssets y studio) y 26 db.
-- L6: T2 revisado. Las fuentes reconstruidas desde la plantilla rellenada con DejaVu Serif se ven correctas. El espaciado original era el doble de lo normal y se corrigió. Plantillas y prompts de estilo para el dueño en `raffaella/fuentes/` (repo privado, 587d5bc).
+- L6: T2 revisado. Las fuentes reconstruidas desde la plantilla rellenada con DejaVu Serif se ven correctas. El espaciado original era el doble de lo normal y se corrigió. Plantillas y prompts de estilo para el dueño en `<cliente>/fuentes/` (repo privado, 587d5bc).
+- L7 (2026-11-01): «solo hice las fuentes en Z:\home\fabrizio\code\fcumple-clientes\<cliente>\fuentes, por ahora el lettering no». Las 9 hojas de Gemini salieron muy parejas.
+- L8: problemas que aparecieron con las hojas reales, y su arreglo:
+  - astillas del borde de celda: se descartan las líneas finas;
+  - colas de la fila vecina: se descartan las piezas que tocan el borde fuera de la zona de guías, salvo en las letras con tilde;
+  - caligrafía inclinada muy espaciada: `--metricas cuerpo`;
+  - «·» mal dibujado: se reconstruye desde el punto.
+
+  Atienden la advertencia `R3-cell-border-ink` de la review del #64. Siguen pendientes:
+  - en Gala Déco, la «j» pierde la cola;
+  - el «¿» no está en la plantilla.
+- L9: verificador independiente de T4: PASS. Advertencias atendidas:
+  - el nombre del cliente salió de `scripts/fuentes/` y de este documento;
+  - se probó conservar en las letras acentuadas las piezas pequeñas que tocan el borde, pero dejaba pedazos de la fila de arriba sobre la «ó» y la «i», así que se revirtió. Las fuentes publicadas son idénticas glifo a glifo a las verificadas.
+
+  Siguen pendientes: «¡» y «¿» no están en la plantilla, y la «j» de Gala Déco no tiene cola.

@@ -8,12 +8,16 @@ import {
   WEB_FONTS,
   fontOptionLabel,
   fontsOffered,
+  loadFontFile,
   loadLayerFonts,
 } from './text';
 
 describe('catálogo corto de tipografías del Estudio', () => {
-  it('son las cuatro elegidas sobre los diseños reales más tres formales: Cinzel, Great Vibes y Cormorant', () => {
-    expect(CATALOG_FONTS).toEqual(['anton', 'pacifico', 'marker', 'elite', 'cinzel', 'vibes', 'cormorant']);
+  it('son las cuatro elegidas sobre los diseños reales, tres formales y tres propias dibujadas por IA', () => {
+    expect(CATALOG_FONTS).toEqual([
+      'anton', 'pacifico', 'marker', 'elite', 'cinzel', 'vibes', 'cormorant',
+      'gala-caligrafia', 'gala-romana', 'gala-deco',
+    ]);
     for (const font of CATALOG_FONTS) expect((WEB_FONTS as readonly string[]).includes(font)).toBe(true);
   });
 
@@ -31,17 +35,20 @@ describe('catálogo corto de tipografías del Estudio', () => {
     expect(fontOptionLabel('playfair')).toBe(`${FONT_LABELS.playfair} (antigua)`);
   });
 
-  it('las catorce son válidas y se dibujan: un marco guardado con una antigua no pierde su texto', () => {
-    expect(LAYER_FONTS).toHaveLength(14);
+  it('las diecisiete son válidas y se dibujan: un marco guardado con una antigua no pierde su texto', () => {
+    expect(LAYER_FONTS).toHaveLength(17);
     for (const font of LAYER_FONTS) expect(FONT_STACKS[font], font).toBeTruthy();
   });
 });
 
 describe('tipografías de las capas', () => {
-  it('las plantillas conservan las seis del sistema; las capas suman las ocho web', () => {
+  it('las plantillas conservan las seis del sistema; las capas suman las once web', () => {
     expect(FRAME_FONTS).toEqual(['sans', 'serif', 'mono', 'display', 'hand', 'typewriter']);
     expect(LAYER_FONTS).toEqual([...FRAME_FONTS, ...WEB_FONTS]);
-    expect(WEB_FONTS).toEqual(['anton', 'playfair', 'pacifico', 'marker', 'elite', 'cinzel', 'vibes', 'cormorant']);
+    expect(WEB_FONTS).toEqual([
+      'anton', 'playfair', 'pacifico', 'marker', 'elite', 'cinzel', 'vibes', 'cormorant',
+      'gala-caligrafia', 'gala-romana', 'gala-deco',
+    ]);
   });
 
   it('cada tipografía tiene etiqueta y una pila que termina en una genérica', () => {
@@ -60,6 +67,9 @@ describe('tipografías de las capas', () => {
     expect(FONT_STACKS.cinzel).toMatch(/^"Cinzel"/);
     expect(FONT_STACKS.vibes).toMatch(/^"Great Vibes"/);
     expect(FONT_STACKS.cormorant).toMatch(/^"Cormorant Garamond"/);
+    expect(FONT_STACKS['gala-caligrafia']).toMatch(/^"Gala Caligrafia"/);
+    expect(FONT_STACKS['gala-romana']).toMatch(/^"Gala Romana"/);
+    expect(FONT_STACKS['gala-deco']).toMatch(/^"Gala Deco"/);
   });
 });
 
@@ -91,5 +101,40 @@ describe('loadLayerFonts', () => {
     const loadFace = vi.fn().mockResolvedValue([]);
     await expect(loadLayerFonts(['anton', 'pacifico'], { importCss, loadFace })).resolves.toBeUndefined();
     expect(loadFace.mock.calls.map((c) => c[0])).toEqual(['400 16px "Pacifico"']);
+  });
+});
+
+describe('fuentes propias (archivos en /fonts)', () => {
+  it('registran su familia desde /fonts/<id>.woff2 con FontFace y la agregan a document.fonts', async () => {
+    const added: unknown[] = [];
+    const load = vi.fn().mockResolvedValue(undefined);
+    const FakeFace = vi.fn().mockImplementation((family: string, source: string) => ({ family, source, load }));
+    await loadFontFile('Gala Romana', '/fonts/gala-romana.woff2', {
+      createFace: (family, source) => new FakeFace(family, source),
+      add: (face) => added.push(face),
+    });
+    expect(FakeFace).toHaveBeenCalledWith('Gala Romana', 'url(/fonts/gala-romana.woff2)');
+    expect(load).toHaveBeenCalledTimes(1);
+    expect(added).toHaveLength(1);
+  });
+
+  it('una fuente propia se descarga una sola vez aunque se pida en cada marco, y se reintenta si falló', async () => {
+    const add = vi.fn();
+    const failing = { load: vi.fn().mockRejectedValueOnce(new Error('offline')).mockResolvedValue(undefined) };
+    const createFace = vi.fn().mockReturnValue(failing);
+    const deps = { createFace, add };
+    await expect(loadFontFile('Gala Deco', '/fonts/prueba-una-vez.woff2', deps)).rejects.toThrow('offline');
+    await loadFontFile('Gala Deco', '/fonts/prueba-una-vez.woff2', deps);
+    await loadFontFile('Gala Deco', '/fonts/prueba-una-vez.woff2', deps);
+    expect(createFace).toHaveBeenCalledTimes(2);
+    expect(add).toHaveBeenCalledTimes(1);
+  });
+
+  it('cargar una fuente propia pasa por el mismo cargador que las de @fontsource', async () => {
+    const importCss = vi.fn().mockResolvedValue(undefined);
+    const loadFace = vi.fn().mockResolvedValue([]);
+    await loadLayerFonts(['gala-deco'], { importCss, loadFace });
+    expect(importCss).toHaveBeenCalledWith('gala-deco');
+    expect(loadFace).toHaveBeenCalledWith('400 16px "Gala Deco"');
   });
 });

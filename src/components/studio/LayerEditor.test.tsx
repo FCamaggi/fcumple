@@ -110,7 +110,7 @@ describe('LayerEditor: propiedades', () => {
     expect(validateLayers(latest)).toEqual({ ok: true });
   });
 
-  it('texto: ofrece solo el catálogo corto de siete tipografías', async () => {
+  it('texto: ofrece solo el catálogo corto de diez tipografías', async () => {
     await select(0, [text]);
     const options = within(screen.getByLabelText('Tipografía')).getAllByRole('option').map((o) => o.textContent);
     expect(options).toEqual([
@@ -121,6 +121,9 @@ describe('LayerEditor: propiedades', () => {
       'Grabada (Cinzel)',
       'Caligrafía (Great Vibes)',
       'Editorial (Cormorant)',
+      'Caligrafía gala (propia)',
+      'Romana gala (propia)',
+      'Déco gala (propia)',
     ]);
   });
 
@@ -136,6 +139,9 @@ describe('LayerEditor: propiedades', () => {
       'Grabada (Cinzel)',
       'Caligrafía (Great Vibes)',
       'Editorial (Cormorant)',
+      'Caligrafía gala (propia)',
+      'Romana gala (propia)',
+      'Déco gala (propia)',
       'Titular (antigua)',
     ]);
     expect(select_.value).toBe('display');
