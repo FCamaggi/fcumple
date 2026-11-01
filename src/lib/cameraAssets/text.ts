@@ -30,7 +30,7 @@ export type LayerFont = (typeof LAYER_FONTS)[number];
  * IMPORTANTE: Las 11 tipografías históricas (FRAME_FONTS + WEB_FONTS) se mantienen
  * completamente válidas en LAYER_FONTS, FONT_LABELS, FONT_STACKS, WEB_FONT_FACES
  * y en las validaciones de base de datos. Existen marcos ya guardados y briefs
- * específicos (como Francisca en visuals.tsx) que utilizan fuentes del sistema o
+ * específicos (como el brief de ejemplo en visuals.tsx) que utilizan fuentes del sistema o
  * Playfair. Quitarlas de la validación o del dibujo rompería el renderizado de marcos
  * existentes y haría desaparecer sus textos.
  */

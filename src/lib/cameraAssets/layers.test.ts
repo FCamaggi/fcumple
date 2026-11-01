@@ -18,7 +18,7 @@ import { clearPackAssetCache, registerPackManifest, registerPackSvg } from './pa
 const EVENT = '123e4567-e89b-42d3-a456-426614174000';
 const IMAGE_PATH = `${EVENT}/frames/overlay.png`;
 
-const text: FrameLayer = { type: 'text', text: 'Cumpleaños Fran', x: 0.5, y: 0.9, size: 0.08, font: 'display', color: '#ff4fa3' };
+const text: FrameLayer = { type: 'text', text: 'Cumpleaños Martina', x: 0.5, y: 0.9, size: 0.08, font: 'display', color: '#ff4fa3' };
 const rect: FrameLayer = { type: 'shape', shape: 'rect', x: 0.5, y: 0.5, w: 0.5, h: 0.2, fill: '#111111' };
 
 describe('validateLayers', () => {
@@ -180,7 +180,7 @@ describe('drawLayers', () => {
   it('texto: lo dibuja con la tipografía pedida y, con borde, lo traza antes de rellenarlo', () => {
     const m = createMockCtx();
     drawLayers(m.ctx, 600, 800, 600, [{ ...text, strokeColor: '#000000', strokeWidth: 0.01 }]);
-    expect(m.texts()).toEqual(['Cumpleaños Fran']);
+    expect(m.texts()).toEqual(['Cumpleaños Martina']);
     expect(m.count('strokeText')).toBe(1);
     const order = m.calls.map((c) => c.name);
     expect(order.indexOf('strokeText')).toBeLessThan(order.indexOf('fillText'));

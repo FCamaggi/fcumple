@@ -60,7 +60,7 @@ describe('resolveTheme', () => {
     expect(resolveTheme({ preset: 'rosa-chicle' }).id).toBe('rosa-chicle');
   });
 
-  it('«Rosa chicle y negro» es el de Francisca: rosa chicle sobre negro, con letras oscuras en el botón', () => {
+  it('«Rosa chicle y negro» es el de Martina: rosa chicle sobre negro, con letras oscuras en el botón', () => {
     const { colors } = resolveTheme({ preset: 'rosa-chicle' });
     expect(colors.accent).toBe('#ff5fa2');
     expect(colors.bg).toBe('#150a12');

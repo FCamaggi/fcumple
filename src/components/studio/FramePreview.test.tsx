@@ -36,14 +36,14 @@ describe('FramePreview', () => {
     render(
       <FramePreview
         template="capas"
-        params={{ layers: [{ type: 'image', src: SRC, full: true }, { type: 'text', text: 'Fran', font: 'sans' }] }}
+        params={{ layers: [{ type: 'image', src: SRC, full: true }, { type: 'text', text: 'Martina', font: 'sans' }] }}
         width={90}
         height={120}
         resolveImageUrl={resolveImageUrl}
       />,
     );
 
-    expect(mock.texts()).toContain('Fran');
+    expect(mock.texts()).toContain('Martina');
     expect(mock.count('drawImage')).toBe(0);
 
     await waitFor(() => expect(mock.count('drawImage')).toBeGreaterThan(0));
@@ -63,14 +63,14 @@ describe('FramePreview', () => {
     render(
       <FramePreview
         template="capas"
-        params={{ layers: [{ type: 'image', src: SRC, full: true }, { type: 'text', text: 'Fran', font: 'sans' }] }}
+        params={{ layers: [{ type: 'image', src: SRC, full: true }, { type: 'text', text: 'Martina', font: 'sans' }] }}
         width={90}
         height={120}
         resolveImageUrl={resolveImageUrl}
       />,
     );
     await waitFor(() => expect(resolveImageUrl).toHaveBeenCalled());
-    expect(mock.texts()).toContain('Fran');
+    expect(mock.texts()).toContain('Martina');
     expect(mock.count('drawImage')).toBe(0);
   });
 });

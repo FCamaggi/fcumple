@@ -10,7 +10,7 @@ beforeEach(() => {
 });
 
 const rect = { type: 'shape', shape: 'rect', x: 0.5, y: 0.5, w: 0.5, h: 0.2, fill: '#111111' } as const;
-const text = { type: 'text', text: 'Cumpleaños Fran', x: 0.5, y: 0.9, size: 0.08, font: 'display', color: '#ff4fa3' } as const;
+const text = { type: 'text', text: 'Cumpleaños Martina', x: 0.5, y: 0.9, size: 0.08, font: 'display', color: '#ff4fa3' } as const;
 
 function setup(params: FrameParams) {
   const onSave = vi.fn();

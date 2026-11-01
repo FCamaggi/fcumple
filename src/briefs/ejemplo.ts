@@ -1,11 +1,11 @@
 import type { BriefDefinition } from './types';
 
-// Borrador de opciones para el cumpleaños de disfraces de Francisca. Son
-// propuestas para que ella elija; cada pregunta deja además una nota libre.
+// Brief de ejemplo: opciones para un cumpleaños de disfraces, para que la
+// persona festejada elija; cada pregunta deja además una nota libre.
 // El orden importa: lo que se elige primero (paleta, letras, textos) se aplica
 // en las vistas previas de las preguntas siguientes.
-const francisca: BriefDefinition = {
-  slug: 'francisca',
+const ejemplo: BriefDefinition = {
+  slug: 'ejemplo',
   title: 'Tu cumpleaños, tu estilo',
   intro:
     'Elige lo que más te guste en cada pregunta. Lo que elijas primero (colores, letras y textos) se aplica en las vistas previas de las preguntas siguientes. Puedes marcar varias donde se indique y siempre puedes escribir lo que quieras en la nota. Nada es definitivo: es para armar tu cámara y tus marcos.',
@@ -67,7 +67,7 @@ const francisca: BriefDefinition = {
       selection: 'single',
       options: [],
       fields: [
-        { id: 'nombre', label: 'Nombre', placeholder: 'Francisca' },
+        { id: 'nombre', label: 'Nombre', placeholder: 'Martina' },
         { id: 'fecha', label: 'Fecha', placeholder: 'Ej: 31 de octubre' },
         { id: 'frase', label: 'Frase o hashtag (opcional)', placeholder: 'Lo que quieras que lleve' },
       ],
@@ -157,4 +157,4 @@ const francisca: BriefDefinition = {
   ],
 };
 
-export default francisca;
+export default ejemplo;

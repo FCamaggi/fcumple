@@ -256,8 +256,8 @@ describe('foco y avisos', () => {
 
 describe('boleto del evento', () => {
   it('muestra el nombre del evento junto al marco', async () => {
-    await shoot({ quota: 5, used: 2 }, 'Fiesta de Fran');
-    expect(screen.getByText('Fiesta de Fran')).toBeInTheDocument();
+    await shoot({ quota: 5, used: 2 }, 'Fiesta de Martina');
+    expect(screen.getByText('Fiesta de Martina')).toBeInTheDocument();
   });
 
   it('sin nombre de evento no pone ningún boleto vacío', async () => {

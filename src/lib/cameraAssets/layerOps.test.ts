@@ -36,7 +36,7 @@ describe('createLayer', () => {
     if (!('full' in layer && layer.full)) expect(layer).toMatchObject({ x: 0.5, y: 0.5 });
   });
 
-  it('el texto nuevo usa una tipografía de Francisca y es editable', () => {
+  it('el texto nuevo usa una tipografía del brief y es editable', () => {
     expect(createLayer('text')).toMatchObject({ type: 'text', font: 'anton', text: 'Texto' });
   });
 });

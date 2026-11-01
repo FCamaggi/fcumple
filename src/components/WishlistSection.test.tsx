@@ -6,7 +6,7 @@ import type { WishlistConfig } from '../lib/wishlist';
 
 const mockWishlist: WishlistConfig = {
   enabled: true,
-  title: 'Regalos para Francisca',
+  title: 'Regalos para Martina',
   displayMode: 'chip',
   items: [
     {
@@ -35,14 +35,14 @@ describe('WishlistSection', () => {
   it('renderiza el chip compacto con el título y contador en modo chip', () => {
     render(<WishlistSection wishlist={mockWishlist} />);
 
-    expect(screen.getByText('Regalos para Francisca')).toBeInTheDocument();
+    expect(screen.getByText('Regalos para Martina')).toBeInTheDocument();
     expect(screen.getByText(/1 ítem →/i)).toBeInTheDocument();
   });
 
   it('renderiza la tarjeta en modo card', () => {
     render(<WishlistSection wishlist={{ ...mockWishlist, displayMode: 'card' }} />);
 
-    expect(screen.getByText(/🎁 Regalos para Francisca/i)).toBeInTheDocument();
+    expect(screen.getByText(/🎁 Regalos para Martina/i)).toBeInTheDocument();
     expect(screen.getByText(/Ver regalos sugeridos →/i)).toBeInTheDocument();
   });
 
@@ -50,10 +50,10 @@ describe('WishlistSection', () => {
     const user = userEvent.setup();
     render(<WishlistSection wishlist={mockWishlist} />);
 
-    const chipButton = screen.getByRole('button', { name: /Regalos para Francisca/i });
+    const chipButton = screen.getByRole('button', { name: /Regalos para Martina/i });
     await user.click(chipButton);
 
-    const dialog = screen.getByRole('dialog', { name: 'Regalos para Francisca' });
+    const dialog = screen.getByRole('dialog', { name: 'Regalos para Martina' });
     expect(dialog).toBeInTheDocument();
 
     expect(screen.getByText('Cámara Instax Mini')).toBeInTheDocument();

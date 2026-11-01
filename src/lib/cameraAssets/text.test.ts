@@ -38,7 +38,7 @@ describe('catálogo corto de tipografías del Estudio', () => {
 });
 
 describe('tipografías de las capas', () => {
-  it('las plantillas conservan las seis del sistema; las capas suman las cinco de Francisca', () => {
+  it('las plantillas conservan las seis del sistema; las capas suman las cinco del brief', () => {
     expect(FRAME_FONTS).toEqual(['sans', 'serif', 'mono', 'display', 'hand', 'typewriter']);
     expect(LAYER_FONTS).toEqual([...FRAME_FONTS, ...WEB_FONTS]);
     expect(WEB_FONTS).toEqual(['anton', 'playfair', 'pacifico', 'marker', 'elite']);

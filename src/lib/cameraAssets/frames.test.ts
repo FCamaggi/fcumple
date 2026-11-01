@@ -102,7 +102,7 @@ describe('plantillas', () => {
 
 describe('plantilla capas', () => {
   const layer = { type: 'shape', shape: 'rect', w: 0.5, h: 0.2, fill: '#112233' } as const;
-  const textLayer = { type: 'text', text: 'Cumpleaños Fran', font: 'display', color: '#ff4fa3' } as const;
+  const textLayer = { type: 'text', text: 'Cumpleaños Martina', font: 'display', color: '#ff4fa3' } as const;
 
   it('está registrada con etiqueta, descripción y el campo layers', () => {
     expect(FRAME_TEMPLATES).toContain('capas');
@@ -143,9 +143,9 @@ describe('plantilla capas', () => {
   it('los parámetros por defecto son válidos y llevan el nombre del evento', () => {
     expect(validateFrameParams(defaultFrameParams('capas'))).toEqual({ ok: true });
     expect(defaultFrameParams('capas').layers).toEqual([]);
-    const withName = defaultFrameParams('capas', { eventName: 'Cumpleaños Fran' });
+    const withName = defaultFrameParams('capas', { eventName: 'Cumpleaños Martina' });
     expect(validateFrameParams(withName)).toEqual({ ok: true });
-    expect(withName.layers?.[0]).toMatchObject({ type: 'text', text: 'Cumpleaños Fran', font: 'anton' });
+    expect(withName.layers?.[0]).toMatchObject({ type: 'text', text: 'Cumpleaños Martina', font: 'anton' });
   });
 
   it('renderFrame dibuja las capas, y sin capas no dibuja nada más que el save/restore', () => {
@@ -156,7 +156,7 @@ describe('plantilla capas', () => {
     const m = createMockCtx();
     renderFrame(m.ctx, 600, 800, 'capas', { layers: [layer, textLayer] });
     expect(m.fills()).toContain('#112233');
-    expect(m.texts()).toEqual(['Cumpleaños Fran']);
+    expect(m.texts()).toEqual(['Cumpleaños Martina']);
   });
 
   it('renderFrame ignora capas inválidas y pasa las imágenes cargadas', () => {

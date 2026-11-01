@@ -31,7 +31,7 @@ const insertCapas = (eventId: string, layers: unknown, label = 'Capas') =>
     JSON.stringify({ layers }),
   ]);
 
-const text = { type: 'text', text: 'Cumpleaños Fran', x: 0.5, y: 0.9, size: 0.08, font: 'display', color: '#ff4fa3' };
+const text = { type: 'text', text: 'Cumpleaños Martina', x: 0.5, y: 0.9, size: 0.08, font: 'display', color: '#ff4fa3' };
 const rect = { type: 'shape', shape: 'rect', x: 0.5, y: 0.5, w: 0.5, h: 0.2, fill: '#111111' };
 
 interface Case {
@@ -232,11 +232,11 @@ describe('list_event_camera_assets con capas', () => {
   it('el invitado recibe el marco de capas con sus capas', async () => {
     const ev = await newEvent();
     const guest = await createGuest(db, ev.id, 'Ana Rojas');
-    await insertCapas(ev.id, [text, rect], 'Cumpleaños Fran');
+    await insertCapas(ev.id, [text, rect], 'Cumpleaños Martina');
     const all = await asAnon(db, () => db.query('select * from list_event_camera_assets($1)', [guest.token]));
     const rows = all.rows.filter((r) => r.asset_type === 'frame');
     expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({ asset_type: 'frame', template: 'capas', label: 'Cumpleaños Fran' });
+    expect(rows[0]).toMatchObject({ asset_type: 'frame', template: 'capas', label: 'Cumpleaños Martina' });
     expect(rows[0].params.layers).toHaveLength(2);
   });
 });

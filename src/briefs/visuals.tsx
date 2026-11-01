@@ -138,7 +138,7 @@ function Scene({ id, palette }: { id: string; palette: BriefPalette }) {
 /** Propuesta a medida (aún no existe como plantilla de la cámara) sobre el mismo fondo de ejemplo de FramePreview. */
 function BunnyFrame({ ctx }: { ctx: BriefContext }) {
   const { accent, bg, text, soft } = ctx.palette;
-  const label = ctx.name || 'Francisca';
+  const label = ctx.name || 'Martina';
   return (
     <svg
       viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
@@ -176,7 +176,7 @@ function BunnyFrame({ ctx }: { ctx: BriefContext }) {
 
 /** Parámetros reales de la cámara para el marco de ejemplo, con el nombre elegido. */
 function frameParams(_frame: Exclude<BriefFrame, 'conejita'>, ctx: BriefContext): FrameParams {
-  return defaultFrameParams('capas', { eventName: ctx.name || 'Francisca' });
+  return defaultFrameParams('capas', { eventName: ctx.name || 'Martina' });
 }
 
 /** Dibuja la vista previa de una opción según `question.visual`; sin `visual`, no dibuja nada. */
@@ -213,7 +213,7 @@ export function OptionVisual({
           style={{ backgroundColor: ctx.palette.bg, color: ctx.palette.accent, fontFamily: FONT_STACKS[option.font ?? 'sans'] }}
           aria-hidden
         >
-          <span className="text-2xl leading-tight">{ctx.name || 'Francisca'}</span>
+          <span className="text-2xl leading-tight">{ctx.name || 'Martina'}</span>
           <span className="text-xs" style={{ color: ctx.palette.text }}>
             {ctx.date || 'Tu fecha'}
           </span>

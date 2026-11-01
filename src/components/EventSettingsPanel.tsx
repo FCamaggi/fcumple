@@ -121,7 +121,7 @@ export default function EventSettingsPanel({ event, onSave }: EventSettingsPanel
           onChange={(e) => setSubtitle(e.target.value)}
           className={fieldClass}
         />
-        <p className="font-sans text-xs text-paper-100/60">Una línea debajo del título. Por ejemplo: «Cumpleaños Fran».</p>
+        <p className="font-sans text-xs text-paper-100/60">Una línea debajo del título. Por ejemplo: «Cumpleaños Martina».</p>
       </div>
 
       <div className="flex flex-col gap-1">

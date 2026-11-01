@@ -19,11 +19,11 @@ describe('submitClientBrief', () => {
   it('llama al RPC con el slug, el nombre y las respuestas y devuelve el id', async () => {
     rpc.mockResolvedValueOnce({ data: 'brief-1', error: null });
 
-    const id = await submitClientBrief('francisca', 'Francisca', answers);
+    const id = await submitClientBrief('ejemplo', 'Martina', answers);
 
     expect(rpc).toHaveBeenCalledWith('submit_client_brief', {
-      p_slug: 'francisca',
-      p_respondent: 'Francisca',
+      p_slug: 'ejemplo',
+      p_respondent: 'Martina',
       p_answers: answers,
     });
     expect(id).toBe('brief-1');
@@ -32,13 +32,13 @@ describe('submitClientBrief', () => {
   it('explica con claridad que se alcanzó el tope de respuestas', async () => {
     rpc.mockResolvedValueOnce({ data: null, error: { code: '54000', message: 'too many briefs' } });
 
-    await expect(submitClientBrief('francisca', '', answers)).rejects.toThrow(/máximo de respuestas/);
+    await expect(submitClientBrief('ejemplo', '', answers)).rejects.toThrow(/máximo de respuestas/);
   });
 
   it('envuelve cualquier otro error en un mensaje en español', async () => {
     rpc.mockResolvedValueOnce({ data: null, error: { message: 'boom' } });
 
-    await expect(submitClientBrief('francisca', '', answers)).rejects.toThrow(
+    await expect(submitClientBrief('ejemplo', '', answers)).rejects.toThrow(
       'No pudimos enviar tus respuestas: boom',
     );
   });

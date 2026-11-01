@@ -62,13 +62,13 @@ describe('useCameraAssets', () => {
       frames: [
         {
           id: 'f3',
-          label: 'Fran',
+          label: 'Martina',
           template: 'capas' as const,
           isDefault: false,
           params: {
             layers: [
               { type: 'image', src, full: true },
-              { type: 'text', text: 'Cumpleaños Fran', font: 'sans' },
+              { type: 'text', text: 'Cumpleaños Martina', font: 'sans' },
             ],
           },
         },
@@ -82,7 +82,7 @@ describe('useCameraAssets', () => {
     const m = createMockCtx();
     result.current.frames[0].draw!(m.ctx, 600, 800, '3:4');
     expect(m.count('drawImage')).toBe(1);
-    expect(m.texts()).toEqual(['Cumpleaños Fran']);
+    expect(m.texts()).toEqual(['Cumpleaños Martina']);
   });
 
   it('si la imagen de una capa no carga, el marco se dibuja igual sin ella', async () => {
@@ -91,7 +91,7 @@ describe('useCameraAssets', () => {
       frames: [
         {
           id: 'f3',
-          label: 'Fran',
+          label: 'Martina',
           template: 'capas' as const,
           isDefault: false,
           params: { layers: [{ type: 'image', src, full: true }, { type: 'text', text: 'Hola', font: 'sans' }] },

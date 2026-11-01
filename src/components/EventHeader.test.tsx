@@ -7,20 +7,20 @@ describe('EventHeader', () => {
     render(
       <EventHeader
         event={{
-          name: 'PUTI HALLOWEEN',
-          subtitle: 'Cumpleaños Fran',
+          name: 'NOCHE DE DISFRACES',
+          subtitle: 'Cumpleaños Martina',
           startsAt: '2026-10-30T23:00:00Z',
-          location: 'Casa de Fran',
+          location: 'Casa de Martina',
         }}
         guestName="Ana María Pérez"
       />,
     );
 
-    expect(screen.getByText('PUTI HALLOWEEN')).toBeInTheDocument();
-    expect(screen.getByText('Cumpleaños Fran')).toBeInTheDocument();
+    expect(screen.getByText('NOCHE DE DISFRACES')).toBeInTheDocument();
+    expect(screen.getByText('Cumpleaños Martina')).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Hola, Ana');
     expect(screen.getByText(/octubre/i)).toBeInTheDocument();
-    expect(screen.getByText('Casa de Fran')).toBeInTheDocument();
+    expect(screen.getByText('Casa de Martina')).toBeInTheDocument();
   });
 
   it('omite el subtítulo, la fecha y el lugar cuando el evento no los tiene', () => {

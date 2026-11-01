@@ -15,8 +15,8 @@ const resolveUrl = vi.fn(async (path: string) => `https://cdn/${path}`);
 
 const rect: FrameLayer = { type: 'shape', shape: 'rect', x: 0.5, y: 0.5, w: 0.5, h: 0.5, fill: '#111111' };
 const image: FrameLayer = { type: 'image', src: IMAGE, full: true };
-const webText: FrameLayer = { type: 'text', text: 'Fran', font: 'anton' };
-const systemText: FrameLayer = { type: 'text', text: 'Fran', font: 'sans' };
+const webText: FrameLayer = { type: 'text', text: 'Martina', font: 'anton' };
+const systemText: FrameLayer = { type: 'text', text: 'Martina', font: 'sans' };
 
 const assets = { images: new Map([[IMAGE, {} as CanvasImageSource]]) };
 

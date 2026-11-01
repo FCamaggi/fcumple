@@ -12,7 +12,7 @@ describe('resolveWishlist', () => {
   it('normaliza un jsonb válido de la base de datos', () => {
     const raw = {
       enabled: true,
-      title: 'Regalos para Fran',
+      title: 'Regalos para Martina',
       display_mode: 'card',
       items: [
         {
@@ -27,7 +27,7 @@ describe('resolveWishlist', () => {
 
     const res = resolveWishlist(raw);
     expect(res.enabled).toBe(true);
-    expect(res.title).toBe('Regalos para Fran');
+    expect(res.title).toBe('Regalos para Martina');
     expect(res.displayMode).toBe('card');
     expect(res.items).toHaveLength(1);
     expect(res.items[0]).toEqual({

@@ -78,12 +78,12 @@ describe('wishlist / lista de regalos en la base de datos', () => {
   });
 
   it('el organizador puede actualizar la wishlist pero un tercero no', async () => {
-    const ev = await createEvent(db, owner, { name: 'Cumple Fran' });
+    const ev = await createEvent(db, owner, { name: 'Cumple Martina' });
 
     const newWishlist = {
       enabled: true,
       display_mode: 'card',
-      title: 'Deseos de Fran',
+      title: 'Deseos de Martina',
       items: [
         {
           id: 'w-1',
@@ -112,7 +112,7 @@ describe('wishlist / lista de regalos en la base de datos', () => {
   });
 
   it('get_event_public incluye el campo wishlist para el invitado', async () => {
-    const ev = await createEvent(db, owner, { name: 'Puti Halloween' });
+    const ev = await createEvent(db, owner, { name: 'Noche de Disfraces' });
     const pub = await asAnon(db, () => db.query('select * from get_event_public($1)', [ev.slug]));
     expect(pub.rows[0].wishlist).toEqual({
       enabled: false,

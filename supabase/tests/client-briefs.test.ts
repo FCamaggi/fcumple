@@ -26,29 +26,29 @@ const submit = (slug: string, respondent: string | null, payload: unknown = answ
 
 describe('submit_client_brief', () => {
   it('anon guarda una respuesta y queda en la tabla', async () => {
-    const res = await asAnon(db, () => submit('francisca', '  Francisca  '));
+    const res = await asAnon(db, () => submit('ejemplo', '  Martina  '));
     expect(res.rows[0].id).toMatch(/^[0-9a-f-]{36}$/);
 
     const rows = await db.query('select slug, respondent, answers from client_briefs');
     expect(rows.rows).toHaveLength(1);
-    expect(rows.rows[0].slug).toBe('francisca');
-    expect(rows.rows[0].respondent).toBe('Francisca');
+    expect(rows.rows[0].slug).toBe('ejemplo');
+    expect(rows.rows[0].respondent).toBe('Martina');
     expect(rows.rows[0].answers.ambiente.elegidas).toEqual(['Club de noche']);
   });
 
   it('un nombre vacio se guarda como null', async () => {
-    await asAnon(db, () => submit('francisca', '   '));
+    await asAnon(db, () => submit('ejemplo', '   '));
     const rows = await db.query('select respondent from client_briefs');
     expect(rows.rows[0].respondent).toBeNull();
   });
 
   it('un usuario autenticado tambien puede enviar', async () => {
-    await asUser(db, alice, () => submit('francisca', null));
+    await asUser(db, alice, () => submit('ejemplo', null));
     const rows = await db.query('select count(*)::int as n from client_briefs');
     expect(rows.rows[0].n).toBe(1);
   });
 
-  it.each(['', 'ab', 'Francisca', 'con espacios', '-inicio', 'fin-', 'doble--guion', 'x'.repeat(61)])(
+  it.each(['', 'ab', 'Martina', 'con espacios', '-inicio', 'fin-', 'doble--guion', 'x'.repeat(61)])(
     'rechaza el slug invalido %j',
     async (slug) => {
       await expect(asAnon(db, () => submit(slug, null))).rejects.toMatchObject({ code: '22023' });
@@ -56,24 +56,24 @@ describe('submit_client_brief', () => {
   );
 
   it('rechaza respuestas que no son un objeto', async () => {
-    await expect(asAnon(db, () => submit('francisca', null, ['a']))).rejects.toMatchObject({ code: '22023' });
-    await expect(asAnon(db, () => submit('francisca', null, 'texto'))).rejects.toMatchObject({ code: '22023' });
+    await expect(asAnon(db, () => submit('ejemplo', null, ['a']))).rejects.toMatchObject({ code: '22023' });
+    await expect(asAnon(db, () => submit('ejemplo', null, 'texto'))).rejects.toMatchObject({ code: '22023' });
   });
 
   it('rechaza respuestas demasiado grandes', async () => {
     const big = { a: { pregunta: 'x', elegidas: [], nota: 'y'.repeat(25000) } };
-    await expect(asAnon(db, () => submit('francisca', null, big))).rejects.toMatchObject({ code: '22023' });
+    await expect(asAnon(db, () => submit('ejemplo', null, big))).rejects.toMatchObject({ code: '22023' });
   });
 
   it('rechaza un nombre de mas de 80 caracteres', async () => {
-    await expect(asAnon(db, () => submit('francisca', 'n'.repeat(81)))).rejects.toMatchObject({ code: '22023' });
+    await expect(asAnon(db, () => submit('ejemplo', 'n'.repeat(81)))).rejects.toMatchObject({ code: '22023' });
   });
 
   it('pone un tope de 200 respuestas por formulario', async () => {
     await db.query(
-      `insert into client_briefs (slug, answers) select 'francisca', '{}'::jsonb from generate_series(1, 200)`,
+      `insert into client_briefs (slug, answers) select 'ejemplo', '{}'::jsonb from generate_series(1, 200)`,
     );
-    await expect(asAnon(db, () => submit('francisca', null))).rejects.toMatchObject({ code: '54000' });
+    await expect(asAnon(db, () => submit('ejemplo', null))).rejects.toMatchObject({ code: '54000' });
     // Otro formulario sigue funcionando.
     await asAnon(db, () => submit('otra-fiesta', null));
   });
@@ -81,7 +81,7 @@ describe('submit_client_brief', () => {
 
 describe('privacidad de las respuestas', () => {
   it('anon y authenticated no pueden leer ni escribir la tabla directamente', async () => {
-    await asAnon(db, () => submit('francisca', 'Francisca'));
+    await asAnon(db, () => submit('ejemplo', 'Martina'));
 
     await expect(asAnon(db, () => db.query('select * from client_briefs'))).rejects.toMatchObject({
       code: '42501',
@@ -90,7 +90,7 @@ describe('privacidad de las respuestas', () => {
       code: '42501',
     });
     await expect(
-      asAnon(db, () => db.query(`insert into client_briefs (slug, answers) values ('francisca', '{}')`)),
+      asAnon(db, () => db.query(`insert into client_briefs (slug, answers) values ('ejemplo', '{}')`)),
     ).rejects.toMatchObject({ code: '42501' });
   });
 

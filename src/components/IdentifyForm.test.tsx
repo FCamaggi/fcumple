@@ -204,12 +204,12 @@ describe('IdentifyForm: el evento', () => {
     render(
       <IdentifyForm
         slug="s"
-        event={{ ...baseEvent, name: 'PUTI HALLOWEEN', location: 'Los Pozos 6855', startsAt: '2026-10-30T23:30:00Z' }}
+        event={{ ...baseEvent, name: 'NOCHE DE DISFRACES', location: 'Calle Falsa 123', startsAt: '2026-10-30T23:30:00Z' }}
         onIdentified={vi.fn()}
       />,
     );
-    expect(screen.getByRole('heading', { level: 1, name: 'PUTI HALLOWEEN' })).toBeInTheDocument();
-    expect(screen.getByText('Los Pozos 6855')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'NOCHE DE DISFRACES' })).toBeInTheDocument();
+    expect(screen.getByText('Calle Falsa 123')).toBeInTheDocument();
     expect(screen.getByText(/octubre/i)).toBeInTheDocument();
   });
 
@@ -217,12 +217,12 @@ describe('IdentifyForm: el evento', () => {
     render(
       <IdentifyForm
         slug="s"
-        event={{ ...baseEvent, name: 'PUTI HALLOWEEN', subtitle: 'Cumpleaños Fran' }}
+        event={{ ...baseEvent, name: 'NOCHE DE DISFRACES', subtitle: 'Cumpleaños Martina' }}
         onIdentified={vi.fn()}
       />,
     );
-    const title = screen.getByRole('heading', { level: 1, name: 'PUTI HALLOWEEN' });
-    expect(title.nextElementSibling).toHaveTextContent('Cumpleaños Fran');
+    const title = screen.getByRole('heading', { level: 1, name: 'NOCHE DE DISFRACES' });
+    expect(title.nextElementSibling).toHaveTextContent('Cumpleaños Martina');
   });
 
   it('sin subtítulo no deja un hueco', () => {

@@ -19,7 +19,7 @@ import ClientBriefPage from './ClientBriefPage';
 
 const submit = api.submitClientBrief as unknown as ReturnType<typeof vi.fn>;
 
-function renderPage(slug = 'francisca') {
+function renderPage(slug = 'ejemplo') {
   return render(
     <MemoryRouter initialEntries={[`/brief/${slug}`]}>
       <Routes>
@@ -42,7 +42,7 @@ describe('ClientBriefPage', () => {
     expect(screen.getByText('Este formulario no existe.')).toBeInTheDocument();
   });
 
-  it('muestra el formulario de francisca con la paleta primero y el ambiente después', () => {
+  it('muestra el formulario de ejemplo con la paleta primero y el ambiente después', () => {
     renderPage();
     expect(screen.getByRole('heading', { level: 1, name: 'Tu cumpleaños, tu estilo' })).toBeInTheDocument();
 
@@ -96,9 +96,9 @@ describe('ClientBriefPage', () => {
     const user = userEvent.setup();
     renderPage();
 
-    await user.type(screen.getByLabelText('Nombre'), 'Fran');
+    await user.type(screen.getByLabelText('Nombre'), 'Martina');
 
-    expect(screen.getByTestId('frame-capas')).toHaveAttribute('data-title', 'Fran');
+    expect(screen.getByTestId('frame-capas')).toHaveAttribute('data-title', 'Martina');
   });
 
   it('ofrece los dos marcos conversados y una opción para conversarlo en privado', () => {
@@ -146,16 +146,16 @@ describe('ClientBriefPage', () => {
     submit.mockResolvedValueOnce('brief-1');
     renderPage();
 
-    await user.type(screen.getByLabelText('Tu nombre'), 'Francisca');
-    await user.type(screen.getByLabelText('Nombre'), 'Fran');
+    await user.type(screen.getByLabelText('Tu nombre'), 'Martina');
+    await user.type(screen.getByLabelText('Nombre'), 'Martina');
     await user.click(option(/Club de noche/));
     await user.type(document.getElementById('brief-note-evitar') as HTMLElement, 'nada de globos');
     await user.click(screen.getByRole('button', { name: 'Enviar mis respuestas' }));
 
     await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
     const [slug, respondent, answers] = submit.mock.calls[0];
-    expect(slug).toBe('francisca');
-    expect(respondent).toBe('Francisca');
+    expect(slug).toBe('ejemplo');
+    expect(respondent).toBe('Martina');
     expect(answers.ambiente).toEqual({
       pregunta: '¿Qué ambiente tiene que tener la fiesta?',
       elegidas: ['Club de noche'],
@@ -165,7 +165,7 @@ describe('ClientBriefPage', () => {
       pregunta: '¿Qué dicen los marcos?',
       elegidas: [],
       nota: '',
-      campos: { nombre: 'Fran' },
+      campos: { nombre: 'Martina' },
     });
     expect(answers.evitar).toEqual({
       pregunta: '¿Qué NO quieres que se vea?',
@@ -194,13 +194,13 @@ describe('ClientBriefPage', () => {
     Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
     renderPage();
 
-    await user.type(screen.getByLabelText('Nombre'), 'Fran');
+    await user.type(screen.getByLabelText('Nombre'), 'Martina');
     await user.click(option(/Club de noche/));
     await user.click(screen.getByRole('button', { name: 'Copiar mis respuestas' }));
 
     await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1));
     expect(writeText.mock.calls[0][0]).toContain('Elige: Club de noche');
-    expect(writeText.mock.calls[0][0]).toContain('nombre: Fran');
+    expect(writeText.mock.calls[0][0]).toContain('nombre: Martina');
     expect(await screen.findByRole('button', { name: 'Copiado' })).toBeInTheDocument();
   });
 
@@ -208,11 +208,11 @@ describe('ClientBriefPage', () => {
     const user = userEvent.setup();
     const first = renderPage();
     await user.click(option(/Club de noche/));
-    await user.type(screen.getByLabelText('Nombre'), 'Fran');
+    await user.type(screen.getByLabelText('Nombre'), 'Martina');
     first.unmount();
 
     renderPage();
     await waitFor(() => expect(option(/Club de noche/)).toHaveAttribute('aria-pressed', 'true'));
-    expect(screen.getByLabelText('Nombre')).toHaveValue('Fran');
+    expect(screen.getByLabelText('Nombre')).toHaveValue('Martina');
   });
 });

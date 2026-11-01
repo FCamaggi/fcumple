@@ -140,13 +140,13 @@ describe('EventSettingsPanel', () => {
   it('guarda el subtítulo, y lo borra si se deja en blanco', async () => {
     const onSave = vi.fn().mockResolvedValue(undefined);
     const { unmount } = render(<EventSettingsPanel event={event} onSave={onSave} />);
-    await userEvent.type(screen.getByLabelText(/Subtítulo/), 'Cumpleaños Fran');
+    await userEvent.type(screen.getByLabelText(/Subtítulo/), 'Cumpleaños Martina');
     await userEvent.click(screen.getByRole('button', { name: 'Guardar ajustes' }));
-    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ subtitle: 'Cumpleaños Fran' }));
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ subtitle: 'Cumpleaños Martina' }));
     unmount();
 
     const onSave2 = vi.fn().mockResolvedValue(undefined);
-    render(<EventSettingsPanel event={{ ...event, subtitle: 'Cumpleaños Fran' }} onSave={onSave2} />);
+    render(<EventSettingsPanel event={{ ...event, subtitle: 'Cumpleaños Martina' }} onSave={onSave2} />);
     await userEvent.clear(screen.getByLabelText(/Subtítulo/));
     await userEvent.click(screen.getByRole('button', { name: 'Guardar ajustes' }));
     expect(onSave2).toHaveBeenCalledWith(expect.objectContaining({ subtitle: null }));

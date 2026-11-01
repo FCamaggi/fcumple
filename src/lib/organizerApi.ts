@@ -34,7 +34,7 @@ export interface OrganizerEvent {
   stickersEnabled: boolean;
   defaultFrameId: string | null;
   photosRevealedAt: string | null;
-  /** Línea debajo del título (p. ej. «Cumpleaños Fran» bajo «PUTI HALLOWEEN»). */
+  /** Línea debajo del título (p. ej. «Cumpleaños Martina» bajo «NOCHE DE DISFRACES»). */
   subtitle: string | null;
   /** Estilo del evento tal como lo guarda la base (`{preset}`); `resolveTheme` lo convierte en colores. */
   theme: unknown;

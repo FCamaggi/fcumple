@@ -91,11 +91,11 @@ describe('packs y roles de color (Etapa 2.1)', () => {
   it('loadPacksForEvent entrega paquetes públicos siempre y paquetes privados solo a su eventSlug', async () => {
     clearPackAssetCache();
     const privatePack: PackManifest = {
-      id: 'puti-halloween-privado',
-      name: 'Pack Privado Fran',
+      id: 'noche-disfraces-privado',
+      name: 'Pack Privado Martina',
       version: 1,
       visibility: 'private',
-      eventSlug: 'puti-halloween',
+      eventSlug: 'noche-disfraces',
       palette: PALETTE,
       assets: [
         {
@@ -117,8 +117,8 @@ describe('packs y roles de color (Etapa 2.1)', () => {
     const forAnon = await loadPacksForEvent();
     expect(forAnon.map((p) => p.id)).toEqual(['halloween-neon']);
 
-    const forFran = await loadPacksForEvent('puti-halloween');
-    expect(forFran.map((p) => p.id)).toEqual(['halloween-neon', 'puti-halloween-privado']);
+    const forMartina = await loadPacksForEvent('noche-disfraces');
+    expect(forMartina.map((p) => p.id)).toEqual(['halloween-neon', 'noche-disfraces-privado']);
   });
 
   it('recolorLayersByPalette cambia en bloque los 3 roles ($acento, $fondo, $texto) incluyendo tint y shadow', () => {
@@ -146,11 +146,11 @@ describe('packs y roles de color (Etapa 2.1)', () => {
 
   it('validatePackManifest exige eventSlug en paquetes privados y licencia en cada recurso', () => {
     const base: PackManifest = {
-      id: 'puti-halloween-privado',
-      name: 'Pack Privado Fran',
+      id: 'noche-disfraces-privado',
+      name: 'Pack Privado Martina',
       version: 1,
       visibility: 'private',
-      eventSlug: 'puti-halloween',
+      eventSlug: 'noche-disfraces',
       palette: PALETTE,
       assets: [
         {

@@ -10,7 +10,7 @@ import {
 import { MAX_LAYERS, MAX_LAYERS_PARAMS_LENGTH, MAX_VARIANTS_PARAMS_LENGTH } from './layers';
 
 const rect = { type: 'shape', shape: 'rect', w: 0.5, h: 0.2, fill: '#112233' } as const;
-const text = { type: 'text', text: 'Cumpleaños Fran', font: 'display', color: '#ff4fa3' } as const;
+const text = { type: 'text', text: 'Cumpleaños Martina', font: 'display', color: '#ff4fa3' } as const;
 const path = { type: 'shape', shape: 'path', w: 0.3, h: 0.3, d: `M0 0${' L10 10'.repeat(80)}`, fill: '#000000' };
 
 describe('variantes por proporción: validación (misma regla que la base)', () => {
