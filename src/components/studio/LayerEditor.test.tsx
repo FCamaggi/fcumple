@@ -32,7 +32,7 @@ vi.mock('./KonvaCanvasStage', () => ({
 
 const EVENT = '123e4567-e89b-42d3-a456-426614174000';
 
-const text: FrameLayer = { type: 'text', text: 'Cumpleaños Fran', x: 0.5, y: 0.5, size: 0.08, w: 1.2, font: 'anton', color: '#ffffff' };
+const text: FrameLayer = { type: 'text', text: 'Cumpleaños Martina', x: 0.5, y: 0.5, size: 0.08, w: 1.2, font: 'anton', color: '#ffffff' };
 const rect: FrameLayer = { type: 'shape', shape: 'rect', x: 0.5, y: 0.5, w: 0.4, h: 0.2, fill: '#ff4fa3' };
 
 let latest: FrameLayer[] = [];
@@ -79,8 +79,8 @@ describe('LayerEditor: agregar y seleccionar', () => {
     render(<Harness initial={[text, rect]} />);
     expect(screen.getByText(/Elige una capa/i)).toBeInTheDocument();
 
-    await user.click(within(screen.getAllByRole('listitem')[0]).getByRole('button', { name: /Cumpleaños Fran/ }));
-    expect(screen.getByLabelText('Texto')).toHaveValue('Cumpleaños Fran');
+    await user.click(within(screen.getAllByRole('listitem')[0]).getByRole('button', { name: /Cumpleaños Martina/ }));
+    expect(screen.getByLabelText('Texto')).toHaveValue('Cumpleaños Martina');
   });
 
   it('con el tope de capas no deja agregar y lo explica', () => {
@@ -102,11 +102,11 @@ describe('LayerEditor: propiedades', () => {
     const user = await select(0, [text]);
 
     await user.clear(screen.getByLabelText('Texto'));
-    await user.type(screen.getByLabelText('Texto'), 'Fran');
+    await user.type(screen.getByLabelText('Texto'), 'Martina');
     await user.selectOptions(screen.getByLabelText('Tipografía'), 'pacifico');
     fireEvent.change(screen.getByLabelText('Color del texto'), { target: { value: '#ff4fa3' } });
 
-    expect(latest[0]).toMatchObject({ text: 'Fran', font: 'pacifico', color: '#ff4fa3' });
+    expect(latest[0]).toMatchObject({ text: 'Martina', font: 'pacifico', color: '#ff4fa3' });
     expect(validateLayers(latest)).toEqual({ ok: true });
   });
 
@@ -253,11 +253,11 @@ describe('LayerEditor: lienzo', () => {
 
     await user.click(await screen.findByRole('button', { name: 'stub-vista' }));
     expect(m.texts()).toContain('EN VIVO');
-    expect(latest[0]).toMatchObject({ text: 'Cumpleaños Fran' }); // nada confirmado todavía
+    expect(latest[0]).toMatchObject({ text: 'Cumpleaños Martina' }); // nada confirmado todavía
 
     m.calls.length = 0;
     await user.click(screen.getByRole('button', { name: 'stub-fin-vista' }));
-    expect(m.texts()).toContain('Cumpleaños Fran');
+    expect(m.texts()).toContain('Cumpleaños Martina');
     expect(m.texts()).not.toContain('EN VIVO');
   });
 

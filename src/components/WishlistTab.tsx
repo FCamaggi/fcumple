@@ -157,7 +157,7 @@ export default function WishlistTab({ event, onUpdateEvent }: WishlistTabProps) 
                 onChange={(e) => setTitle(e.target.value)}
                 maxLength={60}
                 className="h-11 rounded border border-smoke-700 bg-ink-950 px-3 font-sans text-sm text-paper-100 focus:border-laser-500 focus:outline-none"
-                placeholder="Ej: Lista de deseos, Regalos de Fran"
+                placeholder="Ej: Lista de deseos, Regalos de Martina"
               />
             </div>
 

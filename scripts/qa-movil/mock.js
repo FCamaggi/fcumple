@@ -14,7 +14,7 @@ async page => {
 
   const EVENT_ID = '11111111-1111-4111-8111-111111111111';
   const eventRow = {
-    id: EVENT_ID, slug: 'demo', name: 'PUTI HALLOWEEN', subtitle: 'Cumpleaños Fran',
+    id: EVENT_ID, slug: 'demo', name: 'NOCHE DE DISFRACES', subtitle: 'Cumpleaños Martina',
     starts_at: '2026-10-30T22:00:00-03:00', location: 'Av. Providencia 1234, Santiago', rsvp_deadline: null,
     access_mode: 'open', camera_unlock: 'on_event_qr', rsvp_enabled: false, photos_revealed: true,
     enrollment_config: {
@@ -50,7 +50,7 @@ async page => {
   ];
   const textLayer = (text, y) => ({ type: 'text', text, x: 0.5, y, size: 0.08, w: 1.6, font: 'display', color: '#ffffff', weight: 'bold' });
   const frames = [
-    { id: 'f1', event_id: EVENT_ID, template: 'capas', label: 'Título', params: { layers: [textLayer('PUTI HALLOWEEN', 0.92)] }, enabled: true, sort_order: 0, is_default: true, asset_type: 'frame' },
+    { id: 'f1', event_id: EVENT_ID, template: 'capas', label: 'Título', params: { layers: [textLayer('NOCHE DE DISFRACES', 0.92)] }, enabled: true, sort_order: 0, is_default: true, asset_type: 'frame' },
     { id: 'f2', event_id: EVENT_ID, template: 'capas', label: 'Fecha', params: { layers: [textLayer('30/10/2026', 0.08)] }, enabled: true, sort_order: 1, is_default: false, asset_type: 'frame' },
   ];
   const stickers = ['🎃', '👻', '🦇', '💖', '🕷️', '🧛'].map((e, i) => ({ id: `s${i}`, event_id: EVENT_ID, kind: 'emoji', emoji: e, storage_path: null, enabled: true, sort_order: i, asset_type: 'sticker' }));

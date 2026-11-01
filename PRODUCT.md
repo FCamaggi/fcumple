@@ -48,7 +48,7 @@ Planeado, sin decidir (no es capacidad actual):
 - Carrusel de fotos en la sección de anuncios, estilo Instagram: máximo 10 fotos, carga diferida (lazy).
 - Mejora de la calidad de las fotos que se descargan; la calidad de la vista previa importa menos.
 - Nombre del producto: se está dejando de usar "fcumple" porque el producto será para cualquier cumpleaños. Nombre nuevo por decidir.
-- Este producto es genérico; cada cumpleaños concreto vive en su propia rama (la primera es `francisca`) y no debe acoplarse al producto.
+- Este producto es genérico; los datos de cada cliente viven en el repositorio privado de clientes (ver `docs/operaciones/ciclo-de-vida-tenant.md`) y no deben acoplarse al producto.
 
 ## Brand Commitments
 

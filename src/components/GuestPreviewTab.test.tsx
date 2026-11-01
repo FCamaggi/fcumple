@@ -5,7 +5,7 @@ import GuestPreviewTab from './GuestPreviewTab';
 import type { OrganizerEvent } from '../lib/organizerApi';
 
 const SECRET = 'SECRETO-DEL-QR-1234';
-const event = { id: 'ev-1', slug: 'puti-halloween', name: 'PUTI HALLOWEEN', activationCode: SECRET } as unknown as OrganizerEvent;
+const event = { id: 'ev-1', slug: 'noche-disfraces', name: 'NOCHE DE DISFRACES', activationCode: SECRET } as unknown as OrganizerEvent;
 
 function iframe() {
   return screen.getByTitle(/vista previa/i) as HTMLIFrameElement;

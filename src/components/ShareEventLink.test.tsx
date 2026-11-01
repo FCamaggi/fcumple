@@ -22,10 +22,10 @@ describe('ShareEventLink', () => {
   });
 
   it('muestra cómo se verá el enlace en WhatsApp, con el subtítulo y el lugar del evento', () => {
-    render(<ShareEventLink event={{ ...event, subtitle: 'Noche de Halloween', location: 'Los Pozos 6855' }} />);
+    render(<ShareEventLink event={{ ...event, subtitle: 'Noche de Halloween', location: 'Calle Falsa 123' }} />);
     const card = screen.getByRole('group', { name: /así se verá el enlace en whatsapp/i });
     expect(card).toHaveTextContent('Cumple de Fabrizio');
-    expect(card).toHaveTextContent('Noche de Halloween · Los Pozos 6855');
+    expect(card).toHaveTextContent('Noche de Halloween · Calle Falsa 123');
     expect(card).toHaveTextContent(window.location.host);
   });
 

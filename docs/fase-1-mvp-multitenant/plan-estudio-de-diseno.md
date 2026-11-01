@@ -141,14 +141,14 @@ Lo mejor de la pantalla es el contador de rollo (`FilmRollCounter`); el boleto d
 - **Cámara del invitado para el 30-oct:**
   - Visor agrandado al 62–74% del alto en vertical y botones abajo al alcance del pulgar: **implementado en PR #28 y PR #30**.
   - Conservar la foto en memoria si falla la red y botón «Reintentar» idempotente sin gastar doble disparo: **implementado en PR #28, PR #29 y PR #31**.
-- **Marcos para Francisca (`/e/puti-halloween`):** se generan **marcos nuevos de mayor calidad (v3)** antes del congelamiento del 28-oct aplicando el enfoque de composiciones temáticas y piezas ricas.
-- **Aislamiento de paquetes y presets (post-fiesta):** modelo híbrido. Los **presets base** (ej. Halloween) son **públicos** para cualquier cumpleañero; los paquetes o composiciones a medida de un evento (como el de Francisca) son **privados** de ese evento. Monetización queda fuera de alcance por ahora.
+- **Marcos para [primera clienta]:** se generan **marcos nuevos de mayor calidad (v3)** antes del congelamiento del 28-oct aplicando el enfoque de composiciones temáticas y piezas ricas.
+- **Aislamiento de paquetes y presets (post-fiesta):** modelo híbrido. Los **presets base** (ej. Halloween) son **públicos** para cualquier cumpleañero; los paquetes o composiciones a medida de un evento (como el de [primera clienta]) son **privados** de ese evento. Monetización queda fuera de alcance por ahora.
 
 ### 13.2 Hoja de ruta estricta: Corte 28-oct vs. Fase 2 Post-Fiesta
 
 #### Corte 1: Antes del Congelamiento (25-oct al 28-oct 23:59)
 1. **Sincronización de ramas (25-oct):** `main` local actualizada hasta PR #39 (`9c32b2c`, incluyendo cámara PR 1/2, `submit_photo` idempotente, resolución 4:3 `2048×1536` y vista previa de cámara en panel).
-2. **Marcos v3 para Francisca (`puti-halloween` y `cumple-fran`) (25–26 oct):**
+2. **Marcos v3 para [primera clienta] (dos marcos) (25–26 oct):**
    - Reemplazar las formas geométricas simples de `generar-marcos-v2.py` por composiciones de mayor riqueza visual (ilustraciones curadas con ChatGPT/Gemini y trazos ricos, sin «borde negro pesado» que achique la foto), dejando solo emojis en `event_stickers`.
    - Validar en el banco de pruebas (`preview.html` + `shoot.mjs`) en 3:4, 4:3 y 9:16 y en `/panel/e/:id/vista-previa`.
 3. **Prueba en teléfono real y carga en producción (27–28 oct):**

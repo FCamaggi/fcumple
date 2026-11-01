@@ -4,7 +4,7 @@ Antes de armar el evento de un cumpleaños hay que saber qué estilo quiere quie
 
 ## Cómo funciona
 
-- Ruta pública: `/brief/:slug` (por ejemplo `/brief/francisca`). No requiere cuenta.
+- Ruta pública: `/brief/:slug` (por ejemplo `/brief/ejemplo`). No requiere cuenta.
 - El motor está en `src/pages/ClientBriefPage.tsx`; carga su propio chunk, así que quien entra como invitado no lo descarga.
 - Las preguntas de cada cliente están en `src/briefs/<slug>.ts` (un `export default` con la forma de `BriefDefinition`, en `src/briefs/types.ts`). El registro (`src/briefs/registry.ts`) los descubre solo: no hay que registrar nada.
 - Cada pregunta tiene opciones (una o varias, según `selection`; `max` limita cuántas) y una nota libre. Las preguntas sin opciones son solo texto libre. Una opción con `exclusive` (por ejemplo "lo conversamos en privado") desmarca las demás.

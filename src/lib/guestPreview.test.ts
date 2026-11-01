@@ -18,10 +18,10 @@ const NOW = new Date('2026-10-30T21:00:00Z');
 
 const event = {
   id: 'ev-1',
-  slug: 'puti-halloween',
-  name: 'PUTI HALLOWEEN',
+  slug: 'noche-disfraces',
+  name: 'NOCHE DE DISFRACES',
   startsAt: '2026-10-30T23:00:00Z',
-  location: 'Casa de Fran',
+  location: 'Casa de Martina',
   accessMode: 'open',
   cameraUnlock: 'on_event_qr',
   rsvpEnabled: false,
@@ -29,7 +29,7 @@ const event = {
   stickersEnabled: true,
   defaultFrameId: null,
   photosRevealedAt: null,
-  subtitle: 'Cumpleaños Fran',
+  subtitle: 'Cumpleaños Martina',
   theme: { preset: 'rosa-chicle' },
   activationCode: SECRET,
   defaultPhotoQuota: 5,
@@ -53,8 +53,8 @@ describe('toPublicPreviewEvent', () => {
 
     expect(pub).toMatchObject({
       id: 'ev-1',
-      name: 'PUTI HALLOWEEN',
-      subtitle: 'Cumpleaños Fran',
+      name: 'NOCHE DE DISFRACES',
+      subtitle: 'Cumpleaños Martina',
       cameraUnlock: 'on_event_qr',
       theme: { preset: 'rosa-chicle' },
       photosRevealed: false,

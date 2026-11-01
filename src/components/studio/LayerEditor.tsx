@@ -227,7 +227,7 @@ export default function LayerEditor({
         : presetKind === 'cursiva'
           ? {
               type: 'text',
-              text: 'Cumpleaños Fran',
+              text: 'Cumpleaños Martina',
               x: 0.5,
               y: 1,
               dy: -0.12,

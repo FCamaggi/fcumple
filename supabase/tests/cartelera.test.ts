@@ -242,7 +242,7 @@ describe('fotos por lotes', () => {
 describe('subtítulo y tema del evento', () => {
   it('el subtítulo es opcional, de 1 a 80 caracteres', async () => {
     const ev = await createEvent(db, owner);
-    await db.query(`update events set subtitle = 'Cumpleaños Fran' where id = $1`, [ev.id]);
+    await db.query(`update events set subtitle = 'Cumpleaños Martina' where id = $1`, [ev.id]);
     await db.query(`update events set subtitle = null where id = $1`, [ev.id]);
     await expect(db.query(`update events set subtitle = '   ' where id = $1`, [ev.id])).rejects.toThrow(/events_subtitle_len/);
     await expect(db.query(`update events set subtitle = $2 where id = $1`, [ev.id, 'a'.repeat(81)])).rejects.toThrow(
@@ -252,9 +252,9 @@ describe('subtítulo y tema del evento', () => {
 
   it('get_event_public entrega subtítulo y tema', async () => {
     const ev = await createEvent(db, owner);
-    await db.query(`update events set subtitle = 'Cumpleaños Fran', theme = '{"preset":"rosa-chicle"}' where id = $1`, [ev.id]);
+    await db.query(`update events set subtitle = 'Cumpleaños Martina', theme = '{"preset":"rosa-chicle"}' where id = $1`, [ev.id]);
     const { rows } = await asAnon(db, () => db.query('select * from get_event_public($1)', [ev.slug]));
-    expect(rows[0].subtitle).toBe('Cumpleaños Fran');
+    expect(rows[0].subtitle).toBe('Cumpleaños Martina');
     expect(rows[0].theme).toEqual({ preset: 'rosa-chicle' });
   });
 

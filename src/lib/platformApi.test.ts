@@ -51,11 +51,11 @@ describe('getEventPublic', () => {
 
   it('entrega el subtítulo, el estilo y el modo de cámara del evento', async () => {
     rpc.mockResolvedValueOnce({
-      data: [{ ...eventRow, camera_unlock: 'on_event_qr', subtitle: 'Cumpleaños Fran', theme: { preset: 'rosa-chicle' } }],
+      data: [{ ...eventRow, camera_unlock: 'on_event_qr', subtitle: 'Cumpleaños Martina', theme: { preset: 'rosa-chicle' } }],
       error: null,
     });
     const event = await getEventPublic('fiesta-abcd');
-    expect(event).toMatchObject({ cameraUnlock: 'on_event_qr', subtitle: 'Cumpleaños Fran', theme: { preset: 'rosa-chicle' } });
+    expect(event).toMatchObject({ cameraUnlock: 'on_event_qr', subtitle: 'Cumpleaños Martina', theme: { preset: 'rosa-chicle' } });
   });
 
   it('sin subtítulo ni estilo (base sin migrar) no rompe: subtítulo nulo y estilo vacío', async () => {

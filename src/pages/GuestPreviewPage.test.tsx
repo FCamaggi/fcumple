@@ -38,10 +38,10 @@ let postMessageSpy: ReturnType<typeof vi.spyOn>;
 
 const event = {
   id: 'ev-1',
-  slug: 'puti-halloween',
-  name: 'PUTI HALLOWEEN',
+  slug: 'noche-disfraces',
+  name: 'NOCHE DE DISFRACES',
   startsAt: '2026-10-30T23:00:00Z',
-  location: 'Casa de Fran',
+  location: 'Casa de Martina',
   accessMode: 'open',
   cameraUnlock: 'on_event_qr',
   rsvpEnabled: false,
@@ -49,7 +49,7 @@ const event = {
   stickersEnabled: true,
   defaultFrameId: null,
   photosRevealedAt: null,
-  subtitle: 'Cumpleaños Fran',
+  subtitle: 'Cumpleaños Martina',
   theme: { preset: 'rosa-chicle' },
   activationCode: SECRET,
   defaultPhotoQuota: 5,
@@ -102,7 +102,7 @@ describe('GuestPreviewPage', () => {
     renderAt();
 
     expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent('Hola, Ana');
-    expect(screen.getByText('PUTI HALLOWEEN')).toBeInTheDocument();
+    expect(screen.getByText('NOCHE DE DISFRACES')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Abrir cámara' })).toBeInTheDocument();
   });
 

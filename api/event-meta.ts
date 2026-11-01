@@ -13,7 +13,7 @@
 
 export interface EventMeta {
   name: string;
-  /** Línea debajo del título (p. ej. «Cumpleaños Fran»). */
+  /** Línea debajo del título (p. ej. «Cumpleaños Martina»). */
   subtitle?: string | null;
   startsAt: string | null;
   location: string | null;
@@ -42,7 +42,7 @@ const TIMEOUT_MS = 2500;
 const escapeHtml = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
-/** "viernes 30 de octubre · 20:30 · Los Pozos 6855. Inscríbete con tu nombre…" */
+/** "viernes 30 de octubre · 20:30 · Calle Falsa 123. Inscríbete con tu nombre…" */
 export function describeEvent(meta: EventMeta): string {
   const parts: string[] = [];
   if (meta.subtitle?.trim()) parts.push(meta.subtitle.trim());

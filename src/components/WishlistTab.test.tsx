@@ -7,8 +7,8 @@ import * as wishlistLib from '../lib/wishlist';
 
 const mockEvent: OrganizerEvent = {
   id: 'ev-1',
-  slug: 'puti-halloween',
-  name: 'Puti Halloween',
+  slug: 'noche-disfraces',
+  name: 'Noche de Disfraces',
   startsAt: null,
   location: null,
   accessMode: 'open',

@@ -14,7 +14,7 @@ import OrganizerAccountPage from './OrganizerAccountPage';
 beforeEach(() => {
   vi.mocked(changePassword).mockReset();
   vi.mocked(useSession).mockReturnValue({
-    session: { user: { email: 'fran@example.com' } } as never,
+    session: { user: { email: 'martina@example.com' } } as never,
     loading: false,
   });
 });
@@ -38,17 +38,17 @@ const submit = () => screen.getByRole('button', { name: 'Cambiar contraseña' })
 describe('OrganizerAccountPage', () => {
   it('muestra el correo de la cuenta y vuelve a los eventos', () => {
     setup();
-    expect(screen.getByText('fran@example.com')).toBeInTheDocument();
+    expect(screen.getByText('martina@example.com')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Tus eventos/ })).toHaveAttribute('href', '/panel');
   });
 
   it('cambia la contraseña con la actual y la nueva, y limpia los campos', async () => {
     vi.mocked(changePassword).mockResolvedValueOnce(undefined);
     setup();
-    await fill('Fran-2026-Temp', 'una-clave-larga');
+    await fill('Martina-2026-Temp', 'una-clave-larga');
     await userEvent.click(submit());
 
-    expect(changePassword).toHaveBeenCalledWith('fran@example.com', 'Fran-2026-Temp', 'una-clave-larga');
+    expect(changePassword).toHaveBeenCalledWith('martina@example.com', 'Martina-2026-Temp', 'una-clave-larga');
     expect(await screen.findByRole('status')).toHaveTextContent('Cambiaste tu contraseña.');
     expect(screen.getByLabelText('Contraseña actual')).toHaveValue('');
     expect(screen.getByLabelText('Contraseña nueva')).toHaveValue('');
@@ -56,7 +56,7 @@ describe('OrganizerAccountPage', () => {
 
   it('exige 8 caracteres como mínimo, sin consultar', async () => {
     setup();
-    await fill('Fran-2026-Temp', 'corta');
+    await fill('Martina-2026-Temp', 'corta');
     await userEvent.click(submit());
     expect(screen.getByRole('alert')).toHaveTextContent('al menos 8 caracteres');
     expect(changePassword).not.toHaveBeenCalled();
@@ -64,7 +64,7 @@ describe('OrganizerAccountPage', () => {
 
   it('avisa si las dos contraseñas nuevas no coinciden, sin consultar', async () => {
     setup();
-    await fill('Fran-2026-Temp', 'una-clave-larga', 'otra-clave-larga');
+    await fill('Martina-2026-Temp', 'una-clave-larga', 'otra-clave-larga');
     await userEvent.click(submit());
     expect(screen.getByRole('alert')).toHaveTextContent('no coinciden');
     expect(changePassword).not.toHaveBeenCalled();

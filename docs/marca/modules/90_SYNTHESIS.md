@@ -103,7 +103,7 @@ Sin entrada nueva en esta pasada. Todo lo de abajo sale de los módulos 10 a 70;
 ### 10. Próximos pasos prácticos
 
 1. **Elegir el nombre.** Criterios: que funcione sin depender del dueño; que sirva para eventos festivos e informales y no solo para cumpleaños; que sea fácil de decir y de escribir en español de Chile; que sugiera compartir, el rollo o la previa sin nombrar la categoría de forma obvia (evitar palabras como cámara, foto o party); y que esté disponible (dominio, marca registrada en Chile, redes).
-2. **Leer las respuestas de Francisca** en la tabla `client_briefs` y diseñar sus dos marcos.
+2. **Leer las respuestas de [primera clienta]** en la tabla `client_briefs` y diseñar sus dos marcos.
 3. **Decidir cómo se ven las fotos durante el evento** (muro en vivo o revelado por bloques) antes de prometerlo en cualquier texto.
 4. **Definir los dos niveles y su precio** cuando termine la fase de pruebas.
 5. **Alinear `DESIGN.md`** con el modelo de los tres momentos y con la idea de "piel por rama".

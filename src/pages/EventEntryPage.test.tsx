@@ -145,12 +145,12 @@ describe('EventEntryPage', () => {
   });
 
   it('muestra el subtítulo debajo del título del evento', async () => {
-    vi.mocked(api.getEventPublic).mockResolvedValueOnce({ ...event, name: 'PUTI HALLOWEEN', subtitle: 'Cumpleaños Fran' });
+    vi.mocked(api.getEventPublic).mockResolvedValueOnce({ ...event, name: 'NOCHE DE DISFRACES', subtitle: 'Cumpleaños Martina' });
     vi.mocked(api.loadGuestSession).mockReturnValue({ token: 'tok', guestName: 'Ana' });
     vi.mocked(api.getMyGuest).mockResolvedValueOnce(guest);
     renderPage();
-    expect(await screen.findByText('PUTI HALLOWEEN')).toBeInTheDocument();
-    expect(screen.getByText('Cumpleaños Fran')).toBeInTheDocument();
+    expect(await screen.findByText('NOCHE DE DISFRACES')).toBeInTheDocument();
+    expect(screen.getByText('Cumpleaños Martina')).toBeInTheDocument();
   });
 
   it('aplica el estilo del evento: el formulario ya sale con su paleta, antes de inscribirse', async () => {

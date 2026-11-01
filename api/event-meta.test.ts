@@ -29,7 +29,7 @@ function fetchStub(event: unknown) {
 }
 
 const base = {
-  slug: 'cumpleanos-fran-j4h7',
+  slug: 'cumpleanos-martina-a1b2',
   origin: 'https://fcumple.example',
   supabaseUrl: 'https://abc.supabase.co',
   anonKey: 'anon',
@@ -37,26 +37,26 @@ const base = {
 
 describe('describeEvent', () => {
   it('arma fecha, hora y lugar en español, en la hora de Chile', () => {
-    const text = describeEvent({ name: 'PUTI HALLOWEEN', startsAt: '2026-10-30T23:30:00Z', location: 'Los Pozos 6855' });
+    const text = describeEvent({ name: 'NOCHE DE DISFRACES', startsAt: '2026-10-30T23:30:00Z', location: 'Calle Falsa 123' });
     expect(text).toMatch(/30 de octubre/);
     expect(text).toContain('20:30');
-    expect(text).toContain('Los Pozos 6855');
+    expect(text).toContain('Calle Falsa 123');
     expect(text).toContain('Inscríbete');
   });
 
-  it('el subtítulo va primero: «Cumpleaños Fran · viernes… · lugar»', () => {
+  it('el subtítulo va primero: «Cumpleaños Martina · viernes… · lugar»', () => {
     const text = describeEvent({
-      name: 'PUTI HALLOWEEN',
-      subtitle: 'Cumpleaños Fran',
+      name: 'NOCHE DE DISFRACES',
+      subtitle: 'Cumpleaños Martina',
       startsAt: '2026-10-30T23:30:00Z',
-      location: 'Los Pozos 6855',
+      location: 'Calle Falsa 123',
     });
-    expect(text.startsWith('Cumpleaños Fran · ')).toBe(true);
-    expect(text).toContain('Los Pozos 6855');
+    expect(text.startsWith('Cumpleaños Martina · ')).toBe(true);
+    expect(text).toContain('Calle Falsa 123');
   });
 
   it('con solo subtítulo (sin fecha ni lugar) igual lo muestra', () => {
-    expect(describeEvent({ name: 'X', subtitle: 'Cumpleaños Fran', startsAt: null, location: null })).toContain('Cumpleaños Fran');
+    expect(describeEvent({ name: 'X', subtitle: 'Cumpleaños Martina', startsAt: null, location: null })).toContain('Cumpleaños Martina');
   });
 
   it('sin fecha ni lugar sigue dando una invitación', () => {
@@ -69,10 +69,10 @@ describe('describeEvent', () => {
 });
 
 describe('injectMeta', () => {
-  const out = injectMeta(INDEX, { title: 'PUTI HALLOWEEN', description: 'Hola', url: 'https://fcumple.example/e/x' });
+  const out = injectMeta(INDEX, { title: 'NOCHE DE DISFRACES', description: 'Hola', url: 'https://fcumple.example/e/x' });
 
   it('reemplaza el título y las etiquetas de vista previa viejas, incluidas las de varias líneas', () => {
-    expect(out).toContain('<title>PUTI HALLOWEEN</title>');
+    expect(out).toContain('<title>NOCHE DE DISFRACES</title>');
     expect(out).not.toContain('Título viejo');
     expect(out).not.toContain('viejo.jpg');
     expect(out).not.toContain('Viernes 9 de octubre');
@@ -81,7 +81,7 @@ describe('injectMeta', () => {
   });
 
   it('agrega las etiquetas nuevas y conserva el resto del documento', () => {
-    expect(out).toContain('<meta property="og:title" content="PUTI HALLOWEEN" />');
+    expect(out).toContain('<meta property="og:title" content="NOCHE DE DISFRACES" />');
     expect(out).toContain('<meta property="og:description" content="Hola" />');
     expect(out).toContain('<meta property="og:url" content="https://fcumple.example/e/x" />');
     expect(out).toContain('<meta name="twitter:card" content="summary" />');
@@ -113,7 +113,7 @@ describe('injectMeta', () => {
 });
 
 describe('imagen propia del evento', () => {
-  const eventRow = { name: 'PUTI HALLOWEEN', starts_at: null, location: null };
+  const eventRow = { name: 'NOCHE DE DISFRACES', starts_at: null, location: null };
 
   function withImage(contentType: string | null, status = true) {
     return vi.fn(async (url: string, init?: { method?: string }) => {
@@ -128,7 +128,7 @@ describe('imagen propia del evento', () => {
 
   it('si existe public/og/<slug>.jpg, la vista previa lleva la imagen en grande', async () => {
     const page = await renderEventPage({ ...base, fetchImpl: withImage('image/jpeg') });
-    expect(page.body).toContain('<meta property="og:image" content="https://fcumple.example/og/cumpleanos-fran-j4h7.jpg" />');
+    expect(page.body).toContain('<meta property="og:image" content="https://fcumple.example/og/cumpleanos-martina-a1b2.jpg" />');
     expect(page.body).toContain('<meta property="og:image:width" content="1200" />');
     expect(page.body).toContain('<meta name="twitter:card" content="summary_large_image" />');
     expect(page.body).toContain('<meta name="twitter:image"');
@@ -154,25 +154,25 @@ describe('imagen propia del evento', () => {
 
 describe('renderEventPage', () => {
   it('pone el nombre, la fecha y el lugar del evento en la vista previa', async () => {
-    const fetchImpl = fetchStub({ name: 'PUTI HALLOWEEN', starts_at: '2026-10-30T23:30:00Z', location: 'Los Pozos 6855' });
+    const fetchImpl = fetchStub({ name: 'NOCHE DE DISFRACES', starts_at: '2026-10-30T23:30:00Z', location: 'Calle Falsa 123' });
     const page = await renderEventPage({ ...base, fetchImpl });
     expect(page.status).toBe(200);
-    expect(page.body).toContain('<title>PUTI HALLOWEEN</title>');
-    expect(page.body).toContain('Los Pozos 6855');
-    expect(page.body).toContain('https://fcumple.example/e/cumpleanos-fran-j4h7');
+    expect(page.body).toContain('<title>NOCHE DE DISFRACES</title>');
+    expect(page.body).toContain('Calle Falsa 123');
+    expect(page.body).toContain('https://fcumple.example/e/cumpleanos-martina-a1b2');
     expect(page.headers['cache-control']).toMatch(/s-maxage=60/);
     expect(page.headers.vary).toBe('User-Agent');
     expect(fetchImpl).toHaveBeenCalledWith(
       'https://abc.supabase.co/rest/v1/rpc/get_event_public',
-      expect.objectContaining({ method: 'POST', body: JSON.stringify({ p_slug: 'cumpleanos-fran-j4h7' }) }),
+      expect.objectContaining({ method: 'POST', body: JSON.stringify({ p_slug: 'cumpleanos-martina-a1b2' }) }),
     );
   });
 
   it('usa el subtítulo del evento en la descripción', async () => {
-    const fetchImpl = fetchStub({ name: 'PUTI HALLOWEEN', subtitle: 'Cumpleaños Fran', starts_at: null, location: null });
+    const fetchImpl = fetchStub({ name: 'NOCHE DE DISFRACES', subtitle: 'Cumpleaños Martina', starts_at: null, location: null });
     const page = await renderEventPage({ ...base, fetchImpl });
-    expect(page.body).toContain('<title>PUTI HALLOWEEN</title>');
-    expect(page.body).toContain('Cumpleaños Fran');
+    expect(page.body).toContain('<title>NOCHE DE DISFRACES</title>');
+    expect(page.body).toContain('Cumpleaños Martina');
   });
 
   it('un evento que no existe da la vista previa neutra, no la de otro evento', async () => {
@@ -217,12 +217,12 @@ describe('renderEventPage', () => {
 
   it('si ni siquiera se puede leer index.html, devuelve un documento mínimo con la vista previa', async () => {
     const down = vi.fn(async (url: string) => {
-      if (String(url).includes('/rest/v1/')) return ok([{ name: 'PUTI HALLOWEEN', starts_at: null, location: null }]);
+      if (String(url).includes('/rest/v1/')) return ok([{ name: 'NOCHE DE DISFRACES', starts_at: null, location: null }]);
       throw new Error('sin red');
     });
     const page = await renderEventPage({ ...base, fetchImpl: down });
     expect(page.status).toBe(200);
-    expect(page.body).toContain('<title>PUTI HALLOWEEN</title>');
+    expect(page.body).toContain('<title>NOCHE DE DISFRACES</title>');
     expect(page.body).toContain('<html');
   });
 });
@@ -248,25 +248,25 @@ describe('handler', () => {
   }
 
   it('responde HTML con la vista previa, tomando el origen del encabezado', async () => {
-    vi.stubGlobal('fetch', fetchStub({ name: 'PUTI HALLOWEEN', starts_at: null, location: null }));
+    vi.stubGlobal('fetch', fetchStub({ name: 'NOCHE DE DISFRACES', starts_at: null, location: null }));
     vi.stubEnv('VITE_SUPABASE_URL', 'https://abc.supabase.co');
     vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'anon');
     vi.stubEnv('VERCEL_PROJECT_PRODUCTION_URL', 'fcumple.example');
     const r = res();
     await handler(
-      { query: { slug: 'cumpleanos-fran-j4h7' }, headers: { host: 'fcumple.example', 'x-forwarded-proto': 'https' } },
+      { query: { slug: 'cumpleanos-martina-a1b2' }, headers: { host: 'fcumple.example', 'x-forwarded-proto': 'https' } },
       r.api,
     );
     expect(r.out.code).toBe(200);
     expect(r.out.headers['content-type']).toMatch(/text\/html/);
-    expect(r.out.body).toContain('<title>PUTI HALLOWEEN</title>');
-    expect(r.out.body).toContain('https://fcumple.example/e/cumpleanos-fran-j4h7');
+    expect(r.out.body).toContain('<title>NOCHE DE DISFRACES</title>');
+    expect(r.out.body).toContain('https://fcumple.example/e/cumpleanos-martina-a1b2');
     vi.unstubAllGlobals();
     vi.unstubAllEnvs();
   });
 
   it('no confía en las cabeceras para decidir a qué host pedir index.html (ni para og:url)', async () => {
-    const fetchImpl = fetchStub({ name: 'PUTI HALLOWEEN', starts_at: null, location: null });
+    const fetchImpl = fetchStub({ name: 'NOCHE DE DISFRACES', starts_at: null, location: null });
     vi.stubGlobal('fetch', fetchImpl);
     vi.stubEnv('VITE_SUPABASE_URL', 'https://abc.supabase.co');
     vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'anon');
@@ -275,7 +275,7 @@ describe('handler', () => {
     const r = res();
     await handler(
       {
-        query: { slug: 'cumpleanos-fran-j4h7' },
+        query: { slug: 'cumpleanos-martina-a1b2' },
         headers: { host: 'atacante.com', 'x-forwarded-host': 'atacante.com', 'x-forwarded-proto': 'http' },
       },
       r.api,
@@ -284,20 +284,20 @@ describe('handler', () => {
     expect(urls.some((u) => u.includes('atacante.com'))).toBe(false);
     expect(urls).toContain('https://fcumple.example/index.html');
     expect(r.out.body).not.toContain('atacante.com');
-    expect(r.out.body).toContain('https://fcumple.example/e/cumpleanos-fran-j4h7');
+    expect(r.out.body).toContain('https://fcumple.example/e/cumpleanos-martina-a1b2');
     vi.unstubAllGlobals();
     vi.unstubAllEnvs();
   });
 
   it('acepta el host del propio despliegue (para probar en una vista previa de Vercel)', async () => {
-    vi.stubGlobal('fetch', fetchStub({ name: 'PUTI HALLOWEEN', starts_at: null, location: null }));
+    vi.stubGlobal('fetch', fetchStub({ name: 'NOCHE DE DISFRACES', starts_at: null, location: null }));
     vi.stubEnv('VITE_SUPABASE_URL', 'https://abc.supabase.co');
     vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'anon');
     vi.stubEnv('VERCEL_PROJECT_PRODUCTION_URL', 'fcumple.example');
     vi.stubEnv('VERCEL_URL', 'fcumple-abc123.vercel.app');
     const r = res();
-    await handler({ query: { slug: 'cumpleanos-fran-j4h7' }, headers: { host: 'fcumple-abc123.vercel.app' } }, r.api);
-    expect(r.out.body).toContain('https://fcumple-abc123.vercel.app/e/cumpleanos-fran-j4h7');
+    await handler({ query: { slug: 'cumpleanos-martina-a1b2' }, headers: { host: 'fcumple-abc123.vercel.app' } }, r.api);
+    expect(r.out.body).toContain('https://fcumple-abc123.vercel.app/e/cumpleanos-martina-a1b2');
     vi.unstubAllGlobals();
     vi.unstubAllEnvs();
   });
