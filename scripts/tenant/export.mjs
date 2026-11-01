@@ -11,6 +11,9 @@ import { createHash } from 'node:crypto';
 import { Client } from 'pg';
 import { buildManifest, collectTenant } from './export-core.mjs';
 
+const PRIVATE_DIR = 0o700;
+const PRIVATE_FILE = 0o600;
+
 function formatTimestamp(d = new Date()) {
   const pad = (n) => String(n).padStart(2, '0');
   const yyyy = d.getFullYear();
@@ -112,6 +115,10 @@ async function main() {
     await client.end().catch(() => {});
   }
 
+  // The backup holds guests' personal data: only the owner may read it.
+  fs.mkdirSync(resolvedOutDir, { recursive: true, mode: PRIVATE_DIR });
+  fs.chmodSync(resolvedOutDir, PRIVATE_DIR);
+
   // Download storage objects if requested
   const files = [];
   if (!withoutFiles && data.storageObjects && data.storageObjects.length > 0) {
@@ -156,8 +163,8 @@ async function main() {
       const buffer = Buffer.from(arrayBuffer);
       const sha256 = createHash('sha256').update(buffer).digest('hex');
 
-      fs.mkdirSync(path.dirname(localFilePath), { recursive: true });
-      fs.writeFileSync(localFilePath, buffer);
+      fs.mkdirSync(path.dirname(localFilePath), { recursive: true, mode: PRIVATE_DIR });
+      fs.writeFileSync(localFilePath, buffer, { mode: PRIVATE_FILE });
 
       files.push({
         bucket,
@@ -169,12 +176,10 @@ async function main() {
   }
 
   // Write data.json
-  fs.mkdirSync(resolvedOutDir, { recursive: true });
-  fs.writeFileSync(
-    path.join(resolvedOutDir, 'data.json'),
-    JSON.stringify(data, null, 2) + '\n',
-    'utf-8'
-  );
+  fs.writeFileSync(path.join(resolvedOutDir, 'data.json'), JSON.stringify(data, null, 2) + '\n', {
+    encoding: 'utf-8',
+    mode: PRIVATE_FILE,
+  });
 
   // Write manifest.json
   const manifest = buildManifest({
@@ -185,11 +190,10 @@ async function main() {
     files,
     exportedAt: new Date().toISOString(),
   });
-  fs.writeFileSync(
-    path.join(resolvedOutDir, 'manifest.json'),
-    JSON.stringify(manifest, null, 2) + '\n',
-    'utf-8'
-  );
+  fs.writeFileSync(path.join(resolvedOutDir, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n', {
+    encoding: 'utf-8',
+    mode: PRIVATE_FILE,
+  });
 
   // Print summary in Spanish
   console.log(`\nRespaldo completado exitosamente en: ${resolvedOutDir}`);

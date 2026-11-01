@@ -1,6 +1,12 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Client } from 'pg';
+import { execFile } from 'node:child_process';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { promisify } from 'node:util';
 import { connect, createEvent, createGuest, createUser, resetAndMigrate } from './helpers';
+import { DATABASE_URL } from './db-config';
 // @ts-expect-error -- script .mjs sin tipos
 import { buildManifest, collectTenant } from '../../scripts/tenant/export-core.mjs';
 
@@ -327,5 +333,24 @@ describe('buildManifest unit tests', () => {
     expect(manifest.counts.client_briefs).toBe(0);
     expect(manifest.redacted).toEqual(['events.activation_code', 'guests.token']);
     expect(manifest.excluded).toEqual(['guest_credentials.pin_hash', 'identify_attempts']);
+  });
+});
+
+describe('export CLI', () => {
+  it('escribe el respaldo solo legible por el dueño (carpeta 0700, archivos 0600)', async () => {
+    const scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'fcumple-export-'));
+    const outDir = path.join(scratch, 'respaldo');
+    try {
+      const script = path.join(__dirname, '..', '..', 'scripts', 'tenant', 'export.mjs');
+      await promisify(execFile)(process.execPath, [script, evA.slug, '--out', outDir, '--sin-archivos'], {
+        env: { ...process.env, DATABASE_URL },
+      });
+      const mode = (p: string) => fs.statSync(p).mode & 0o777;
+      expect(mode(outDir)).toBe(0o700);
+      expect(mode(path.join(outDir, 'data.json'))).toBe(0o600);
+      expect(mode(path.join(outDir, 'manifest.json'))).toBe(0o600);
+    } finally {
+      fs.rmSync(scratch, { recursive: true, force: true });
+    }
   });
 });

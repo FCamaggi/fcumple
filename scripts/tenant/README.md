@@ -66,6 +66,7 @@ node scripts/tenant/export.mjs <slug> --sin-archivos
 
 - **Por defecto:** Se crea un directorio dentro de `respaldos/<slug>-<YYYYMMDD-HHMMSS>/` relativo al directorio actual de ejecución.
 - **Validación de directorio:** Si el directorio de destino ya existe y contiene archivos, el script aborta inmediatamente con código de salida `1` para evitar sobreescrituras accidentales.
+- **Permisos:** El respaldo contiene datos personales de los invitados, así que solo el dueño puede leerlo: las carpetas quedan con `0700` y los archivos con `0600`.
 
 ---
 
