@@ -19,7 +19,7 @@
 - Controlar qué se ve y cuándo (moderación y revelado).
 - Que los invitados participen sin instalar nada y con los mínimos datos personales.
 **Use cases:**
-- Fiesta de disfraces (el primer cliente es el cumpleaños de Francisca, Halloween adulto).
+- Fiesta de disfraces (el primer cliente es el cumpleaños de [primera clienta], Halloween adulto).
 - Eventos festivos e informales (decisión 2026-10-18): cumpleaños, carretes y matrimonios que terminan en carrete; el producto es genérico y cada evento se configura aparte.
 
 ## Personas
@@ -116,7 +116,7 @@ Basado en el texto real de la interfaz:
 | Marcos y stickers propios | Funciona hoy (configurables por evento). |
 
 ## Goals
-**Business goal:** Por confirmar. Hoy: hacer funcionar el primer cumpleaños (Francisca) y repetirlo para otros.
+**Business goal:** Por confirmar. Hoy: hacer funcionar el primer cumpleaños ([primera clienta]) y repetirlo para otros.
 **Conversion action:** Por confirmar (hoy: que la persona responda el formulario de estilo y arme su evento).
 **Current metrics:** Ninguna.
 

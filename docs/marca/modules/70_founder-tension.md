@@ -8,7 +8,7 @@ Entrevista de marca de un solo participante (el dueño del producto), 2026-10-18
 > "Prefiero que sea una marca con identiad propia, aunque si mencionar el porque nace, no es sobre mi, es sobre la app"
 
 **¿Cómo te presentas hoy y qué haría falta para dejar de ser la cara?**
-> "Me presento como te dije que lo haria, pero por ejemplo, para el de Francisca por ejemplo le dije que lo use para mi cumpleaños que lo quiero pasar a eventos de otros, y qeu si queria aplicarlo en el de ella, que encesitaba de ella el estilo, que marcos hacer, nada mas, validacion. Para que deje de ser asi ya debe ser un servicio personalizable sin interaccion con dev directo, ah no ser que hagamos un marco de pago para que sea asi de personalizado por tenant"
+> "Me presento como te dije que lo haria, pero por ejemplo, para el de [primera clienta] por ejemplo le dije que lo use para mi cumpleaños que lo quiero pasar a eventos de otros, y qeu si queria aplicarlo en el de ella, que encesitaba de ella el estilo, que marcos hacer, nada mas, validacion. Para que deje de ser asi ya debe ser un servicio personalizable sin interaccion con dev directo, ah no ser que hagamos un marco de pago para que sea asi de personalizado por tenant"
 
 **¿Alcance: eventos festivos e informales o cualquier evento?**
 > "Festivos e informales"

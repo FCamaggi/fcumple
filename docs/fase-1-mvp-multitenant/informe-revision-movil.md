@@ -9,7 +9,7 @@ La app del invitado estaba sana en tamaños táctiles pero tenía un bloqueante 
 Los scripts están en [`scripts/qa-movil/`](../../scripts/qa-movil/README.md) para repetir la revisión antes de la fiesta o tras un cambio de diseño.
 
 - **Navegadores:** WebKit de Playwright con el perfil iPhone 13 (390×664 útiles), Chromium con Pixel 7 (412×839), Chromium a 360×640, y los dos teléfonos en horizontal (iPhone 750×342, Pixel 863×360). WebKit de Playwright en Linux no es Safari de iOS.
-- **Datos:** Supabase simulado con `page.route` (evento «PUTI HALLOWEEN» con el estilo Rosa chicle, 12 invitados, 24 fotos, 3 avisos, 3 marcos y 6 stickers). Nada salió a producción ni se crearon datos reales.
+- **Datos:** Supabase simulado con `page.route` (evento «NOCHE DE DISFRACES» con el estilo Rosa chicle, 12 invitados, 24 fotos, 3 avisos, 3 marcos y 6 stickers). Nada salió a producción ni se crearon datos reales.
 - **Pantallas:** 22 por perfil (10 del invitado y 12 del panel, con las 9 pestañas, la moderación y el escáner), en 5 perfiles: 110 combinaciones por corrida.
 - **Qué se midió en cada una:** desborde horizontal real (contra el ancho esperado del perfil, porque Chromium móvil agranda el viewport si el contenido es más ancho), tamaño de fuente de los campos, objetivos táctiles menores de 44 px (para casillas se mide su etiqueta), texto menor de 12 px, capas `fixed` a pantalla completa y errores de JavaScript. Además, capturas revisadas a ojo.
 - **La cámara real** solo se probó con la cámara falsa de Chromium. WebKit de Playwright no tiene cámara, así que allí solo se ve el estado «Cámara no disponible».
