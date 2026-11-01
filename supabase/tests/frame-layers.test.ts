@@ -62,7 +62,9 @@ const cases = (e: string): Case[] => {
         { type: 'emoji', emoji: '🦇', size: 0.1, rotation: -15, opacity: 0.8, anchor: 'tl' },
         { type: 'asset', asset: 'pack:halloween-neon/murcielago', w: 0.2, h: 0.2 },
         { type: 'asset', asset: 'pack:halloween-neon/orejas-conejita', w: 0.3, h: 0.3, tint: '#ff2f92', locked: true },
-        ...['anton', 'playfair', 'pacifico', 'marker', 'elite', 'cinzel', 'vibes', 'cormorant'].map((font) => ({ ...text, font })),
+        ...['anton', 'playfair', 'pacifico', 'marker', 'elite', 'cinzel', 'vibes', 'cormorant', 'gala-caligrafia', 'gala-romana', 'gala-deco'].map(
+          (font) => ({ ...text, font }),
+        ),
         { ...rect, shadow: { color: '#000000', blur: 0.02, x: 0.01, y: 0.01 } },
       ],
     },
