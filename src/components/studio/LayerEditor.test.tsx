@@ -110,10 +110,18 @@ describe('LayerEditor: propiedades', () => {
     expect(validateLayers(latest)).toEqual({ ok: true });
   });
 
-  it('texto: ofrece solo el catálogo corto de cuatro tipografías', async () => {
+  it('texto: ofrece solo el catálogo corto de siete tipografías', async () => {
     await select(0, [text]);
     const options = within(screen.getByLabelText('Tipografía')).getAllByRole('option').map((o) => o.textContent);
-    expect(options).toEqual(['Afiche (Anton)', 'Rosa (Pacifico)', 'Marcador (Permanent Marker)', 'Máquina vieja (Special Elite)']);
+    expect(options).toEqual([
+      'Afiche (Anton)',
+      'Rosa (Pacifico)',
+      'Marcador (Permanent Marker)',
+      'Máquina vieja (Special Elite)',
+      'Grabada (Cinzel)',
+      'Caligrafía (Great Vibes)',
+      'Editorial (Cormorant)',
+    ]);
   });
 
   it('texto: una capa con una tipografía antigua la conserva y la rotula «(antigua)», sin cambiarla en silencio', async () => {
@@ -125,6 +133,9 @@ describe('LayerEditor: propiedades', () => {
       'Rosa (Pacifico)',
       'Marcador (Permanent Marker)',
       'Máquina vieja (Special Elite)',
+      'Grabada (Cinzel)',
+      'Caligrafía (Great Vibes)',
+      'Editorial (Cormorant)',
       'Titular (antigua)',
     ]);
     expect(select_.value).toBe('display');

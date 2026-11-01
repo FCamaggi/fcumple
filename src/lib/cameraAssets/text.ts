@@ -11,7 +11,7 @@ export type FrameFont = (typeof FRAME_FONTS)[number];
  * Tipografías web (autoalojadas con @fontsource) que solo usan las capas, elegidas
  * para el estilo de cada cliente. Se descargan al usarlas, no al abrir la app.
  */
-export const WEB_FONTS = ['anton', 'playfair', 'pacifico', 'marker', 'elite'] as const;
+export const WEB_FONTS = ['anton', 'playfair', 'pacifico', 'marker', 'elite', 'cinzel', 'vibes', 'cormorant'] as const;
 export type WebFont = (typeof WEB_FONTS)[number];
 
 /** Todas las que admite una capa de texto: las del sistema más las web. */
@@ -19,22 +19,26 @@ export const LAYER_FONTS = [...FRAME_FONTS, ...WEB_FONTS] as const;
 export type LayerFont = (typeof LAYER_FONTS)[number];
 
 /**
- * Catálogo acotado de 4 tipografías que ofrece el Estudio de marcos:
+ * Catálogo acotado de tipografías que ofrece el Estudio de marcos:
  * - Anton (Afiche): titular de bloque con fuerte impacto.
  * - Pacifico (Rosa): caligrafía fluida y festiva.
  * - Permanent Marker (Marcador): estilo rotulador y sello informal.
  * - Special Elite (Máquina vieja): estética mecánica y boleto vintage.
+ * - Cinzel (Grabada): romanas de inscripción, para eventos formales.
+ * - Great Vibes (Caligrafía): caligrafía de diploma o invitación.
+ * - Cormorant Garamond (Editorial): serifa fina y elegante.
  *
- * Elegidas comparando las 11 familias tipográficas disponibles sobre diseños reales.
+ * Las cuatro primeras se eligieron comparando las 11 familias de entonces sobre diseños reales; las tres
+ * formales se sumaron para eventos más serios (titulaciones, matrimonios).
  *
- * IMPORTANTE: Las 11 tipografías históricas (FRAME_FONTS + WEB_FONTS) se mantienen
+ * IMPORTANTE: Las tipografías históricas (FRAME_FONTS + WEB_FONTS) se mantienen
  * completamente válidas en LAYER_FONTS, FONT_LABELS, FONT_STACKS, WEB_FONT_FACES
  * y en las validaciones de base de datos. Existen marcos ya guardados y briefs
  * específicos (como el brief de ejemplo en visuals.tsx) que utilizan fuentes del sistema o
  * Playfair. Quitarlas de la validación o del dibujo rompería el renderizado de marcos
  * existentes y haría desaparecer sus textos.
  */
-export const CATALOG_FONTS = ['anton', 'pacifico', 'marker', 'elite'] as const;
+export const CATALOG_FONTS = ['anton', 'pacifico', 'marker', 'elite', 'cinzel', 'vibes', 'cormorant'] as const;
 export type CatalogFont = (typeof CATALOG_FONTS)[number];
 
 /** Comprueba si una tipografía dada pertenece al catálogo corto ofrecido por el Estudio. */
@@ -80,6 +84,9 @@ export const FONT_LABELS: Record<LayerFont, string> = {
   pacifico: 'Rosa (Pacifico)',
   marker: 'Marcador (Permanent Marker)',
   elite: 'Máquina vieja (Special Elite)',
+  cinzel: 'Grabada (Cinzel)',
+  vibes: 'Caligrafía (Great Vibes)',
+  cormorant: 'Editorial (Cormorant)',
 };
 
 /** Pilas de fuentes: las del sistema no descargan nada y el canvas las resuelve igual que el DOM. */
@@ -95,6 +102,9 @@ export const FONT_STACKS: Record<LayerFont, string> = {
   pacifico: '"Pacifico", "Brush Script MT", cursive',
   marker: '"Permanent Marker", "Marker Felt", "Bradley Hand", cursive',
   elite: '"Special Elite", "American Typewriter", "Courier New", monospace',
+  cinzel: '"Cinzel", "Trajan Pro", Georgia, serif',
+  vibes: '"Great Vibes", "Snell Roundhand", "Brush Script MT", cursive',
+  cormorant: '"Cormorant Garamond", Garamond, Georgia, serif',
 };
 
 /** Qué CSS importar (registra el @font-face) y qué pesos esperar antes de dibujar en el canvas. */
@@ -108,6 +118,21 @@ const WEB_FONT_FACES: Record<WebFont, { family: string; weights: number[]; load:
   pacifico: { family: 'Pacifico', weights: [400], load: () => import('@fontsource/pacifico/latin-400.css') },
   marker: { family: 'Permanent Marker', weights: [400], load: () => import('@fontsource/permanent-marker/latin-400.css') },
   elite: { family: 'Special Elite', weights: [400], load: () => import('@fontsource/special-elite/latin-400.css') },
+  cinzel: {
+    family: 'Cinzel',
+    weights: [400, 700],
+    load: () => Promise.all([import('@fontsource/cinzel/latin-400.css'), import('@fontsource/cinzel/latin-700.css')]),
+  },
+  vibes: { family: 'Great Vibes', weights: [400], load: () => import('@fontsource/great-vibes/latin-400.css') },
+  cormorant: {
+    family: 'Cormorant Garamond',
+    weights: [400, 700],
+    load: () =>
+      Promise.all([
+        import('@fontsource/cormorant-garamond/latin-400.css'),
+        import('@fontsource/cormorant-garamond/latin-700.css'),
+      ]),
+  },
 };
 
 export interface FontLoaders {

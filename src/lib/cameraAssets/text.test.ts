@@ -12,8 +12,8 @@ import {
 } from './text';
 
 describe('catálogo corto de tipografías del Estudio', () => {
-  it('son las cuatro elegidas sobre los diseños reales: Anton, Pacifico, Permanent Marker y Special Elite', () => {
-    expect(CATALOG_FONTS).toEqual(['anton', 'pacifico', 'marker', 'elite']);
+  it('son las cuatro elegidas sobre los diseños reales más tres formales: Cinzel, Great Vibes y Cormorant', () => {
+    expect(CATALOG_FONTS).toEqual(['anton', 'pacifico', 'marker', 'elite', 'cinzel', 'vibes', 'cormorant']);
     for (const font of CATALOG_FONTS) expect((WEB_FONTS as readonly string[]).includes(font)).toBe(true);
   });
 
@@ -31,17 +31,17 @@ describe('catálogo corto de tipografías del Estudio', () => {
     expect(fontOptionLabel('playfair')).toBe(`${FONT_LABELS.playfair} (antigua)`);
   });
 
-  it('las once siguen siendo válidas y se dibujan: un marco guardado con una antigua no pierde su texto', () => {
-    expect(LAYER_FONTS).toHaveLength(11);
+  it('las catorce son válidas y se dibujan: un marco guardado con una antigua no pierde su texto', () => {
+    expect(LAYER_FONTS).toHaveLength(14);
     for (const font of LAYER_FONTS) expect(FONT_STACKS[font], font).toBeTruthy();
   });
 });
 
 describe('tipografías de las capas', () => {
-  it('las plantillas conservan las seis del sistema; las capas suman las cinco del brief', () => {
+  it('las plantillas conservan las seis del sistema; las capas suman las ocho web', () => {
     expect(FRAME_FONTS).toEqual(['sans', 'serif', 'mono', 'display', 'hand', 'typewriter']);
     expect(LAYER_FONTS).toEqual([...FRAME_FONTS, ...WEB_FONTS]);
-    expect(WEB_FONTS).toEqual(['anton', 'playfair', 'pacifico', 'marker', 'elite']);
+    expect(WEB_FONTS).toEqual(['anton', 'playfair', 'pacifico', 'marker', 'elite', 'cinzel', 'vibes', 'cormorant']);
   });
 
   it('cada tipografía tiene etiqueta y una pila que termina en una genérica', () => {
@@ -57,6 +57,9 @@ describe('tipografías de las capas', () => {
     expect(FONT_STACKS.pacifico).toMatch(/^"Pacifico"/);
     expect(FONT_STACKS.marker).toMatch(/^"Permanent Marker"/);
     expect(FONT_STACKS.elite).toMatch(/^"Special Elite"/);
+    expect(FONT_STACKS.cinzel).toMatch(/^"Cinzel"/);
+    expect(FONT_STACKS.vibes).toMatch(/^"Great Vibes"/);
+    expect(FONT_STACKS.cormorant).toMatch(/^"Cormorant Garamond"/);
   });
 });
 
