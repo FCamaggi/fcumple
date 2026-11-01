@@ -148,14 +148,25 @@ const defaultFontFileDeps: FontFileDeps = {
   add: (face) => document.fonts.add(face as FontFace),
 };
 
+const fontFileLoads = new Map<string, Promise<void>>();
+
 /**
  * Registra una fuente propia servida como archivo (`public/fonts/<id>.woff2`): no viene de
  * @fontsource, así que no hay CSS que importar. Descarga el archivo y la suma a `document.fonts`.
  */
-export async function loadFontFile(family: string, url: string, deps: FontFileDeps = defaultFontFileDeps): Promise<void> {
-  const face = deps.createFace(family, `url(${url})`);
-  await face.load();
-  deps.add(face);
+export function loadFontFile(family: string, url: string, deps: FontFileDeps = defaultFontFileDeps): Promise<void> {
+  // Each frame preparation asks for its fonts again: download and register each file once.
+  // A failed load is forgotten so the next frame can retry it.
+  const cached = fontFileLoads.get(url);
+  if (cached) return cached;
+  const loading = (async () => {
+    const face = deps.createFace(family, `url(${url})`);
+    await face.load();
+    deps.add(face);
+  })();
+  fontFileLoads.set(url, loading);
+  loading.catch(() => fontFileLoads.delete(url));
+  return loading;
 }
 
 /** Qué CSS importar (registra el @font-face) y qué pesos esperar antes de dibujar en el canvas. */

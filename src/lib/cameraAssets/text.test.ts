@@ -118,6 +118,18 @@ describe('fuentes propias (archivos en /fonts)', () => {
     expect(added).toHaveLength(1);
   });
 
+  it('una fuente propia se descarga una sola vez aunque se pida en cada marco, y se reintenta si falló', async () => {
+    const add = vi.fn();
+    const failing = { load: vi.fn().mockRejectedValueOnce(new Error('offline')).mockResolvedValue(undefined) };
+    const createFace = vi.fn().mockReturnValue(failing);
+    const deps = { createFace, add };
+    await expect(loadFontFile('Gala Deco', '/fonts/prueba-una-vez.woff2', deps)).rejects.toThrow('offline');
+    await loadFontFile('Gala Deco', '/fonts/prueba-una-vez.woff2', deps);
+    await loadFontFile('Gala Deco', '/fonts/prueba-una-vez.woff2', deps);
+    expect(createFace).toHaveBeenCalledTimes(2);
+    expect(add).toHaveBeenCalledTimes(1);
+  });
+
   it('cargar una fuente propia pasa por el mismo cargador que las de @fontsource', async () => {
     const importCss = vi.fn().mockResolvedValue(undefined);
     const loadFace = vi.fn().mockResolvedValue([]);
