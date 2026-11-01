@@ -113,14 +113,28 @@ def sql_quote(value: str) -> str:
     return value.replace("'", "''")
 
 
+def comment_text(value: str) -> str:
+    """Keeps spec text inside a single `--` comment line."""
+    return " ".join(str(value).splitlines())
+
+
+def body_tag(body: str) -> str:
+    """Returns a dollar-quote tag that does not occur in the block body."""
+    tag, n = "$marcos$", 0
+    while tag in body:
+        n += 1
+        tag = f"$marcos{n}$"
+    return tag
+
+
 def build_sql(spec: dict) -> str:
     """Builds the idempotent SQL that replaces only the spec's own frames, matched by label."""
     event_slug = spec["event_slug"]
     frames = spec.get("frames", [])
     labels_sql = ", ".join(f"'{sql_quote(f['label'])}'" for f in frames)
 
-    lines = [
-        f"-- Carga de marcos listos para el evento «{event_slug}» (plantilla capas).",
+    header = [
+        f"-- Carga de marcos listos para el evento «{comment_text(event_slug)}» (plantilla capas).",
         "--",
         "-- IMPORTANTE:",
         "-- 1. Antes de ejecutar este script en la base de datos, deben subirse las imágenes WebP",
@@ -129,7 +143,8 @@ def build_sql(spec: dict) -> str:
         "--    con exactamente esa misma etiqueta (label) y vuelve a insertar la fila actualizada",
         "--    con sort_order consecutivo. Respeta cualquier otro marco que tenga el evento.",
         "--",
-        "do $$",
+    ]
+    lines = [
         "declare",
         "  v_event uuid;",
         "  v_base_order integer;",
@@ -170,12 +185,12 @@ def build_sql(spec: dict) -> str:
         params = {"layers": base["layers"], "variants": variants}
         json_str = json.dumps(params, ensure_ascii=False, separators=(",", ":"))
 
-        lines.append(f"  -- Marco {idx + 1}: {label}")
+        lines.append(f"  -- Marco {idx + 1}: {comment_text(label)}")
         lines.append(f"  delete from public.event_frames where event_id = v_event and label = '{escaped_label}';")
         lines.append("  insert into public.event_frames (event_id, template, label, sort_order, params) values")
         lines.append(
             f"    (v_event, 'capas', '{escaped_label}', v_base_order + {idx}, "
-            f"replace($json${json_str}$json$, '__EVENT__', v_event::text)::jsonb);"
+            f"replace('{sql_quote(json_str)}', '__EVENT__', v_event::text)::jsonb);"
         )
         lines.append("")
 
@@ -183,12 +198,13 @@ def build_sql(spec: dict) -> str:
     default_label = spec.get("default_frame_label") or (frames[0]["label"] if frames else None)
     if default_label:
         lines.extend([
-            f"  -- Por si el cliente desea fijar «{default_label}» como marco predeterminado, descomentar la siguiente línea:",
+            f"  -- Por si el cliente desea fijar «{comment_text(default_label)}» como marco predeterminado, descomentar la siguiente línea:",
             "  -- update public.events set default_frame_id = (select id from public.event_frames "
             f"where event_id = v_event and label = '{sql_quote(default_label)}' limit 1) where id = v_event;",
         ])
-    lines.extend(["end $$;", ""])
-    return "\n".join(lines)
+    body = "\n".join(lines)
+    tag = body_tag(body)
+    return "\n".join(header + [f"do {tag}", body, f"end {tag};", ""])
 
 
 def main() -> None:
