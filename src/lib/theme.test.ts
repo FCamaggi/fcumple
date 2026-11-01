@@ -66,6 +66,14 @@ describe('resolveTheme', () => {
     expect(colors.bg).toBe('#150a12');
     expect(contrastRatio('#ffffff', colors.accent)).toBeLessThan(4.5); // texto blanco sobre ese rosa NO sirve
   });
+
+  it('«Gala» es sobrio: dorado mate como acción principal, rojo en el énfasis y texto marfil sobre negro', () => {
+    const { id, colors } = resolveTheme({ preset: 'gala' });
+    expect(id).toBe('gala');
+    expect(colors.accent).toBe('#c9a55a');
+    expect(colors.emphasis).toBe('#e0605a');
+    expect(colors.text).toBe('#f4eee3');
+  });
 });
 
 describe('variables CSS', () => {

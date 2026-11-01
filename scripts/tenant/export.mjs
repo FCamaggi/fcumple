@@ -2,7 +2,7 @@
 
 /**
  * CLI tool for exporting a single tenant's full data and storage assets.
- * Usage: node scripts/tenant/export.mjs <slug> [--out <dir>] [--sin-archivos]
+ * Usage: node scripts/tenant/export.mjs <slug> [--out <dir>] [--brief-slug <slug>] [--sin-archivos]
  */
 
 import fs from 'node:fs';
@@ -29,6 +29,7 @@ function parseCliArgs(args) {
   let slug = null;
   let outDir = null;
   let withoutFiles = false;
+  let briefSlug = null;
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
@@ -40,30 +41,36 @@ function parseCliArgs(args) {
         process.exit(1);
       }
       outDir = args[++i];
+    } else if (arg === '--brief-slug') {
+      if (i + 1 >= args.length || args[i + 1].startsWith('--')) {
+        console.error('Error: La opción --brief-slug requiere especificar el slug del brief.');
+        process.exit(1);
+      }
+      briefSlug = args[++i];
     } else if (arg.startsWith('--')) {
       console.error(`Error: Opción no reconocida "${arg}".`);
-      console.error('Uso: node scripts/tenant/export.mjs <slug> [--out <dir>] [--sin-archivos]');
+      console.error('Uso: node scripts/tenant/export.mjs <slug> [--out <dir>] [--brief-slug <slug>] [--sin-archivos]');
       process.exit(1);
     } else if (!slug) {
       slug = arg;
     } else {
       console.error(`Error: Argumento inesperado "${arg}".`);
-      console.error('Uso: node scripts/tenant/export.mjs <slug> [--out <dir>] [--sin-archivos]');
+      console.error('Uso: node scripts/tenant/export.mjs <slug> [--out <dir>] [--brief-slug <slug>] [--sin-archivos]');
       process.exit(1);
     }
   }
 
   if (!slug) {
     console.error('Error: Se debe especificar el slug del evento.');
-    console.error('Uso: node scripts/tenant/export.mjs <slug> [--out <dir>] [--sin-archivos]');
+    console.error('Uso: node scripts/tenant/export.mjs <slug> [--out <dir>] [--brief-slug <slug>] [--sin-archivos]');
     process.exit(1);
   }
 
-  return { slug, outDir, withoutFiles };
+  return { slug, outDir, withoutFiles, briefSlug };
 }
 
 async function main() {
-  const { slug, outDir: customOutDir, withoutFiles } = parseCliArgs(process.argv.slice(2));
+  const { slug, outDir: customOutDir, withoutFiles, briefSlug } = parseCliArgs(process.argv.slice(2));
 
   // Check required environment variables
   if (!process.env.DATABASE_URL) {
@@ -107,7 +114,7 @@ async function main() {
   let data;
   try {
     await client.connect();
-    data = await collectTenant((sql, params) => client.query(sql, params), slug);
+    data = await collectTenant((sql, params) => client.query(sql, params), slug, { briefSlug });
   } catch (err) {
     console.error(`Error: ${err.message}`);
     process.exit(1);

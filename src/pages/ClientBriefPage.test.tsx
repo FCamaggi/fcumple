@@ -53,6 +53,17 @@ describe('ClientBriefPage', () => {
     expect(titles.indexOf('¿Qué dicen los marcos?')).toBeLessThan(titles.indexOf('¿Qué marcos para las fotos?'));
   });
 
+  it('muestra el brief de titulación con sus preguntas y los estilos de marco sin vista previa', () => {
+    renderPage('titulacion-gala');
+    expect(screen.getByRole('heading', { level: 1, name: 'Tu titulación, tu estilo' })).toBeInTheDocument();
+    expect(screen.getByText('¿Qué paleta de colores prefieres?')).toBeInTheDocument();
+    expect(screen.getByText('¿Qué estilo de marco te gusta?')).toBeInTheDocument();
+    expect(option(/Laureles/)).toBeInTheDocument();
+    expect(option(/Art déco/)).toBeInTheDocument();
+    expect(option(/Diploma/)).toBeInTheDocument();
+    expect(screen.queryByTestId('frame-capas')).not.toBeInTheDocument();
+  });
+
   it('no deja enviar sin responder nada', () => {
     renderPage();
     expect(screen.getByRole('button', { name: 'Enviar mis respuestas' })).toBeDisabled();

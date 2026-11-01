@@ -19,9 +19,10 @@ const KNOWN_TABLES = [
  *
  * @param {Function} query - Function with signature (sql, params) => Promise<{ rows: any[] }>
  * @param {string} slug - Event slug identifier
+ * @param {{ briefSlug?: string }} [options] - briefSlug: slug of the client brief, when it differs from the event slug
  * @returns {Promise<{ event: object, tables: object, storageObjects: object[] }>}
  */
-export async function collectTenant(query, slug) {
+export async function collectTenant(query, slug, { briefSlug } = {}) {
   if (!slug || typeof slug !== 'string') {
     throw new Error(`No existe un evento con el slug "${slug}".`);
   }
@@ -102,10 +103,10 @@ export async function collectTenant(query, slug) {
   );
   const eventStickers = eventStickersRes?.rows || [];
 
-  // 9. Fetch client_briefs where slug = event.slug
+  // 9. Fetch client_briefs by the brief slug (defaults to the event slug)
   const clientBriefsRes = await query(
     'SELECT * FROM public.client_briefs WHERE slug = $1 ORDER BY created_at, id',
-    [event.slug]
+    [briefSlug || event.slug]
   );
   const clientBriefs = clientBriefsRes?.rows || [];
 

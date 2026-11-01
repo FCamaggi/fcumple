@@ -235,6 +235,22 @@ describe('tenant export core', () => {
     }
   });
 
+  it('con briefSlug exporta las respuestas de ese brief y no las del slug del evento', async () => {
+    await db.query(
+      `insert into public.client_briefs (slug, respondent, answers) values ('brief-propio', 'Cliente Carla', '{"color": "dorado"}'::jsonb)`,
+    );
+    const result = await collectTenant(
+      (sql: string, params: unknown[]) => db.query(sql, params),
+      evA.slug,
+      { briefSlug: 'brief-propio' },
+    );
+
+    expect(result.event.id).toBe(evA.id);
+    expect(result.tables.client_briefs.length).toBe(1);
+    expect(result.tables.client_briefs[0].slug).toBe('brief-propio');
+    expect(result.tables.client_briefs[0].respondent).toBe('Cliente Carla');
+  });
+
   it('lanza un error con mensaje en español cuando el slug no existe', async () => {
     await expect(
       collectTenant((sql: string, params: unknown[]) => db.query(sql, params), 'evento-inexistente-xyz'),
