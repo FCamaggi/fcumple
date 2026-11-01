@@ -32,7 +32,9 @@ Línea base conocida: con Node 22 falla 1 test, `GuestPage > shows the real door
 - `src/pages` (una página por ruta), `src/components` (`CameraCapture.tsx` es el más grande; `studio/` es el editor de marcos), `src/hooks`, `src/mocks`, `src/test`.
 - `src/lib`: clientes de API y lógica pura, cada uno con su `.test.ts` al lado.
 - `supabase/migrations`: el esquema de la Fase 1, numerado. `supabase/tests`: la suite de base de datos. `supabase/legacy-fase-0`: histórico, lo usa el test de poda. `seed-demo*.sql` y `setup-fase-1.sql` (este último es generado).
-- `docs/`: una carpeta por fase. Empieza por `docs/README.md`; la guía de la Fase 1 está en `docs/fase-1-mvp-multitenant/`.
+- `docs/`: una carpeta por fase. Empieza por `docs/README.md`; la guía de la Fase 1 está en `docs/fase-1-mvp-multitenant/`. Cómo se atiende a cada cliente, del brief al cierre con respaldo: `docs/operaciones/ciclo-de-vida-tenant.md`.
+- `scripts/tenant/` (respaldo de un evento) y `scripts/marcos/` (pipeline de marcos de IA) reciben el slug o la carpeta del cliente como argumento.
+- El material de cada cliente vive en un repositorio privado aparte (`fcumple-clientes`), nunca en este repo público: no lo agregues ni con `git add -f`, y no pegues sus datos en issues, PR ni prompts externos.
 
 Rutas: `/e/:slug` (entrada del invitado), `/i/:token` (invitado por token individual), `/evento`, `/como-llegar`, `/admin`, `/panel`, `/panel/e/:eventId`.
 

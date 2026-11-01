@@ -8,6 +8,7 @@ La documentación se organiza por **fase del producto**. Cada fase tiene su carp
 | [`fase-0-evento-unico/`](./fase-0-evento-unico/) | La app de un solo evento (cumpleaños) y un solo admin que se construyó primero. Antes eran las carpetas `01-vision` … `08-QA`. | **Histórico** (ya no es el esquema vigente) |
 | [`fase-1-mvp-multitenant/`](./fase-1-mvp-multitenant/) | MVP de plataforma: varios eventos aislados, solo web (QR → navegador), marcos y stickers configurados por el organizador. | **En producción** (el esquema vigente) |
 | [`fase-2-en-adelante/`](./fase-2-en-adelante/) | Backlog ordenado de lo que quedó fuera del MVP: pagos, planes, R2, muro en vivo, photobooks, app nativa, etc. | Backlog |
+| [`operaciones/`](./operaciones/) | Cómo se atiende a cada cliente: del brief al cierre con respaldo. El material de cada cliente vive en un repositorio privado aparte, nunca aquí. | **Vigente** |
 
 ## Por dónde empezar
 
@@ -15,6 +16,7 @@ La documentación se organiza por **fase del producto**. Cada fase tiene su carp
 - ¿Qué existe hoy y qué no? → [`fase-1-mvp-multitenant/estado-del-producto.md`](./fase-1-mvp-multitenant/estado-del-producto.md)
 - ¿Qué se va a construir ahora? → [`fase-1-mvp-multitenant/README.md`](./fase-1-mvp-multitenant/README.md)
 - ¿Por qué se descartó X? → [`estrategia/decisiones-de-alcance.md`](./estrategia/decisiones-de-alcance.md)
+- ¿Cómo atiendo a un cliente nuevo? → [`operaciones/ciclo-de-vida-tenant.md`](./operaciones/ciclo-de-vida-tenant.md)
 - ¿Qué viene después? → [`fase-2-en-adelante/README.md`](./fase-2-en-adelante/README.md)
 
 ## Regla de mantenimiento
