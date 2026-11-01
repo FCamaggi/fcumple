@@ -23,7 +23,7 @@ Para el evento identificado por su `<slug>`:
    - **`post_images`:** Imágenes adjuntas a las publicaciones del evento.
    - **`event_frames`:** Marcos paramétricos configurados para la cámara del evento.
    - **`event_stickers`:** Stickers (emojis e imágenes) configurados para el evento.
-   - **`client_briefs`:** Respuestas de cuestionarios o briefs asociadas al slug del evento (`slug = event.slug`).
+   - **`client_briefs`:** Respuestas de cuestionarios o briefs asociadas al slug del evento (`slug = event.slug`), o al que se indique con `--brief-slug` cuando el brief tiene su propio slug.
 3. **Objetos de almacenamiento (`storageObjects`):** Metadatos de todos los archivos en los buckets `party-photos`, `post-images` y `event-assets` cuyo nombre comience con el prefijo del evento (`<event_id>/%`). Se listan por prefijo para incluir tanto archivos referenciados como archivos huérfanos.
 4. **Archivos descargados (`storage/`):** Descarga de cada archivo listado en los buckets de Storage con su estructura de directorios intacta (a menos que se indique `--sin-archivos`).
 5. **Manifiesto (`manifest.json`):** Resumen estructurado que incluye identificadores, fecha de exportación, formato de versión, conteos por tabla, `storage_objects` (objetos listados en Storage) y `files_downloaded` (los descargados: 0 con `--sin-archivos`), y la lista de archivos descargados junto con sus tamaños en bytes y sumas de verificación SHA-256.
@@ -60,6 +60,9 @@ node scripts/tenant/export.mjs <slug> --out /ruta/hacia/respaldo
 
 # Respaldar únicamente metadatos y base de datos (sin descargar archivos de Storage)
 node scripts/tenant/export.mjs <slug> --sin-archivos
+
+# Incluir las respuestas de un brief cuyo slug no es el del evento
+node scripts/tenant/export.mjs <slug> --brief-slug <slug-brief>
 ```
 
 ### Comportamiento del directorio de destino

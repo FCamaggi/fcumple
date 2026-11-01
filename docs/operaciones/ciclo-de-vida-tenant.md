@@ -75,9 +75,9 @@ Orden obligatorio: si los marcos necesitan un cambio del motor, la migración ti
 1. **Dueño:** entrega las fotos al cliente. Desde el panel del evento se descargan las originales en un `.zip` con una carpeta por invitado (`ExportPhotos`). Deja la pestaña abierta hasta que termine, y cuenta esa descarga contra los 5 GB de salida al mes.
 2. **Dueño:** respalda el evento completo con [`scripts/tenant/export.mjs`](../../scripts/tenant/README.md), dentro de la carpeta del cliente:
    ```bash
-   node scripts/tenant/export.mjs <slug-evento> --out <clientes>/<cliente>/respaldos/<AAAA-MM-DD>
+   node scripts/tenant/export.mjs <slug-evento> --brief-slug <slug-brief> --out <clientes>/<cliente>/respaldos/<AAAA-MM-DD>
    ```
-   Exporta la fila del evento, sus tablas, el brief y todos los archivos de Storage bajo `{event_id}/`. Nunca exporta los hash de PIN, y redacta los tokens de invitado y el código de activación.
+   `--brief-slug` hace falta porque el slug del brief no es el del evento; sin él, el brief no entra al respaldo. Exporta la fila del evento, sus tablas, el brief y todos los archivos de Storage bajo `{event_id}/`. Nunca exporta los hash de PIN, y redacta los tokens de invitado y el código de activación.
 3. **Dueño:** verifica el manifiesto (conteos y sha256). Guarda `storage/` fuera del repositorio de clientes, por ejemplo en Drive. Haz commit de `data.json` y `manifest.json`.
 4. **Repo (opcional):** retira `public/og/<slug-evento>.jpg` y `src/briefs/<slug-brief>.ts`.
 5. **Dueño:** marca el cierre en la ficha del cliente.
