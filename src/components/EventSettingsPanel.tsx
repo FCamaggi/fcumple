@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { AccessMode } from '../lib/platformApi';
 import type { CameraUnlock, EventSettingsPatch, OrganizerEvent } from '../lib/organizerApi';
 import { isoToLocalInput, localInputToIso } from '../lib/localDateTime';
+import EventOwnersSection from './EventOwnersSection';
 import PhoneFrame from './PhoneFrame';
 import { THEME_PRESETS, resolveTheme } from '../lib/theme';
 
@@ -101,7 +102,8 @@ export default function EventSettingsPanel({ event, onSave }: EventSettingsPanel
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="flex max-w-md flex-col gap-4" aria-label="Ajustes del evento">
+    <div className="flex max-w-md flex-col gap-6">
+      <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4" aria-label="Ajustes del evento">
       <div className="flex flex-col gap-1">
         <label htmlFor="ev-name" className={labelClass}>
           Nombre del evento
@@ -281,6 +283,9 @@ export default function EventSettingsPanel({ event, onSave }: EventSettingsPanel
       >
         {saving ? 'Guardando...' : 'Guardar ajustes'}
       </button>
-    </form>
+      </form>
+
+      <EventOwnersSection eventId={event.id} />
+    </div>
   );
 }

@@ -1,6 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+
+// La sección «Dueños» llama a la API real; aquí solo se prueban los ajustes.
+vi.mock('../lib/organizerApi', () => ({
+  listEventOwners: vi.fn().mockResolvedValue([]),
+  createOwnerInvite: vi.fn(),
+}));
+
 import EventSettingsPanel from './EventSettingsPanel';
 import type { OrganizerEvent } from '../lib/organizerApi';
 import { isoToLocalInput, localInputToIso } from '../lib/localDateTime';

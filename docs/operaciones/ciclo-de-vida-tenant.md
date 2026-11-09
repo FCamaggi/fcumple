@@ -33,11 +33,12 @@ Reglas de privacidad:
    select id, slug, name from public.events order by created_at desc;
    ```
 3. **Dueño:** en *Ajustes* e *Inscripción* configura nombre, subtítulo, fecha, `default_photo_quota`, qué se le pide al invitado y cuándo se habilita la cámara ([`inscripcion-configurable.md`](../fase-1-mvp-multitenant/inscripcion-configurable.md), [`activacion-camara-y-cartelera.md`](../fase-1-mvp-multitenant/activacion-camara-y-cartelera.md)).
-4. **Repo (opcional):** imagen de vista previa del enlace en `public/og/<slug-evento>.jpg` (1200×630). Se comprueba en producción:
+4. **Dueño (si el evento tiene varios organizadores):** quien creó el evento entra a *Ajustes* → *Dueños* y genera un link de invitación por cada co-dueño (sirve una sola vez y vence en 7 días; ver [`eventos-con-varios-duenos.md`](../fase-1-mvp-multitenant/eventos-con-varios-duenos.md)).
+5. **Repo (opcional):** imagen de vista previa del enlace en `public/og/<slug-evento>.jpg` (1200×630). Se comprueba en producción:
    ```bash
    curl -A "WhatsApp/2.23" https://fcumple-ten.vercel.app/e/<slug-evento>
    ```
-5. **Dueño:** calcula la capacidad (invitados × fotos × peso de una foto) contra el plan gratuito de Supabase: 1 GB de Storage y 5 GB de salida al mes.
+6. **Dueño:** calcula la capacidad (invitados × fotos × peso de una foto) contra el plan gratuito de Supabase: 1 GB de Storage y 5 GB de salida al mes.
 
 ## 3. Marcos y stickers
 

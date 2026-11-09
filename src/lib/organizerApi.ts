@@ -403,3 +403,81 @@ export async function rotateActivationCode(eventId: string): Promise<string> {
   }
   return data;
 }
+
+// --- Dueños del evento (invitaciones de un solo uso) ------------------------
+
+export interface EventOwner {
+  userId: string;
+  email: string;
+  isCreator: boolean;
+  isMe: boolean;
+  createdAt: string;
+}
+
+interface EventOwnerRow {
+  user_id: string;
+  email: string;
+  is_creator: boolean;
+  is_me: boolean;
+  created_at: string;
+}
+
+function mapEventOwner(row: EventOwnerRow): EventOwner {
+  return {
+    userId: row.user_id,
+    email: row.email,
+    isCreator: row.is_creator,
+    isMe: row.is_me,
+    createdAt: row.created_at,
+  };
+}
+
+export async function createOwnerInvite(eventId: string): Promise<string> {
+  const { data, error } = await supabase.rpc('create_owner_invite', { p_event_id: eventId });
+  if (error) {
+    throw new Error(
+      error.code === '42501'
+        ? 'No tienes permiso para invitar dueños a este evento.'
+        : error.code === '53400'
+          ? error.message?.includes('invite limit')
+            ? 'Llegaste al máximo de invitaciones activas (5). Espera a que se usen o venzan.'
+            : 'Este evento ya llegó al máximo de dueños (10).'
+          : 'No pudimos generar el link de invitación. Intenta de nuevo.',
+    );
+  }
+  if (typeof data !== 'string' || !data) {
+    throw new Error('No pudimos generar el link de invitación. Intenta de nuevo.');
+  }
+  return data;
+}
+
+export async function acceptOwnerInvite(token: string): Promise<string> {
+  const { data, error } = await supabase.rpc('accept_owner_invite', { p_token: token });
+  if (error) {
+    throw new Error(
+      error.code === '42501'
+        ? 'Inicia sesión para aceptar la invitación.'
+        : error.code === 'P0002'
+          ? 'El link no es válido, ya se usó o venció. Pídele uno nuevo a quien te invitó.'
+          : error.code === '53400'
+            ? 'Este evento ya llegó al máximo de dueños (10).'
+            : 'No pudimos aceptar la invitación. Intenta de nuevo.',
+    );
+  }
+  if (typeof data !== 'string' || !data) {
+    throw new Error('No pudimos aceptar la invitación. Intenta de nuevo.');
+  }
+  return data;
+}
+
+export async function listEventOwners(eventId: string): Promise<EventOwner[]> {
+  const { data, error } = await supabase.rpc('list_event_owners', { p_event_id: eventId });
+  if (error) {
+    throw new Error(
+      error.code === '42501'
+        ? 'No tienes permiso para ver los dueños de este evento.'
+        : 'No pudimos cargar los dueños del evento.',
+    );
+  }
+  return ((data ?? []) as EventOwnerRow[]).map(mapEventOwner);
+}
