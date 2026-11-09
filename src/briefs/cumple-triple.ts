@@ -19,6 +19,12 @@ const cumpleTriple: BriefDefinition = {
       visual: 'palette',
       options: [
         {
+          id: 'barra',
+          label: 'Noche de barra (Recomendado)',
+          hint: 'Los colores del bar donde celebran: rojo profundo, naranja y rojo vivo.',
+          palette: { bg: '#78090c', accent: '#eeb98c', soft: '#df1d0e', text: '#f2f2f2' },
+        },
+        {
           id: 'neon',
           label: 'Neón de fiesta',
           hint: 'Fucsia y celeste sobre negro.',
@@ -46,12 +52,6 @@ const cumpleTriple: BriefDefinition = {
           label: 'Coral y verde',
           hint: 'Tropical y alegre.',
           palette: { bg: '#0d1a17', accent: '#ff7a59', soft: '#1f6f5c', text: '#fff4ea' },
-        },
-        {
-          id: 'barra',
-          label: 'Noche de barra',
-          hint: 'Negro concreto, champaña y brasa, como el bar donde celebran.',
-          palette: { bg: '#120e0d', accent: '#ffe8b9', soft: '#c9452b', text: '#f2f2f2' },
         },
       ],
       notePlaceholder: 'Un color que no puede faltar o que no quieres...',
@@ -107,16 +107,16 @@ const cumpleTriple: BriefDefinition = {
       selection: 'multi',
       max: 2,
       options: [
+        {
+          id: 'barra',
+          label: 'Noche de barra (Recomendado)',
+          hint: 'Corchetes finos color naranja y una franja de neón rojo, como la luz detrás de la barra.',
+        },
         { id: 'trio', label: 'Uno por cumpleañero', hint: 'Tres velas o tres globos, cada uno con un nombre.' },
         { id: 'disco', label: 'Disco', hint: 'Bola de espejos y destellos.' },
         { id: 'polaroid', label: 'Foto instantánea', hint: 'Borde blanco con los nombres escritos abajo.' },
         { id: 'confeti', label: 'Confeti', hint: 'Confeti y serpentinas en los bordes.' },
         { id: 'neon', label: 'Letrero de neón', hint: 'Los nombres en luces de neón.' },
-        {
-          id: 'barra',
-          label: 'Noche de barra',
-          hint: 'Corchetes finos color champaña y una franja de neón brasa, como la luz detrás de la barra.',
-        },
         { id: 'privado', label: 'Lo conversamos en privado', hint: 'No elijo ahora.', exclusive: true },
       ],
       notePlaceholder: 'Algo que hayas visto y te guste, o cómo lo imaginas...',

@@ -75,20 +75,32 @@ describe('ClientBriefPage', () => {
     expect(option(/Titular/)).toHaveTextContent('Ana, Bea y Caro');
   });
 
-  it('en el brief del cumpleaños de tres, ofrece «Noche de barra» como paleta y como marco común', async () => {
+  it('en el brief del cumpleaños de tres, ofrece «Noche de barra» primero y recomendada, como paleta y como marco común', async () => {
     const user = userEvent.setup();
     renderPage('cumple-triple');
-    expect(screen.getAllByRole('button', { name: /Noche de barra/ })).toHaveLength(2);
+    const barra = screen.getAllByRole('button', { name: /Noche de barra \(Recomendado\)/ });
+    expect(barra).toHaveLength(2);
+
+    // Es la primera opción de su pregunta, en la paleta y en el marco común.
+    for (const title of ['¿Qué paleta de colores prefieres?', '¿Qué estilo te gusta para el marco de los tres?']) {
+      const group = screen.getByText(title).closest('fieldset') as HTMLElement;
+      expect(group.querySelector('button')).toHaveTextContent(/Noche de barra \(Recomendado\)/);
+    }
+
+    // La paleta usa los colores del bar: fondo rojo oscuro y acento naranja.
+    const swatch = barra[0].querySelector('span[style*="background-color"]') as HTMLElement;
+    expect(swatch.style.backgroundColor).toBe('rgb(120, 9, 12)');
+    expect(swatch.style.color).toBe('rgb(238, 185, 140)');
 
     submit.mockResolvedValueOnce('brief-2');
     await user.type(screen.getByLabelText('Tu nombre'), 'Caro');
-    for (const button of screen.getAllByRole('button', { name: /Noche de barra/ })) await user.click(button);
+    for (const button of barra) await user.click(button);
     await user.click(screen.getByRole('button', { name: 'Enviar mis respuestas' }));
 
     await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
     const answers = submit.mock.calls[0][2];
-    expect(answers.paleta.elegidas).toEqual(['Noche de barra']);
-    expect(answers['marco-comun'].elegidas).toEqual(['Noche de barra']);
+    expect(answers.paleta.elegidas).toEqual(['Noche de barra (Recomendado)']);
+    expect(answers['marco-comun'].elegidas).toEqual(['Noche de barra (Recomendado)']);
   });
 
   it('en el brief del cumpleaños de tres, cada uno envía sus respuestas con su nombre', async () => {
