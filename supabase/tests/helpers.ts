@@ -284,3 +284,11 @@ export async function createGuest(
   );
   return rows[0];
 }
+
+export async function addOwner(client: Client, eventId: string, userId: string): Promise<void> {
+  await client.query(
+    'insert into public.event_owners (event_id, user_id) values ($1, $2) on conflict (event_id, user_id) do nothing',
+    [eventId, userId],
+  );
+}
+
