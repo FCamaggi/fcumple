@@ -36,8 +36,10 @@ Si prefieres la CLI: ejecuta solo [`supabase/legacy-fase-0/prune-fase-0.sql`](..
 
 ```bash
 supabase link --project-ref <ref>
-supabase db push --password "<password de la base>"
+supabase db push --remote --password "<password de la base>"
 ```
+
+Con la CLI v3 (desde el 2026-11-02), `db push` sin `--remote` apunta al stack local; el deploy usa la v3.1.0 fijada en `deploy.yml`.
 
 (No uses las dos opciones a la vez: si pegaste `setup-fase-1.sql`, ya está todo aplicado y registrado.)
 

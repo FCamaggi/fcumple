@@ -56,10 +56,12 @@ jobs:
         with:
           ref: main
 
+      # Pinned: `latest` jumped to CLI v3 on 2026-11-02, which made `db push`
+      # target the local stack by default and broke this job. Bump on purpose.
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 3.1.0
 
       # supabase/config.toml commits project_id = "" on purpose (no real
       # project ref in the repo). The CLI validates this field as required
@@ -75,7 +77,10 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
+      # CLI v3: `--remote` targets the linked project (the default is the
+      # local stack) and `--yes` accepts the hosted-change confirmation,
+      # which otherwise fails in CI.
       - name: Push database migrations
-        run: supabase db push --password "${{ secrets.SUPABASE_PASSWORD }}"
+        run: supabase db push --remote --yes --password "${{ secrets.SUPABASE_PASSWORD }}"
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
