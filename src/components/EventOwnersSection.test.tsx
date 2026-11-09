@@ -92,7 +92,28 @@ describe('EventOwnersSection', () => {
     const expectedUrl = `${window.location.origin}/panel/unirse/tok-inv-99`;
     const input = await screen.findByDisplayValue(expectedUrl);
     expect(input).toHaveAttribute('readonly');
-    expect(screen.getByText('Sirve una vez y vence en 7 días.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Sirve para una sola persona y vence en 7 días. Para sumar a otra, genera otro link.'),
+    ).toBeInTheDocument();
+  });
+
+  it('avisa que cada link es para una persona y deja generar otro distinto para el siguiente dueño', async () => {
+    vi.mocked(listEventOwners).mockResolvedValueOnce(ownersFixture);
+    vi.mocked(createOwnerInvite).mockResolvedValueOnce('tok-uno').mockResolvedValueOnce('tok-dos');
+    render(<EventOwnersSection eventId="ev-1" />);
+
+    expect(
+      screen.getByText('Cada link sirve para una sola persona: genera uno por cada dueño que quieras sumar.'),
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Generar link de invitación' }));
+    await screen.findByDisplayValue(`${window.location.origin}/panel/unirse/tok-uno`);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Generar otro link' }));
+
+    expect(createOwnerInvite).toHaveBeenCalledTimes(2);
+    expect(await screen.findByDisplayValue(`${window.location.origin}/panel/unirse/tok-dos`)).toBeInTheDocument();
+    expect(screen.queryByDisplayValue(`${window.location.origin}/panel/unirse/tok-uno`)).not.toBeInTheDocument();
   });
 
   it('copia el link generado al portapapeles al pulsar «Copiar»', async () => {

@@ -302,6 +302,40 @@ describe('ciclo de vida y limites de invitaciones (S3)', () => {
     });
   });
 
+  it('tres links generados seguidos y aceptados por tres cuentas distintas dejan a los tres como duenos', async () => {
+    const owner = await createUser(db, 'tri-owner@example.com');
+    const guests = [
+      await createUser(db, 'tri-a@example.com'),
+      await createUser(db, 'tri-b@example.com'),
+      await createUser(db, 'tri-c@example.com'),
+    ];
+    const ev = await createEvent(db, owner);
+
+    const tokens: string[] = [];
+    for (let i = 0; i < 3; i++) {
+      const { rows } = await asUser(db, owner, () =>
+        db.query<{ token: string }>('select public.create_owner_invite($1) as token', [ev.id]),
+      );
+      tokens.push(rows[0].token);
+    }
+
+    // Aceptan en orden distinto al de creacion.
+    for (const i of [2, 0, 1]) {
+      await asUser(db, guests[i], () => db.query('select public.accept_owner_invite($1)', [tokens[i]]));
+    }
+
+    const { rows: owners } = await asUser(db, owner, () =>
+      db.query<{ user_id: string }>('select user_id from public.list_event_owners($1)', [ev.id]),
+    );
+    expect(owners.map((o) => o.user_id).sort()).toEqual([owner, ...guests].sort());
+
+    const { rows: invites } = await db.query<{ used_by: string | null }>(
+      'select used_by from public.event_owner_invites where event_id = $1',
+      [ev.id],
+    );
+    expect(invites.map((r) => r.used_by).sort()).toEqual([...guests].sort());
+  });
+
   it('el tope de 10 duenos por evento frena tanto create_owner_invite como accept_owner_invite con 53400', async () => {
     const owner = await createUser(db, 'limit10-owner@example.com');
     const ev = await createEvent(db, owner);

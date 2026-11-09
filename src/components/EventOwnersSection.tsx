@@ -99,13 +99,19 @@ export default function EventOwnersSection({ eventId }: EventOwnersSectionProps)
         </ul>
       )}
 
+      {!inviteUrl && (
+        <p className="font-sans text-xs text-paper-100/60">
+          Cada link sirve para una sola persona: genera uno por cada dueño que quieras sumar.
+        </p>
+      )}
+
       <button
         type="button"
         onClick={() => void handleGenerateInvite()}
         disabled={generating}
         className="h-11 border border-smoke-700/60 px-3 font-mono text-xs uppercase tracking-wider text-paper-100 disabled:opacity-60"
       >
-        {generating ? 'Generando...' : 'Generar link de invitación'}
+        {generating ? 'Generando...' : inviteUrl ? 'Generar otro link' : 'Generar link de invitación'}
       </button>
 
       {inviteUrl && (
@@ -126,7 +132,9 @@ export default function EventOwnersSection({ eventId }: EventOwnersSectionProps)
               {copied ? 'Copiado' : 'Copiar'}
             </button>
           </div>
-          <p className="font-sans text-xs text-paper-100/60">Sirve una vez y vence en 7 días.</p>
+          <p className="font-sans text-xs text-paper-100/60">
+            Sirve para una sola persona y vence en 7 días. Para sumar a otra, genera otro link.
+          </p>
         </div>
       )}
 

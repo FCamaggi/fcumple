@@ -6,7 +6,7 @@ Un evento puede tener varias cuentas organizadoras con los mismos permisos sobre
 
 1. Un dueño actual entra al evento en `/panel/e/:eventId` y abre la pestaña **Ajustes**.
 2. En la sección **Dueños** ve la lista de cuentas con acceso al evento (por correo, con insignias **Tú** y **Creador**) y pulsa **Generar link de invitación**.
-3. El panel muestra el enlace `${origen}/panel/unirse/<token>` en un campo de solo lectura con el botón **Copiar** y el aviso de vigencia.
+3. El panel muestra el enlace `${origen}/panel/unirse/<token>` en un campo de solo lectura con el botón **Copiar** y el aviso «Sirve para una sola persona y vence en 7 días. Para sumar a otra, genera otro link.». Antes de generar, la sección avisa «Cada link sirve para una sola persona: genera uno por cada dueño que quieras sumar.», y después el botón pasa a **Generar otro link**. (Caso real del 2026-11-09: un mismo link enviado a tres personas dejó como dueña solo a la primera que lo abrió.)
 4. La persona invitada abre ese enlace (`/panel/unirse/:token`):
    - Si no tiene sesión abierta, ve el inicio de sesión o registro de organizador en la misma dirección.
    - En cuanto entra o crea su cuenta, la página consume la invitación automáticamente (`accept_owner_invite`) y redirige con reemplazo de historial a `/panel/e/:eventId`.
