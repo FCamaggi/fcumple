@@ -75,6 +75,22 @@ describe('ClientBriefPage', () => {
     expect(option(/Titular/)).toHaveTextContent('Ana, Bea y Caro');
   });
 
+  it('en el brief del cumpleaños de tres, ofrece «Noche de barra» como paleta y como marco común', async () => {
+    const user = userEvent.setup();
+    renderPage('cumple-triple');
+    expect(screen.getAllByRole('button', { name: /Noche de barra/ })).toHaveLength(2);
+
+    submit.mockResolvedValueOnce('brief-2');
+    await user.type(screen.getByLabelText('Tu nombre'), 'Caro');
+    for (const button of screen.getAllByRole('button', { name: /Noche de barra/ })) await user.click(button);
+    await user.click(screen.getByRole('button', { name: 'Enviar mis respuestas' }));
+
+    await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
+    const answers = submit.mock.calls[0][2];
+    expect(answers.paleta.elegidas).toEqual(['Noche de barra']);
+    expect(answers['marco-comun'].elegidas).toEqual(['Noche de barra']);
+  });
+
   it('en el brief del cumpleaños de tres, cada uno envía sus respuestas con su nombre', async () => {
     const user = userEvent.setup();
     submit.mockResolvedValueOnce('brief-1');
