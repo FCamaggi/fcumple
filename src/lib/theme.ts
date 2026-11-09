@@ -107,6 +107,23 @@ export const THEME_PRESETS: ThemePreset[] = [
       error: '#f2875c',
     },
   },
+  {
+    // La luz de un bar de coctelería: rojo casi negro, el rojo profundo del local (#78090c) en bordes,
+    // durazno como acción y champaña en la etiqueta. El rojo vivo #df1d0e del bar no se lee como texto
+    // sobre el fondo; el énfasis usa una versión más clara. El azul #3c4c73 queda para los marcos.
+    id: 'noche-de-barra',
+    label: 'Noche de barra (rojo profundo y durazno)',
+    colors: {
+      bg: '#1f0405',
+      surface: '#3a0709',
+      border: '#78090c',
+      text: '#f2f2f2',
+      accent: '#eeb98c',
+      label: '#ffe8b9',
+      emphasis: '#ff5a47',
+      error: '#ffd166',
+    },
+  },
 ];
 
 /** El tema de un evento a partir de lo que guarda la base (`events.theme`). Nunca lanza. */

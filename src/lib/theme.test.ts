@@ -74,6 +74,18 @@ describe('resolveTheme', () => {
     expect(colors.emphasis).toBe('#e0605a');
     expect(colors.text).toBe('#f4eee3');
   });
+
+  it('«Noche de barra» lleva el rojo profundo del bar en los bordes, durazno como acción y rojo vivo en el énfasis', () => {
+    const { id, colors } = resolveTheme({ preset: 'noche-de-barra' });
+    expect(id).toBe('noche-de-barra');
+    expect(colors.bg).toBe('#1f0405');
+    expect(colors.border).toBe('#78090c');
+    expect(colors.accent).toBe('#eeb98c');
+    expect(colors.text).toBe('#f2f2f2');
+    expect(colors.emphasis).toBe('#ff5a47');
+    // El rojo vivo del bar (#df1d0e) no se lee sobre el fondo: solo va en los marcos.
+    expect(contrastRatio('#df1d0e', colors.bg)).toBeLessThan(4.5);
+  });
 });
 
 describe('variables CSS', () => {
