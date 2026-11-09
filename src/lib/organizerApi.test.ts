@@ -27,11 +27,14 @@ vi.mock('./supabaseClient', () => ({
 
 import { supabase } from './supabaseClient';
 import {
+  acceptOwnerInvite,
   addGuest,
   addGuests,
   createEvent,
+  createOwnerInvite,
   getMyEvent,
   listEventGuests,
+  listEventOwners,
   listEventPhotos,
   moderateEventPhoto,
   publishPhotoBatch,
@@ -383,5 +386,92 @@ describe('fotos del evento', () => {
     from.mockReturnValueOnce(q.proxy);
     const [p] = await listEventPhotos('ev-1');
     expect(p.publishedAt).toBe('2026-10-30T23:00:00Z');
+  });
+});
+
+describe('dueños del evento', () => {
+  it('createOwnerInvite llama a la RPC create_owner_invite y devuelve el token', async () => {
+    rpc.mockResolvedValueOnce({ data: 'tok-url-safe', error: null });
+    await expect(createOwnerInvite('ev-1')).resolves.toBe('tok-url-safe');
+    expect(rpc).toHaveBeenCalledWith('create_owner_invite', { p_event_id: 'ev-1' });
+  });
+
+  it.each([
+    [{ code: '42501', message: 'not owner' }, /permiso/],
+    [{ code: '53400', message: 'invite limit reached' }, /invitaciones activas/],
+    [{ code: '53400', message: 'owner limit reached' }, /máximo de dueños \(10\)/],
+    [{ code: 'XX000', message: 'boom' }, /No pudimos generar el link/],
+  ])('createOwnerInvite traduce el error %o', async (error, expected) => {
+    rpc.mockResolvedValueOnce({ data: null, error });
+    await expect(createOwnerInvite('ev-1')).rejects.toThrow(expected);
+  });
+
+  it('acceptOwnerInvite llama a la RPC accept_owner_invite y devuelve el event_id', async () => {
+    rpc.mockResolvedValueOnce({ data: 'ev-1', error: null });
+    await expect(acceptOwnerInvite('tok-url-safe')).resolves.toBe('ev-1');
+    expect(rpc).toHaveBeenCalledWith('accept_owner_invite', { p_token: 'tok-url-safe' });
+  });
+
+  it.each([
+    [{ code: '42501', message: 'no session' }, /Inicia sesión/],
+    [
+      { code: 'P0002', message: 'invite not found' },
+      'El link no es válido, ya se usó o venció. Pídele uno nuevo a quien te invitó.',
+    ],
+    [{ code: '53400', message: 'owner limit reached' }, /máximo de dueños \(10\)/],
+    [{ code: 'XX000', message: 'boom' }, /No pudimos aceptar la invitación/],
+  ])('acceptOwnerInvite traduce el error %o', async (error, expected) => {
+    rpc.mockResolvedValueOnce({ data: null, error });
+    await expect(acceptOwnerInvite('tok-x')).rejects.toThrow(expected);
+  });
+
+  it('listEventOwners llama a la RPC list_event_owners y mapea snake_case a camelCase', async () => {
+    rpc.mockResolvedValueOnce({
+      data: [
+        {
+          user_id: 'u-1',
+          email: 'creadora@example.com',
+          is_creator: true,
+          is_me: true,
+          created_at: '2026-10-15T00:00:00Z',
+        },
+        {
+          user_id: 'u-2',
+          email: 'co@example.com',
+          is_creator: false,
+          is_me: false,
+          created_at: '2026-10-16T00:00:00Z',
+        },
+      ],
+      error: null,
+    });
+
+    const owners = await listEventOwners('ev-1');
+
+    expect(rpc).toHaveBeenCalledWith('list_event_owners', { p_event_id: 'ev-1' });
+    expect(owners).toEqual([
+      {
+        userId: 'u-1',
+        email: 'creadora@example.com',
+        isCreator: true,
+        isMe: true,
+        createdAt: '2026-10-15T00:00:00Z',
+      },
+      {
+        userId: 'u-2',
+        email: 'co@example.com',
+        isCreator: false,
+        isMe: false,
+        createdAt: '2026-10-16T00:00:00Z',
+      },
+    ]);
+  });
+
+  it.each([
+    [{ code: '42501', message: 'not owner' }, /permiso/],
+    [{ code: 'XX000', message: 'boom' }, /No pudimos cargar los dueños/],
+  ])('listEventOwners traduce el error %o', async (error, expected) => {
+    rpc.mockResolvedValueOnce({ data: null, error });
+    await expect(listEventOwners('ev-1')).rejects.toThrow(expected);
   });
 });

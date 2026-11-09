@@ -5,6 +5,8 @@ import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-rou
 
 vi.mock('../lib/organizerApi', () => ({
   listMyEvents: vi.fn(),
+  listEventOwners: vi.fn(),
+  createOwnerInvite: vi.fn(),
   createEvent: vi.fn(),
   getMyEvent: vi.fn(),
   listEventGuests: vi.fn(),
@@ -109,6 +111,7 @@ function Where() {
 beforeEach(() => {
   for (const fn of Object.values(api)) (fn as ReturnType<typeof vi.fn>).mockReset();
   vi.mocked(api.listEventPhotos).mockResolvedValue([]);
+  vi.mocked(api.listEventOwners).mockResolvedValue([]);
 });
 
 describe('OrganizerEventsPage', () => {

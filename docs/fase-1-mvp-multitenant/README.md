@@ -16,6 +16,7 @@ Contexto de decisiones: [`../estrategia/decisiones-de-alcance.md`](../estrategia
 10. **Siguiente:** vistas previas para la organizadora y marcos reinventados: [`backlog-diseno-y-marcos.md`](./backlog-diseno-y-marcos.md).
 8. **Cámara por QR de la fiesta, cartelera de avisos y fotos publicadas por lotes, estilo por evento y subtítulo.** Ver [`activacion-camara-y-cartelera.md`](./activacion-camara-y-cartelera.md). Qué existe y qué no, con sus decisiones: [`estado-del-producto.md`](./estado-del-producto.md).
 7. **Inscripción configurable:** el organizador elige qué se le pide al invitado (acompañantes, comentario, preguntas propias, bienvenida), ve las respuestas y las exporta a CSV, y el enlace se ve con el nombre, la fecha y el lugar del evento en WhatsApp. Ver [`inscripcion-configurable.md`](./inscripcion-configurable.md).
+11. **Eventos con varios dueños:** varias cuentas organizadoras con iguales derechos sobre un evento, agregadas con links de invitación de un solo uso y 7 días de vigencia. Ver [`eventos-con-varios-duenos.md`](./eventos-con-varios-duenos.md).
 
 ## Fuera del MVP (ver [Fase 2](../fase-2-en-adelante/README.md))
 
@@ -41,6 +42,7 @@ Pagos y planes, Cloudflare R2, muro en vivo, descarga ZIP, marcos dinámicos con
 |---|---|
 | [`arquitectura-multitenant.md`](./arquitectura-multitenant.md) | Modelo de datos, RLS, storage, rutas, poda y despliegue. |
 | [`acceso-de-invitados.md`](./acceso-de-invitados.md) | Enlace único por evento, inscripción y inicio de sesión con PIN, modos de acceso, seguridad, check-in. |
+| [`eventos-con-varios-duenos.md`](./eventos-con-varios-duenos.md) | Varios dueños por evento mediante link de invitación de un solo uso (7 días, hasta 5 invitaciones activas y 10 dueños). |
 | [`pantalla-de-camara.md`](./pantalla-de-camara.md) | Pantalla de cámara del invitado: foto conservada con «Reintentar», visor, controles al alcance del pulgar y cómo se mide. |
 | [`marcos-y-stickers.md`](./marcos-y-stickers.md) | Marcos paramétricos, stickers emoji/imagen, toggles, editor del organizador, render en la cámara. |
 | [`guion-prueba-telefono.md`](./guion-prueba-telefono.md) | Guion para probar la cámara en Android y iPhone reales antes de la fiesta (pasos con resultado esperado, cómo anotar fallos y plan de contingencia). |

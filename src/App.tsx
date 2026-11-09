@@ -15,6 +15,7 @@ const AdminPage = lazy(() => import('./pages/AdminPage'));
 const OrganizerEventsPage = lazy(() => import('./pages/OrganizerEventsPage'));
 const OrganizerEventPage = lazy(() => import('./pages/OrganizerEventPage'));
 const OrganizerAccountPage = lazy(() => import('./pages/OrganizerAccountPage'));
+const JoinEventPage = lazy(() => import('./pages/JoinEventPage'));
 // Lo que ve un invitado, para la organizadora: se abre dentro del iframe de la pestaña «Vista previa».
 const GuestPreviewPage = lazy(() => import('./pages/GuestPreviewPage'));
 // Formulario de opciones para el cliente de un cumpleaños: nadie más lo abre.
@@ -93,6 +94,16 @@ export default function App() {
             <RequireAuth login={<OrganizerLogin />}>
               <Suspense fallback={<AdminFallback />}>
                 <OrganizerAccountPage />
+              </Suspense>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/panel/unirse/:token"
+          element={
+            <RequireAuth login={<OrganizerLogin />}>
+              <Suspense fallback={<AdminFallback />}>
+                <JoinEventPage />
               </Suspense>
             </RequireAuth>
           }

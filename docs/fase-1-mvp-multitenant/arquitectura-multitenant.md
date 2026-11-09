@@ -4,16 +4,21 @@ Punto de partida real (Fase 0): `event_config` es una fila única (PK booleana f
 
 ## Decisión de modelo: sin `tenants` separado en el MVP
 
-El informe proponía `tenant_id` + `event_id`. Con un solo desarrollador y pocos clientes, **el tenant es el organizador** (`auth.users`). Una tabla `organizations` se difiere hasta que haya equipos con varios miembros (Fase 2). Esto simplifica las políticas: un evento pertenece a un `owner_id`.
+El informe proponía `tenant_id` + `event_id`. Con un solo desarrollador y pocos clientes, **el tenant es el evento y sus organizadores** (`auth.users`). Un evento tiene uno o más dueños registrados en `event_owners`, mientras `events.owner_id` conserva al creador (inmutable, cuenta para el tope de creación por cuenta). Se pueden sumar co-dueños mediante un link de invitación de un solo uso (`event_owner_invites`, donde solo se almacena el hash SHA-256 del token).
 
 ## Tablas (implementadas en `supabase/migrations/`)
 
 ```
-events         id, owner_id → auth.users, slug (único), name, starts_at, location,
-               rsvp_deadline, photos_revealed_at,
+events         id, owner_id → auth.users (creador, inmutable), slug (único), name,
+               starts_at, location, rsvp_deadline, photos_revealed_at,
                access_mode ('open'|'list'|'list_requests'),  -- por defecto 'open'
-               camera_unlock ('on_identify'|'on_checkin'),
+               camera_unlock ('on_identify'|'on_checkin'|'on_event_qr'),
                rsvp_enabled
+event_owners   (event_id, user_id) PK → events / auth.users, created_at
+               — sin acceso directo para anon ni authenticated (lectura vía list_event_owners)
+event_owner_invites  id, event_id, token_hash (único, SHA-256; nunca el token en claro),
+               created_by, created_at, expires_at (7 días), used_at, used_by
+               — invitaciones de un solo uso; sin acceso directo
 guests         id, event_id, full_name, name_tokens text[] (la mantiene un trigger),
                token (secreto de sesión), status, plus_ones_*, photo_quota,
                auto_approve_photos, checked_in_at,
@@ -33,7 +38,7 @@ No existe ninguna columna de RUT, correo, teléfono ni PIN en claro. Las opcione
 
 ## Seguridad (RLS)
 
-**Organizador** (autenticado): política por tabla con `event_id in (select id from events where owner_id = auth.uid())`. Se reemplazan todas las `authenticated_full_access using (true)`.
+**Organizador** (autenticado): política por tabla vía `is_event_owner(event_id)` (que consulta `event_owners` con `auth.uid()`). Se reemplazan todas las `authenticated_full_access using (true)`.
 
 **Invitado** (anónimo, sin JWT): se mantiene el modelo de la Fase 0. Ninguna política para `anon`; todo acceso por RPC `SECURITY DEFINER` que resuelve `guest → event_id` desde el token y filtra por ese `event_id`. La diferencia es de dónde sale el token: ya no lo envía el organizador por invitado, lo entregan `register_guest` y `login_guest` (inscripción y sesión con PIN; ver [`acceso-de-invitados.md`](./acceso-de-invitados.md)). Las RPC cambian así:
 
