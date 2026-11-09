@@ -64,6 +64,44 @@ describe('ClientBriefPage', () => {
     expect(screen.queryByTestId('frame-capas')).not.toBeInTheDocument();
   });
 
+  it('muestra el brief del cumpleaños de tres con los nombres de los tres en las vistas previas', async () => {
+    const user = userEvent.setup();
+    renderPage('cumple-triple');
+    expect(screen.getByRole('heading', { level: 1, name: 'Tres cumpleaños, una fiesta' })).toBeInTheDocument();
+    expect(screen.getByText('¿Qué estilo te gusta para el marco de los tres?')).toBeInTheDocument();
+    expect(screen.getByText('¿Quieres además un marco solo tuyo?')).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText('Nombres de los tres'), 'Ana, Bea y Caro');
+    expect(option(/Titular/)).toHaveTextContent('Ana, Bea y Caro');
+  });
+
+  it('en el brief del cumpleaños de tres, cada uno envía sus respuestas con su nombre', async () => {
+    const user = userEvent.setup();
+    submit.mockResolvedValueOnce('brief-1');
+    renderPage('cumple-triple');
+
+    await user.type(screen.getByLabelText('Tu nombre'), 'Bea');
+    await user.click(option(/Foto instantánea/));
+    await user.click(option(/Sí, quiero uno con mi nombre/));
+    await user.type(document.getElementById('brief-note-marco-propio') as HTMLElement, 'con un gato');
+    await user.click(screen.getByRole('button', { name: 'Enviar mis respuestas' }));
+
+    await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
+    const [slug, respondent, answers] = submit.mock.calls[0];
+    expect(slug).toBe('cumple-triple');
+    expect(respondent).toBe('Bea');
+    expect(answers['marco-comun']).toEqual({
+      pregunta: '¿Qué estilo te gusta para el marco de los tres?',
+      elegidas: ['Foto instantánea'],
+      nota: '',
+    });
+    expect(answers['marco-propio']).toEqual({
+      pregunta: '¿Quieres además un marco solo tuyo?',
+      elegidas: ['Sí, quiero uno con mi nombre'],
+      nota: 'con un gato',
+    });
+  });
+
   it('no deja enviar sin responder nada', () => {
     renderPage();
     expect(screen.getByRole('button', { name: 'Enviar mis respuestas' })).toBeDisabled();
