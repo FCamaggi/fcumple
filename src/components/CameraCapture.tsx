@@ -6,6 +6,7 @@ import { useScrollLock } from '../hooks/useScrollLock';
 import { useFrameImages } from '../hooks/useFrameImages';
 import { coverCrop, ratioAspect, ratiosForOrientation, resolveRatio } from '../lib/cameraFraming';
 import type { VariantRatio } from '../lib/cameraAssets/frames';
+import { outputSize, photoAspect, photoBox, type Rect } from '../lib/cameraAssets/capture';
 import {
   getCameraControlsAvailability,
   type CameraControlsAvailability,
@@ -29,7 +30,7 @@ import {
   type StickerPlacement,
 } from '../lib/cameraAssets/stickers';
 import { openCameraStream, idealVideoConstraints } from '../lib/cameraStream';
-import ComposerStage from './camera/ComposerStage';
+import ComposerStage, { type StageView } from './camera/ComposerStage';
 import StickerTray from './camera/StickerTray';
 import type { CameraFrameOption, CameraStickerOption } from './camera/types';
 import FilmRollCounter from './FilmRollCounter';
@@ -58,6 +59,8 @@ interface CameraCaptureProps {
 }
 
 const NO_FRAME: CameraFrameOption = { id: 'none', label: 'Sin marco', draw: null };
+/** La caja de la foto de un marco sin ventana: el lienzo entero. */
+const FULL_BOX: Rect = { x: 0, y: 0, w: 1, h: 1 };
 let placementCounter = 0;
 
 export const MAX_DIMENSION = 2048;
@@ -213,6 +216,9 @@ export default function CameraCapture({
   const [drawVersion, setDrawVersion] = useState(0);
 
   const currentFrame = composer ? (frameOptions[frameIndex] ?? NO_FRAME) : null;
+  // Marco con ventana (escala del capturador): el visor muestra la cámara con una guía (por defecto) o el marco completo.
+  const currentCapture = currentFrame?.capture?.(ratio) ?? null;
+  const [stageView, setStageView] = useState<StageView>('camera');
   const currentKey = currentFrame ? `${currentFrame.id}:${ratio}` : '';
   const isFrameLoading = Boolean(
     composer &&
@@ -482,16 +488,32 @@ export default function CameraCapture({
     // `success` y la revisión de esta foto mostraría «Enviando…» sin poder enviarse.
     if (state.phase === 'success') reset();
 
-    // Con marcos y stickers la foto sale recortada al centro con la proporción elegida para el visor (el mismo recorte que
-    // hace `object-cover`): lo que se ve es lo que se graba. La cámara heredada sigue guardando el cuadro entero.
+    // Con marcos y stickers la foto sale recortada al centro con la proporción de su caja (el mismo recorte que
+    // hace `object-cover` en el visor): lo que se ve es lo que se graba. La cámara heredada sigue guardando el cuadro entero.
+    // Sin ventana la caja es el lienzo entero. Con ventana (escala del capturador) la foto va en `photoBox` y el
+    // lienzo crece a su alrededor para que la foto conserve su resolución (ver `cameraAssets/capture.ts`).
+    const frameCapture = composer ? (currentFrame?.capture?.(ratio) ?? null) : null;
+    const box = frameCapture ? photoBox(frameCapture) : FULL_BOX;
     const crop = composer
-      ? coverCrop(video.videoWidth, video.videoHeight, aspect)
+      ? coverCrop(video.videoWidth, video.videoHeight, photoAspect(box, aspect))
       : { sx: 0, sy: 0, sw: video.videoWidth, sh: video.videoHeight };
     const scale = Math.min(1, MAX_DIMENSION / Math.max(crop.sw, crop.sh));
-    canvas.width = Math.round(crop.sw * scale);
-    canvas.height = Math.round(crop.sh * scale);
+    const photoW = Math.round(crop.sw * scale);
+    const photoH = Math.round(crop.sh * scale);
+    const output = frameCapture ? outputSize(photoW, photoH, box) : { width: photoW, height: photoH };
+    canvas.width = output.width;
+    canvas.height = output.height;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+    const px = box.x * canvas.width;
+    const py = box.y * canvas.height;
+    const pw = box.w * canvas.width;
+    const ph = box.h * canvas.height;
+    if (frameCapture) {
+      // Lo que queda fuera de la foto va bajo el marco; si el marco tiene alguna transparencia, se ve negro.
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
 
     // El espejo del preview frontal tiene que quedar grabado en la foto
     // final (decisión del usuario: "igual a lo que vio al sacarla"), pero
@@ -500,10 +522,12 @@ export default function CameraCapture({
     // queden derechos en vez de espejados.
     ctx.save();
     if (facingMode === 'user') {
-      ctx.translate(canvas.width, 0);
+      ctx.translate(px + pw, py);
       ctx.scale(-1, 1);
+    } else {
+      ctx.translate(px, py);
     }
-    ctx.drawImage(video, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, canvas.width, canvas.height);
+    ctx.drawImage(video, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, pw, ph);
     ctx.restore();
 
     if (composer) {
@@ -635,6 +659,18 @@ export default function CameraCapture({
               })}
             </div>
           )}
+          {composer && currentCapture && (
+            <button
+              type="button"
+              onClick={() => setStageView((v) => (v === 'camera' ? 'frame' : 'camera'))}
+              aria-pressed={stageView === 'frame'}
+              className={`tap-target px-3 font-mono text-xs font-bold uppercase tracking-wider ${
+                stageView === 'frame' ? 'bg-paper-100 text-ink-950' : 'bg-smoke-700/40 text-paper-100'
+              }`}
+            >
+              Ver marco
+            </button>
+          )}
           {controls.torch && (
             <button
               type="button"
@@ -672,6 +708,8 @@ export default function CameraCapture({
         ) : composer ? (
           <ComposerStage
             aspect={aspect}
+            capture={currentCapture}
+            view={stageView}
             ratio={ratio}
             frame={currentFrame}
             placements={placements}

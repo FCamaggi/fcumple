@@ -7,6 +7,7 @@ import {
   type VariantRatio,
 } from '../lib/cameraAssets/frames';
 import { prepareFrameAssets, type FrameAssets } from '../lib/cameraAssets/layers';
+import { frameCapture } from '../lib/cameraAssets/capture';
 import { getStickerImageUrl, listCameraAssets, type GuestFrame, type GuestSticker } from '../lib/platformGuestApi';
 import type { CameraFrameOption, CameraStickerOption } from '../components/camera/types';
 
@@ -126,6 +127,7 @@ export function useCameraAssets(
             draw,
             ratios,
             ensure,
+            capture: (ratio: VariantRatio) => frameCapture(variantLayers(sanitized, ratio)),
           };
         });
 

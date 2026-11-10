@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { photoAspect, photoBox, type CaptureWindow, type Rect } from '../../lib/cameraAssets/capture';
 import type { VariantRatio } from '../../lib/cameraAssets/frames';
 import {
   EMOJI_FONT_STACK,
@@ -9,9 +10,19 @@ import {
 } from '../../lib/cameraAssets/stickers';
 import type { CameraFrameOption, CameraStickerOption } from './types';
 
+/** Qué muestra el visor cuando el marco tiene ventana: la cámara con una guía, o el marco completo. */
+export type StageView = 'camera' | 'frame';
+
 interface ComposerStageProps {
-  /** ancho / alto del video: el escenario tiene EXACTAMENTE la proporción de la foto final. */
+  /** ancho / alto del lienzo del marco (la proporción elegida). */
   aspect: number;
+  /**
+   * Ventana de la foto del marco actual (`null`: sin ventana, la foto llena el lienzo). Con ventana, la foto
+   * ocupa `photoBox(capture)` y `view` decide qué parte del lienzo se ve.
+   */
+  capture?: CaptureWindow | null;
+  /** 'camera' (por defecto): solo la caja de la foto, con la guía de la ventana. 'frame': el lienzo entero con el marco. */
+  view?: StageView;
   /** Proporción fotográfica elegida (3:4, 4:3, 1:1, 9:16). */
   ratio: VariantRatio;
   frame: CameraFrameOption | null;
@@ -58,6 +69,37 @@ function useElementSize(ref: React.RefObject<HTMLElement>): Size {
   return size;
 }
 
+const FULL: Rect = { x: 0, y: 0, w: 1, h: 1 };
+
+/** `inner` (en coordenadas del lienzo) expresado en fracciones de `view`. */
+function relativeTo(view: Rect, inner: Rect): Rect {
+  return { x: (inner.x - view.x) / view.w, y: (inner.y - view.y) / view.h, w: inner.w / view.w, h: inner.h / view.h };
+}
+
+const pct = (v: number) => `${v * 100}%`;
+
+/**
+ * La guía del modo cámara: oscurece lo que va a quedar bajo el marco y marca el borde de la ventana.
+ * `win` va en fracciones del visor.
+ */
+export function drawCaptureGuide(ctx: CanvasRenderingContext2D, width: number, height: number, win: Rect): void {
+  const x = win.x * width;
+  const y = win.y * height;
+  const w = win.w * width;
+  const h = win.h * height;
+  ctx.save();
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+  ctx.beginPath();
+  ctx.rect(0, 0, width, height);
+  ctx.rect(x, y, w, h);
+  ctx.fill('evenodd');
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+  ctx.lineWidth = Math.max(1, Math.min(width, height) * 0.006);
+  ctx.setLineDash([ctx.lineWidth * 4, ctx.lineWidth * 3]);
+  ctx.strokeRect(x, y, w, h);
+  ctx.restore();
+}
+
 interface Gesture {
   uid: string;
   start: StickerPlacement;
@@ -74,6 +116,8 @@ interface Gesture {
  */
 export default function ComposerStage({
   aspect,
+  capture = null,
+  view = 'camera',
   ratio,
   frame,
   placements,
@@ -87,7 +131,17 @@ export default function ComposerStage({
   const wrapperRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
   const container = useElementSize(wrapperRef);
-  const stage = fitBox(container, aspect);
+  // Todo se piensa en coordenadas del lienzo del marco (0..1): `viewRect` es la parte que muestra el visor
+  // y `photoRect` dónde va la foto. Sin ventana ambas son el lienzo entero, como siempre.
+  const photo = capture ? photoBox(capture) : FULL;
+  const guide = Boolean(capture) && view === 'camera';
+  const viewRect = guide ? photo : FULL;
+  const stage = fitBox(container, photoAspect(viewRect, aspect));
+  /** Tamaño en pantalla del lienzo completo (más grande que el escenario en el modo cámara). */
+  const canvasW = stage.w / viewRect.w;
+  const canvasH = stage.h / viewRect.h;
+  const videoRect = relativeTo(viewRect, photo);
+  const windowKey = capture ? `${capture.x},${capture.y},${capture.w},${capture.h},${capture.scale}` : '';
 
   const pointers = useRef(new Map<number, { x: number; y: number }>());
   const gesture = useRef<Gesture | null>(null);
@@ -102,8 +156,10 @@ export default function ComposerStage({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    frame?.draw?.(ctx, canvas.width, canvas.height, ratio);
-  }, [frame, stage.w, stage.h, ratio, drawVersion]);
+    if (guide && capture) drawCaptureGuide(ctx, canvas.width, canvas.height, relativeTo(viewRect, capture));
+    else frame?.draw?.(ctx, canvas.width, canvas.height, ratio);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `windowKey` resume `capture` y `viewRect`
+  }, [frame, stage.w, stage.h, ratio, drawVersion, guide, windowKey]);
 
   function placementOf(uid: string) {
     return placements.find((p) => p.uid === uid) ?? null;
@@ -160,8 +216,9 @@ export default function ComposerStage({
       const angle = Math.atan2(points[1].y - points[0].y, points[1].x - points[0].x);
       onChange(applyPinch(g.start, g.pinch.distance, g.pinch.angle, distance, angle));
     } else if (points.length === 1) {
-      const dx = (points[0].x - g.origin.x) / stage.w;
-      const dy = (points[0].y - g.origin.y) / stage.h;
+      // Los stickers viven en coordenadas del lienzo completo, que en el modo cámara es más grande que el escenario.
+      const dx = (points[0].x - g.origin.x) / canvasW;
+      const dy = (points[0].y - g.origin.y) / canvasH;
       onChange(moveBy(g.start, dx, dy));
     }
   }
@@ -188,7 +245,13 @@ export default function ComposerStage({
         onPointerUp={handlePointerEnd}
         onPointerCancel={handlePointerEnd}
       >
-        {children}
+        <div
+          data-testid="composer-photo"
+          className="absolute overflow-hidden"
+          style={{ left: pct(videoRect.x), top: pct(videoRect.y), width: pct(videoRect.w), height: pct(videoRect.h) }}
+        >
+          {children}
+        </div>
         <canvas
           ref={overlayRef}
           className="pointer-events-none absolute inset-0 h-full w-full"
@@ -198,7 +261,7 @@ export default function ComposerStage({
         {placements.map((placement) => {
           const option = options.get(placement.assetId);
           if (!option) return null;
-          const size = stickerPixelSize(stage.w, stage.h, placement.scale);
+          const size = stickerPixelSize(canvasW, canvasH, placement.scale);
           const selected = placement.uid === selectedUid;
           return (
             <div
@@ -210,8 +273,8 @@ export default function ComposerStage({
                 selected ? 'outline outline-2 outline-offset-2 outline-hotpink-500' : ''
               }`}
               style={{
-                left: `${placement.x * 100}%`,
-                top: `${placement.y * 100}%`,
+                left: pct((placement.x - viewRect.x) / viewRect.w),
+                top: pct((placement.y - viewRect.y) / viewRect.h),
                 width: size,
                 height: size,
                 transform: `translate(-50%, -50%) rotate(${placement.rotation}rad)`,

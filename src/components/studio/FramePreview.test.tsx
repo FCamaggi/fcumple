@@ -73,4 +73,52 @@ describe('FramePreview', () => {
     expect(mock.texts()).toContain('Martina');
     expect(mock.count('drawImage')).toBe(0);
   });
+
+  it('con capture dibuja el fondo oscuro (#111), la muestra solo dentro de photoBox(capture) y la grilla; sin capture mantiene el dibujo completo', () => {
+    const withoutCapture = createMockCtx();
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(withoutCapture.ctx);
+    render(
+      <FramePreview
+        template="capas"
+        params={{ layers: [{ type: 'image', src: SRC, full: true }] }}
+        width={100}
+        height={200}
+      />,
+    );
+    const fillRectsWithout = withoutCapture.calls.filter((c) => c.name === 'fillRect').map((c) => c.args);
+    expect(fillRectsWithout).toEqual([[0, 0, 100, 200]]);
+    expect(withoutCapture.count('stroke')).toBe(0);
+
+    const withCapture = createMockCtx();
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(withCapture.ctx);
+    render(
+      <FramePreview
+        template="capas"
+        params={{
+          layers: [
+            {
+              type: 'image',
+              src: SRC,
+              full: true,
+              capture: { x: 0.2, y: 0.3, w: 0.4, h: 0.5, scale: 1 },
+            },
+          ],
+        }}
+        width={100}
+        height={200}
+      />,
+    );
+    expect(withCapture.fills()).toContain('#111');
+    const fillRectsWith = withCapture.calls.filter((c) => c.name === 'fillRect').map((c) => c.args);
+    // Primero llena el lienzo entero (#111) y luego dibuja la foto de ejemplo dentro de photoBox (20, 60, 40, 100)
+    expect(fillRectsWith).toEqual([
+      [0, 0, 100, 200],
+      [20, 60, 40, 100],
+    ]);
+    expect(withCapture.calls).toContainEqual({
+      name: 'createLinearGradient',
+      args: [20, 60, 60, 160],
+    });
+    expect(withCapture.count('stroke')).toBeGreaterThan(0);
+  });
 });

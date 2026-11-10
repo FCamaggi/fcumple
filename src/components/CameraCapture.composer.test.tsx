@@ -638,3 +638,59 @@ describe('CameraCapture: encuadre fijo, sin importar el video del teléfono', ()
     expect(document.body.style.overflow).toBe('');
   });
 });
+
+describe('CameraCapture: marco con ventana (escala del capturador)', () => {
+  // Lienzo 3:4 con una ventana centrada de medio lienzo; con escala 1 la foto es la ventana.
+  const conVentana = (): CameraFrameOption[] => [
+    { id: 'w', label: 'Con ventana', draw: vi.fn(), capture: () => ({ x: 0.25, y: 0.25, w: 0.5, h: 0.5, scale: 1 }) },
+    { id: 'p', label: 'Sin ventana', draw: vi.fn(), capture: () => null },
+  ];
+
+  it('la foto conserva su resolución dentro de la ventana y el lienzo crece a su alrededor', async () => {
+    // Lo que usa la guía del visor (modo cámara) además de lo que ya simula `mockCanvasPipeline`.
+    const ctx = Object.assign(mockCanvasPipeline(1080, 1920), {
+      fillRect: vi.fn(),
+      beginPath: vi.fn(),
+      rect: vi.fn(),
+      fill: vi.fn(),
+      strokeRect: vi.fn(),
+      setLineDash: vi.fn(),
+    });
+    mockCamera();
+    const user = userEvent.setup();
+    const frames = conVentana();
+    render(<CameraCapture token="tok" quota={quota} onClose={() => {}} frames={frames} stickers={stickers} />);
+    await user.click(screen.getByRole('button', { name: 'Siguiente marco' }));
+
+    const shutter = screen.getByRole('button', { name: /disparar/i });
+    await waitFor(() => expect(shutter).toBeEnabled());
+    await user.click(shutter);
+    await screen.findByRole('button', { name: /enviar/i });
+
+    // La foto sigue siendo el recorte 3:4 de 1080 × 1440 a resolución completa...
+    const video = ctx.drawImage.mock.calls.find((c) => (c as unknown[])[0] instanceof HTMLVideoElement) as unknown[];
+    expect(video.slice(1, 9)).toEqual([0, 240, 1080, 1440, 0, 0, 1080, 1440]);
+    // ...dibujada en la caja de la ventana (desde 540, 720) de un lienzo del doble: 2160 × 2880.
+    expect(ctx.translate).toHaveBeenCalledWith(540, 720);
+    expect(ctx.fillRect).toHaveBeenCalledWith(0, 0, 2160, 2880);
+    const [, w, h] = (frames[0].draw as ReturnType<typeof vi.fn>).mock.calls.at(-1)!;
+    expect([w, h]).toEqual([2160, 2880]);
+  });
+
+  it('el botón «Ver marco» aparece solo con un marco con ventana; por defecto se ve la cámara', async () => {
+    mockCanvasPipeline();
+    const user = userEvent.setup();
+    render(<CameraCapture token="tok" quota={quota} onClose={() => {}} frames={conVentana()} stickers={stickers} />);
+    await screen.findByText(/no permite acceder a la cámara/i);
+    expect(screen.queryByRole('button', { name: 'Ver marco' })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Siguiente marco' }));
+    const toggle = screen.getByRole('button', { name: 'Ver marco' });
+    expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+
+    await user.click(screen.getByRole('button', { name: 'Siguiente marco' }));
+    expect(screen.queryByRole('button', { name: 'Ver marco' })).not.toBeInTheDocument();
+  });
+});

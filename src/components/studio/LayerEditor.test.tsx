@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { createMockCtx } from '../../test/mockCanvas';
 import { installPointerEventPolyfill } from '../../test/pointerEvents';
 import { MAX_LAYERS, validateLayers, type FrameLayer } from '../../lib/cameraAssets/layers';
+import * as detector from '../../lib/cameraAssets/detectFrameWindow';
 import LayerEditor from './LayerEditor';
 
 installPointerEventPolyfill();
@@ -355,6 +356,50 @@ describe('LayerEditor: imágenes', () => {
 
     expect(latest[0]).toMatchObject({ full: true, x: 0.5 });
     expect(screen.queryByTestId('handle-scale')).not.toBeInTheDocument();
+  });
+
+  it('al cubrir toda la foto busca la ventana y la guarda con escala 1,1; al apagarla la quita', async () => {
+    const user = userEvent.setup();
+    const src = `${EVENT}/frames/abc.webp`;
+    const resolveImageUrl = vi.fn().mockResolvedValue('https://cdn/abc.webp');
+    const detect = vi.spyOn(detector, 'detectUrlWindow').mockResolvedValue({ x: 0.2, y: 0.25, w: 0.6, h: 0.5 });
+    render(
+      <Harness
+        initial={[{ type: 'image', src, x: 0.5, y: 0.5, w: 0.5, h: 0.5 }]}
+        resolveImageUrl={resolveImageUrl}
+      />,
+    );
+    await user.click(within(screen.getAllByRole('listitem')[0]).getAllByRole('button')[0]);
+
+    await user.click(screen.getByLabelText('Cubrir toda la foto'));
+    await waitFor(() =>
+      expect(latest[0]).toMatchObject({ full: true, capture: { x: 0.2, y: 0.25, w: 0.6, h: 0.5, scale: 1.1 } }),
+    );
+    expect(resolveImageUrl).toHaveBeenCalledWith(src);
+    expect(detect).toHaveBeenCalledWith('https://cdn/abc.webp');
+    expect(validateLayers(latest)).toEqual({ ok: true });
+
+    await user.click(screen.getByLabelText('Cubrir toda la foto'));
+    expect(latest[0]).not.toHaveProperty('full');
+    expect(latest[0]).not.toHaveProperty('capture');
+    expect(validateLayers(latest)).toEqual({ ok: true });
+  });
+
+  it('una imagen sin ventana queda a pantalla completa sin capture, y subir una imagen no la detecta', async () => {
+    const user = userEvent.setup();
+    const detect = vi.spyOn(detector, 'detectUrlWindow').mockResolvedValue(null);
+    const uploadImage = vi.fn().mockResolvedValue(`${EVENT}/frames/abc.webp`);
+    render(<Harness uploadImage={uploadImage} resolveImageUrl={vi.fn().mockResolvedValue('https://cdn/abc.webp')} />);
+
+    await user.upload(screen.getByLabelText('Elegir imagen'), file);
+    await waitFor(() => expect(latest).toHaveLength(1));
+    expect(latest[0]).not.toHaveProperty('full');
+    expect(detect).not.toHaveBeenCalled();
+
+    await user.click(screen.getByLabelText('Cubrir toda la foto'));
+    await waitFor(() => expect(detect).toHaveBeenCalled());
+    expect(latest[0]).toMatchObject({ full: true });
+    expect(latest[0]).not.toHaveProperty('capture');
   });
 
   it('si la subida falla lo avisa y no agrega nada', async () => {
