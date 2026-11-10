@@ -204,7 +204,7 @@ Pendiente: probar el CORS del canvas con imágenes de Storage en Safari iOS real
 
 ## Variantes por proporción (2026-10-26)
 
-**Decisión del dueño.** Un marco es uno solo, con un diseño **independiente por proporción** (3:4, 4:3, 1:1 y 9:16); no se sube un marco por resolución. Un marco sin diseño para la proporción elegida **se oculta** en la cámara.
+**Decisión del dueño.** Un marco es uno solo, con un diseño **independiente por proporción** (3:4, 4:3, 1:1 y 9:16); no se sube un marco por resolución. Un marco sin diseño para la proporción elegida **se oculta** en la cámara. Desde el 2026-11-09 la cámara solo ofrece 3:4, 4:3 y 9:16 (ver `pantalla-de-camara.md`); la variante 1:1 se conserva en los datos pero no se usa.
 
 **Datos.** `params.variants = { '3:4': { layers }, '4:3': …, '1:1': …, '9:16': … }`; una clave ausente significa «sin diseño para esa proporción» y una variante con `layers: []` es válida (vacía). `params.layers` se conserva como compatibilidad y como **espejo de `variants['3:4']`**, que mantiene el Estudio (`withVariant`, `mirrorVariantsToLayers`); un marco antiguo sin `variants` vale para todas las proporciones (`variantLayers`). Topes: 40 capas y 16384 caracteres por variante y 65536 en total en el cliente (`MAX_VARIANTS_PARAMS_LENGTH`); la base mide `jsonb::text` en bytes, con espacios, así que cede el doble: 32 KB por variante (y por `layers`) y 128 KB en total, para que el cliente rechace siempre antes.
 

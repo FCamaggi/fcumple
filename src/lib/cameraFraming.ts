@@ -18,8 +18,10 @@ export function aspectForOrientation(orientation: FramingOrientation): number {
   return orientation === 'portrait' ? PORTRAIT_ASPECT : LANDSCAPE_ASPECT;
 }
 
-const PORTRAIT_RATIOS: readonly VariantRatio[] = ['3:4', '1:1', '9:16'];
-const LANDSCAPE_RATIOS: readonly VariantRatio[] = ['4:3', '1:1'];
+// El 1:1 sigue siendo una variante válida de marco (Estudio, eventos antiguos), pero la cámara no lo ofrece:
+// casi nadie saca fotos cuadradas y obligaba a diseñar una variante más por marco.
+const PORTRAIT_RATIOS: readonly VariantRatio[] = ['3:4', '9:16'];
+const LANDSCAPE_RATIOS: readonly VariantRatio[] = ['4:3'];
 
 /** Proporciones disponibles para la foto según la orientación del teléfono. */
 export function ratiosForOrientation(orientation: FramingOrientation): readonly VariantRatio[] {
