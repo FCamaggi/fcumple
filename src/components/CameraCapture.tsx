@@ -614,7 +614,7 @@ export default function CameraCapture({
           )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {composer && (
+          {composer && ratiosForOrientation(orientation).length > 1 && (
             <div role="group" aria-label="Proporción de la foto" className="flex items-center gap-1">
               {ratiosForOrientation(orientation).map((r) => {
                 const active = r === ratio;

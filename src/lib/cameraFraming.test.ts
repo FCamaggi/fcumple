@@ -11,9 +11,9 @@ import {
 } from './cameraFraming';
 
 describe('proporciones que ofrece la cámara', () => {
-  it('en vertical 3:4, 1:1 o 9:16; en horizontal solo 4:3 o 1:1', () => {
-    expect(ratiosForOrientation('portrait')).toEqual(['3:4', '1:1', '9:16']);
-    expect(ratiosForOrientation('landscape')).toEqual(['4:3', '1:1']);
+  it('en vertical 3:4 o 9:16; en horizontal solo 4:3 (la cámara no ofrece 1:1)', () => {
+    expect(ratiosForOrientation('portrait')).toEqual(['3:4', '9:16']);
+    expect(ratiosForOrientation('landscape')).toEqual(['4:3']);
   });
 
   it('la proporción por defecto es 3:4 en vertical y 4:3 en horizontal', () => {
@@ -34,8 +34,8 @@ describe('proporciones que ofrece la cámara', () => {
     expect(resolveRatio('portrait', undefined)).toBe('3:4');
     expect(resolveRatio('landscape', undefined)).toBe('4:3');
     expect(resolveRatio('portrait', '9:16')).toBe('9:16');
-    expect(resolveRatio('portrait', '1:1')).toBe('1:1');
-    expect(resolveRatio('landscape', '1:1')).toBe('1:1'); // 1:1 sobrevive a girar el teléfono
+    expect(resolveRatio('portrait', '1:1')).toBe('3:4'); // 1:1 ya no se ofrece
+    expect(resolveRatio('landscape', '1:1')).toBe('4:3');
     expect(resolveRatio('landscape', '9:16')).toBe('4:3'); // 9:16 no existe acostado
     expect(resolveRatio('portrait', '4:3')).toBe('3:4'); // ni 4:3 de pie
   });
