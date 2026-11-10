@@ -53,15 +53,26 @@ export function clampCaptureScale(win: Rect, scale: number): number {
 }
 
 /**
- * Dónde va la foto: la ventana por la escala, centrada en la ventana. En la escala máxima la caja se
- * recorta al lienzo (la foto lo cubre entero, igual que un marco sin ventana).
+ * Dónde va la foto: la ventana por la escala, centrada en la ventana y recortada al lienzo. Con la ventana
+ * cerca de un borde la caja deja de estar centrada de ese lado: lo que quedaría fuera del lienzo no sale en
+ * la foto, y así el visor muestra exactamente lo que se graba. La caja siempre cubre la ventana entera, y en
+ * la escala máxima es el lienzo entero (como un marco sin ventana).
  */
 export function photoBox(cap: CaptureWindow): Rect {
   const scale = clampCaptureScale(cap, cap.scale);
   if (scale >= maxCaptureScale(cap)) return { x: 0, y: 0, w: 1, h: 1 };
-  const w = cap.w * scale;
-  const h = cap.h * scale;
-  return { x: cap.x - (w - cap.w) / 2, y: cap.y - (h - cap.h) / 2, w, h };
+  const [x, w] = clipSpan(cap.x, cap.w, cap.w * scale);
+  const [y, h] = clipSpan(cap.y, cap.h, cap.h * scale);
+  return { x, y, w, h };
+}
+
+/** Un tramo de `size` centrado en [start, start + win], recortado a [0, 1] solo si se sale (sin ruido de coma flotante). */
+function clipSpan(start: number, win: number, size: number): [number, number] {
+  const from = start - (size - win) / 2;
+  const to = from + size;
+  if (from >= 0 && to <= 1) return [from, size];
+  const a = Math.max(0, from);
+  return [a, Math.min(1, to) - a];
 }
 
 /** Ancho / alto de la foto: el de la caja en un lienzo de proporción `canvasAspect`. */

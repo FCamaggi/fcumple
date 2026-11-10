@@ -47,6 +47,26 @@ describe('photoBox: la foto mide la ventana por la escala, centrada en la ventan
     expect(b.y + b.h / 2).toBeCloseTo(0.5, 10);
   });
 
+  it('con la ventana cerca de un borde la caja se recorta al lienzo: nada de la foto queda fuera', () => {
+    // Sin recorte iría de x = -0,025 a 0,425; la parte fuera del lienzo no saldría en la foto.
+    const b = photoBox({ x: 0.05, y: 0.3, w: 0.3, h: 0.4, scale: 1.5 });
+    expect(b.x).toBe(0);
+    expect(b.w).toBeCloseTo(0.425, 10);
+    expect(b.y).toBeCloseTo(0.2, 10);
+    expect(b.h).toBeCloseTo(0.6, 10);
+  });
+
+  it('la caja recortada sigue cubriendo toda la ventana', () => {
+    const cap = { x: 0.6, y: 0.05, w: 0.38, h: 0.3, scale: 1.8 };
+    const b = photoBox(cap);
+    expect(b.x).toBeLessThanOrEqual(cap.x);
+    expect(b.y).toBeLessThanOrEqual(cap.y);
+    expect(b.x + b.w).toBeGreaterThanOrEqual(cap.x + cap.w);
+    expect(b.y + b.h).toBeGreaterThanOrEqual(cap.y + cap.h);
+    expect(b.x + b.w).toBeLessThanOrEqual(1);
+    expect(b.y).toBeGreaterThanOrEqual(0);
+  });
+
   it('una escala por encima del máximo se recorta al máximo', () => {
     const cap = { x: 0.25, y: 0.25, w: 0.5, h: 0.5, scale: 9 };
     expect(photoBox(cap)).toEqual({ x: 0, y: 0, w: 1, h: 1 });
