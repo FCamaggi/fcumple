@@ -1,11 +1,20 @@
-import { useState } from 'react';
-import { LAYER_ANCHORS, type FrameLayer, type LayerAnchor, type LayerShadow } from '../../lib/cameraAssets/layers';
+import { useEffect, useRef, useState } from 'react';
+import { windowAt } from '../../lib/cameraAssets/capture';
+import { detectUrlWindow } from '../../lib/cameraAssets/detectFrameWindow';
+import {
+  LAYER_ANCHORS,
+  type FrameLayer,
+  type ImageLayer,
+  type LayerAnchor,
+  type LayerShadow,
+} from '../../lib/cameraAssets/layers';
 import { isSingleEmoji } from '../../lib/cameraAssets/stickers';
 import { fontOptionLabel, fontsOffered, type LayerFont } from '../../lib/cameraAssets/text';
 
 interface LayerPropertiesProps {
   layer: FrameLayer;
   onChange: (layer: FrameLayer) => void;
+  resolveImageUrl?: (path: string) => Promise<string>;
 }
 
 const SWATCHES = ['#ff4fa3', '#111111', '#ffffff', '#f5d36b', '#4fc3ff', '#9b6bff'];
@@ -171,7 +180,42 @@ function CommonFields({ layer, onChange }: LayerPropertiesProps) {
 }
 
 /** Controles de la capa seleccionada, según su tipo. Cada cambio devuelve la capa completa. */
-export default function LayerProperties({ layer, onChange }: LayerPropertiesProps) {
+export default function LayerProperties({ layer, onChange, resolveImageUrl }: LayerPropertiesProps) {
+  // LayerProperties se vuelve a montar al cambiar de capa (key={selected}): una detección que termina después
+  // no debe escribir en otra capa.
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
+  /**
+   * «Cubrir toda la foto»: al activarla busca la ventana de la imagen (escala del capturador, ver
+   * cameraAssets/capture.ts) y, si la encuentra, la guarda con la escala por defecto; al apagarla quita la ventana.
+   */
+  function handleToggleFull(checked: boolean) {
+    if (layer.type !== 'image') return;
+    if (!checked) {
+      onChange({
+        ...without(without(layer, 'full'), 'capture'),
+        w: layer.w ?? 0.5,
+        h: layer.h ?? 0.5,
+        x: layer.x ?? 0.5,
+        y: layer.y ?? 0.5,
+      } as FrameLayer);
+      return;
+    }
+    const base = { ...without(layer, 'capture'), full: true } as ImageLayer;
+    onChange(base);
+    if (!resolveImageUrl) return;
+    void (async () => {
+      const rect = await resolveImageUrl(base.src).then(detectUrlWindow, () => null);
+      if (rect && mounted.current) onChange({ ...base, capture: windowAt(rect) });
+    })();
+  }
+
   return (
     <div className="flex flex-col gap-3" role="group" aria-label="Propiedades de la capa">
       {layer.type === 'text' && (
@@ -258,13 +302,7 @@ export default function LayerProperties({ layer, onChange }: LayerPropertiesProp
           <input
             type="checkbox"
             checked={layer.full === true}
-            onChange={(e) =>
-              onChange(
-                e.target.checked
-                  ? { ...layer, full: true }
-                  : ({ ...without(layer, 'full'), w: layer.w ?? 0.5, h: layer.h ?? 0.5, x: layer.x ?? 0.5, y: layer.y ?? 0.5 } as FrameLayer),
-              )
-            }
+            onChange={(e) => handleToggleFull(e.target.checked)}
           />
           Cubrir toda la foto
         </label>

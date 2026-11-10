@@ -1,4 +1,5 @@
 import type { VariantRatio } from '../../lib/cameraAssets/frames';
+import type { CaptureWindow } from '../../lib/cameraAssets/capture';
 import type { StickerAsset } from '../../lib/cameraAssets/stickers';
 
 /**
@@ -15,6 +16,11 @@ export interface CameraFrameOption {
   ratios?: readonly VariantRatio[];
   /** Carga los recursos gráficos de esa proporción bajo demanda; es idempotente. */
   ensure?: (ratio: VariantRatio) => Promise<void>;
+  /**
+   * La ventana de la foto y la escala del capturador en esa proporción, o `null` si el marco no tiene
+   * ventana (la foto llena el lienzo). Ver `cameraAssets/capture.ts`.
+   */
+  capture?: (ratio: VariantRatio) => CaptureWindow | null;
 }
 
 /**

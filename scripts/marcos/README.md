@@ -51,7 +51,8 @@ Ejemplo ficticio con un solo marco y dos proporciones:
   etiquetas.
 - `variants`: una entrada por proporción. `image` es el nombre del archivo sin extensión (`ia/<image>.png` →
   `listos/<image>.webp`); `texts` son capas de texto del Estudio, con coordenadas relativas (0 a 1). Las capas de
-  nivel superior del marco copian la variante 3:4 (o la primera, si no hay 3:4).
+  nivel superior del marco copian la variante 3:4 (o la primera, si no hay 3:4). `scale` (opcional, de 1 a 10, 1,1 por
+  defecto) es la escala del capturador de esa variante: solo se usa si la imagen tiene ventana (ver abajo).
 - `default_frame_label` (opcional): la etiqueta que aparece en la línea comentada para fijar el marco
   predeterminado. Si falta, se usa el primer marco.
 
@@ -63,7 +64,12 @@ Ejemplo ficticio con un solo marco y dos proporciones:
    La luminosidad pasa a ser opacidad, así que sirve para brillos neón, no para piezas negras u oscuras (esas se hacen
    como capas en el Estudio).
 3. **Preparar**: `python3 scripts/marcos/preparar-marcos.py <dir-marcos>`. Deja cada imagen en `listos/` (lado largo
-   ≤ 1600 px y < 1 MiB, WebP con calidad descendente desde 85) y regenera `cargar-marcos-listos.sql`.
+   ≤ 1600 px y < 1 MiB, WebP con calidad descendente desde 85) y regenera `cargar-marcos-listos.sql`. Además busca la
+   **ventana** de cada imagen: el hueco transparente más grande que no toque el borde y ocupe al menos el 5 % (la
+   columna «Ventana» de la tabla da su área). Si la encuentra, la capa lleva `capture` y en la cámara la foto se mide
+   contra la ventana en vez de llenar el lienzo (escala del capturador, ver
+   `docs/fase-1-mvp-multitenant/marcos-y-stickers.md`). Un PNG transparente de borde a borde queda «sin ventana» y se
+   comporta como siempre.
 4. **Subir las imágenes** al Storage del evento. Primero en seco, sin red ni claves:
    `node scripts/marcos/subir-marcos.mjs <dir-marcos> --dry-run`. Luego la subida real:
    `SUPABASE_URL=https://<proyecto>.supabase.co SUPABASE_SERVICE_ROLE_KEY=<clave> node scripts/marcos/subir-marcos.mjs <dir-marcos>`.

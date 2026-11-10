@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { frameCapture, photoBox } from '../../lib/cameraAssets/capture';
 import { renderFrame, type FrameParams } from '../../lib/cameraAssets/frames';
 import { useLayerAssets } from '../../hooks/useLayerAssets';
 
@@ -60,19 +61,61 @@ export default function FramePreview({
       ctx.fillStyle = '#17121f';
       ctx.fillRect(0, 0, w, h);
     } else {
-      // Fondo de ejemplo: degradé suave con una figura, para ver el marco en contexto.
-      const gradient = ctx.createLinearGradient(0, 0, w, h);
-      gradient.addColorStop(0, '#7aa7ff');
-      gradient.addColorStop(1, '#ffb199');
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, w, h);
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
-      ctx.beginPath();
-      ctx.arc(w / 2, h * 0.42, Math.min(w, h) * 0.2, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.ellipse(w / 2, h * 0.82, Math.min(w, h) * 0.32, Math.min(w, h) * 0.22, 0, 0, Math.PI * 2);
-      ctx.fill();
+      const capture = frameCapture(params.layers);
+      if (capture) {
+        ctx.fillStyle = '#111';
+        ctx.fillRect(0, 0, w, h);
+
+        const box = photoBox(capture);
+        const bx = box.x * w;
+        const by = box.y * h;
+        const bw = box.w * w;
+        const bh = box.h * h;
+        const bUnit = Math.min(bw, bh);
+
+        const gradient = ctx.createLinearGradient(bx, by, bx + bw, by + bh);
+        gradient.addColorStop(0, '#7aa7ff');
+        gradient.addColorStop(1, '#ffb199');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(bx, by, bw, bh);
+
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+        ctx.beginPath();
+        ctx.arc(bx + bw / 2, by + bh * 0.42, bUnit * 0.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(bx + bw / 2, by + bh * 0.82, bUnit * 0.32, bUnit * 0.22, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        const gridLines = 8;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.28)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let i = 1; i <= gridLines; i++) {
+          const t = i / (gridLines + 1);
+          const gx = bx + bw * t;
+          ctx.moveTo(gx, by);
+          ctx.lineTo(gx, by + bh);
+          const gy = by + bh * t;
+          ctx.moveTo(bx, gy);
+          ctx.lineTo(bx + bw, gy);
+        }
+        ctx.stroke();
+      } else {
+        // Fondo de ejemplo: degradé suave con una figura, para ver el marco en contexto.
+        const gradient = ctx.createLinearGradient(0, 0, w, h);
+        gradient.addColorStop(0, '#7aa7ff');
+        gradient.addColorStop(1, '#ffb199');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, w, h);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+        ctx.beginPath();
+        ctx.arc(w / 2, h * 0.42, Math.min(w, h) * 0.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(w / 2, h * 0.82, Math.min(w, h) * 0.32, Math.min(w, h) * 0.22, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
 
     renderFrame(ctx, w, h, template, params, assets);

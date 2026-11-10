@@ -1,5 +1,11 @@
 import { useState } from 'react';
 import {
+  MIN_CAPTURE_SCALE,
+  clampCaptureScale,
+  frameCapture,
+  maxCaptureScale,
+} from '../../lib/cameraAssets/capture';
+import {
   VARIANT_RATIOS,
   validateFrameParams,
   variantLayers,
@@ -52,6 +58,7 @@ export default function FrameEditor({
   const [error, setError] = useState<string | null>(null);
 
   const activeLayers = variantLayers(params, ratio);
+  const activeCapture = frameCapture(activeLayers);
   const copySource: VariantRatio | undefined =
     variantLayers(params, '3:4') !== undefined
       ? '3:4'
@@ -113,15 +120,52 @@ export default function FrameEditor({
       </div>
 
       {activeLayers ? (
-        <LayerEditor
-          key={ratio}
-          aspectRatio={ratio}
-          layers={activeLayers}
-          onChange={(layers) => setParams((c) => withVariant(c, ratio, layers))}
-          eventSlug={eventSlug}
-          uploadImage={uploadImage}
-          resolveImageUrl={resolveImageUrl}
-        />
+        <>
+          {activeCapture && (
+            <div className="flex max-w-md flex-col gap-1 border border-smoke-700/60 bg-ink-900 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <label htmlFor="frame-capture-scale" className={labelClass}>
+                  Escala de la foto
+                </label>
+                <span className="font-mono text-xs text-acid-400">
+                  {`${activeCapture.scale.toFixed(2).replace('.', ',')}×`}
+                </span>
+              </div>
+              <input
+                id="frame-capture-scale"
+                type="range"
+                min={MIN_CAPTURE_SCALE}
+                max={maxCaptureScale(activeCapture)}
+                step={0.01}
+                value={clampCaptureScale(activeCapture, activeCapture.scale)}
+                onChange={(e) => {
+                  const nextScale = clampCaptureScale(activeCapture, Number(e.target.value));
+                  let updated = false;
+                  const nextLayers = activeLayers.map((layer) => {
+                    if (!updated && layer.type === 'image' && layer.full && layer.capture) {
+                      updated = true;
+                      return { ...layer, capture: { ...layer.capture, scale: nextScale } };
+                    }
+                    return layer;
+                  });
+                  setParams((c) => withVariant(c, ratio, nextLayers));
+                }}
+              />
+              <p className="font-sans text-xs text-paper-100/60">
+                1,00 = la foto calza justo en la ventana; más = la foto sobresale bajo el marco y se ve más de ella.
+              </p>
+            </div>
+          )}
+          <LayerEditor
+            key={ratio}
+            aspectRatio={ratio}
+            layers={activeLayers}
+            onChange={(layers) => setParams((c) => withVariant(c, ratio, layers))}
+            eventSlug={eventSlug}
+            uploadImage={uploadImage}
+            resolveImageUrl={resolveImageUrl}
+          />
+        </>
       ) : (
         <div className="flex flex-col items-center gap-3 border border-smoke-700/60 bg-ink-900 p-6 text-center">
           <p className="font-mono text-xs uppercase tracking-wider text-paper-100/70">Sin diseño para {ratio}</p>

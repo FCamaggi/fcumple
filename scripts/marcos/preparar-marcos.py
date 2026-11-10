@@ -3,8 +3,11 @@
 1. Convierte las imágenes PNG con transparencia de <dir>/ia/<image>.png a <dir>/listos/<image>.webp,
    reduciendo el lado largo a un máximo de 1600 px (LANCZOS) y optimizando en WebP (method=6)
    con calidad descendente hasta que cada archivo pese menos de 1 MiB.
-2. Imprime una tabla resumen con dimensiones, peso y calidad.
-3. Genera <dir>/cargar-marcos-listos.sql de forma idempotente a partir de <dir>/marcos-listos.spec.json.
+2. Detecta la ventana de la foto de cada imagen (el hueco transparente, misma regla que `detectWindow` en
+   src/lib/cameraAssets/capture.ts) para la escala del capturador.
+3. Imprime una tabla resumen con dimensiones, peso, calidad y ventana.
+4. Genera <dir>/cargar-marcos-listos.sql de forma idempotente a partir de <dir>/marcos-listos.spec.json.
+   Las imágenes con ventana llevan `capture` con la escala de la variante (`scale` en el spec, 1,1 por defecto).
 
 Uso:
     python3 scripts/marcos/preparar-marcos.py <dir-marcos>
@@ -19,6 +22,9 @@ from PIL import Image
 
 MAX_BYTES = 1048576  # 1 MiB (1024 * 1024 bytes)
 MAX_LONG_SIDE = 1600
+DEFAULT_CAPTURE_SCALE = 1.1
+WINDOW_SAMPLE_SIDE = 256  # la ventana se busca en una copia chica: es una fracción y no necesita detalle
+MIN_WINDOW_AREA = 0.05
 SPEC_NAME = "marcos-listos.spec.json"
 SQL_NAME = "cargar-marcos-listos.sql"
 USAGE = (
@@ -39,6 +45,48 @@ def unique_images(spec: dict) -> list:
                 seen.add(name)
                 names.append(name)
     return names
+
+
+def detect_window(im: Image.Image):
+    """Ventana de la foto: el hueco transparente (alfa < 128) más grande que no toque el borde y ocupe al menos
+    el 5 %, como rectángulo envolvente normalizado. None si no hay (PNG transparente de borde a borde, opaco).
+    Misma regla que `detectWindow` en src/lib/cameraAssets/capture.ts."""
+    small = im.copy()
+    small.thumbnail((WINDOW_SAMPLE_SIDE, WINDOW_SAMPLE_SIDE), Image.Resampling.BILINEAR)
+    width, height = small.size
+    alpha = small.getchannel("A").tobytes()
+    n = width * height
+    seen = bytearray(n)
+    best = None
+    for start in range(n):
+        if seen[start] or alpha[start] >= 128:
+            continue
+        stack = [start]
+        seen[start] = 1
+        area, touches = 0, False
+        x0, y0, x1, y1 = width, height, -1, -1
+        while stack:
+            p = stack.pop()
+            y, x = divmod(p, width)
+            area += 1
+            if x == 0 or y == 0 or x == width - 1 or y == height - 1:
+                touches = True
+            x0, x1, y0, y1 = min(x0, x), max(x1, x), min(y0, y), max(y1, y)
+            for q, ok in ((p - 1, x > 0), (p + 1, x < width - 1), (p - width, y > 0), (p + width, y < height - 1)):
+                if ok and not seen[q] and alpha[q] < 128:
+                    seen[q] = 1
+                    stack.append(q)
+        if not touches and area >= n * MIN_WINDOW_AREA and (best is None or area > best[0]):
+            best = (area, x0, y0, x1, y1)
+    if best is None:
+        return None
+    _, x0, y0, x1, y1 = best
+    return {
+        "x": round(x0 / width, 4),
+        "y": round(y0 / height, 4),
+        "w": round((x1 - x0 + 1) / width, 4),
+        "h": round((y1 - y0 + 1) / height, 4),
+    }
 
 
 def process_images(spec: dict, ia_dir: Path, listos_dir: Path) -> list:
@@ -85,6 +133,8 @@ def process_images(spec: dict, ia_dir: Path, listos_dir: Path) -> list:
 
             out_webp.write_bytes(chosen_data)
             stats.append({
+                "image": img_name,
+                "window": detect_window(im),
                 "name": f"{img_name}.webp",
                 "pixels": f"{w}x{h}",
                 "kb": len(chosen_data) / 1024.0,
@@ -97,14 +147,16 @@ def process_images(spec: dict, ia_dir: Path, listos_dir: Path) -> list:
 
 def print_table(stats: list) -> None:
     """Prints name, pixels, KB, quality used and the total in MB."""
-    print(f"\n{'Nombre':<22} | {'Píxeles':<11} | {'KB':>8} | {'Calidad':>8}")
-    print("-" * 57)
+    print(f"\n{'Nombre':<22} | {'Píxeles':<11} | {'KB':>8} | {'Calidad':>8} | Ventana")
+    print("-" * 72)
     total_bytes = 0
     for s in stats:
         total_bytes += s["bytes"]
         q_str = f"q={s['quality']}"
-        print(f"{s['name']:<22} | {s['pixels']:<11} | {s['kb']:>8.1f} | {q_str:>8}")
-    print("-" * 57)
+        win = s.get("window")
+        win_str = f"{win['w'] * win['h'] * 100:.0f} %" if win else "sin ventana"
+        print(f"{s['name']:<22} | {s['pixels']:<11} | {s['kb']:>8.1f} | {q_str:>8} | {win_str}")
+    print("-" * 72)
     total_mb = total_bytes / (1024.0 * 1024.0)
     print(f"Total: {len(stats)} archivos | {total_mb:.2f} MB\n")
 
@@ -127,8 +179,10 @@ def body_tag(body: str) -> str:
     return tag
 
 
-def build_sql(spec: dict) -> str:
-    """Builds the idempotent SQL that replaces only the spec's own frames, matched by label."""
+def build_sql(spec: dict, windows: dict | None = None) -> str:
+    """Builds the idempotent SQL that replaces only the spec's own frames, matched by label.
+    `windows` maps image name → detected window (or None); images with a window get `capture`."""
+    windows = windows or {}
     event_slug = spec["event_slug"]
     frames = spec.get("frames", [])
     labels_sql = ", ".join(f"'{sql_quote(f['label'])}'" for f in frames)
@@ -176,6 +230,9 @@ def build_sql(spec: dict) -> str:
                 "src": f"__EVENT__/frames/{var_data['image']}.webp",
                 "full": True,
             }
+            window = windows.get(var_data["image"])
+            if window:
+                img_layer["capture"] = {**window, "scale": var_data.get("scale", DEFAULT_CAPTURE_SCALE)}
             variants[ratio] = {"layers": [img_layer] + var_data.get("texts", [])}
 
         if not variants:
@@ -232,7 +289,8 @@ def main() -> None:
 
     print("Generando script SQL...")
     sql_path = base_dir / SQL_NAME
-    sql_path.write_text(build_sql(spec), encoding="utf-8")
+    windows = {s["image"]: s["window"] for s in stats}
+    sql_path.write_text(build_sql(spec, windows), encoding="utf-8")
     print(f"Archivo SQL generado correctamente: {sql_path.name}")
 
 

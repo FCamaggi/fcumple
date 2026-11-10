@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMockCtx } from '../../test/mockCanvas';
+import { maxCaptureScale } from '../../lib/cameraAssets/capture';
 import type { FrameParams } from '../../lib/cameraAssets/frames';
 import FrameEditor from './FrameEditor';
 
@@ -165,5 +166,52 @@ describe('FrameEditor: proporción sin diseño', () => {
     await userEvent.click(ratioButton('9:16'));
     const params = await save();
     expect(params.variants?.['9:16']).toBeUndefined();
+  });
+});
+
+describe('FrameEditor: escala de la foto en marcos con ventana (capture)', () => {
+  const src = '123e4567-e89b-42d3-a456-426614174000/frames/marco.webp';
+  const win34 = { x: 0.2, y: 0.25, w: 0.6, h: 0.5, scale: 1.1 };
+  const win43 = { x: 0.1, y: 0.2, w: 0.8, h: 0.6, scale: 1.1 };
+  const frameWithCapture: FrameParams = {
+    layers: [{ type: 'image', src, full: true, capture: win34 }],
+    variants: {
+      '3:4': { layers: [{ type: 'image', src, full: true, capture: win34 }] },
+      '4:3': { layers: [{ type: 'image', src, full: true, capture: win43 }] },
+      '1:1': { layers: [rect] },
+    },
+  };
+
+  it('muestra el control «Escala de la foto» solo cuando la variante actual tiene capture', async () => {
+    setup(frameWithCapture);
+    const slider = screen.getByLabelText('Escala de la foto') as HTMLInputElement;
+    expect(slider).toBeInTheDocument();
+    expect(Number(slider.max)).toBeCloseTo(maxCaptureScale(win34), 6);
+    expect(screen.getByText('1,10×')).toBeInTheDocument();
+    expect(screen.getByText(/1,00 = la foto calza justo en la ventana/)).toBeInTheDocument();
+
+    // En 1:1 no hay capture: el control se oculta
+    await userEvent.click(ratioButton('1:1'));
+    expect(screen.queryByLabelText('Escala de la foto')).not.toBeInTheDocument();
+  });
+
+  it('cambiar la escala actualiza solo capture.scale de la variante actual', async () => {
+    const { save } = setup(frameWithCapture);
+    const slider = screen.getByLabelText('Escala de la foto');
+    fireEvent.change(slider, { target: { value: '1.35' } });
+    expect(screen.getByText('1,35×')).toBeInTheDocument();
+
+    const params = await save();
+    expect(params.variants?.['3:4']?.layers[0]).toMatchObject({
+      type: 'image',
+      full: true,
+      capture: { ...win34, scale: 1.35 },
+    });
+    expect(params.variants?.['4:3']?.layers[0]).toMatchObject({
+      type: 'image',
+      full: true,
+      capture: win43,
+    });
+    expect(params.variants?.['1:1']?.layers).toEqual([rect]);
   });
 });

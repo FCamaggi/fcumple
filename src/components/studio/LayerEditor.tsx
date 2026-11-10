@@ -687,7 +687,7 @@ export default function LayerEditor({
         )}
 
         {selectedLayer ? (
-          <LayerProperties key={selected} layer={selectedLayer} onChange={replaceSelected} />
+          <LayerProperties key={selected} layer={selectedLayer} onChange={replaceSelected} resolveImageUrl={resolveImageUrl} />
         ) : (
           layers.length > 0 && <p className="font-sans text-sm text-paper-100/70">Elige una capa para editarla.</p>
         )}

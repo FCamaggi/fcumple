@@ -3,7 +3,8 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { installPointerEventPolyfill, mockElementSize } from '../../test/pointerEvents';
 import { createMockCtx } from '../../test/mockCanvas';
 import { newPlacement, type StickerPlacement } from '../../lib/cameraAssets/stickers';
-import ComposerStage, { fitBox } from './ComposerStage';
+import ComposerStage, { fitBox, type StageView } from './ComposerStage';
+import type { CaptureWindow } from '../../lib/cameraAssets/capture';
 import type { CameraFrameOption, CameraStickerOption } from './types';
 
 beforeAll(installPointerEventPolyfill);
@@ -42,13 +43,20 @@ afterEach(() => {
 
 function setup(
   placements: StickerPlacement[],
-  extra: { frame?: CameraFrameOption | null; selectedUid?: string | null } = {},
+  extra: {
+    frame?: CameraFrameOption | null;
+    selectedUid?: string | null;
+    capture?: CaptureWindow | null;
+    view?: StageView;
+  } = {},
 ) {
   const onSelect = vi.fn();
   const onChange = vi.fn();
   render(
     <ComposerStage
       aspect={1}
+      capture={extra.capture}
+      view={extra.view}
       ratio="1:1"
       frame={extra.frame ?? null}
       placements={placements}
@@ -163,5 +171,54 @@ describe('ComposerStage', () => {
     const { onChange, stage } = setup([newPlacement('e1', 'u1')]);
     fireEvent.pointerMove(stage, { pointerId: 9, clientX: 50, clientY: 50 });
     expect(onChange).not.toHaveBeenCalled();
+  });
+});
+
+describe('ComposerStage con ventana (escala del capturador)', () => {
+  // Lienzo 1:1 en un contenedor de 400 × 400; ventana centrada de medio lienzo, escala 1 → la foto es la ventana.
+  const centered: CaptureWindow = { x: 0.25, y: 0.25, w: 0.5, h: 0.5, scale: 1 };
+
+  it('por defecto muestra la cámara: el escenario tiene la forma de la foto y el video lo llena', () => {
+    const { stage } = setup([], { capture: { x: 0.1, y: 0.25, w: 0.8, h: 0.5, scale: 1 } });
+    expect(stage).toHaveStyle({ width: '400px', height: '250px' });
+    expect(screen.getByTestId('composer-photo')).toHaveStyle({ left: '0%', top: '0%', width: '100%', height: '100%' });
+  });
+
+  it('en el modo cámara dibuja la guía de la ventana, no el marco', () => {
+    const m = createMockCtx();
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(m.ctx);
+    const draw = vi.fn();
+    setup([], { frame: { id: 'f1', label: 'Cámara', draw }, capture: { ...centered, scale: 1.5 } });
+    expect(draw).not.toHaveBeenCalled();
+    expect(m.count('strokeRect')).toBe(1);
+    expect(m.count('fill')).toBe(1);
+  });
+
+  it('en el modo marco muestra el lienzo entero, la foto en su caja y el marco encima', () => {
+    const draw = vi.fn();
+    const { stage } = setup([], { frame: { id: 'f1', label: 'Cámara', draw }, capture: centered, view: 'frame' });
+    expect(stage).toHaveStyle({ width: '400px', height: '400px' });
+    expect(screen.getByTestId('composer-photo')).toHaveStyle({ left: '25%', top: '25%', width: '50%', height: '50%' });
+    expect(draw).toHaveBeenCalledTimes(1);
+  });
+
+  it('los stickers siguen en coordenadas del lienzo: en el modo cámara se ven más grandes y corridos', () => {
+    setup([{ ...newPlacement('e1', 'u1'), x: 0.5, y: 0.375 }], { capture: centered });
+    // El visor muestra 0,25..0,75 del lienzo: el lienzo mide 800 px en pantalla → sticker de 800 × 0,2.
+    expect(screen.getByLabelText('Sticker 🎉')).toHaveStyle({ left: '50%', top: '25%', width: '160px', height: '160px' });
+  });
+
+  it('en el modo marco el mismo sticker mide lo que mide en el lienzo', () => {
+    setup([{ ...newPlacement('e1', 'u1'), x: 0.5, y: 0.375 }], { capture: centered, view: 'frame' });
+    expect(screen.getByLabelText('Sticker 🎉')).toHaveStyle({ left: '50%', top: '37.5%', width: '80px', height: '80px' });
+  });
+
+  it('arrastrar en el modo cámara mueve en fracciones del lienzo completo', () => {
+    const { onChange, stage } = setup([newPlacement('e1', 'u1')], { selectedUid: 'u1', capture: centered });
+    fireEvent.pointerDown(screen.getByLabelText(/Sticker 🎉/), { pointerId: 1, clientX: 200, clientY: 200 });
+    fireEvent.pointerMove(stage, { pointerId: 1, clientX: 240, clientY: 180 });
+    const next = onChange.mock.calls.at(-1)![0] as StickerPlacement;
+    expect(next.x).toBeCloseTo(0.55);
+    expect(next.y).toBeCloseTo(0.475);
   });
 });

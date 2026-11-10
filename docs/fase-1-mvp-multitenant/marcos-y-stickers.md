@@ -217,3 +217,27 @@ Pendiente: probar el CORS del canvas con imágenes de Storage en Safari iOS real
 **Presets retirados.** La pestaña «Presets» del Estudio y los cuatro presets de `halloween-neon` se quitaron (`PackPreset`, `materializePresetLayers`); los ocho recursos y «Paleta del diseño» se quedan. `presets` ya no es obligatorio en el manifiesto: un paquete antiguo que lo traiga se ignora. Un diseño listo se carga como **marco real del evento**, no como preset.
 
 **Marcos listos por evento (patrón).** Las imágenes se recomprimen a WebP (≤ 1600 px y < 1 MB, con transparencia: el peso lo pone el brillo, no el color, así que bajar la calidad apenas ahorra) y se suben a `event-assets/{event_id}/frames/`; cada marco `capas` lleva una variante por proporción con la imagen a pantalla completa (`full: true`) y capas de texto. El SQL que los carga debe ser **idempotente y reemplazar solo por etiqueta**: un `delete` de todos los marcos del evento borraría lo que el organizador hizo a mano. Se verifica ejecutándolo contra el esquema real (marcos ajenos intactos, dos corridas iguales, el invitado lee las imágenes). Los datos de cada cliente viven en `docs/clientes/` (privado, nunca versionado).
+
+## Escala del capturador (2026-11-10)
+
+**Problema.** Los marcos de imagen de borde a borde (opacos, con una ventana transparente para la foto) tapaban casi toda la foto: la foto llenaba el lienzo y el marco iba encima, así que con una ventana del 25 % solo se veía el 25 % de lo capturado.
+
+**Decisión del dueño.** El marco va **alrededor** de la foto, no encima. Cada variante con ventana tiene una **escala del capturador**: el tamaño de la foto respecto de la ventana (1 = la foto completa calza justo en la ventana; más = la foto sobresale bajo el marco). No es 1 a 1 fijo, por eso es configurable. La foto final conserva su **resolución completa**: el lienzo crece a su alrededor y el marco se agranda con él.
+
+**Datos.** La capa imagen con `full: true` puede llevar `capture: { x, y, w, h, scale }`: la ventana normalizada al lienzo (0..1, `w` y `h` ≥ 0,02, `x + w ≤ 1`, `y + h ≤ 1`) y la escala (1 a 10). Va en la capa y no en la variante, así quitar o cambiar la imagen se lleva su ventana. Un marco sin `capture` (capas, PNG transparentes, los marcos anteriores) se comporta exactamente como antes. Migración `20261110100024_frame_capture.sql` (`_frame_capture` y `valid_frame_layer`), en paridad con `isCaptureWindow` en `layers.ts` (casos en `supabase/tests/frame-layers.test.ts`).
+
+**Geometría** (`src/lib/cameraAssets/capture.ts`, pura y probada):
+- `photoBox(capture)`: la caja de la foto, la ventana por la escala, centrada en la ventana y **recortada al lienzo**. Con la ventana cerca de un borde la caja deja de estar centrada de ese lado: lo que quedaría fuera no sale en la foto, y así el visor muestra exactamente lo que se graba. Siempre cubre la ventana entera. Desde `maxCaptureScale` (la escala en que la foto ya cubre el lienzo) la caja es el lienzo entero.
+- La foto tiene la forma de la ventana (`photoAspect`): la cámara recorta el video al centro con esa proporción.
+- `outputSize`: el lienzo de salida es la foto dividida por la caja, con un tope de 4096 px por lado y 16 M píxeles (el límite de canvas de Safari en iOS). Si se pasa, todo se achica en la misma proporción.
+- `detectWindow`: el hueco transparente (alfa < 128) más grande que no toque el borde y ocupe al menos el 5 %, como rectángulo envolvente (una pieza montada sobre la ventana no la achica).
+
+**Ventana automática.** Se detecta al subir una imagen de borde a borde en el Estudio y en `scripts/marcos/preparar-marcos.py` (misma regla, en Python). Los marcos nuevos con ventana arrancan con escala 1,10.
+
+**Cámara.** La foto final sale foto → stickers → marco, con la foto en `photoBox` y el resto del lienzo en negro bajo el marco. Con un marco con ventana el visor tiene dos modos y un botón **«Ver marco»** en la cabecera:
+- **Cámara (por defecto):** el visor muestra solo la caja de la foto, a pantalla completa, con una guía (lo que va a quedar bajo el marco se oscurece y la ventana lleva un borde punteado). El marco completo aparece en la revisión de la foto.
+- **Marco:** el visor muestra el lienzo entero con el marco y la cámara en vivo dentro de su caja: lo que se ve es lo que sale.
+
+Los stickers siempre se guardan en coordenadas del lienzo completo. En el modo cámara se ven más grandes y se arrastran en esas coordenadas (`ComposerStage`).
+
+**Estudio.** Con una variante con ventana, `FrameEditor` muestra el deslizador **«Escala de la foto»**, de 1,00 a la escala máxima de esa ventana. La vista previa dibuja una foto de muestra con cuadrícula dentro de la caja, así se ve cuánto de la foto queda a la vista.
