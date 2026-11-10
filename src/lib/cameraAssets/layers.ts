@@ -110,6 +110,11 @@ export interface ImageLayer extends LayerBase {
   h?: number;
   /** Cubre todo el lienzo y se ignoran posición, tamaño y rotación (marcos hechos en Canva). */
   full?: boolean;
+  /**
+   * Solo con `full`: la ventana transparente de la foto (normalizada al lienzo) y la escala del capturador.
+   * Ver `capture.ts`.
+   */
+  capture?: { x: number; y: number; w: number; h: number; scale: number };
 }
 
 export interface EmojiLayer extends LayerBase {
@@ -151,7 +156,7 @@ const COMMON_KEYS = ['type', 'x', 'y', 'dx', 'dy', 'rotation', 'opacity', 'ancho
 const KEYS_BY_TYPE: Record<FrameLayer['type'], Set<string>> = {
   text: new Set([...COMMON_KEYS, 'text', 'size', 'font', 'color', 'weight', 'w', 'strokeColor', 'strokeWidth']),
   shape: new Set([...COMMON_KEYS, 'shape', 'w', 'h', 'fill', 'stroke', 'strokeWidth', 'radius', 'd', 'box']),
-  image: new Set([...COMMON_KEYS, 'src', 'w', 'h', 'full']),
+  image: new Set([...COMMON_KEYS, 'src', 'w', 'h', 'full', 'capture']),
   emoji: new Set([...COMMON_KEYS, 'emoji', 'size']),
   asset: new Set([...COMMON_KEYS, 'asset', 'w', 'h', 'tint']),
 };
@@ -170,6 +175,23 @@ function validateShadow(raw: unknown): ValidationResult {
     return fail('La sombra no es válida.');
   }
   return { ok: true };
+}
+
+/** Misma regla que `_frame_capture` en la base (20261110100024_frame_capture.sql). */
+function isCaptureWindow(raw: unknown): boolean {
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return false;
+  const c = raw as Record<string, unknown>;
+  const keys = Object.keys(c);
+  if (keys.length !== 5 || !['x', 'y', 'w', 'h', 'scale'].every((k) => keys.includes(k))) return false;
+  return (
+    isNumberIn(c.x, 0, 1) &&
+    isNumberIn(c.y, 0, 1) &&
+    isNumberIn(c.w, 0.02, 1) &&
+    isNumberIn(c.h, 0.02, 1) &&
+    (c.x as number) + (c.w as number) <= 1.0001 &&
+    (c.y as number) + (c.h as number) <= 1.0001 &&
+    isNumberIn(c.scale, 1, 10)
+  );
 }
 
 function validateLayer(raw: unknown): ValidationResult {
@@ -249,6 +271,9 @@ function validateLayer(raw: unknown): ValidationResult {
       }
       if (l.full !== true && !(typeof l.w === 'number' && typeof l.h === 'number')) {
         return fail('La imagen necesita tamaño o cubrir todo el lienzo.');
+      }
+      if ('capture' in l && !(l.full === true && isCaptureWindow(l.capture))) {
+        return fail('La ventana de la foto no es válida.');
       }
       return { ok: true };
     }
