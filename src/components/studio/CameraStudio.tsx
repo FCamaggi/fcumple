@@ -181,14 +181,14 @@ export default function CameraStudio({ event, onEventChange }: CameraStudioProps
   }
 
   return (
-    <div className="flex max-w-xl flex-col gap-8">
+    <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:items-start lg:gap-10">
       {error && (
-        <p role="alert" className="font-mono text-xs uppercase tracking-wide text-flame-500">
+        <p role="alert" className="font-mono text-xs uppercase tracking-wide text-flame-500 lg:col-span-2">
           {error}
         </p>
       )}
       {!canEdit && (
-        <p role="status" className="border border-smoke-700/60 bg-ink-900 p-3 font-mono text-xs uppercase tracking-wide text-paper-100/80">
+        <p role="status" className="lg:col-span-2 border border-smoke-700/60 bg-ink-900 p-3 font-mono text-xs uppercase tracking-wide text-paper-100/80">
           Para editar los diseños, entra desde un computador
         </p>
       )}

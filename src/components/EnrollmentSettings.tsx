@@ -117,7 +117,7 @@ export default function EnrollmentSettings({ event, onSave, usedQuestionIds = []
     <form
       onSubmit={handleSubmit}
       noValidate
-      className="flex max-w-md flex-col gap-6"
+      className="flex max-w-2xl flex-col gap-6"
       aria-label="Qué se pide al inscribirse"
     >
       <p className="font-sans text-sm text-paper-100/80">

@@ -102,7 +102,7 @@ export default function EventSettingsPanel({ event, onSave }: EventSettingsPanel
   }
 
   return (
-    <div className="flex max-w-md flex-col gap-6">
+    <div className="flex max-w-2xl flex-col gap-6">
       <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4" aria-label="Ajustes del evento">
       <div className="flex flex-col gap-1">
         <label htmlFor="ev-name" className={labelClass}>

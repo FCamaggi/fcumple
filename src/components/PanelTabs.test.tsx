@@ -73,11 +73,20 @@ describe('PanelTabs', () => {
     const nav = screen.getByRole('navigation', { name: 'Secciones' });
     const row = nav.firstElementChild as HTMLElement;
 
-    expect(nav.className).toContain('overflow-x-auto');
-    expect(row.className).not.toContain('flex-wrap');
+    expect(nav.classList.contains('overflow-x-auto')).toBe(true);
+    expect(row.classList.contains('flex-wrap')).toBe(false);
     for (const button of screen.getAllByRole('button')) {
-      expect(button.className).toContain('shrink-0');
+      expect(button.classList.contains('shrink-0')).toBe(true);
     }
+  });
+
+  it('en escritorio (lg) caben todas: hacen salto de línea en vez de scroll', () => {
+    render(<PanelTabs tabs={TABS} active="uno" onSelect={() => {}} />);
+    const nav = screen.getByRole('navigation', { name: 'Secciones' });
+    const row = nav.firstElementChild as HTMLElement;
+
+    expect(nav.classList.contains('lg:overflow-visible')).toBe(true);
+    expect(row.classList.contains('lg:flex-wrap')).toBe(true);
   });
 
   it('cada pestaña mide al menos 44 px de alto (objetivo táctil)', () => {

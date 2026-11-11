@@ -8,7 +8,7 @@ Recorre las pantallas de la app en tamaños de teléfono, saca capturas y mide l
 - `mock.js` simula Supabase: responde a todo lo que la app pide a `127.0.0.1:54321` con datos inventados (evento «NOCHE DE DISFRACES» con el estilo Rosa chicle, 12 invitados, 24 fotos que son dibujos, 3 avisos, 3 marcos y 6 stickers). **No habla con ninguna base real.**
 - `audit.mjs` abre cada pantalla en cada perfil, la captura y la mide.
 
-Perfiles: iPhone 13 (WebKit), Pixel 7 (Chromium), 360×640, 390×844 y 430×932 (Chromium, los tamaños de la crítica de la cámara), iPhone 13 en horizontal y Pixel 7 en horizontal. Pantallas: 11 del invitado (inscripción, «ya me inscribí», evento que no existe, cámara bloqueada, cámara activa con cartelera, cartelera vacía, cupo agotado, QR de activación, cámara abierta, **cámara con video vertical** y visor de foto) y 12 del panel (lista de eventos, las 9 pestañas, la moderación y el escáner).
+Perfiles: iPhone 13 (WebKit), Pixel 7 (Chromium), 360×640, 390×844 y 430×932 (Chromium, los tamaños de la crítica de la cámara), iPhone 13 en horizontal, Pixel 7 en horizontal y dos de escritorio sin pantalla táctil, `desk1024` y `desk1440` (para el panel). Pantallas: 11 del invitado (inscripción, «ya me inscribí», evento que no existe, cámara bloqueada, cámara activa con cartelera, cartelera vacía, cupo agotado, QR de activación, cámara abierta, **cámara con video vertical** y visor de foto) y 12 del panel (lista de eventos, las 9 pestañas, la moderación y el escáner).
 
 ## Cómo correrla
 1. Levanta la app apuntando a una dirección falsa, sin claves reales (el simulador responde ahí):

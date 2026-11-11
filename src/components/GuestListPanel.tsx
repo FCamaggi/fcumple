@@ -147,67 +147,70 @@ export default function GuestListPanel({
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      {pending.length > 0 && (
-        <section aria-label="Solicitudes de acceso" className="flex flex-col gap-2">
-          <h2 className="font-mono text-xs font-bold uppercase tracking-widest text-hotpink-500">
-            Solicitudes de acceso ({pending.length})
-          </h2>
-          <ul className="flex flex-col gap-2">
-            {pending.map((guest) => (
-              <li key={guest.id} className="flex flex-wrap items-center justify-between gap-2 bg-ink-900 px-3 py-2">
-                <span className="flex items-baseline gap-2">
-                  <span className="font-sans text-sm text-paper-100">{guest.fullName}</span>
-                  <PlusOnesBadge guest={guest} />
-                </span>
-                <span className="flex gap-2">
-                  <button type="button" className={buttonClass} onClick={() => void run(() => onReview(guest, 'approved'))}>
-                    Aprobar
-                  </button>
-                  <button type="button" className={buttonClass} onClick={() => void run(() => onReview(guest, 'rejected'))}>
-                    Rechazar
-                  </button>
-                </span>
-                <AnswersDetail guest={guest} enrollment={enrollment} />
-              </li>
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:items-start lg:gap-10">
+      {/* En escritorio, a la izquierda lo que se resuelve (solicitudes y alta); a la derecha, la lista. */}
+      <div className="flex flex-col gap-6">
+        {pending.length > 0 && (
+          <section aria-label="Solicitudes de acceso" className="flex flex-col gap-2">
+            <h2 className="font-mono text-xs font-bold uppercase tracking-widest text-hotpink-500">
+              Solicitudes de acceso ({pending.length})
+            </h2>
+            <ul className="flex flex-col gap-2">
+              {pending.map((guest) => (
+                <li key={guest.id} className="flex flex-wrap items-center justify-between gap-2 bg-ink-900 px-3 py-2">
+                  <span className="flex items-baseline gap-2">
+                    <span className="font-sans text-sm text-paper-100">{guest.fullName}</span>
+                    <PlusOnesBadge guest={guest} />
+                  </span>
+                  <span className="flex gap-2">
+                    <button type="button" className={buttonClass} onClick={() => void run(() => onReview(guest, 'approved'))}>
+                      Aprobar
+                    </button>
+                    <button type="button" className={buttonClass} onClick={() => void run(() => onReview(guest, 'rejected'))}>
+                      Rechazar
+                    </button>
+                  </span>
+                  <AnswersDetail guest={guest} enrollment={enrollment} />
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        <form onSubmit={handleAdd} className="flex flex-col gap-2" aria-label="Alta de invitados">
+          <label htmlFor="guest-names" className="font-mono text-xs uppercase tracking-wider text-paper-100/70">
+            Agregar invitados a mano (opcional; un nombre y apellido por línea)
+          </label>
+          <textarea
+            id="guest-names"
+            rows={4}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder={'Ana Rojas\nPedro Pascal'}
+            className="bg-ink-950 px-3 py-2 font-sans text-sm text-paper-100 outline-none"
+          />
+          <button
+            type="submit"
+            disabled={adding || !text.trim()}
+            className="h-10 w-fit bg-acid-400 px-4 font-display text-xs uppercase tracking-wider text-ink-950 disabled:opacity-60"
+          >
+            {adding ? 'Agregando...' : 'Agregar'}
+          </button>
+        </form>
+
+        {feedback && (
+          <div
+            role={feedback.kind === 'error' ? 'alert' : 'status'}
+            className={`flex flex-col gap-1 font-mono text-xs uppercase tracking-wide ${
+              feedback.kind === 'error' ? 'text-flame-500' : 'text-acid-400'
+            }`}
+          >
+            {feedback.lines.map((line) => (
+              <span key={line}>{line}</span>
             ))}
-          </ul>
-        </section>
-      )}
-
-      <form onSubmit={handleAdd} className="flex flex-col gap-2" aria-label="Alta de invitados">
-        <label htmlFor="guest-names" className="font-mono text-xs uppercase tracking-wider text-paper-100/70">
-          Agregar invitados a mano (opcional; un nombre y apellido por línea)
-        </label>
-        <textarea
-          id="guest-names"
-          rows={4}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder={'Ana Rojas\nPedro Pascal'}
-          className="bg-ink-950 px-3 py-2 font-sans text-sm text-paper-100 outline-none"
-        />
-        <button
-          type="submit"
-          disabled={adding || !text.trim()}
-          className="h-10 w-fit bg-acid-400 px-4 font-display text-xs uppercase tracking-wider text-ink-950 disabled:opacity-60"
-        >
-          {adding ? 'Agregando...' : 'Agregar'}
-        </button>
-      </form>
-
-      {feedback && (
-        <div
-          role={feedback.kind === 'error' ? 'alert' : 'status'}
-          className={`flex flex-col gap-1 font-mono text-xs uppercase tracking-wide ${
-            feedback.kind === 'error' ? 'text-flame-500' : 'text-acid-400'
-          }`}
-        >
-          {feedback.lines.map((line) => (
-            <span key={line}>{line}</span>
-          ))}
-        </div>
-      )}
+          </div>
+        )}
+      </div>
 
       <section aria-label="Invitados" className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center justify-between gap-2">

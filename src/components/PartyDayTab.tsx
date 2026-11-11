@@ -52,14 +52,14 @@ export default function PartyDayTab({ event, guests, photos: state, onOpenTab, o
   const listed = camera.missing.slice(0, MAX_LISTED);
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start">
       <button
         type="button"
         onClick={() => {
           reload();
           onRefresh();
         }}
-        className={`${secondary} self-start`}
+        className={`${secondary} self-start justify-self-start lg:col-span-2`}
       >
         Actualizar
       </button>
