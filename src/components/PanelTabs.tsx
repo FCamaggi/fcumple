@@ -10,7 +10,8 @@ interface Props<Id extends string> {
 /**
  * Pestañas del panel del organizador. En un teléfono las 9 no caben en una fila: van en una sola fila con
  * scroll horizontal (en vez de apilarse en 3) y la activa se lleva a la vista al cambiar. 44 px de alto
- * (objetivo táctil); el borde cortado de la pestaña siguiente avisa de que hay más.
+ * (objetivo táctil); el borde cortado de la pestaña siguiente avisa de que hay más. En escritorio caben todas a la
+ * vista: hacen salto de línea en vez de scroll.
  */
 export default function PanelTabs<Id extends string>({ tabs, active, onSelect }: Props<Id>) {
   const refs = useRef(new Map<Id, HTMLButtonElement>());
@@ -27,8 +28,11 @@ export default function PanelTabs<Id extends string>({ tabs, active, onSelect }:
   }, [active]);
 
   return (
-    <nav className="-mx-4 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Secciones">
-      <div className="flex w-max gap-2">
+    <nav
+      className="-mx-4 overflow-x-auto px-4 pb-1 [scrollbar-width:none] lg:mx-0 lg:overflow-visible lg:px-0 [&::-webkit-scrollbar]:hidden"
+      aria-label="Secciones"
+    >
+      <div className="flex w-max gap-2 lg:w-auto lg:flex-wrap">
         {tabs.map((t) => (
           <button
             key={t.id}

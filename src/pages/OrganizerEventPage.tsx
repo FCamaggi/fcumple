@@ -63,7 +63,10 @@ const TABS: Array<{ id: Tab; label: string }> = [
   { id: 'ajustes', label: 'Ajustes' },
 ];
 
-const shell = 'min-h-app bg-ink-950 px-4 py-8 text-paper-100';
+const shell = 'min-h-app bg-ink-950 px-4 py-8 text-paper-100 lg:px-8';
+
+/** Pestañas que en escritorio usan todo el ancho del panel; el resto (formularios) queda en una columna legible. */
+const WIDE_TABS: ReadonlySet<string> = new Set(['hoy', 'invitados', 'camara', 'vista']);
 
 /** `/panel/e/:eventId` — gestión de un evento: invitados, enlace único y ajustes. */
 export default function OrganizerEventPage() {
@@ -161,8 +164,9 @@ export default function OrganizerEventPage() {
   return (
     <ThemeScope theme={event.theme}>
       <div className={shell}>
-        {/* La cámara es el estudio de diseño: en escritorio usa todo el ancho; el resto del panel, una columna. */}
-        <div className={`mx-auto flex max-w-xl flex-col gap-6 ${tab === 'camara' ? 'lg:max-w-7xl' : ''}`}>
+        {/* En escritorio el panel tiene el mismo ancho en todas las pestañas (cambiar de pestaña no mueve nada); cada
+            pestaña decide cuánto usa: las listas y la cámara, todo; los formularios, una columna legible. */}
+        <div className="mx-auto flex max-w-xl flex-col gap-6 lg:max-w-7xl">
           <header className="flex flex-col gap-1">
             <Link to="/panel" className="inline-flex min-h-11 items-center font-mono text-xs uppercase tracking-wider text-paper-100/60 underline">
               ← Tus eventos
@@ -172,60 +176,62 @@ export default function OrganizerEventPage() {
 
           <PanelTabs tabs={tabs} active={tab} onSelect={selectTab} />
 
-          {tab === 'hoy' && (
-            <PartyDayTab
-              event={event}
-              guests={guests}
-              photos={photos}
-              onOpenTab={selectTab}
-              onRefresh={refreshGuests}
-            />
-          )}
+          <div className={WIDE_TABS.has(tab) ? 'flex flex-col gap-6' : 'flex flex-col gap-6 lg:max-w-2xl'}>
+            {tab === 'hoy' && (
+              <PartyDayTab
+                event={event}
+                guests={guests}
+                photos={photos}
+                onOpenTab={selectTab}
+                onRefresh={refreshGuests}
+              />
+            )}
 
-          {tab === 'invitados' && (
-            <GuestListPanel
-              guests={guests}
-              enrollment={event.enrollment}
-              slug={event.slug}
-              onAdd={async (names) => {
-                const result = await addGuests(eventId, names, event.defaultPhotoQuota);
-                setGuests((current) => [...current, ...result.created]);
-                return result;
-              }}
-              onReview={async (guest, decision) => replaceGuest(await setGuestApproval(guest.id, decision))}
-              onReviewPlusOnes={async (guest, approve) => replaceGuest(await setGuestPlusOnes(guest, approve))}
-              onRemove={async (guest) => {
-                await removeGuest(guest.id);
-                setGuests((current) => current.filter((g) => g.id !== guest.id));
-              }}
-              onRegenerate={async (guest) => replaceGuest(await regenerateGuestToken(guest.id))}
-            />
-          )}
-          {tab === 'puerta' && (
-            <DoorPanel
-              guests={guests}
-              onOpenScanner={() => setScanning(true)}
-              onCheckIn={async (guest) => {
-                const checked = await checkInGuest(guest.token);
-                replaceGuest({ ...guest, checkedInAt: checked.checkedInAt });
-              }}
-            />
-          )}
-          {tab === 'avisos' && <PostsPanel eventId={event.id} />}
-          {tab === 'activacion' && <ActivationTab event={event} onEventChange={setEvent} />}
-          {tab === 'camara' && <CameraStudio event={event} onEventChange={setEvent} />}
-          {tab === 'fotos' && <PhotosTab photos={photos} eventSlug={event.slug} />}
-          {tab === 'vista' && <GuestPreviewTab event={event} />}
-          {tab === 'enlace' && <ShareEventLink event={event} />}
-          {tab === 'inscripcion' && (
-            <EnrollmentSettings
-              event={event}
-              onSave={handleSave}
-              usedQuestionIds={QUESTION_IDS.filter((id) => guests.some((g) => g.answers[id]))}
-            />
-          )}
-          {tab === 'regalos' && <WishlistTab event={event} onUpdateEvent={handleSave} />}
-          {tab === 'ajustes' && <EventSettingsPanel event={event} onSave={handleSave} />}
+            {tab === 'invitados' && (
+              <GuestListPanel
+                guests={guests}
+                enrollment={event.enrollment}
+                slug={event.slug}
+                onAdd={async (names) => {
+                  const result = await addGuests(eventId, names, event.defaultPhotoQuota);
+                  setGuests((current) => [...current, ...result.created]);
+                  return result;
+                }}
+                onReview={async (guest, decision) => replaceGuest(await setGuestApproval(guest.id, decision))}
+                onReviewPlusOnes={async (guest, approve) => replaceGuest(await setGuestPlusOnes(guest, approve))}
+                onRemove={async (guest) => {
+                  await removeGuest(guest.id);
+                  setGuests((current) => current.filter((g) => g.id !== guest.id));
+                }}
+                onRegenerate={async (guest) => replaceGuest(await regenerateGuestToken(guest.id))}
+              />
+            )}
+            {tab === 'puerta' && (
+              <DoorPanel
+                guests={guests}
+                onOpenScanner={() => setScanning(true)}
+                onCheckIn={async (guest) => {
+                  const checked = await checkInGuest(guest.token);
+                  replaceGuest({ ...guest, checkedInAt: checked.checkedInAt });
+                }}
+              />
+            )}
+            {tab === 'avisos' && <PostsPanel eventId={event.id} />}
+            {tab === 'activacion' && <ActivationTab event={event} onEventChange={setEvent} />}
+            {tab === 'camara' && <CameraStudio event={event} onEventChange={setEvent} />}
+            {tab === 'fotos' && <PhotosTab photos={photos} eventSlug={event.slug} />}
+            {tab === 'vista' && <GuestPreviewTab event={event} />}
+            {tab === 'enlace' && <ShareEventLink event={event} />}
+            {tab === 'inscripcion' && (
+              <EnrollmentSettings
+                event={event}
+                onSave={handleSave}
+                usedQuestionIds={QUESTION_IDS.filter((id) => guests.some((g) => g.answers[id]))}
+              />
+            )}
+            {tab === 'regalos' && <WishlistTab event={event} onUpdateEvent={handleSave} />}
+            {tab === 'ajustes' && <EventSettingsPanel event={event} onSave={handleSave} />}
+          </div>
         </div>
 
         {scanning && (

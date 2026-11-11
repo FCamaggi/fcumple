@@ -48,6 +48,9 @@ const profiles = [
   { id: 's430', engine: 'chromium', viewport: { width: 430, height: 932 }, mobile: true },
   { id: 'iphone13-h', engine: 'webkit', device: 'iPhone 13 landscape' },
   { id: 'pixel7-h', engine: 'chromium', device: 'Pixel 7 landscape' },
+  // Escritorio (el panel del organizador también se usa en un computador): con mouse, sin pantalla táctil.
+  { id: 'desk1024', engine: 'chromium', viewport: { width: 1024, height: 768 }, mobile: false, touch: false },
+  { id: 'desk1440', engine: 'chromium', viewport: { width: 1440, height: 900 }, mobile: false, touch: false },
 ];
 
 const orgSession = JSON.stringify({
@@ -75,9 +78,9 @@ const scenes = [
   { id: 'g13-sello-enviado', url: '/e/demo', ...guest('t-active'), vshot: true, fakeCam: true, act: async (p) => { await p.getByRole('button', { name: /abrir cámara/i }).click(); await p.waitForTimeout(1500); await p.getByRole('button', { name: /disparar/i }).click(); await p.waitForTimeout(800); await p.getByRole('button', { name: /^enviar/i }).click(); await p.waitForTimeout(1200); } },
   { id: 'g10-visor-foto', url: '/e/demo', ...guest('t-active'), vshot: true, act: async (p) => { const b = p.getByRole('button', { name: /^ver foto 1 de/i }).first(); await b.scrollIntoViewIfNeeded(); await b.click(); await p.waitForTimeout(800); } },
   { id: 'o01-eventos', url: '/panel', org: true },
-  ...TABS.map((t, i) => ({ id: `o${String(i + 2).padStart(2, '0')}-panel-${t.toLowerCase().normalize('NFD').replace(/[^a-z]/g, '')}`, url: `/panel/e/${EVENT_ID}`, org: true, act: async (p) => { await p.getByRole('button', { name: t, exact: true }).click(); await p.waitForTimeout(500); } })),
+  ...TABS.map((t, i) => ({ id: `o${String(i + 2).padStart(2, '0')}-panel-${t.toLowerCase().normalize('NFD').replace(/[^a-z]/g, '')}`, url: `/panel/e/${EVENT_ID}`, org: true, act: async (p) => { await p.getByRole('navigation', { name: 'Secciones' }).getByRole('button', { name: new RegExp(`^${t}`) }).click(); await p.waitForTimeout(500); } })),
   { id: 'o19-hoy', url: `/panel/e/${EVENT_ID}`, org: true, act: async (p) => { await p.getByRole('button', { name: 'Hoy', exact: true }).click(); await p.waitForTimeout(1200); } },
-  { id: 'o11-moderacion', url: `/panel/e/${EVENT_ID}`, org: true, vshot: true, act: async (p) => { await p.getByRole('button', { name: 'Fotos', exact: true }).click(); await p.waitForTimeout(500); await p.getByRole('button', { name: /revisar \d+ foto|abrir revisión/i }).first().click({ timeout: 3000 }); await p.waitForTimeout(700); } },
+  { id: 'o11-moderacion', url: `/panel/e/${EVENT_ID}`, org: true, vshot: true, act: async (p) => { await p.getByRole('navigation', { name: 'Secciones' }).getByRole('button', { name: /^Fotos/ }).click(); await p.waitForTimeout(500); await p.getByRole('button', { name: /revisar \d+ foto|abrir revisión/i }).first().click({ timeout: 3000 }); await p.waitForTimeout(700); } },
   { id: 'o12-escaner', url: `/panel/e/${EVENT_ID}`, org: true, vshot: true, act: async (p) => { await p.getByRole('button', { name: 'Puerta', exact: true }).click(); await p.getByRole('button', { name: /abrir escáner/i }).click(); await p.waitForTimeout(900); } },
   // Épica C: la pestaña «Vista previa» (teléfono dentro del panel) y la página que corre dentro de su iframe.
   { id: 'o13-vista-previa', url: `/panel/e/${EVENT_ID}`, org: true, act: async (p) => { await p.getByRole('button', { name: 'Vista previa', exact: true }).click(); await p.waitForTimeout(1500); } },
@@ -126,7 +129,7 @@ for (const prof of profiles) {
   const engine = pw[prof.engine];
   const launchOpts = prof.engine === 'chromium' ? { args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'] } : {};
   const browser = await engine.launch(launchOpts);
-  const base = prof.device ? pw.devices[prof.device] : { viewport: prof.viewport, isMobile: prof.mobile, hasTouch: true, deviceScaleFactor: 2 };
+  const base = prof.device ? pw.devices[prof.device] : { viewport: prof.viewport, isMobile: prof.mobile, hasTouch: prof.touch ?? true, deviceScaleFactor: prof.touch === false ? 1 : 2 };
   for (const sc of scenes) {
     if (onlyS && !sc.id.includes(onlyS)) continue;
     const context = await browser.newContext({ ...base, locale: 'es-CL', permissions: prof.engine === 'chromium' ? ['camera'] : [] });
