@@ -52,4 +52,5 @@ Pagos y planes, Cloudflare R2, muro en vivo, descarga ZIP, marcos dinámicos con
 | [`plan-estudio-de-diseno.md`](./plan-estudio-de-diseno.md) | **Propuesta.** Pasar del editor de capas a un estudio de diseño con recursos, presets y paquetes; edición solo en computador; limpieza de la pantalla de cámara. |
 | [`briefs-de-cliente.md`](./briefs-de-cliente.md) | Formularios de opciones para el cliente de cada cumpleaños: página `/brief/:slug`, tabla de respuestas y cómo agregar uno nuevo. |
 | [`puesta-en-marcha.md`](./puesta-en-marcha.md) | Podar la Fase 0 del proyecto Supabase actual, aplicar la Fase 1, probar en un preview, checklist de punta a punta y merge. |
+| [`fotos-originales-pc-casa.md`](./fotos-originales-pc-casa.md) | **Propuesta.** Fotos en calidad original guardadas y servidas desde un PC propio por Cloudflare Tunnel, con Supabase como entrada y respaldo; qué hacer en el PC y tareas. |
 | [`plan-de-trabajo.md`](./plan-de-trabajo.md) | Etapas ordenadas, dependencias y riesgos. |
