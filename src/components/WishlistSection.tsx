@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { WishlistConfig, WishlistItem } from '../lib/wishlist';
+import { groupWishlistItems, joinNames, type WishlistConfig, type WishlistItem } from '../lib/wishlist';
 
 interface WishlistSectionProps {
   wishlist?: WishlistConfig;
@@ -37,7 +37,9 @@ export default function WishlistSection({ wishlist }: WishlistSectionProps) {
               </span>
             </div>
             <p className="font-sans text-xs text-paper-100/70">
-              Ideas y regalos sugeridos para la fiesta.
+              {wishlist.honorees.length > 1
+                ? `Regalos para ${joinNames(wishlist.honorees.map((h) => h.name))}.`
+                : 'Ideas y regalos sugeridos para la fiesta.'}
             </p>
             <button
               type="button"
@@ -80,6 +82,7 @@ function WishlistModal({
   onClose: () => void;
 }) {
   const title = wishlist.title || 'Lista de regalos';
+  const groups = groupWishlistItems(wishlist);
 
   return (
     <div
@@ -116,11 +119,20 @@ function WishlistModal({
           <p className="mb-4 font-sans text-xs text-paper-100/60">
             Ideas y enlaces de regalo para la fiesta. Toca cualquier ítem para abrir su tienda:
           </p>
-          <ul className="flex flex-col gap-3">
-            {wishlist.items.map((item) => (
-              <WishlistItemRow key={item.id} item={item} />
-            ))}
-          </ul>
+          <div className="flex flex-col gap-5">
+            {groups.map((group) =>
+              group.label === null ? (
+                <ItemList key="all" items={group.items} />
+              ) : (
+                <section key={group.label} aria-label={group.label} className="flex flex-col gap-2">
+                  <h3 className="font-mono text-xs font-bold uppercase tracking-wider text-laser-500">
+                    {group.label}
+                  </h3>
+                  <ItemList items={group.items} />
+                </section>
+              ),
+            )}
+          </div>
         </div>
 
         <footer className="pt-2">
@@ -134,6 +146,16 @@ function WishlistModal({
         </footer>
       </div>
     </div>
+  );
+}
+
+function ItemList({ items }: { items: WishlistItem[] }) {
+  return (
+    <ul className="flex flex-col gap-3">
+      {items.map((item) => (
+        <WishlistItemRow key={item.id} item={item} />
+      ))}
+    </ul>
   );
 }
 
@@ -159,9 +181,9 @@ function WishlistItemRow({ item }: { item: WishlistItem }) {
       )}
 
       <div className="flex min-w-0 flex-1 flex-col justify-center">
-        <h3 className="line-clamp-2 font-sans text-sm font-bold text-paper-100">
+        <p className="line-clamp-2 font-sans text-sm font-bold text-paper-100">
           {item.title}
-        </h3>
+        </p>
         {item.price && (
           <span className="font-mono text-xs font-bold text-laser-500">
             {item.price}

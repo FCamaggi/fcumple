@@ -159,6 +159,31 @@ describe('eventos', () => {
     });
   });
 
+  it('updateEvent guarda la wishlist con las claves que acepta la base', async () => {
+    const q = chain({ data: eventRow, error: null });
+    from.mockReturnValueOnce(q.proxy);
+    await updateEvent('ev-1', {
+      wishlist: {
+        enabled: true,
+        title: 'Regalos',
+        displayMode: 'card',
+        honorees: [{ id: 'h1', name: 'Nacho' }],
+        items: [
+          { id: 'a', url: 'https://x.cl/a', title: 'Patineta', imageUrl: 'https://x.cl/a.jpg', honoreeIds: ['h1'] },
+        ],
+      },
+    });
+    expect(q.calls.find(([name]) => name === 'update')?.[1][0]).toEqual({
+      wishlist: {
+        enabled: true,
+        title: 'Regalos',
+        display_mode: 'card',
+        honorees: [{ id: 'h1', name: 'Nacho' }],
+        items: [{ id: 'a', url: 'https://x.cl/a', title: 'Patineta', image_url: 'https://x.cl/a.jpg', honoree_ids: ['h1'] }],
+      },
+    });
+  });
+
   it('updateEvent explica cuando la base rechaza un valor', async () => {
     from.mockReturnValueOnce(chain({ data: null, error: { code: '23514' } }).proxy);
     await expect(updateEvent('ev-1', { defaultPhotoQuota: 500 })).rejects.toThrow(/no es válido/);

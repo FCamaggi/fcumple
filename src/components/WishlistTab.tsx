@@ -2,8 +2,10 @@ import { useState } from 'react';
 import {
   fetchLinkPreview,
   resolveWishlist,
+  WISHLIST_LIMITS,
   type WishlistConfig,
   type WishlistDisplayMode,
+  type WishlistHonoree,
   type WishlistItem,
 } from '../lib/wishlist';
 import type { OrganizerEvent } from '../lib/organizerApi';
@@ -20,6 +22,11 @@ export default function WishlistTab({ event, onUpdateEvent }: WishlistTabProps) 
   const [title, setTitle] = useState(currentWishlist.title || 'Lista de regalos');
   const [displayMode, setDisplayMode] = useState<WishlistDisplayMode>(currentWishlist.displayMode);
   const [items, setItems] = useState<WishlistItem[]>(currentWishlist.items);
+  const [honorees, setHonorees] = useState<WishlistHonoree[]>(currentWishlist.honorees);
+
+  // Festejados
+  const [newHonoreeName, setNewHonoreeName] = useState('');
+  const [honoreeError, setHonoreeError] = useState<string | null>(null);
 
   // Formulario para nuevo ítem
   const [newUrl, setNewUrl] = useState('');
@@ -27,6 +34,7 @@ export default function WishlistTab({ event, onUpdateEvent }: WishlistTabProps) 
   const [newImageUrl, setNewImageUrl] = useState('');
   const [newPrice, setNewPrice] = useState('');
   const [newNotes, setNewNotes] = useState('');
+  const [newHonoreeIds, setNewHonoreeIds] = useState<string[]>([]);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -86,6 +94,7 @@ export default function WishlistTab({ event, onUpdateEvent }: WishlistTabProps) 
       imageUrl: newImageUrl.trim() || null,
       price: newPrice.trim() || null,
       notes: newNotes.trim() || null,
+      honoreeIds: honorees.map((h) => h.id).filter((id) => newHonoreeIds.includes(id)),
     };
 
     setItems([...items, newItem]);
@@ -94,7 +103,48 @@ export default function WishlistTab({ event, onUpdateEvent }: WishlistTabProps) 
     setNewImageUrl('');
     setNewPrice('');
     setNewNotes('');
+    setNewHonoreeIds([]);
     setFormError(null);
+  }
+
+  function handleAddHonoree() {
+    const name = newHonoreeName.trim();
+    if (!name) {
+      setHonoreeError('Escribe el nombre del festejado.');
+      return;
+    }
+    if (honorees.some((h) => h.name.toLocaleLowerCase('es') === name.toLocaleLowerCase('es'))) {
+      setHonoreeError('Ese festejado ya está en la lista.');
+      return;
+    }
+    if (honorees.length >= WISHLIST_LIMITS.honorees) {
+      setHonoreeError(`Puedes agregar hasta ${WISHLIST_LIMITS.honorees} festejados.`);
+      return;
+    }
+    setHonorees([...honorees, { id: `h${Math.random().toString(36).slice(2, 10)}`, name }]);
+    setNewHonoreeName('');
+    setHonoreeError(null);
+  }
+
+  function handleRemoveHonoree(id: string) {
+    setHonorees(honorees.filter((h) => h.id !== id));
+    setItems(
+      items.map((it) => ({
+        ...it,
+        honoreeIds: it.honoreeIds.filter((x) => x !== id),
+      })),
+    );
+    setNewHonoreeIds(newHonoreeIds.filter((x) => x !== id));
+  }
+
+  /** Mantiene los ids en el orden de la lista de festejados. */
+  function toggleId(ids: string[], id: string): string[] {
+    const next = ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id];
+    return honorees.map((h) => h.id).filter((x) => next.includes(x));
+  }
+
+  function handleToggleItemHonoree(itemId: string, honoreeId: string) {
+    setItems(items.map((it) => (it.id === itemId ? { ...it, honoreeIds: toggleId(it.honoreeIds, honoreeId) } : it)));
   }
 
   function handleRemoveItem(id: string) {
@@ -110,6 +160,7 @@ export default function WishlistTab({ event, onUpdateEvent }: WishlistTabProps) 
       enabled,
       title: title.trim() || 'Lista de regalos',
       displayMode,
+      honorees,
       items,
     };
 
@@ -199,6 +250,75 @@ export default function WishlistTab({ event, onUpdateEvent }: WishlistTabProps) 
             </div>
           </div>
         )}
+      </section>
+
+      {/* Festejados */}
+      <section aria-labelledby="wishlist-honorees" className="flex flex-col gap-4 rounded bg-ink-900 p-4 shadow-xl">
+        <div className="flex flex-col gap-1">
+          <h2 id="wishlist-honorees" className="font-display text-base uppercase tracking-wide text-laser-500">
+            Festejados
+          </h2>
+          <p className="font-sans text-xs text-paper-100/60">
+            Si la fiesta es de varias personas, agrégalas y asigna cada regalo. Los invitados verán la lista separada
+            por persona. Un regalo sin asignar es para todos.
+          </p>
+        </div>
+
+        {honorees.length > 0 && (
+          <ul className="flex flex-wrap gap-2">
+            {honorees.map((h) => (
+              <li
+                key={h.id}
+                className="flex min-h-[44px] items-center gap-2 rounded border border-smoke-700/60 bg-ink-950 pl-3"
+              >
+                <span className="font-sans text-sm text-paper-100">{h.name}</span>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveHonoree(h.id)}
+                  className="flex min-h-[44px] min-w-[44px] items-center justify-center font-mono text-xs text-hotpink-500 hover:bg-hotpink-500/10"
+                  aria-label={`Quitar a ${h.name}`}
+                >
+                  ✕
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <div className="flex flex-col gap-1">
+          <label
+            htmlFor="wishlist-honoree-name"
+            className="font-mono text-xs uppercase tracking-wider text-paper-100/70"
+          >
+            Nombre del festejado
+          </label>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <input
+              id="wishlist-honoree-name"
+              type="text"
+              value={newHonoreeName}
+              onChange={(e) => setNewHonoreeName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleAddHonoree();
+                }
+              }}
+              maxLength={WISHLIST_LIMITS.honoreeName}
+              placeholder="Ej: Nacho"
+              className="h-11 flex-1 rounded border border-smoke-700 bg-ink-950 px-3 font-sans text-sm text-paper-100 focus:border-laser-500 focus:outline-none"
+            />
+            <button
+              type="button"
+              onClick={handleAddHonoree}
+              disabled={honorees.length >= WISHLIST_LIMITS.honorees}
+              className="flex min-h-[44px] items-center justify-center border border-laser-500/80 bg-ink-950 px-4 font-mono text-xs uppercase tracking-wider text-laser-500 hover:bg-laser-500/10 disabled:opacity-50"
+            >
+              Agregar festejado
+            </button>
+          </div>
+          {honoreeError && <p className="font-sans text-xs text-hotpink-500">{honoreeError}</p>}
+        </div>
       </section>
 
       {/* Agregar un regalo */}
@@ -311,6 +431,30 @@ export default function WishlistTab({ event, onUpdateEvent }: WishlistTabProps) 
             />
           </div>
 
+          {honorees.length > 0 && (
+            <fieldset className="flex flex-col gap-2">
+              <legend className="mb-1 font-mono text-xs uppercase tracking-wider text-paper-100/70">
+                ¿Para quién es? (sin marcar: para todos)
+              </legend>
+              <div className="flex flex-wrap gap-2">
+                {honorees.map((h) => (
+                  <label
+                    key={h.id}
+                    className="flex min-h-[44px] cursor-pointer items-center gap-2 rounded border border-smoke-700/60 bg-ink-950 px-3"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={newHonoreeIds.includes(h.id)}
+                      onChange={() => setNewHonoreeIds(toggleId(newHonoreeIds, h.id))}
+                      className="h-5 w-5 accent-laser-500"
+                    />
+                    <span className="font-sans text-sm text-paper-100">{h.name}</span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          )}
+
           {formError && (
             <p className="font-sans text-xs text-hotpink-500">{formError}</p>
           )}
@@ -339,58 +483,70 @@ export default function WishlistTab({ event, onUpdateEvent }: WishlistTabProps) 
         ) : (
           <ul className="flex flex-col gap-3">
             {items.map((item) => (
-              <li
-                key={item.id}
-                className="flex items-center justify-between gap-3 rounded border border-smoke-700/40 bg-ink-950 p-3"
-              >
-                <div className="flex items-center gap-3 overflow-hidden">
-                  {item.imageUrl ? (
-                    <img
-                      src={item.imageUrl}
-                      alt=""
-                      className="h-12 w-12 shrink-0 rounded object-cover bg-ink-900"
-                    />
-                  ) : (
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded bg-ink-900 text-lg">
-                      🎁
+              <li key={item.id} className="flex flex-col gap-3 rounded border border-smoke-700/40 bg-ink-950 p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 overflow-hidden">
+                    {item.imageUrl ? (
+                      <img src={item.imageUrl} alt="" className="h-12 w-12 shrink-0 rounded object-cover bg-ink-900" />
+                    ) : (
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded bg-ink-900 text-lg">
+                        🎁
+                      </div>
+                    )}
+                    <div className="flex flex-col truncate">
+                      <span className="truncate font-sans text-sm font-bold text-paper-100">{item.title}</span>
+                      {item.price && <span className="font-mono text-xs font-bold text-laser-500">{item.price}</span>}
+                      {item.notes && <span className="truncate font-sans text-xs text-paper-100/60">{item.notes}</span>}
                     </div>
-                  )}
-                  <div className="flex flex-col truncate">
-                    <span className="truncate font-sans text-sm font-bold text-paper-100">
-                      {item.title}
-                    </span>
-                    {item.price && (
-                      <span className="font-mono text-xs font-bold text-laser-500">
-                        {item.price}
-                      </span>
-                    )}
-                    {item.notes && (
-                      <span className="truncate font-sans text-xs text-paper-100/60">
-                        {item.notes}
-                      </span>
-                    )}
+                  </div>
+
+                  <div className="flex shrink-0 items-center gap-2">
+                    <a
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex min-h-[44px] min-w-[44px] items-center justify-center border border-smoke-700 bg-ink-900 px-2 font-mono text-xs uppercase text-paper-100 hover:border-laser-500"
+                      aria-label={`Ver enlace de ${item.title}`}
+                    >
+                      ↗
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveItem(item.id)}
+                      className="flex min-h-[44px] min-w-[44px] items-center justify-center border border-hotpink-500/40 bg-ink-900 px-2 font-mono text-xs uppercase text-hotpink-500 hover:bg-hotpink-500/10"
+                      aria-label={`Eliminar ${item.title}`}
+                    >
+                      ✕
+                    </button>
                   </div>
                 </div>
 
-                <div className="flex shrink-0 items-center gap-2">
-                  <a
-                    href={item.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex min-h-[44px] min-w-[44px] items-center justify-center border border-smoke-700 bg-ink-900 px-2 font-mono text-xs uppercase text-paper-100 hover:border-laser-500"
-                    aria-label={`Ver enlace de ${item.title}`}
-                  >
-                    ↗
-                  </a>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveItem(item.id)}
-                    className="flex min-h-[44px] min-w-[44px] items-center justify-center border border-hotpink-500/40 bg-ink-900 px-2 font-mono text-xs uppercase text-hotpink-500 hover:bg-hotpink-500/10"
-                    aria-label={`Eliminar ${item.title}`}
-                  >
-                    ✕
-                  </button>
-                </div>
+                {honorees.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-mono text-xs uppercase tracking-wider text-paper-100/50">
+                      {item.honoreeIds.length === 0 ? 'Para todos ·' : 'Para:'}
+                    </span>
+                    {honorees.map((h) => {
+                      const on = item.honoreeIds.includes(h.id);
+                      return (
+                        <button
+                          key={h.id}
+                          type="button"
+                          aria-pressed={on}
+                          aria-label={`${item.title}: para ${h.name}`}
+                          onClick={() => handleToggleItemHonoree(item.id, h.id)}
+                          className={`flex min-h-[44px] items-center rounded border px-3 font-sans text-xs ${
+                            on
+                              ? 'border-laser-500 bg-laser-500/10 text-paper-100'
+                              : 'border-smoke-700/60 bg-ink-900 text-paper-100/60'
+                          }`}
+                        >
+                          {h.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </li>
             ))}
           </ul>

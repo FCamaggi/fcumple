@@ -37,10 +37,20 @@ El organizador puede configurar una lista de regalos o deseos sugeridos para la 
 * En modo chip: botón sutil de una sola línea (`🎁 Lista de regalos (N ítems) →`).
 * Al hacer clic, abre un modal accesible (`role="dialog"`, áreas seguras `inset-safe`, tecla Escape, foco accesible).
 
-## 3. Pruebas y Verificación
+## 3. Festejados (eventos de varios dueños)
+
+Agregado el 2026-11-11 (`supabase/migrations/20261111100025_wishlist_festejados.sql`).
+
+* El organizador agrega hasta 6 festejados en la pestaña «Regalos» (solo un nombre visible) y asigna cada regalo a uno, a varios o a ninguno. Un regalo sin asignar, o asignado a todos, es «para todos».
+* Los festejados **no** son las cuentas de `event_owners`: esas cuentas no tienen nombre público y quien administra no siempre es quien está de cumpleaños.
+* Forma guardada: `honorees: [{ id, name }]` en la raíz y `honoree_ids: [id]` en cada ítem, ambas opcionales. La base rechaza un `honoree_ids` que apunte a un festejado inexistente o repetido. Las wishlists anteriores siguen siendo válidas.
+* El invitado ve el modal separado por persona: primero los regalos de cada festejado, después los compartidos («Para Grazia y Cata») y al final «Para todos». Sin festejados la lista se ve como antes.
+* `serializeWishlist` (`src/lib/wishlist.ts`) escribe la forma en snake_case que valida la base. Antes `updateEvent` mandaba el objeto en camelCase (`displayMode`, `imageUrl`) y la base rechazaba todo guardado.
+
+## 4. Pruebas y Verificación
 * `api/link-preview.test.ts`: seguridad SSRF, parseo OpenGraph, detección de imágenes y función serverless (11 tests).
 * `src/lib/wishlist.test.ts`: normalización de jsonb y extracción de previews (5 tests).
 * `src/components/WishlistSection.test.tsx`: renderizado discreto y modal interactivo (4 tests).
 * `src/components/WishlistTab.test.tsx`: agregado manual, extracción automática, eliminación y guardado (5 tests).
 * `src/pages/OrganizerPages.test.tsx`: navegación y pestaña «Regalos» (35 tests).
-* `supabase/tests/wishlist.test.ts`: validación SQL y RPC `get_event_public`.
+* `supabase/tests/wishlist.test.ts`: validación SQL (también de festejados y de lo que escribe `serializeWishlist`) y RPC `get_event_public`.

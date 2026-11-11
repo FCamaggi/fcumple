@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import WishlistTab from './WishlistTab';
@@ -27,12 +27,14 @@ const mockEvent: OrganizerEvent = {
     enabled: true,
     title: 'Lista de regalos',
     displayMode: 'chip',
+    honorees: [],
     items: [
       {
         id: 'w-1',
         url: 'https://paris.cl/instax',
         title: 'Cámara Instax',
         imageUrl: 'https://paris.cl/img.jpg',
+        honoreeIds: [],
       },
     ],
   },
@@ -116,10 +118,78 @@ describe('WishlistTab', () => {
         enabled: true,
         title: 'Lista de regalos',
         displayMode: 'chip',
+        honorees: [],
         items: wishlistLib.resolveWishlist(mockEvent.wishlist).items,
       },
     });
 
     expect(await screen.findByText(/✓ Lista de regalos guardada con éxito/i)).toBeInTheDocument();
+  });
+
+  describe('festejados', () => {
+    async function addHonoree(user: ReturnType<typeof userEvent.setup>, name: string) {
+      await user.type(screen.getByLabelText(/Nombre del festejado/i), name);
+      await user.click(screen.getByRole('button', { name: /Agregar festejado/i }));
+    }
+
+    async function savedWishlist(user: ReturnType<typeof userEvent.setup>, save: ReturnType<typeof vi.fn>) {
+      await user.click(screen.getByRole('button', { name: /Guardar lista de regalos/i }));
+      return save.mock.calls[0][0].wishlist as wishlistLib.WishlistConfig;
+    }
+
+    it('agrega festejados y asigna un regalo existente a uno de ellos', async () => {
+      const user = userEvent.setup();
+      const save = vi.fn().mockResolvedValue(undefined);
+      render(<WishlistTab event={mockEvent} onUpdateEvent={save} />);
+
+      await addHonoree(user, 'Nacho');
+      await addHonoree(user, 'Grazia');
+      const toggle = screen.getByRole('button', { name: 'Cámara Instax: para Nacho' });
+      expect(toggle).toHaveAttribute('aria-pressed', 'false');
+      await user.click(toggle);
+      expect(toggle).toHaveAttribute('aria-pressed', 'true');
+
+      const saved = await savedWishlist(user, save);
+      expect(saved.honorees.map((h) => h.name)).toEqual(['Nacho', 'Grazia']);
+      expect(saved.items[0].honoreeIds).toEqual([saved.honorees[0].id]);
+    });
+
+    it('un regalo nuevo se puede asignar al agregarlo', async () => {
+      const user = userEvent.setup();
+      const save = vi.fn().mockResolvedValue(undefined);
+      render(<WishlistTab event={mockEvent} onUpdateEvent={save} />);
+
+      await addHonoree(user, 'Cata');
+      await user.type(screen.getByLabelText(/Enlace \/ Link del regalo/i), 'https://x.cl/libro');
+      await user.type(screen.getByLabelText(/Título del regalo/i), 'Libro');
+      await user.click(within(screen.getByRole('group', { name: /¿Para quién es\?/i })).getByLabelText('Cata'));
+      await user.click(screen.getByRole('button', { name: /\+ Agregar a la lista/i }));
+
+      const saved = await savedWishlist(user, save);
+      expect(saved.items[1]).toMatchObject({ title: 'Libro', honoreeIds: [saved.honorees[0].id] });
+    });
+
+    it('no acepta un nombre repetido', async () => {
+      const user = userEvent.setup();
+      render(<WishlistTab event={mockEvent} onUpdateEvent={vi.fn()} />);
+      await addHonoree(user, 'Nacho');
+      await addHonoree(user, ' nacho ');
+      expect(screen.getByText('Ese festejado ya está en la lista.')).toBeInTheDocument();
+      expect(screen.getAllByRole('button', { name: /^Quitar a / })).toHaveLength(1);
+    });
+
+    it('quitar un festejado lo saca también de sus regalos', async () => {
+      const user = userEvent.setup();
+      const save = vi.fn().mockResolvedValue(undefined);
+      render(<WishlistTab event={mockEvent} onUpdateEvent={save} />);
+
+      await addHonoree(user, 'Nacho');
+      await user.click(screen.getByRole('button', { name: 'Cámara Instax: para Nacho' }));
+      await user.click(screen.getByRole('button', { name: 'Quitar a Nacho' }));
+
+      const saved = await savedWishlist(user, save);
+      expect(saved.honorees).toEqual([]);
+      expect(saved.items[0].honoreeIds).toEqual([]);
+    });
   });
 });

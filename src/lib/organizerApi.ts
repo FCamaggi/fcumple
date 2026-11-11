@@ -6,7 +6,7 @@ import {
   type GuestAnswers,
   type ResolvedEnrollment,
 } from './enrollmentConfig';
-import { resolveWishlist, type WishlistConfig } from './wishlist';
+import { resolveWishlist, serializeWishlist, type WishlistConfig } from './wishlist';
 import type { AccessMode } from './platformApi';
 import type { ModerationPhoto } from './photosApi';
 import type { Photo } from '../types';
@@ -247,7 +247,7 @@ export async function updateEvent(eventId: string, patch: EventSettingsPatch): P
   if (patch.enrollment !== undefined) row.enrollment_config = serializeEnrollmentConfig(patch.enrollment);
   if (patch.subtitle !== undefined) row.subtitle = patch.subtitle;
   if (patch.theme !== undefined) row.theme = patch.theme;
-  if (patch.wishlist !== undefined) row.wishlist = patch.wishlist;
+  if (patch.wishlist !== undefined) row.wishlist = serializeWishlist(patch.wishlist);
 
   const { data, error } = await supabase.from('events').update(row).eq('id', eventId).select('*').single();
   if (error) {
