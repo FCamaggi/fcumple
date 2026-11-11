@@ -1,0 +1,36 @@
+# Fotos en calidad original servidas desde un PC propio
+
+Objetivo: que los invitados descarguen sus fotos en calidad original; un PC de la casa del dueño las guarda y las sirve, y Supabase queda como entrada y respaldo. Plan detallado: `docs/fase-1-mvp-multitenant/fotos-originales-pc-casa.md` (PR #78).
+Ramas: una por tarea desde main (`feat/captura-alta-resolucion` T1, `feat/fotos-originales-t2` T2…). Entrega: `ask-on-risk`, un PR por tarea. Runner: `npm test` (Vitest) y `npm run test:db` (Postgres real; en local, Postgres 16 de `/usr/lib/postgresql/16` en el puerto 55433 con `FCUMPLE_TEST_PG_EXTERNAL=1`).
+
+## Specs
+
+- **S1 — Calidad original.** "que puedan descargar las fotos con calidad original"; "no me gusta la idea de hacer de menos calidad las fotos para poder guardarlas, es mal servicio, ese es el foco de esto que te digo". La captura guarda el original a la mayor resolución que dé la cámara, y la descarga entrega ese archivo.
+- **S2 — El PC sirve, Supabase respalda.** "que el servicio al final lo preste el PC principalmente y lo que tenemos actualmente como backup". El celular sube a Supabase; un worker en el PC archiva el original y lo borra de Storage; el PC entrega las descargas por Cloudflare Tunnel con enlaces firmados por Supabase; si el PC no responde, la app ofrece la copia de Supabase. Sin puertos abiertos en la casa.
+- **S3 — Gratis.** "No hay forma free tier? osea haciendo algo nosotros en vez de usar algo pagado?". Dominio `.me` del GitHub Student Pack (el dueño lo tiene activo) y Cloudflare Tunnel en el plan gratis.
+- **S4 — Preparar el otro PC.** "necesito saber que hacer en el otro PC, voy a pullear este proyecto (y otros necesarios) para que funcione, quizas corro claude en el otro, asi que hay que hacer todo lo necesario para esto". Guía en el plan, sección «Qué hacer en el PC».
+- **S5 — Intervalo del rollo.** "quiero hacer configurable entre que saltos saldran las fotos al publicarlas, menos o mas tiempo que una hora que es actualmente". Las bandas fijas de 1 hora de `photoTimeline.ts` pasan a ser configurables por evento.
+- **S6 — Álbum por cara (exploración).** "explorar el usar un OCR o algo para identificar las caras de las personas, sin nombre asociado, sino que se arme un album por cara para que la gnete pueda buscar sus fotos". Solo investigación; dato biométrico sensible (Ley 21.719): consentimiento, opción de salir y borrado.
+
+## Tasks
+
+| ID | Specs | Ruta | Estado | Evidencia |
+|---|---|---|---|---|
+| T1 | S1 | inline | hecha; PR #79 en borrador (no fusionar antes de T3) | RED (salía a 2048 y 0,85) → GREEN; suite de 126 archivos y 1670 tests; verificador independiente sin bloqueos |
+| T2 | S2 | inline (riesgo alto: permisos y secreto → verificador independiente) | hecha; verificador: 1 bloqueo corregido, recheck PASS; sin commit (falta confirmación) | RED 13/13 (no existía `private.photo_archive`) → GREEN; regresión del bloqueo RED 2 → GREEN 17/17; `test:db` 17 archivos, 411 tests contra Postgres 16 local |
+| T3 | S2 | por decidir | pendiente | |
+| T4 | S2 | por decidir | pendiente | |
+| T5 | S1, S2 | por decidir | pendiente | |
+| T6 | S2, S4 | dueño + inline | pendiente | |
+| T7 | S5 | inline | pendiente | |
+| T8 | S6 | investigación | pendiente | |
+
+## Log
+
+- **L1 (2026-11-11, usuario):** "Voy a usar un PC que tengo en mi casa que va a estar encendido como fondo principal para la fotos, asi no tenemos problemas de espacio y podemos dejar las fotos con calidad original, comencemos el plan para lograr esto, necesito saber que hacer en el otro PC, voy a pullear este proyecto (y otros necesarios) para que funcione, quizas corro claude en el otro, asi que hay que hacer todo lo necesario para esto, por ahora solo la base de datos, porque el servidor no puedo asegurar todo lo necesario, por seguridad, etc."
+- **L2 (2026-11-11, usuario):** "Mmmm ta raro, osea yo queria usar mi pc para no tener mas limitaciones, pero por lo que veo no estamos resolviendolo, mi plan no funcionaria? se puede hacer lo suficientemente bien para que funcione lo que digo? que el servicio al final lo preste el PC principalmente y lo que tenemos actualmente como backup? entiendo que la previsualizacion es chica para que cargue mas rapido, pero no me gusta la idea de hacer de menos calidad las fotos para poder guardarlas, es mal servicio, ese es el foco de esto que te digo, apuntemos a resolver esto, que puedan descargar las fotos con calidad original / en esta misma linea quiero hacer configurable entre que saltos saldran las fotos al publicarlas, menos o mas tiempo que una hora que es actualmente y lo ultimo es explorar el usar un OCR o algo para identificar las caras de las personas, sin nombre asociado, sino que se arme un album por cara para que la gnete pueda buscar sus fotos"
+- **L3 (2026-11-11, usuario):** "No hay forma free tier? osea haciendo algo nosotros en vez de usar algo pagado?" → "y si usamos cloudflare tunnel con un dominio como el de github por ser estudiante o lo que ofrece https://github.com/DigitalPlatDev/FreeDomain, exploralo" → "si lo tengo activo" (Student Pack).
+- **L4 (análisis):** la calidad la limitaba la captura (2048 px, JPEG 0,85), no solo el almacenamiento. Supabase gratis: 1 GB de almacenamiento y unos 5 GB de salida. La regla de lectura de un original hoy: `anon` si la foto está aprobada y publicada (`party_photo_is_revealed`), `authenticated` si es dueño del evento (`storage_event_owner`).
+- **L5 (2026-11-11, usuario):** "si, commit, push y pr, y empieza con T1"; después "si, commit, push y pr, y sigue con T2".
+- **L6 (T2):** migración `20261111100026_photo_originals_pc.sql`: `photos.original_archived_at`, índice parcial de lo pendiente, `private.photo_archive` (una fila: `base_url` https y `signing_secret` de 32 caracteres o más, sin permisos para anon ni authenticated) y `photo_original_url(ruta)`. Regla: anon si la foto está aprobada y publicada, los dueños siempre; una ruta inexistente o la copia liviana responden `not_allowed` (42501) igual que una prohibida; sin configuración o sin archivar devuelve null y la app sigue con Storage. Firma HMAC-SHA256 en hex de `"<ruta>\n<exp>"`, vence en 1 hora. `resetPublicSchema` de los tests ahora borra también `private`. Para activarlo, el dueño carga la fila desde el editor SQL de Supabase con la dirección del túnel y el mismo secreto que tiene el PC.
+- **L7 (verificación de T2):** el verificador independiente encontró un bloqueo: el RPC tomaba el evento de la fila de la foto y Storage decide por el evento de la ruta. Como `owner_all` deja a un dueño insertar filas con cualquier `storage_path`, el dueño de A podía firmar un original de B que siguiera en el PC después de borrarse la fila de B. Corrección: la ruta debe tener el formato de `submit_photo` y sus dos primeras carpetas deben ser el evento y el invitado de la fila; los tests de regresión reproducen su sonda. Avisos para después: el servidor del PC (T4) debe leer `exp` con `^\d+$` y comparar la firma en tiempo constante; antes de desplegar, revisar en el proyecto real `select nspname from pg_namespace where nspname = 'private'` (si ya existiera con otros objetos, el `revoke` les quitaría permisos); un usuario autenticado que no es dueño obtiene enlaces de fotos publicadas, igual que cualquiera como anon.
