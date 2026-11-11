@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Client } from 'pg';
 import { asAnon, asUser, connect, createEvent, createUser, resetAndMigrate } from './helpers';
+import { resolveWishlist, serializeWishlist } from '../../src/lib/wishlist';
 
 let db: Client;
 let owner: string;
@@ -118,6 +119,57 @@ describe('wishlist / lista de regalos en la base de datos', () => {
       enabled: false,
       display_mode: 'chip',
       items: [],
+    });
+  });
+
+  describe('festejados (varios dueños)', () => {
+    const isValid = async (w: unknown) =>
+      (await db.query<{ ok: boolean }>('select valid_event_wishlist($1::jsonb) as ok', [JSON.stringify(w)])).rows[0].ok;
+
+    const base = {
+      enabled: true,
+      display_mode: 'chip',
+      honorees: [
+        { id: 'h1', name: 'Nacho' },
+        { id: 'h2', name: 'Grazia' },
+      ],
+      items: [
+        { id: 'a', url: 'https://x.cl/a', title: 'Patineta', honoree_ids: ['h1'] },
+        { id: 'b', url: 'https://x.cl/b', title: 'Juego de mesa' },
+      ],
+    };
+
+    it('acepta festejados y regalos asignados a ellos', async () => {
+      expect(await isValid(base)).toBe(true);
+    });
+
+    it('rechaza un regalo asignado a un festejado que no existe o repetido', async () => {
+      expect(await isValid({ ...base, items: [{ ...base.items[0], honoree_ids: ['h9'] }] })).toBe(false);
+      expect(await isValid({ ...base, items: [{ ...base.items[0], honoree_ids: ['h1', 'h1'] }] })).toBe(false);
+      const { honorees: _h, ...sinFestejados } = base;
+      expect(await isValid(sinFestejados)).toBe(false);
+    });
+
+    it('rechaza festejados mal formados', async () => {
+      expect(await isValid({ ...base, honorees: [{ id: 'h1', name: '  ' }] , items: [] })).toBe(false);
+      expect(await isValid({ ...base, honorees: [{ id: 'h1', name: 'A' }, { id: 'h1', name: 'B' }], items: [] })).toBe(false);
+      expect(await isValid({ ...base, honorees: [{ id: 'h1', name: 'A', email: 'x' }], items: [] })).toBe(false);
+      const siete = Array.from({ length: 7 }, (_, i) => ({ id: `h${i}`, name: `P${i}` }));
+      expect(await isValid({ ...base, honorees: siete, items: [] })).toBe(false);
+    });
+
+    it('lo que escribe el panel (serializeWishlist) pasa la validación de la base', async () => {
+      const config = resolveWishlist({
+        ...base,
+        display_mode: 'card',
+        title: 'Regalos',
+        items: [
+          { id: 'a', url: 'https://x.cl/a', title: 'Patineta', image_url: 'https://x.cl/a.jpg', honoree_ids: ['h1', 'h2'] },
+          { id: 'b', url: 'https://x.cl/b', title: 'Pinturas', price: '$5.000', notes: 'Acuarela' },
+        ],
+      });
+      expect(await isValid(serializeWishlist(config))).toBe(true);
+      expect(await isValid(serializeWishlist(resolveWishlist(null)))).toBe(true);
     });
   });
 });
