@@ -173,6 +173,78 @@ export async function getSignedPhotoDownloadUrl(storagePath: string): Promise<st
   return (data as { signedUrl: string }).signedUrl;
 }
 
+/**
+ * De dónde sale el archivo que baja «Descargar»:
+ * - `pc`: el original archivado en el PC del evento (T5 de odd/tasks/fotos-originales-pc.md);
+ * - `storage`: el original todavía en Supabase Storage (sin archivar, o el PC sin configurar);
+ * - `display`: la copia liviana de 640 px, con un aviso, cuando el original no está disponible;
+ * - `unavailable`: no hay nada que bajar.
+ */
+export type PhotoDownload =
+  | { source: 'pc' | 'storage'; url: string }
+  | { source: 'display'; url: string; notice: string }
+  | { source: 'unavailable'; notice: string };
+
+const PC_HEALTH_TIMEOUT_MS = 4000;
+const NOTICE_PC_DOWN =
+  'El equipo con las fotos originales no responde. Te bajamos una copia liviana; vuelve a intentarlo más tarde para tenerla en calidad original.';
+const NOTICE_ORIGINAL_MISSING = 'No encontramos la foto original. Te bajamos una copia liviana.';
+const NOTICE_UNAVAILABLE = 'No pudimos descargar esta foto. Vuelve a intentarlo más tarde.';
+
+/** Enlace firmado al original en el PC, o null si no está archivado, el PC no está configurado o la RPC falla. */
+async function getPcOriginalUrl(storagePath: string): Promise<string | null> {
+  const { data, error } = await supabase.rpc('photo_original_url', { p_storage_path: storagePath });
+  if (error || typeof data !== 'string') return null;
+  return data;
+}
+
+/** ¿El servidor del PC responde `{"ok":true}` en /health a tiempo? Solo se confía en enlaces https. */
+async function isPhotoServerUp(signedUrl: string): Promise<boolean> {
+  let origin: string;
+  try {
+    const url = new URL(signedUrl);
+    if (url.protocol !== 'https:') return false;
+    origin = url.origin;
+  } catch {
+    return false;
+  }
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), PC_HEALTH_TIMEOUT_MS);
+  try {
+    const res = await fetch(`${origin}/health`, { cache: 'no-store', signal: controller.signal });
+    if (!res.ok) return false;
+    const body = (await res.json()) as { ok?: unknown };
+    return body?.ok === true;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * Elige la mejor descarga disponible: el original del PC si está archivado y el PC responde; si no, el original
+ * en Storage; si tampoco está (ya se archivó y el PC está caído), la copia liviana con un aviso.
+ */
+export async function resolvePhotoDownload(
+  storagePath: string,
+  displayStoragePath: string | null,
+): Promise<PhotoDownload> {
+  if (isSamplePhotoPath(storagePath)) return { source: 'storage', url: storagePath };
+
+  const pcUrl = await getPcOriginalUrl(storagePath);
+  if (pcUrl && (await isPhotoServerUp(pcUrl))) return { source: 'pc', url: pcUrl };
+
+  // Aunque el original esté archivado, puede seguir en Storage (worker con --conservar-en-storage).
+  const original = await getSignedPhotoDownloadUrl(storagePath).catch(() => null);
+  if (original) return { source: 'storage', url: original };
+
+  const display = displayStoragePath ? await getSignedPhotoDownloadUrl(displayStoragePath).catch(() => null) : null;
+  if (display) return { source: 'display', url: display, notice: pcUrl ? NOTICE_PC_DOWN : NOTICE_ORIGINAL_MISSING };
+
+  return { source: 'unavailable', notice: NOTICE_UNAVAILABLE };
+}
+
 // `anon` no tiene ningún grant sobre `public.photos` (revoke all, sin
 // ninguna policy para ese rol -- ver supabase/README.md), así que la única
 // vía de lectura es la RPC `list_revealed_photos()` (SECURITY DEFINER,
