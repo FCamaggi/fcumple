@@ -30,7 +30,7 @@ El QR es, en el fondo, un enlace: alguien puede fotografiarlo y reenviarlo a qui
 
 La cartelera del invitado reúne:
 - **Avisos** de la dueña (pestaña **Avisos** del panel, ahora atados al evento). Cada aviso puede llevar portada y una galería, que se muestra como carrusel.
-- **Fotos de la fiesta**: un carrusel con las últimas 10 fotos publicadas (`PhotoCarousel`), con carga diferida y la copia liviana (`display`) si existe; tocar una foto abre el visor. Debajo sigue el rollo completo por horas (`RevealedRoll`).
+- **Fotos de la fiesta**: un carrusel con las últimas 10 fotos publicadas (`PhotoCarousel`), con carga diferida y la copia liviana (`display`) si existe; tocar una foto abre el visor. Debajo sigue el rollo completo en bandas de tiempo (`RevealedRoll`): 1 hora por defecto, o el intervalo que elija la organizadora en Ajustes («Las fotos del rollo se agrupan cada»: 15 o 30 minutos, 1 hora, 1 hora y media, 2 o 3 horas; columna `events.roll_band_minutes`, que entrega `get_event_public`). Las bandas se cuentan desde la medianoche en horario de Chile.
 - La lista de fotos se vuelve a pedir cada minuto mientras la página está a la vista. No hay tareas programadas ni Realtime.
 
 ### Las fotos se publican por lotes

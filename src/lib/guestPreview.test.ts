@@ -259,3 +259,9 @@ describe('PREVIEW_READY_TYPE', () => {
     expect(parsePreviewMessage({ type: PREVIEW_READY_TYPE, state: 'activa', draft: null })).toBeNull();
   });
 });
+
+describe('toPublicPreviewEvent: intervalo del rollo', () => {
+  it('copia el intervalo del rollo de la organizadora', () => {
+    expect(toPublicPreviewEvent({ ...event, rollBandMinutes: 15 }).rollBandMinutes).toBe(15);
+  });
+});

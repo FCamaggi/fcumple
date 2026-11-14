@@ -272,3 +272,12 @@ describe('activateCamera', () => {
     await expect(activateCamera('tok', 'x')).rejects.toThrow(/No pudimos activar la cámara/);
   });
 });
+
+describe('getEventPublic: intervalo del rollo', () => {
+  it('entrega el intervalo del rollo, y 60 si la fila no lo trae', async () => {
+    rpc.mockResolvedValueOnce({ data: [{ ...eventRow, roll_band_minutes: 90 }], error: null });
+    expect((await getEventPublic('fiesta-abcd'))?.rollBandMinutes).toBe(90);
+    rpc.mockResolvedValueOnce({ data: [eventRow], error: null });
+    expect((await getEventPublic('fiesta-abcd'))?.rollBandMinutes).toBe(60);
+  });
+});

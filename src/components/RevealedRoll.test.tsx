@@ -117,3 +117,22 @@ describe('RevealedRoll', () => {
     expect(screen.queryByRole('button', { name: /descargar/i })).not.toBeInTheDocument();
   });
 });
+
+describe('RevealedRoll: intervalo de las bandas', () => {
+  const photos = [
+    { storagePath: 'tok1/a.jpg', displayStoragePath: null, createdAt: '2026-10-10T01:10:00Z' }, // 22:10
+    { storagePath: 'tok2/b.jpg', displayStoragePath: null, createdAt: '2026-10-10T01:40:00Z' }, // 22:40
+  ];
+
+  it('usa bandas de 1 hora si no se indica otro intervalo', () => {
+    render(<RevealedRoll photos={photos} />);
+    expect(screen.getByText('22:00 — 23:00')).toBeInTheDocument();
+  });
+
+  it('usa el intervalo del evento', () => {
+    render(<RevealedRoll photos={photos} bandMinutes={30} />);
+    expect(screen.getByText('22:00 — 22:30')).toBeInTheDocument();
+    expect(screen.getByText('22:30 — 23:00')).toBeInTheDocument();
+    expect(screen.queryByText('22:00 — 23:00')).toBeNull();
+  });
+});

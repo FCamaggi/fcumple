@@ -266,3 +266,30 @@ describe('EventSettingsPanel', () => {
     expect(screen.getByText(/No se pide RUT, correo ni teléfono/)).toBeInTheDocument();
   });
 });
+
+describe('EventSettingsPanel: intervalo del rollo', () => {
+  it('muestra 1 hora por defecto y no reenvía el intervalo si no se toca', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<EventSettingsPanel event={event} onSave={onSave} />);
+    expect(screen.getByLabelText('Las fotos del rollo se agrupan cada')).toHaveValue('60');
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar ajustes' }));
+    expect(onSave.mock.calls[0][0]).not.toHaveProperty('rollBandMinutes');
+  });
+
+  it('guarda el intervalo elegido', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<EventSettingsPanel event={{ ...event, rollBandMinutes: 60 }} onSave={onSave} />);
+    const select = screen.getByLabelText('Las fotos del rollo se agrupan cada');
+    expect([...(select as HTMLSelectElement).options].map((o) => o.textContent)).toEqual([
+      '15 minutos',
+      '30 minutos',
+      '1 hora',
+      '1 hora y media',
+      '2 horas',
+      '3 horas',
+    ]);
+    await userEvent.selectOptions(select, '30');
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar ajustes' }));
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ rollBandMinutes: 30 }));
+  });
+});

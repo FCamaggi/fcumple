@@ -214,6 +214,7 @@ export default function GuestPreviewPage() {
           quota={scenario.quota}
           posts={scenario.posts}
           revealed={scenario.revealed}
+          rollBandMinutes={publicEvent.rollBandMinutes}
           refreshing={false}
           onOpenCamera={() => {
             const quotaTotal = scenario.quota?.quota ?? event.defaultPhotoQuota ?? 5;
