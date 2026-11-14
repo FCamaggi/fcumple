@@ -1,6 +1,7 @@
 import { supabase } from './supabaseClient';
 import { resolveEnrollmentConfig, type ResolvedEnrollment } from './enrollmentConfig';
 import { resolveWishlist, type WishlistConfig } from './wishlist';
+import { DEFAULT_ROLL_BAND_MINUTES } from './photoTimeline';
 
 /**
  * Capa de acceso de la Fase 1 (plataforma multi-tenant): evento público e
@@ -25,6 +26,8 @@ export interface EventPublic {
   photosRevealed: boolean;
   /** Hora límite de la cámara (ISO). Pasada, ya no entran fotos nuevas. `null` = sin límite. */
   cameraClosesAt?: string | null;
+  /** Minutos de cada banda del rollo revelado (60 si el evento no lo eligió). */
+  rollBandMinutes?: number;
   /** Qué le pide el organizador al inscribirse (+1, comentario, preguntas, bienvenida). */
   enrollment: ResolvedEnrollment;
   /** Línea debajo del título (p. ej. «Cumpleaños Martina» bajo «NOCHE DE DISFRACES»). */
@@ -74,6 +77,7 @@ interface EventRow {
   rsvp_enabled: boolean;
   photos_revealed: boolean;
   camera_closes_at?: string | null;
+  roll_band_minutes?: number;
   enrollment_config: unknown;
   subtitle: string | null;
   theme: unknown;
@@ -105,6 +109,7 @@ export async function getEventPublic(slug: string): Promise<EventPublic | null> 
     rsvpEnabled: row.rsvp_enabled,
     photosRevealed: row.photos_revealed,
     cameraClosesAt: row.camera_closes_at ?? null,
+    rollBandMinutes: row.roll_band_minutes ?? DEFAULT_ROLL_BAND_MINUTES,
     enrollment: resolveEnrollmentConfig(row.enrollment_config),
     subtitle: row.subtitle ?? null,
     theme: row.theme ?? {},

@@ -21,7 +21,11 @@ vi.mock('./PhotoCarousel', () => ({
   default: ({ photos }: { photos: unknown[] }) => <div data-testid="carousel">{photos.length}</div>,
 }));
 vi.mock('./RevealedRoll', () => ({
-  default: ({ photos }: { photos: unknown[] }) => <div data-testid="roll">{photos.length}</div>,
+  default: ({ photos, bandMinutes }: { photos: unknown[]; bandMinutes?: number }) => (
+    <div data-testid="roll" data-band-minutes={bandMinutes}>
+      {photos.length}
+    </div>
+  ),
 }));
 vi.mock('./CameraCapture', () => ({
   default: ({
@@ -282,5 +286,17 @@ describe('GuestHub', () => {
     setup({ event: { cameraUnlock: 'on_checkin' } });
     await screen.findByText(/aún bloqueada/);
     expect(useCameraAssets).toHaveBeenCalledWith('tok', false);
+  });
+});
+
+describe('GuestHub: intervalo del rollo', () => {
+  it('le pasa al rollo el intervalo del evento', async () => {
+    vi.mocked(listRevealedPhotosForGuest).mockResolvedValue([
+      { storagePath: 'tok1/a.jpg', displayStoragePath: null, createdAt: '2026-10-10T01:10:00Z' },
+      { storagePath: 'tok2/b.jpg', displayStoragePath: null, createdAt: '2026-10-10T01:40:00Z' },
+    ] as never);
+    setup({ event: { rollBandMinutes: 30 } });
+    await waitFor(() => expect(screen.getByTestId('roll')).toHaveTextContent('2'));
+    expect(screen.getByTestId('roll')).toHaveAttribute('data-band-minutes', '30');
   });
 });

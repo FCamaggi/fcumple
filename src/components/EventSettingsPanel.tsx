@@ -5,6 +5,7 @@ import { isoToLocalInput, localInputToIso } from '../lib/localDateTime';
 import EventOwnersSection from './EventOwnersSection';
 import PhoneFrame from './PhoneFrame';
 import { THEME_PRESETS, resolveTheme } from '../lib/theme';
+import { DEFAULT_ROLL_BAND_MINUTES, ROLL_BAND_MINUTES, type RollBandMinutes } from '../lib/photoTimeline';
 
 interface EventSettingsPanelProps {
   event: OrganizerEvent;
@@ -15,6 +16,15 @@ const ACCESS_LABELS: Record<AccessMode, string> = {
   open: 'Abierto: cualquiera con el enlace se inscribe',
   list: 'Solo quienes están en mi lista',
   list_requests: 'Mi lista, y quien no está puede pedir acceso',
+};
+
+const ROLL_BAND_LABELS: Record<RollBandMinutes, string> = {
+  15: '15 minutos',
+  30: '30 minutos',
+  60: '1 hora',
+  90: '1 hora y media',
+  120: '2 horas',
+  180: '3 horas',
 };
 
 const UNLOCK_LABELS: Record<CameraUnlock, string> = {
@@ -39,6 +49,8 @@ export default function EventSettingsPanel({ event, onSave }: EventSettingsPanel
   const [accessMode, setAccessMode] = useState<AccessMode>(event.accessMode);
   const [cameraUnlock, setCameraUnlock] = useState<CameraUnlock>(event.cameraUnlock);
   const [cameraClosesAt, setCameraClosesAt] = useState(isoToLocalInput(event.cameraClosesAt ?? null));
+  const savedRollBand = event.rollBandMinutes ?? DEFAULT_ROLL_BAND_MINUTES;
+  const [rollBand, setRollBand] = useState(String(savedRollBand));
   const [showPreview, setShowPreview] = useState(false);
   // La dirección no lleva el estilo ni cambia al elegir otro: si cambiara, el iframe se recargaría con cada opción.
   const [previewSrc] = useState(() => `/panel/e/${event.id}/vista-previa?estado=activa`);
@@ -92,6 +104,7 @@ export default function EventSettingsPanel({ event, onSave }: EventSettingsPanel
         ...(cameraClosesAt !== isoToLocalInput(event.cameraClosesAt ?? null)
           ? { cameraClosesAt: localInputToIso(cameraClosesAt) }
           : {}),
+        ...(Number(rollBand) !== savedRollBand ? { rollBandMinutes: Number(rollBand) } : {}),
       });
       setMessage({ kind: 'ok', text: 'Ajustes guardados.' });
     } catch (err) {
@@ -259,6 +272,23 @@ export default function EventSettingsPanel({ event, onSave }: EventSettingsPanel
         >
           Cerrar la cámara ahora
         </button>
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <label htmlFor="ev-roll-band" className={labelClass}>
+          Las fotos del rollo se agrupan cada
+        </label>
+        <select id="ev-roll-band" value={rollBand} onChange={(e) => setRollBand(e.target.value)} className={selectClass}>
+          {ROLL_BAND_MINUTES.map((minutes) => (
+            <option key={minutes} value={minutes}>
+              {ROLL_BAND_LABELS[minutes]}
+            </option>
+          ))}
+        </select>
+        <p className="font-sans text-xs text-paper-100/60">
+          Las fotos publicadas se muestran en bloques según la hora en que se tomaron. Con bloques más cortos el rollo
+          se ve más detallado; con más largos, más compacto.
+        </p>
       </div>
 
       <p className="font-sans text-xs text-paper-100/60">
