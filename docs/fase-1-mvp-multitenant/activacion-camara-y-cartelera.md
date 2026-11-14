@@ -31,6 +31,7 @@ El QR es, en el fondo, un enlace: alguien puede fotografiarlo y reenviarlo a qui
 La cartelera del invitado reúne:
 - **Avisos** de la dueña (pestaña **Avisos** del panel, ahora atados al evento). Cada aviso puede llevar portada y una galería, que se muestra como carrusel.
 - **Fotos de la fiesta**: un carrusel con las últimas 10 fotos publicadas (`PhotoCarousel`), con carga diferida y la copia liviana (`display`) si existe; tocar una foto abre el visor. Debajo sigue el rollo completo por horas (`RevealedRoll`).
+- **Aparezco en esta foto**: en el visor, el invitado identificado marca a mano las fotos publicadas donde sale (botón «Aparezco en esta foto», se activa y desactiva). Las que marcó forman su álbum, la sección «Fotos donde apareces» de la cartelera, que abre el visor solo con ellas. Sin reconocimiento facial: es la opción C de la investigación del álbum por cara (PR #86). Las marcas son privadas: viven en `photo_appearances`, que nadie lee directo; se escriben con `set_photo_appearance(token, ruta, aparezco)`, que solo acepta fotos publicadas del evento del invitado, y cada invitado ve las suyas en la columna `appears` de `list_revealed_photos`. La vista previa de la organizadora no muestra el botón.
 - La lista de fotos se vuelve a pedir cada minuto mientras la página está a la vista. No hay tareas programadas ni Realtime.
 
 ### Las fotos se publican por lotes

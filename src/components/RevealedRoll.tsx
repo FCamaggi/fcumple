@@ -13,6 +13,8 @@ export interface RawRevealedPhoto {
    */
   displayStoragePath: string | null;
   createdAt: string;
+  /** El invitado marcó que aparece en esta foto («aparezco en esta foto»). */
+  appears?: boolean;
 }
 
 interface RevealedRollProps {

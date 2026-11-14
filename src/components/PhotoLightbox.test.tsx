@@ -2,6 +2,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import PhotoLightbox from './PhotoLightbox';
+import { PhotoAppearanceContext } from './PhotoAppearanceContext';
 
 vi.mock('../lib/photosApi', () => ({
   getSignedPhotoUrl: vi.fn(),
@@ -256,4 +257,49 @@ describe('PhotoLightbox', () => {
   // implement layout/pointer capture, so simulating a real drag gesture
   // (PanInfo offsets included) isn't meaningfully possible in this
   // environment. Covered manually on-device instead.
+});
+
+describe('PhotoLightbox: aparezco en esta foto', () => {
+  const marked = [
+    { storagePath: 'tok/a.jpg', displayStoragePath: null, createdAt: '2026-10-10T01:00:00Z', appears: true },
+    { storagePath: 'tok/b.jpg', displayStoragePath: null, createdAt: '2026-10-10T01:10:00Z', appears: false },
+  ];
+
+  it('sin contexto (vista previa, Fase 0) no ofrece el botón', async () => {
+    render(<PhotoLightbox photos={marked} startIndex={0} onClose={vi.fn()} />);
+    await screen.findByRole('dialog');
+    expect(screen.queryByRole('button', { name: /aparezco en esta foto/i })).toBeNull();
+  });
+
+  it('muestra si el invitado ya marcó la foto y la desmarca o marca al tocar', async () => {
+    const user = userEvent.setup();
+    const toggle = vi.fn().mockResolvedValue(undefined);
+    render(
+      <PhotoAppearanceContext.Provider value={{ toggle }}>
+        <PhotoLightbox photos={marked} startIndex={0} onClose={vi.fn()} />
+      </PhotoAppearanceContext.Provider>,
+    );
+    const button = await screen.findByRole('button', { name: /aparezco en esta foto/i });
+    expect(button).toHaveAttribute('aria-pressed', 'true');
+    await user.click(button);
+    expect(toggle).toHaveBeenCalledWith('tok/a.jpg', false);
+
+    await user.click(screen.getByRole('button', { name: 'Foto siguiente' }));
+    const next = screen.getByRole('button', { name: /aparezco en esta foto/i });
+    expect(next).toHaveAttribute('aria-pressed', 'false');
+    await user.click(next);
+    expect(toggle).toHaveBeenLastCalledWith('tok/b.jpg', true);
+  });
+
+  it('avisa si no se pudo guardar', async () => {
+    const user = userEvent.setup();
+    const toggle = vi.fn().mockRejectedValue(new Error('No pudimos guardar el cambio. Intenta de nuevo.'));
+    render(
+      <PhotoAppearanceContext.Provider value={{ toggle }}>
+        <PhotoLightbox photos={marked} startIndex={1} onClose={vi.fn()} />
+      </PhotoAppearanceContext.Provider>,
+    );
+    await user.click(await screen.findByRole('button', { name: /aparezco en esta foto/i }));
+    expect(await screen.findByRole('status')).toHaveTextContent('No pudimos guardar el cambio. Intenta de nuevo.');
+  });
 });

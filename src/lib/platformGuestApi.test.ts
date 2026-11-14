@@ -13,6 +13,7 @@ import {
   getPublicHeadcount,
   listPublishedPosts,
   listRevealedPhotosForGuest,
+  setPhotoAppearance,
   uploadGuestPhoto,
 } from './platformGuestApi';
 
@@ -78,7 +79,7 @@ describe('listRevealedPhotosForGuest', () => {
     const photos = await listRevealedPhotosForGuest('tok');
     expect(rpc).toHaveBeenCalledWith('list_revealed_photos', { p_token: 'tok' });
     expect(photos).toEqual([
-      { storagePath: 'ev/g/a.jpg', displayStoragePath: null, createdAt: '2026-10-15T01:00:00Z' },
+      { storagePath: 'ev/g/a.jpg', displayStoragePath: null, createdAt: '2026-10-15T01:00:00Z', appears: false },
     ]);
   });
 });
@@ -236,3 +237,28 @@ describe('getStickerImageUrl', () => {
     await expect(getStickerImageUrl('p')).rejects.toThrow(/sticker/);
   });
 });
+
+describe('aparezco en esta foto', () => {
+  it('el rollo dice en qué fotos marcó el invitado que aparece', async () => {
+    rpc.mockResolvedValueOnce({
+      data: [{ storage_path: 'ev/g/a.jpg', display_storage_path: null, created_at: '2026-10-15T01:00:00Z', appears: true }],
+      error: null,
+    });
+    expect((await listRevealedPhotosForGuest('tok'))[0].appears).toBe(true);
+  });
+
+  it('setPhotoAppearance marca y desmarca con el token del invitado y devuelve el estado final', async () => {
+    rpc.mockResolvedValueOnce({ data: true, error: null });
+    expect(await setPhotoAppearance('tok', 'ev/g/a.jpg', true)).toBe(true);
+    expect(rpc).toHaveBeenCalledWith('set_photo_appearance', { p_token: 'tok', p_storage_path: 'ev/g/a.jpg', p_appears: true });
+
+    rpc.mockResolvedValueOnce({ data: false, error: null });
+    expect(await setPhotoAppearance('tok', 'ev/g/a.jpg', false)).toBe(false);
+  });
+
+  it('setPhotoAppearance explica el error sin mostrar el de la base', async () => {
+    rpc.mockResolvedValueOnce({ data: null, error: { code: '42501', message: 'not_allowed' } });
+    await expect(setPhotoAppearance('tok', 'ev/g/a.jpg', true)).rejects.toThrow('No pudimos guardar el cambio. Intenta de nuevo.');
+  });
+});
+

@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import AnnouncementFeed from './AnnouncementFeed';
 import CameraSection from './CameraSection';
 import PhotoCarousel from './PhotoCarousel';
+import PhotoLightbox from './PhotoLightbox';
 import RevealedRoll, { type RawRevealedPhoto } from './RevealedRoll';
 import WishlistSection from './WishlistSection';
 import type { CameraUnlock } from '../lib/platformApi';
@@ -120,7 +122,49 @@ export default function GuestHubView({
 
       <PhotoCarousel photos={revealed} />
 
+      <MyAppearances revealed={revealed} />
+
       <RevealedRoll photos={revealed} />
     </div>
+  );
+}
+
+/**
+ * «Fotos donde apareces»: el álbum que arma cada invitado marcando «Aparezco en esta foto» en el visor. Solo se
+ * muestra si marcó alguna. Al abrirlo se fija qué fotos se ven, para que desmarcar una con el visor abierto no
+ * la saque de debajo del dedo; la lista se actualiza al cerrarlo.
+ */
+function MyAppearances({ revealed }: { revealed: RawRevealedPhoto[] }) {
+  const [openPaths, setOpenPaths] = useState<string[] | null>(null);
+  const mine = revealed.filter((p) => p.appears);
+
+  const shown = openPaths ? revealed.filter((p) => openPaths.includes(p.storagePath)) : [];
+  // Sin fotos marcadas y sin visor que mostrar (también si se despublicó todo lo del álbum abierto).
+  if (mine.length === 0 && shown.length === 0) return null;
+  const count = mine.length;
+
+  return (
+    <section className="flex flex-col gap-3 bg-ink-900 p-4 shadow-2xl" aria-label="Fotos donde apareces">
+      <span className="font-mono text-xs font-bold uppercase tracking-wider text-acid-400">
+        Tu álbum // donde apareces
+      </span>
+      {count > 0 && (
+        <>
+          <p className="font-sans text-sm text-paper-100/80">
+            Marcaste {count} {count === 1 ? 'foto' : 'fotos'} donde apareces.
+          </p>
+          <button
+            type="button"
+            onClick={() => setOpenPaths(mine.map((p) => p.storagePath))}
+            className="h-11 border border-acid-400 font-display text-sm uppercase tracking-wider text-acid-400"
+          >
+            {count === 1 ? 'Ver mi foto' : `Ver mis ${count} fotos`}
+          </button>
+        </>
+      )}
+      {openPaths && shown.length > 0 && (
+        <PhotoLightbox photos={shown} startIndex={0} onClose={() => setOpenPaths(null)} />
+      )}
+    </section>
   );
 }
