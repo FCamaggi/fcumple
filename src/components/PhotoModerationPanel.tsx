@@ -110,7 +110,8 @@ export default function PhotoModerationPanel({ onClose, source, initiallyReveale
     }
     let active = true;
     setPhotoUrl(null);
-    getSignedPhotoUrl(current.storagePath)
+    // La copia liviana basta para moderar y sigue en Storage; el original puede haberse ido ya al PC del evento.
+    getSignedPhotoUrl(current.displayStoragePath ?? current.storagePath)
       .then((url) => {
         if (active) setPhotoUrl(url);
       })
