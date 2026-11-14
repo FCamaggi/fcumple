@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion, type PanInfo } from 'framer-motion';
-import { getSignedPhotoDownloadUrl, getSignedPhotoUrl } from '../lib/photosApi';
+import { getSignedPhotoUrl, resolvePhotoDownload } from '../lib/photosApi';
 
 export interface LightboxPhoto {
   storagePath: string;
@@ -8,7 +8,8 @@ export interface LightboxPhoto {
    * Bandwidth-friendly copy for on-screen viewing (Etapa 15) -- `null` for
    * photos that predate the feature or whose display copy failed to
    * generate/upload. The fullscreen image prefers this; the download
-   * button always requests `storagePath` (the original) regardless.
+   * button asks for the original (on the event PC or in Storage) and only
+   * falls back to this copy, with a notice, when the original is unavailable.
    */
   displayStoragePath: string | null;
   createdAt: string;
@@ -45,6 +46,8 @@ export default function PhotoLightbox({ photos, startIndex, onClose }: PhotoLigh
   const [index, setIndex] = useState(startIndex);
   const [urls, setUrls] = useState<Record<string, string>>({});
   const [downloading, setDownloading] = useState(false);
+  // Aviso de la última descarga (copia liviana o foto no disponible), por storagePath: es de esa foto.
+  const [notice, setNotice] = useState<{ storagePath: string; text: string } | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   // Elemento que tenía el foco antes de abrir el visor (el thumbnail o botón
   // "Ver las N fotos" que lo disparó) -- se le devuelve el foco al cerrar
@@ -169,11 +172,16 @@ export default function PhotoLightbox({ photos, startIndex, onClose }: PhotoLigh
   async function handleDownload() {
     if (!current) return;
     setDownloading(true);
-    const downloadUrl = await getSignedPhotoDownloadUrl(current.storagePath).catch(() => null);
+    setNotice(null);
+    const download = await resolvePhotoDownload(current.storagePath, current.displayStoragePath).catch(() => null);
     setDownloading(false);
-    if (!downloadUrl) return;
+    if (!download) return;
+    if (download.source === 'display' || download.source === 'unavailable') {
+      setNotice({ storagePath: current.storagePath, text: download.notice });
+    }
+    if (download.source === 'unavailable') return;
     const link = document.createElement('a');
-    link.href = downloadUrl;
+    link.href = download.url;
     link.rel = 'noopener';
     document.body.appendChild(link);
     link.click();
@@ -190,6 +198,7 @@ export default function PhotoLightbox({ photos, startIndex, onClose }: PhotoLigh
 
   if (!current) return null;
   const currentUrl = urls[current.storagePath];
+  const currentNotice = notice?.storagePath === current.storagePath ? notice.text : null;
 
   return (
     <div
@@ -267,6 +276,11 @@ export default function PhotoLightbox({ photos, startIndex, onClose }: PhotoLigh
         >
           {downloading ? 'Generando…' : 'Descargar'}
         </button>
+        {currentNotice && (
+          <p role="status" className="max-w-xs text-center font-mono text-xs text-paper-100/70">
+            {currentNotice}
+          </p>
+        )}
       </motion.div>
     </div>
   );

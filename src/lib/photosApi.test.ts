@@ -18,6 +18,7 @@ import {
   moderatePhoto,
   getSignedPhotoUrl,
   getSignedPhotoDownloadUrl,
+  resolvePhotoDownload,
   listRevealedPhotos,
 } from './photosApi';
 import { SAMPLE_PHOTOS } from './samplePhotos';
@@ -346,5 +347,143 @@ describe('listRevealedPhotos', () => {
     rpc.mockResolvedValue({ data: null, error: { message: 'network down' } });
 
     await expect(listRevealedPhotos()).rejects.toThrow(/network down/);
+  });
+});
+
+describe('resolvePhotoDownload', () => {
+  const PC_URL = 'https://fotos.example.me/p/ev/gu/a.jpg?exp=1800003600&sig=abc';
+  let fetchMock: ReturnType<typeof vi.fn>;
+
+  /** Storage firma solo las rutas de `present`; las demás responden "Object not found". */
+  function storageWith(present: string[]) {
+    const createSignedUrl = vi.fn(async (path: string) =>
+      present.includes(path)
+        ? { data: { signedUrl: `https://signed.example/${path}?download` }, error: null }
+        : { data: null, error: { message: 'Object not found' } },
+    );
+    storageFrom.mockReturnValue({ createSignedUrl });
+    return createSignedUrl;
+  }
+
+  const healthy = () => fetchMock.mockResolvedValue(new Response(JSON.stringify({ ok: true }), { status: 200 }));
+
+  beforeEach(() => {
+    fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+  });
+
+  it('uses the original on the PC when it is archived and the PC answers /health', async () => {
+    rpc.mockResolvedValue({ data: PC_URL, error: null });
+    healthy();
+    const createSignedUrl = storageWith([]);
+
+    expect(await resolvePhotoDownload('ev/gu/a.jpg', 'ev/gu/a-display.jpg')).toEqual({ source: 'pc', url: PC_URL });
+    expect(rpc).toHaveBeenCalledWith('photo_original_url', { p_storage_path: 'ev/gu/a.jpg' });
+    expect(fetchMock).toHaveBeenCalledWith('https://fotos.example.me/health', expect.objectContaining({ cache: 'no-store' }));
+    expect(createSignedUrl).not.toHaveBeenCalled();
+  });
+
+  it('uses the original in Storage when the photo is not archived yet (the RPC returns null)', async () => {
+    rpc.mockResolvedValue({ data: null, error: null });
+    storageWith(['ev/gu/a.jpg']);
+
+    expect(await resolvePhotoDownload('ev/gu/a.jpg', 'ev/gu/a-display.jpg')).toEqual({
+      source: 'storage',
+      url: 'https://signed.example/ev/gu/a.jpg?download',
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('falls back to Storage when the RPC fails (for example, the migration is not applied)', async () => {
+    rpc.mockResolvedValue({ data: null, error: { message: 'Could not find the function' } });
+    storageWith(['ev/gu/a.jpg']);
+
+    expect(await resolvePhotoDownload('ev/gu/a.jpg', null)).toEqual({
+      source: 'storage',
+      url: 'https://signed.example/ev/gu/a.jpg?download',
+    });
+  });
+
+  it('still uses the original in Storage when the PC is down but the original was kept there', async () => {
+    rpc.mockResolvedValue({ data: PC_URL, error: null });
+    fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
+    storageWith(['ev/gu/a.jpg', 'ev/gu/a-display.jpg']);
+
+    expect(await resolvePhotoDownload('ev/gu/a.jpg', 'ev/gu/a-display.jpg')).toEqual({
+      source: 'storage',
+      url: 'https://signed.example/ev/gu/a.jpg?download',
+    });
+  });
+
+  it('offers the light copy with a notice when the PC is down and the original left Storage', async () => {
+    rpc.mockResolvedValue({ data: PC_URL, error: null });
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ ok: false }), { status: 503 }));
+    storageWith(['ev/gu/a-display.jpg']);
+
+    expect(await resolvePhotoDownload('ev/gu/a.jpg', 'ev/gu/a-display.jpg')).toEqual({
+      source: 'display',
+      url: 'https://signed.example/ev/gu/a-display.jpg?download',
+      notice: 'El equipo con las fotos originales no responde. Te bajamos una copia liviana; vuelve a intentarlo más tarde para tenerla en calidad original.',
+    });
+  });
+
+  it('treats a /health that answers 200 without ok: true, or does not answer in time, as down', async () => {
+    rpc.mockResolvedValue({ data: PC_URL, error: null });
+    storageWith(['ev/gu/a-display.jpg']);
+
+    fetchMock.mockResolvedValue(new Response('<html>Cloudflare</html>', { status: 200 }));
+    expect((await resolvePhotoDownload('ev/gu/a.jpg', 'ev/gu/a-display.jpg')).source).toBe('display');
+
+    vi.useFakeTimers();
+    try {
+      fetchMock.mockImplementation(
+        (_url: string, init: RequestInit) =>
+          new Promise((_resolve, reject) => init.signal?.addEventListener('abort', () => reject(new Error('aborted')))),
+      );
+      const pending = resolvePhotoDownload('ev/gu/a.jpg', 'ev/gu/a-display.jpg');
+      await vi.advanceTimersByTimeAsync(5000);
+      expect((await pending).source).toBe('display');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('never trusts a non-https link from the RPC', async () => {
+    rpc.mockResolvedValue({ data: 'http://fotos.example.me/p/ev/gu/a.jpg?exp=1&sig=a', error: null });
+    healthy();
+    storageWith(['ev/gu/a-display.jpg']);
+
+    expect((await resolvePhotoDownload('ev/gu/a.jpg', 'ev/gu/a-display.jpg')).source).toBe('display');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('offers the light copy with another notice when the original is missing and the PC is not configured', async () => {
+    rpc.mockResolvedValue({ data: null, error: null });
+    storageWith(['ev/gu/a-display.jpg']);
+
+    expect(await resolvePhotoDownload('ev/gu/a.jpg', 'ev/gu/a-display.jpg')).toEqual({
+      source: 'display',
+      url: 'https://signed.example/ev/gu/a-display.jpg?download',
+      notice: 'No encontramos la foto original. Te bajamos una copia liviana.',
+    });
+  });
+
+  it('reports the photo as unavailable when there is neither original nor light copy', async () => {
+    rpc.mockResolvedValue({ data: PC_URL, error: null });
+    fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
+    storageWith([]);
+
+    expect(await resolvePhotoDownload('ev/gu/a.jpg', null)).toEqual({
+      source: 'unavailable',
+      notice: 'No pudimos descargar esta foto. Vuelve a intentarlo más tarde.',
+    });
+  });
+
+  it('returns sample photos as they are, without calling Supabase', async () => {
+    expect(await resolvePhotoDownload(SAMPLE_PHOTOS[0].storagePath, null)).toEqual({
+      source: 'storage',
+      url: SAMPLE_PHOTOS[0].storagePath,
+    });
+    expect(rpc).not.toHaveBeenCalled();
   });
 });
