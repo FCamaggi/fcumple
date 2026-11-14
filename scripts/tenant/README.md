@@ -19,6 +19,7 @@ Para el evento identificado por su `<slug>`:
    - **`guests`:** Lista completa de invitados asignados al evento (`event_id`). El campo `token` se redacta automáticamente a `"[redactado]"`.
    - **`guest_credentials`:** Registros de control de acceso vinculados a los invitados del evento (`guest_id`, contador de intentos fallidos `failed_count` y bloqueo `locked_until`).
    - **`photos`:** Fotos asociadas al evento, incluyendo estados de moderación y rutas de almacenamiento.
+   - **`photo_appearances`:** Las marcas «aparezco en esta foto» de los invitados sobre las fotos del evento (foto, invitado y fecha). Forman el álbum «Fotos donde apareces».
    - **`posts`:** Publicaciones y comunicados del evento.
    - **`post_images`:** Imágenes adjuntas a las publicaciones del evento.
    - **`event_frames`:** Marcos paramétricos configurados para la cámara del evento.
@@ -105,6 +106,7 @@ respaldos/<slug>-<YYYYMMDD-HHMMSS>/
       "guests": 10,
       "guest_credentials": 10,
       "photos": 25,
+      "photo_appearances": 0,
       "posts": 2,
       "post_images": 2,
       "event_frames": 3,

@@ -22,6 +22,8 @@ export interface RevealedPhoto {
   storagePath: string;
   displayStoragePath: string | null;
   createdAt: string;
+  /** El invitado marcó que aparece en esta foto («aparezco en esta foto»). Solo él ve su marca. */
+  appears: boolean;
 }
 
 interface PostRow {
@@ -59,12 +61,29 @@ export async function listRevealedPhotosForGuest(token: string): Promise<Reveale
   const { data, error } = await supabase.rpc('list_revealed_photos', { p_token: token });
   if (error) throw new Error('No pudimos cargar el rollo revelado.');
   return (
-    (data ?? []) as Array<{ storage_path: string; display_storage_path: string | null; created_at: string }>
+    (data ?? []) as Array<{
+      storage_path: string;
+      display_storage_path: string | null;
+      created_at: string;
+      appears?: boolean;
+    }>
   ).map((row) => ({
     storagePath: row.storage_path,
     displayStoragePath: row.display_storage_path ?? null,
     createdAt: row.created_at,
+    appears: row.appears === true,
   }));
+}
+
+/** Marca (`appears = true`) o desmarca una foto publicada donde el invitado aparece. Devuelve el estado final. */
+export async function setPhotoAppearance(token: string, storagePath: string, appears: boolean): Promise<boolean> {
+  const { data, error } = await supabase.rpc('set_photo_appearance', {
+    p_token: token,
+    p_storage_path: storagePath,
+    p_appears: appears,
+  });
+  if (error) throw new Error('No pudimos guardar el cambio. Intenta de nuevo.');
+  return data === true;
 }
 
 // La ruta se decide una vez por archivo: el mismo `Blob` siempre usa el mismo UUID.

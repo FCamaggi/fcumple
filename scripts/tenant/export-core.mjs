@@ -7,6 +7,7 @@ const KNOWN_TABLES = [
   'guests',
   'guest_credentials',
   'photos',
+  'photo_appearances',
   'posts',
   'post_images',
   'event_frames',
@@ -74,6 +75,17 @@ export async function collectTenant(query, slug, { briefSlug } = {}) {
     [eventId]
   );
   const photos = photosRes?.rows || [];
+
+  // 4b. Fetch photo_appearances («aparezco en esta foto») through the event's photos
+  const appearancesRes = await query(
+    `SELECT pa.*
+     FROM public.photo_appearances pa
+     JOIN public.photos p ON p.id = pa.photo_id
+     WHERE p.event_id = $1
+     ORDER BY pa.created_at, pa.photo_id, pa.guest_id`,
+    [eventId]
+  );
+  const photoAppearances = appearancesRes?.rows || [];
 
   // 5. Fetch posts
   const postsRes = await query(
@@ -145,6 +157,7 @@ export async function collectTenant(query, slug, { briefSlug } = {}) {
     guests,
     guest_credentials: guestCredentials,
     photos,
+    photo_appearances: photoAppearances,
     posts,
     post_images: postImages,
     event_frames: eventFrames,

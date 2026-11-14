@@ -251,6 +251,26 @@ describe('tenant export core', () => {
     expect(result.tables.client_briefs[0].respondent).toBe('Cliente Carla');
   });
 
+  it('incluye las marcas «aparezco en esta foto» del evento y no las de otro', async () => {
+    await db.query(
+      `insert into public.photo_appearances (photo_id, guest_id)
+       select p.id, p.guest_id from public.photos p where p.event_id in ($1, $2)`,
+      [evA.id, evB.id],
+    );
+    const result = await collectTenant(
+      (sql: string, params: unknown[]) => db.query(sql, params),
+      evA.slug,
+    );
+    const photoIdsA = new Set(result.tables.photos.map((p: { id: string }) => p.id));
+    expect(result.tables.photo_appearances.length).toBe(photoIdsA.size);
+    for (const mark of result.tables.photo_appearances) {
+      expect(photoIdsA.has(mark.photo_id)).toBe(true);
+    }
+    expect(buildManifest({ event: result.event, tables: result.tables, storageObjects: [] }).counts.photo_appearances).toBe(
+      photoIdsA.size,
+    );
+  });
+
   it('lanza un error con mensaje en español cuando el slug no existe', async () => {
     await expect(
       collectTenant((sql: string, params: unknown[]) => db.query(sql, params), 'evento-inexistente-xyz'),
@@ -303,6 +323,7 @@ describe('buildManifest unit tests', () => {
       guests: 2,
       guest_credentials: 1,
       photos: 1,
+      photo_appearances: 0,
       posts: 2,
       post_images: 1,
       event_frames: 1,
