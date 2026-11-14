@@ -2,6 +2,8 @@
 
 Copia cada foto original de Supabase Storage al disco del PC y después la borra de Storage, para que la cuota del plan gratis no limite la calidad. Es la T3 de `odd/tasks/fotos-originales-pc.md` (llega con el PR #80); el plan completo está en `docs/fase-1-mvp-multitenant/fotos-originales-pc-casa.md` (PR #78).
 
+Para la puesta en marcha completa, la prueba de punta a punta y el día del evento, sigue [`docs/fase-1-mvp-multitenant/operacion-fotos-pc.md`](../../docs/fase-1-mvp-multitenant/operacion-fotos-pc.md).
+
 Corre **solo en el PC**, nunca en Vercel ni en el navegador: usa la clave de servicio de Supabase. Necesita Node 20.6 o más (por `--env-file`). Corre **una sola instancia** con un solo `FOTOS_DIR`: dos con carpetas distintas repartirían las fotos entre ellas.
 
 ## Uso rápido
