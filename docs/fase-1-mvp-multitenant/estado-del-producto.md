@@ -25,6 +25,7 @@ Una cámara desechable digital para eventos festivos e informales (cumpleaños, 
 | Vista previa de marcos; flujo del QR simulado (C3, C6) | No existe | — |
 | **Pestaña «Hoy» del panel** (fotos por revisar con revisión y publicación del lote, quién activó la cámara; abre por defecto desde 12 h antes del inicio hasta 18 h después) | **Existe** (épica D, etapa 1) | `PartyDayTab`, `src/lib/partyDay.ts` |
 | **Insignia de «fotos por revisar» en la pestaña «Fotos»**, visible desde cualquier pestaña; sin sondeo: se actualiza al cambiar de pestaña y con «Actualizar» | **Existe** (épica D, etapa 2) | [`panel-fotos-por-revisar.md`](./panel-fotos-por-revisar.md) |
+| **«Aparezco en esta foto» y el álbum «Fotos donde apareces»** (marca manual, sin reconocimiento facial) | **Existe** | `PhotoLightbox`, `GuestHubView`, `set_photo_appearance` |
 | Vista previa del enlace por evento (WhatsApp) | Existe; imagen propia opcional en `public/og/<slug>.jpg` | `api/event-meta.ts` |
 | Cambio de contraseña del organizador | Existe | `/panel/cuenta` |
 | Moderación por lotes horarios | **No existe** (PRODUCT.md la daba por hecha; la publicación por lotes de arriba es otra cosa) | — |

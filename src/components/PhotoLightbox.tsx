@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion, type PanInfo } from 'framer-motion';
 import { getSignedPhotoDownloadUrl, getSignedPhotoUrl } from '../lib/photosApi';
+import { PhotoAppearanceContext } from './PhotoAppearanceContext';
 
 export interface LightboxPhoto {
   storagePath: string;
@@ -12,6 +13,8 @@ export interface LightboxPhoto {
    */
   displayStoragePath: string | null;
   createdAt: string;
+  /** El invitado marcó que aparece en esta foto. Solo se usa si hay un `PhotoAppearanceContext`. */
+  appears?: boolean;
 }
 
 interface PhotoLightboxProps {
@@ -45,6 +48,10 @@ export default function PhotoLightbox({ photos, startIndex, onClose }: PhotoLigh
   const [index, setIndex] = useState(startIndex);
   const [urls, setUrls] = useState<Record<string, string>>({});
   const [downloading, setDownloading] = useState(false);
+  const appearance = useContext(PhotoAppearanceContext);
+  const [savingAppearance, setSavingAppearance] = useState(false);
+  // Error al marcar «aparezco», por storagePath: es de esa foto y desaparece al cambiar de foto.
+  const [appearanceError, setAppearanceError] = useState<{ storagePath: string; text: string } | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   // Elemento que tenía el foco antes de abrir el visor (el thumbnail o botón
   // "Ver las N fotos" que lo disparó) -- se le devuelve el foco al cerrar
@@ -166,6 +173,23 @@ export default function PhotoLightbox({ photos, startIndex, onClose }: PhotoLigh
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index, total, resolveUrl]);
 
+  async function handleToggleAppearance() {
+    if (!current || !appearance) return;
+    const storagePath = current.storagePath;
+    setSavingAppearance(true);
+    setAppearanceError(null);
+    try {
+      await appearance.toggle(storagePath, !current.appears);
+    } catch (err) {
+      setAppearanceError({
+        storagePath,
+        text: err instanceof Error ? err.message : 'No pudimos guardar el cambio. Intenta de nuevo.',
+      });
+    } finally {
+      setSavingAppearance(false);
+    }
+  }
+
   async function handleDownload() {
     if (!current) return;
     setDownloading(true);
@@ -259,14 +283,34 @@ export default function PhotoLightbox({ photos, startIndex, onClose }: PhotoLigh
           )}
         </div>
 
-        <button
-          type="button"
-          onClick={handleDownload}
-          disabled={downloading}
-          className="tap-target border border-acid-400 px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-acid-400 shadow-glow-acid transition-transform active:scale-95 disabled:opacity-50"
-        >
-          {downloading ? 'Generando…' : 'Descargar'}
-        </button>
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <button
+            type="button"
+            onClick={handleDownload}
+            disabled={downloading}
+            className="tap-target border border-acid-400 px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-acid-400 shadow-glow-acid transition-transform active:scale-95 disabled:opacity-50"
+          >
+            {downloading ? 'Generando…' : 'Descargar'}
+          </button>
+          {appearance && (
+            <button
+              type="button"
+              aria-pressed={current.appears === true}
+              onClick={() => void handleToggleAppearance()}
+              disabled={savingAppearance}
+              className={`tap-target border px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider transition-transform active:scale-95 disabled:opacity-50 ${
+                current.appears ? 'border-acid-400 bg-acid-400 text-ink-950' : 'border-paper-100/50 text-paper-100'
+              }`}
+            >
+              {current.appears ? '✓ ' : ''}Aparezco en esta foto
+            </button>
+          )}
+        </div>
+        {appearanceError?.storagePath === current.storagePath && (
+          <p role="status" className="max-w-xs text-center font-mono text-xs text-paper-100/70">
+            {appearanceError.text}
+          </p>
+        )}
       </motion.div>
     </div>
   );

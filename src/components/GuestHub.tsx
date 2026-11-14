@@ -9,8 +9,10 @@ import {
   getPublicHeadcount,
   listPublishedPosts,
   listRevealedPhotosForGuest,
+  setPhotoAppearance,
   uploadGuestPhoto,
 } from '../lib/platformGuestApi';
+import { PhotoAppearanceContext, type PhotoAppearance } from './PhotoAppearanceContext';
 import { getMyGuest, type EventPublic, type MyGuest } from '../lib/platformApi';
 import type { PhotoQuota, Post } from '../types';
 
@@ -114,6 +116,17 @@ export default function GuestHub({ slug, token, event, guest, onGuestChange }: G
     [token, guest.eventId, guest.id],
   );
 
+  // «Aparezco en esta foto»: se guarda en la base y recién entonces cambia en pantalla (si falla, el visor avisa).
+  const appearance = useMemo<PhotoAppearance>(
+    () => ({
+      toggle: async (storagePath, appears) => {
+        const saved = await setPhotoAppearance(token, storagePath, appears);
+        setRevealed((prev) => prev.map((p) => (p.storagePath === storagePath ? { ...p, appears: saved } : p)));
+      },
+    }),
+    [token],
+  );
+
   const refreshGuest = useCallback(async () => {
     setRefreshing(true);
     try {
@@ -127,39 +140,41 @@ export default function GuestHub({ slug, token, event, guest, onGuestChange }: G
   }, [token, onGuestChange]);
 
   return (
-    <div className="flex w-full max-w-md flex-col gap-5">
-      <GuestHubView
-        cameraUnlock={event.cameraUnlock}
-        cameraUnlocked={cameraUnlocked}
-        cameraReady={cameraReady}
-        cameraClosed={cameraClosed}
-        headcount={headcount}
-        quota={quota}
-        posts={posts}
-        revealed={revealed}
-        wishlist={event.wishlist}
-        refreshing={refreshing}
-        onOpenCamera={() => setShowCamera(true)}
-        onShowQr={() => setShowQr(true)}
-        onRefresh={() => void refreshGuest()}
-      />
-
-      {showCamera && quota && !cameraClosed && (
-        <CameraCapture
-          token={token}
+    <PhotoAppearanceContext.Provider value={appearance}>
+      <div className="flex w-full max-w-md flex-col gap-5">
+        <GuestHubView
+          cameraUnlock={event.cameraUnlock}
+          cameraUnlocked={cameraUnlocked}
+          cameraReady={cameraReady}
+          cameraClosed={cameraClosed}
+          headcount={headcount}
           quota={quota}
-          onQuotaChange={setQuota}
-          onClose={() => setShowCamera(false)}
-          upload={upload}
-          frames={cameraAssets.frames}
-          stickers={cameraAssets.stickers}
-          initialFrameId={cameraAssets.initialFrameId}
-          eventName={event.name}
+          posts={posts}
+          revealed={revealed}
+          wishlist={event.wishlist}
+          refreshing={refreshing}
+          onOpenCamera={() => setShowCamera(true)}
+          onShowQr={() => setShowQr(true)}
+          onRefresh={() => void refreshGuest()}
         />
-      )}
 
-      {showQr && <DoorCode token={token} guestName={guest.fullName} onClose={() => setShowQr(false)} />}
-    </div>
+        {showCamera && quota && !cameraClosed && (
+          <CameraCapture
+            token={token}
+            quota={quota}
+            onQuotaChange={setQuota}
+            onClose={() => setShowCamera(false)}
+            upload={upload}
+            frames={cameraAssets.frames}
+            stickers={cameraAssets.stickers}
+            initialFrameId={cameraAssets.initialFrameId}
+            eventName={event.name}
+          />
+        )}
+
+        {showQr && <DoorCode token={token} guestName={guest.fullName} onClose={() => setShowQr(false)} />}
+      </div>
+    </PhotoAppearanceContext.Provider>
   );
 }
 

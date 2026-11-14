@@ -6,6 +6,7 @@ vi.mock('../lib/platformGuestApi', () => ({
   listPublishedPosts: vi.fn(),
   getPublicHeadcount: vi.fn(),
   listRevealedPhotosForGuest: vi.fn(),
+  setPhotoAppearance: vi.fn(),
   uploadGuestPhoto: vi.fn(),
 }));
 vi.mock('../lib/photosApi', () => ({ getPhotoQuota: vi.fn() }));
@@ -20,9 +21,25 @@ vi.mock('./AnnouncementFeed', () => ({
 vi.mock('./PhotoCarousel', () => ({
   default: ({ photos }: { photos: unknown[] }) => <div data-testid="carousel">{photos.length}</div>,
 }));
-vi.mock('./RevealedRoll', () => ({
-  default: ({ photos }: { photos: unknown[] }) => <div data-testid="roll">{photos.length}</div>,
-}));
+vi.mock('./RevealedRoll', async () => {
+  const { useContext } = await import('react');
+  const { PhotoAppearanceContext } = await import('./PhotoAppearanceContext');
+  return {
+    default: function RollMock({ photos }: { photos: Array<{ storagePath: string; appears?: boolean }> }) {
+      const appearance = useContext(PhotoAppearanceContext);
+      return (
+        <div data-testid="roll" data-marked={photos.filter((p) => p.appears).length}>
+          {photos.length}
+          {appearance && photos[0] && (
+            <button type="button" onClick={() => void appearance.toggle(photos[0].storagePath, !photos[0].appears).catch(() => undefined)}>
+              Marcar la primera
+            </button>
+          )}
+        </div>
+      );
+    },
+  };
+});
 vi.mock('./CameraCapture', () => ({
   default: ({
     onClose,
@@ -55,7 +72,7 @@ import QRCode from 'qrcode';
 import { getPhotoQuota } from '../lib/photosApi';
 import { useCameraAssets } from '../hooks/useCameraAssets';
 import { getMyGuest, type EventPublic, type MyGuest } from '../lib/platformApi';
-import { getPublicHeadcount, listPublishedPosts, listRevealedPhotosForGuest } from '../lib/platformGuestApi';
+import { getPublicHeadcount, listPublishedPosts, listRevealedPhotosForGuest, setPhotoAppearance } from '../lib/platformGuestApi';
 import GuestHub from './GuestHub';
 
 const event: EventPublic = {
@@ -201,7 +218,7 @@ describe('GuestHub', () => {
 
   it('muestra las fotos publicadas en el carrusel y en el rollo', async () => {
     vi.mocked(listRevealedPhotosForGuest).mockResolvedValue([
-      { storagePath: 'ev/g/a.jpg', displayStoragePath: null, createdAt: '2026-10-15T01:00:00Z' },
+      { storagePath: 'ev/g/a.jpg', displayStoragePath: null, createdAt: '2026-10-15T01:00:00Z', appears: false },
     ]);
     setup();
     await waitFor(() => expect(screen.getByTestId('carousel')).toHaveTextContent('1'));
@@ -284,3 +301,31 @@ describe('GuestHub', () => {
     expect(useCameraAssets).toHaveBeenCalledWith('tok', false);
   });
 });
+
+describe('GuestHub: aparezco en esta foto', () => {
+  const rows = [
+    { storagePath: 'ev/g/a.jpg', displayStoragePath: null, createdAt: '2026-10-15T01:00:00Z', appears: false },
+    { storagePath: 'ev/g/b.jpg', displayStoragePath: null, createdAt: '2026-10-15T01:10:00Z', appears: false },
+  ];
+
+  it('guarda la marca con el token del invitado y la refleja en el rollo y en su álbum', async () => {
+    vi.mocked(listRevealedPhotosForGuest).mockResolvedValue(rows);
+    vi.mocked(setPhotoAppearance).mockReset().mockResolvedValue(true);
+    setup();
+    await userEvent.click(await screen.findByRole('button', { name: 'Marcar la primera' }));
+    expect(setPhotoAppearance).toHaveBeenCalledWith('tok', 'ev/g/a.jpg', true);
+    await waitFor(() => expect(screen.getByTestId('roll')).toHaveAttribute('data-marked', '1'));
+    expect(screen.getByRole('region', { name: 'Fotos donde apareces' })).toHaveTextContent('Marcaste 1 foto');
+  });
+
+  it('si no se pudo guardar, no cambia nada', async () => {
+    vi.mocked(listRevealedPhotosForGuest).mockResolvedValue(rows);
+    vi.mocked(setPhotoAppearance).mockReset().mockRejectedValue(new Error('No pudimos guardar el cambio. Intenta de nuevo.'));
+    setup();
+    await userEvent.click(await screen.findByRole('button', { name: 'Marcar la primera' }));
+    await waitFor(() => expect(setPhotoAppearance).toHaveBeenCalled());
+    expect(screen.getByTestId('roll')).toHaveAttribute('data-marked', '0');
+    expect(screen.queryByRole('region', { name: 'Fotos donde apareces' })).toBeNull();
+  });
+});
+

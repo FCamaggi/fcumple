@@ -14,6 +14,16 @@ vi.mock('./PhotoCarousel', () => ({
 vi.mock('./RevealedRoll', () => ({
   default: ({ photos }: { photos: unknown[] }) => <div data-testid="roll">{photos.length}</div>,
 }));
+vi.mock('./PhotoLightbox', () => ({
+  default: ({ photos, onClose }: { photos: Array<{ storagePath: string }>; onClose: () => void }) => (
+    <div data-testid="lightbox">
+      {photos.map((p) => p.storagePath).join(',')}
+      <button type="button" onClick={onClose}>
+        Cerrar visor
+      </button>
+    </div>
+  ),
+}));
 
 function props(overrides: Partial<GuestHubViewProps> = {}): GuestHubViewProps {
   return {
@@ -113,3 +123,51 @@ describe('GuestHubView', () => {
     expect(screen.getByTestId('roll')).toHaveTextContent('1');
   });
 });
+
+describe('GuestHubView: fotos donde apareces', () => {
+  const photo = (name: string, appears: boolean) => ({
+    storagePath: `ev/g/${name}.jpg`,
+    displayStoragePath: null,
+    createdAt: '2026-10-30T22:00:00Z',
+    appears,
+  });
+
+  it('no muestra la sección si el invitado no marcó ninguna foto', () => {
+    render(<GuestHubView {...props({ revealed: [photo('a', false)] })} />);
+    expect(screen.queryByRole('region', { name: 'Fotos donde apareces' })).toBeNull();
+  });
+
+  it('cuenta las fotos marcadas y abre el visor solo con ellas', async () => {
+    render(<GuestHubView {...props({ revealed: [photo('a', true), photo('b', false), photo('c', true)] })} />);
+    const section = screen.getByRole('region', { name: 'Fotos donde apareces' });
+    expect(section).toHaveTextContent('Marcaste 2 fotos donde apareces.');
+    await userEvent.click(screen.getByRole('button', { name: 'Ver mis 2 fotos' }));
+    expect(screen.getByTestId('lightbox')).toHaveTextContent('ev/g/a.jpg,ev/g/c.jpg');
+  });
+
+  it('con una sola foto lo dice en singular', () => {
+    render(<GuestHubView {...props({ revealed: [photo('a', true)] })} />);
+    expect(screen.getByRole('region', { name: 'Fotos donde apareces' })).toHaveTextContent('Marcaste 1 foto donde apareces.');
+    expect(screen.getByRole('button', { name: 'Ver mi foto' })).toBeInTheDocument();
+  });
+
+  it('si desmarca una foto con el visor abierto, el visor la sigue mostrando hasta cerrarlo', async () => {
+    const { rerender } = render(<GuestHubView {...props({ revealed: [photo('a', true), photo('c', true)] })} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Ver mis 2 fotos' }));
+    rerender(<GuestHubView {...props({ revealed: [photo('a', false), photo('c', true)] })} />);
+    expect(screen.getByTestId('lightbox')).toHaveTextContent('ev/g/a.jpg,ev/g/c.jpg');
+    await userEvent.click(screen.getByRole('button', { name: 'Cerrar visor' }));
+    expect(screen.getByRole('button', { name: 'Ver mi foto' })).toBeInTheDocument();
+  });
+});
+
+describe('GuestHubView: álbum abierto cuando se despublican sus fotos', () => {
+  it('no deja la sección vacía si todas las fotos del álbum abierto dejan de estar', async () => {
+    const one = { storagePath: 'ev/g/a.jpg', displayStoragePath: null, createdAt: '2026-10-30T22:00:00Z', appears: true };
+    const { rerender } = render(<GuestHubView {...props({ revealed: [one] })} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Ver mi foto' }));
+    rerender(<GuestHubView {...props({ revealed: [] })} />);
+    expect(screen.queryByRole('region', { name: 'Fotos donde apareces' })).toBeNull();
+  });
+});
+
