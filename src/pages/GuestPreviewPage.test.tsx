@@ -436,3 +436,14 @@ describe('GuestPreviewPage', () => {
     }
   });
 });
+
+describe('GuestPreviewPage: intervalo del rollo', () => {
+  it('agrupa las fotos de ejemplo con el intervalo del evento', async () => {
+    vi.mocked(getMyEvent).mockResolvedValue({ ...event, rollBandMinutes: 30 });
+    renderAt('/panel/e/ev-1/vista-previa?estado=fotos');
+    // Las fotos de ejemplo parten a las 19:00 de Chile, cada 15 minutos.
+    expect(await screen.findByText('19:00 — 19:30')).toBeInTheDocument();
+    expect(screen.queryByText('19:00 — 20:00')).toBeNull();
+  });
+});
+

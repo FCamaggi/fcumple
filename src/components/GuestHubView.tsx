@@ -20,6 +20,8 @@ export interface GuestHubViewProps {
   quota: PhotoQuota | null;
   posts: Post[];
   revealed: RawRevealedPhoto[];
+  /** Minutos de cada banda del rollo revelado; 60 si no se indica. */
+  rollBandMinutes?: number;
   wishlist?: WishlistConfig;
   refreshing: boolean;
   onOpenCamera: () => void;
@@ -41,6 +43,7 @@ export default function GuestHubView({
   quota,
   posts,
   revealed,
+  rollBandMinutes,
   wishlist,
   refreshing,
   onOpenCamera,
@@ -124,7 +127,7 @@ export default function GuestHubView({
 
       <MyAppearances revealed={revealed} />
 
-      <RevealedRoll photos={revealed} />
+      <RevealedRoll photos={revealed} bandMinutes={rollBandMinutes} />
     </div>
   );
 }

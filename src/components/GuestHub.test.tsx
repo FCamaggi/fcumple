@@ -25,10 +25,10 @@ vi.mock('./RevealedRoll', async () => {
   const { useContext } = await import('react');
   const { PhotoAppearanceContext } = await import('./PhotoAppearanceContext');
   return {
-    default: function RollMock({ photos }: { photos: Array<{ storagePath: string; appears?: boolean }> }) {
+    default: function RollMock({ photos, bandMinutes }: { photos: Array<{ storagePath: string; appears?: boolean }>; bandMinutes?: number }) {
       const appearance = useContext(PhotoAppearanceContext);
       return (
-        <div data-testid="roll" data-marked={photos.filter((p) => p.appears).length}>
+        <div data-testid="roll" data-marked={photos.filter((p) => p.appears).length} data-band-minutes={bandMinutes}>
           {photos.length}
           {appearance && photos[0] && (
             <button type="button" onClick={() => void appearance.toggle(photos[0].storagePath, !photos[0].appears).catch(() => undefined)}>
@@ -326,6 +326,18 @@ describe('GuestHub: aparezco en esta foto', () => {
     await waitFor(() => expect(setPhotoAppearance).toHaveBeenCalled());
     expect(screen.getByTestId('roll')).toHaveAttribute('data-marked', '0');
     expect(screen.queryByRole('region', { name: 'Fotos donde apareces' })).toBeNull();
+  });
+});
+
+describe('GuestHub: intervalo del rollo', () => {
+  it('le pasa al rollo el intervalo del evento', async () => {
+    vi.mocked(listRevealedPhotosForGuest).mockResolvedValue([
+      { storagePath: 'tok1/a.jpg', displayStoragePath: null, createdAt: '2026-10-10T01:10:00Z' },
+      { storagePath: 'tok2/b.jpg', displayStoragePath: null, createdAt: '2026-10-10T01:40:00Z' },
+    ] as never);
+    setup({ event: { rollBandMinutes: 30 } });
+    await waitFor(() => expect(screen.getByTestId('roll')).toHaveTextContent('2'));
+    expect(screen.getByTestId('roll')).toHaveAttribute('data-band-minutes', '30');
   });
 });
 

@@ -117,6 +117,7 @@ export function toPublicPreviewEvent(event: OrganizerEvent): EventPublic {
     rsvpDeadline: null,
     accessMode: event.accessMode,
     cameraUnlock: event.cameraUnlock,
+    rollBandMinutes: event.rollBandMinutes,
     rsvpEnabled: event.rsvpEnabled,
     photosRevealed: event.photosRevealedAt !== null,
     enrollment: event.enrollment,

@@ -500,3 +500,19 @@ describe('dueños del evento', () => {
     await expect(listEventOwners('ev-1')).rejects.toThrow(expected);
   });
 });
+
+describe('intervalo del rollo', () => {
+  it('updateEvent guarda roll_band_minutes y devuelve el valor mapeado', async () => {
+    const q = chain({ data: { ...eventRow, roll_band_minutes: 30 }, error: null });
+    from.mockReturnValueOnce(q.proxy);
+    const saved = await updateEvent('ev-1', { rollBandMinutes: 30 });
+    expect(q.calls.find(([name]) => name === 'update')?.[1][0]).toEqual({ roll_band_minutes: 30 });
+    expect(saved.rollBandMinutes).toBe(30);
+  });
+
+  it('un evento sin la columna (antes de la migración) queda en 60', async () => {
+    const q = chain({ data: eventRow, error: null });
+    from.mockReturnValueOnce(q.proxy);
+    expect((await updateEvent('ev-1', { name: 'Fiesta' })).rollBandMinutes).toBe(60);
+  });
+});
