@@ -5,10 +5,10 @@ import PhotoLightbox from './PhotoLightbox';
 
 vi.mock('../lib/photosApi', () => ({
   getSignedPhotoUrl: vi.fn(),
-  getSignedPhotoDownloadUrl: vi.fn(),
+  resolvePhotoDownload: vi.fn(),
 }));
 
-import { getSignedPhotoUrl, getSignedPhotoDownloadUrl } from '../lib/photosApi';
+import { getSignedPhotoUrl, resolvePhotoDownload } from '../lib/photosApi';
 
 const photos = [
   { storagePath: 'tok/a.jpg', displayStoragePath: 'tok/a-display.jpg', createdAt: '2026-10-10T01:00:00Z' },
@@ -19,9 +19,9 @@ const photos = [
 beforeEach(() => {
   vi.mocked(getSignedPhotoUrl).mockReset();
   vi.mocked(getSignedPhotoUrl).mockImplementation((path: string) => Promise.resolve(`https://signed.example/${path}`));
-  vi.mocked(getSignedPhotoDownloadUrl).mockReset();
-  vi.mocked(getSignedPhotoDownloadUrl).mockImplementation((path: string) =>
-    Promise.resolve(`https://signed.example/${path}?download`),
+  vi.mocked(resolvePhotoDownload).mockReset();
+  vi.mocked(resolvePhotoDownload).mockImplementation((path: string) =>
+    Promise.resolve({ source: 'storage', url: `https://signed.example/${path}?download` }),
   );
 });
 
@@ -149,19 +149,79 @@ describe('PhotoLightbox', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it('requests a signed download url for the original storage path even though this photo has a display copy, lazily on click', async () => {
+  it('resolves the download for the original storage path (with its display copy as fallback), lazily on click', async () => {
     const user = userEvent.setup();
     render(<PhotoLightbox photos={photos} startIndex={0} onClose={vi.fn()} />);
 
     await screen.findByRole('dialog');
-    expect(getSignedPhotoDownloadUrl).not.toHaveBeenCalled();
+    expect(resolvePhotoDownload).not.toHaveBeenCalled();
 
     await user.click(screen.getByRole('button', { name: /descargar/i }));
 
     await waitFor(() => {
-      expect(getSignedPhotoDownloadUrl).toHaveBeenCalledWith('tok/a.jpg');
+      expect(resolvePhotoDownload).toHaveBeenCalledWith('tok/a.jpg', 'tok/a-display.jpg');
     });
-    expect(getSignedPhotoDownloadUrl).toHaveBeenCalledTimes(1);
+    expect(resolvePhotoDownload).toHaveBeenCalledTimes(1);
+  });
+
+  it('opens the link it resolved, including an original on the PC, without a notice', async () => {
+    const user = userEvent.setup();
+    const pcUrl = 'https://fotos.example.me/p/tok/a.jpg?exp=1&sig=abc';
+    vi.mocked(resolvePhotoDownload).mockResolvedValue({ source: 'pc', url: pcUrl });
+    const clicked: string[] = [];
+    const spy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
+      clicked.push(this.href);
+    });
+    try {
+      render(<PhotoLightbox photos={photos} startIndex={0} onClose={vi.fn()} />);
+      await screen.findByRole('dialog');
+      await user.click(screen.getByRole('button', { name: /descargar/i }));
+      await waitFor(() => expect(clicked).toEqual([pcUrl]));
+      expect(screen.queryByRole('status')).toBeNull();
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it('downloads the light copy and shows the notice when the original is not available', async () => {
+    const user = userEvent.setup();
+    vi.mocked(resolvePhotoDownload).mockResolvedValue({
+      source: 'display',
+      url: 'https://signed.example/tok/a-display.jpg?download',
+      notice: 'El equipo con las fotos originales no responde.',
+    });
+    const clicked: string[] = [];
+    const spy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
+      clicked.push(this.href);
+    });
+    try {
+      render(<PhotoLightbox photos={photos} startIndex={0} onClose={vi.fn()} />);
+      await screen.findByRole('dialog');
+      await user.click(screen.getByRole('button', { name: /descargar/i }));
+      expect(await screen.findByRole('status')).toHaveTextContent('El equipo con las fotos originales no responde.');
+      expect(clicked).toEqual(['https://signed.example/tok/a-display.jpg?download']);
+
+      // El aviso es de esa foto: al cambiar de foto desaparece.
+      await user.click(screen.getByRole('button', { name: 'Foto siguiente' }));
+      expect(screen.queryByRole('status')).toBeNull();
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it('shows the notice and opens nothing when the photo is unavailable', async () => {
+    const user = userEvent.setup();
+    vi.mocked(resolvePhotoDownload).mockResolvedValue({ source: 'unavailable', notice: 'No pudimos descargar esta foto.' });
+    const spy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
+    try {
+      render(<PhotoLightbox photos={photos} startIndex={0} onClose={vi.fn()} />);
+      await screen.findByRole('dialog');
+      await user.click(screen.getByRole('button', { name: /descargar/i }));
+      expect(await screen.findByRole('status')).toHaveTextContent('No pudimos descargar esta foto.');
+      expect(spy).not.toHaveBeenCalled();
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it('downloads the currently-shown photo after navigating, not the original one', async () => {
@@ -173,9 +233,9 @@ describe('PhotoLightbox', () => {
     await user.click(screen.getByRole('button', { name: /descargar/i }));
 
     await waitFor(() => {
-      expect(getSignedPhotoDownloadUrl).toHaveBeenCalledWith('tok/b.jpg');
+      expect(resolvePhotoDownload).toHaveBeenCalledWith('tok/b.jpg', null);
     });
-    expect(getSignedPhotoDownloadUrl).not.toHaveBeenCalledWith('tok/a.jpg');
+    expect(resolvePhotoDownload).not.toHaveBeenCalledWith('tok/a.jpg', expect.anything());
   });
 
   it('does not re-request a signed url for a photo already resolved on rapid back-and-forth navigation (0 -> 1 -> 0)', async () => {

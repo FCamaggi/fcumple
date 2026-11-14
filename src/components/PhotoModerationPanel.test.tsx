@@ -65,6 +65,23 @@ describe('PhotoModerationPanel', () => {
     expect(screen.getByText(/fotos.*1 de 2/i)).toBeInTheDocument();
   });
 
+  it('shows the light copy when there is one (the PC worker may already have taken the original out of Storage)', async () => {
+    vi.mocked(listAllPhotosForModeration).mockResolvedValueOnce([{ ...older, displayStoragePath: 'tok1/a-display.jpg' }]);
+
+    render(<PhotoModerationPanel onClose={vi.fn()} />);
+
+    await waitFor(() => expect(getSignedPhotoUrl).toHaveBeenCalledWith('tok1/a-display.jpg'));
+    expect(getSignedPhotoUrl).not.toHaveBeenCalledWith('tok1/a.jpg');
+  });
+
+  it('shows the original when the photo has no light copy', async () => {
+    vi.mocked(listAllPhotosForModeration).mockResolvedValueOnce([older]);
+
+    render(<PhotoModerationPanel onClose={vi.fn()} />);
+
+    await waitFor(() => expect(getSignedPhotoUrl).toHaveBeenCalledWith('tok1/a.jpg'));
+  });
+
   it('shows a message when there is nothing pending to moderate', async () => {
     vi.mocked(listAllPhotosForModeration).mockResolvedValueOnce([approvedPhoto]);
 
