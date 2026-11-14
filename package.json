@@ -12,6 +12,7 @@
     "test:coverage": "vitest run --coverage",
     "test:db": "vitest run -c supabase/vitest.config.ts",
     "typecheck": "tsc --noEmit",
+    "fotos:archivar": "node --env-file=.env.fotos scripts/fotos-pc/archivar.mjs",
     "build:setup-sql": "node scripts/build-setup-sql.mjs"
   },
   "engines": {
