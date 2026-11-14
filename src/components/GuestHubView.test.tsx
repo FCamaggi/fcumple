@@ -12,7 +12,11 @@ vi.mock('./PhotoCarousel', () => ({
   default: ({ photos }: { photos: unknown[] }) => <div data-testid="carousel">{photos.length}</div>,
 }));
 vi.mock('./RevealedRoll', () => ({
-  default: ({ photos }: { photos: unknown[] }) => <div data-testid="roll">{photos.length}</div>,
+  default: ({ photos, bandMinutes }: { photos: unknown[]; bandMinutes?: number }) => (
+    <div data-testid="roll" data-band-minutes={bandMinutes}>
+      {photos.length}
+    </div>
+  ),
 }));
 
 function props(overrides: Partial<GuestHubViewProps> = {}): GuestHubViewProps {
@@ -111,5 +115,19 @@ describe('GuestHubView', () => {
     expect(screen.getByTestId('feed')).toHaveTextContent('Hola');
     expect(screen.getByTestId('carousel')).toHaveTextContent('1');
     expect(screen.getByTestId('roll')).toHaveTextContent('1');
+  });
+});
+
+describe('GuestHubView: intervalo del rollo', () => {
+  it('le pasa al rollo el intervalo que recibe', () => {
+    render(
+      <GuestHubView
+        {...props({
+          revealed: [{ storagePath: 'a.jpg', displayStoragePath: null, createdAt: '2026-10-30T22:00:00Z' }],
+          rollBandMinutes: 90,
+        })}
+      />,
+    );
+    expect(screen.getByTestId('roll')).toHaveAttribute('data-band-minutes', '90');
   });
 });

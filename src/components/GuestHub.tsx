@@ -137,6 +137,7 @@ export default function GuestHub({ slug, token, event, guest, onGuestChange }: G
         quota={quota}
         posts={posts}
         revealed={revealed}
+        rollBandMinutes={event.rollBandMinutes}
         wishlist={event.wishlist}
         refreshing={refreshing}
         onOpenCamera={() => setShowCamera(true)}

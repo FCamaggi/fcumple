@@ -10,6 +10,7 @@ import { resolveWishlist, serializeWishlist, type WishlistConfig } from './wishl
 import type { AccessMode } from './platformApi';
 import type { ModerationPhoto } from './photosApi';
 import type { Photo } from '../types';
+import { DEFAULT_ROLL_BAND_MINUTES } from './photoTimeline';
 
 /**
  * Capa de acceso del organizador (Fase 1). Todo pasa por las políticas RLS de
@@ -29,6 +30,8 @@ export interface OrganizerEvent {
   cameraUnlock: CameraUnlock;
   /** Hora límite de la cámara (ISO): pasada, la base rechaza las fotos nuevas. `null` = sin límite. */
   cameraClosesAt?: string | null;
+  /** Minutos de cada banda del rollo revelado (60 si el evento no lo eligió). */
+  rollBandMinutes?: number;
   rsvpEnabled: boolean;
   framesEnabled: boolean;
   stickersEnabled: boolean;
@@ -78,6 +81,7 @@ interface EventRow {
   access_mode: AccessMode;
   camera_unlock: CameraUnlock;
   camera_closes_at?: string | null;
+  roll_band_minutes?: number;
   rsvp_enabled: boolean;
   frames_enabled: boolean;
   stickers_enabled: boolean;
@@ -120,6 +124,7 @@ function mapEvent(row: EventRow): OrganizerEvent {
     accessMode: row.access_mode,
     cameraUnlock: row.camera_unlock,
     cameraClosesAt: row.camera_closes_at ?? null,
+    rollBandMinutes: row.roll_band_minutes ?? DEFAULT_ROLL_BAND_MINUTES,
     rsvpEnabled: row.rsvp_enabled,
     framesEnabled: row.frames_enabled,
     stickersEnabled: row.stickers_enabled,
@@ -219,6 +224,7 @@ export interface EventSettingsPatch {
   cameraUnlock?: CameraUnlock;
   /** ISO, o `null` para quitar el límite. */
   cameraClosesAt?: string | null;
+  rollBandMinutes?: number;
   rsvpEnabled?: boolean;
   framesEnabled?: boolean;
   stickersEnabled?: boolean;
@@ -239,6 +245,7 @@ export async function updateEvent(eventId: string, patch: EventSettingsPatch): P
   if (patch.accessMode !== undefined) row.access_mode = patch.accessMode;
   if (patch.cameraUnlock !== undefined) row.camera_unlock = patch.cameraUnlock;
   if (patch.cameraClosesAt !== undefined) row.camera_closes_at = patch.cameraClosesAt;
+  if (patch.rollBandMinutes !== undefined) row.roll_band_minutes = patch.rollBandMinutes;
   if (patch.rsvpEnabled !== undefined) row.rsvp_enabled = patch.rsvpEnabled;
   if (patch.framesEnabled !== undefined) row.frames_enabled = patch.framesEnabled;
   if (patch.stickersEnabled !== undefined) row.stickers_enabled = patch.stickersEnabled;

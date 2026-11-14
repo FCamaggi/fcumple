@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getSignedPhotoUrl } from '../lib/photosApi';
-import { groupPhotosByHourBand, type PhotoTimelineBand } from '../lib/photoTimeline';
+import { groupPhotosByTimeBand, type PhotoTimelineBand } from '../lib/photoTimeline';
 import PhotoLightbox from './PhotoLightbox';
 
 export interface RawRevealedPhoto {
@@ -17,6 +17,8 @@ export interface RawRevealedPhoto {
 
 interface RevealedRollProps {
   photos: RawRevealedPhoto[];
+  /** Minutos de cada banda (`events.roll_band_minutes`); 60 si no se indica. */
+  bandMinutes?: number;
 }
 
 const PREVIEW_SIZE = 3;
@@ -28,8 +30,8 @@ const PREVIEW_SIZE = 3;
  * propias fotos -- antes de que el admin lo revele; ese gate vive en quien
  * llama a este componente (photosRevealedAt + fotos ya cargadas), no acá.
  *
- * Etapa 9, Frente 3: las fotos se agrupan en bandas de 1 hora alineadas al
- * reloj en horario de Chile (`groupPhotosByHourBand`, `lib/photoTimeline.ts`)
+ * Etapa 9, Frente 3: las fotos se agrupan en bandas (1 hora por defecto, el intervalo lo elige el evento) alineadas al
+ * reloj en horario de Chile (`groupPhotosByTimeBand`, `lib/photoTimeline.ts`)
  * -- "la noche contada en orden", de más temprano a más tarde.
  *
  * Etapa 10: `EventHubPage` ya no resuelve URLs firmadas eagerly para todas
@@ -44,10 +46,10 @@ const PREVIEW_SIZE = 3;
  * se está viendo. Tocar cualquier thumbnail del preview también abre el
  * visor, arrancando en esa foto.
  */
-export default function RevealedRoll({ photos }: RevealedRollProps) {
+export default function RevealedRoll({ photos, bandMinutes }: RevealedRollProps) {
   if (photos.length === 0) return null;
 
-  const bands = groupPhotosByHourBand(photos);
+  const bands = groupPhotosByTimeBand(photos, bandMinutes);
 
   return (
     <section className="flex flex-col gap-3 bg-ink-900 p-4 shadow-2xl" aria-label="Rollo revelado">
