@@ -9,8 +9,10 @@
 export type CameraOrientation = 'portrait' | 'landscape';
 export type CameraFacing = 'user' | 'environment';
 
-const LONG_SIDE = 2048;
-const SHORT_SIDE = 1536;
+// 4096×3072 (12,6 MP en 4:3): con `ideal` el navegador entrega lo más cercano que soporte su cámara. La foto
+// original se guarda a esa resolución (ver MAX_DIMENSION en CameraCapture) y el PC del evento la sirve completa.
+const LONG_SIDE = 4096;
+const SHORT_SIDE = 3072;
 
 /** Lo ideal para la orientación del teléfono: 3:4 en vertical, 4:3 en horizontal. */
 export function idealVideoConstraints(facingMode: CameraFacing, orientation: CameraOrientation): MediaTrackConstraints {

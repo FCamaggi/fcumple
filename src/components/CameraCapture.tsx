@@ -63,14 +63,14 @@ const NO_FRAME: CameraFrameOption = { id: 'none', label: 'Sin marco', draw: null
 const FULL_BOX: Rect = { x: 0, y: 0, w: 1, h: 1 };
 let placementCounter = 0;
 
-export const MAX_DIMENSION = 2048;
-export const JPEG_QUALITY = 0.85;
+export const MAX_DIMENSION = 4096;
+export const JPEG_QUALITY = 0.92;
 export const FRAME_ENSURE_TIMEOUT_MS = 8000;
 
 /**
  * Constraints de resolución y proporción para la cámara web/móvil:
  * Prioriza proporción 4:3 (estándar fotográfico y de los marcos/compositor)
- * a resolución óptima (ideal 2048×1536 en horizontal, 1536×2048 en vertical).
+ * a resolución óptima (ideal 4096×3072 en horizontal, 3072×4096 en vertical).
  * Al usar `ideal` en lugar de `exact`, el navegador entrega la resolución más
  * alta que el sensor soporte sin fallar nunca.
  */

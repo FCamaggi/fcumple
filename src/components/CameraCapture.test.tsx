@@ -249,22 +249,50 @@ describe('CameraCapture', () => {
   it('getCameraVideoConstraints define proporción 4:3 en horizontal y 3:4 en vertical', () => {
     expect(getCameraVideoConstraints('environment', 'landscape')).toEqual({
       facingMode: 'environment',
-      width: { ideal: 2048 },
-      height: { ideal: 1536 },
+      width: { ideal: 4096 },
+      height: { ideal: 3072 },
       aspectRatio: { ideal: 4 / 3 },
     });
 
     expect(getCameraVideoConstraints('user', 'portrait')).toEqual({
       facingMode: 'user',
-      width: { ideal: 1536 },
-      height: { ideal: 2048 },
+      width: { ideal: 3072 },
+      height: { ideal: 4096 },
       aspectRatio: { ideal: 3 / 4 },
     });
   });
 
   it('MAX_DIMENSION y JPEG_QUALITY están configurados para descargas de alta calidad', () => {
-    expect(MAX_DIMENSION).toBe(2048);
-    expect(JPEG_QUALITY).toBe(0.85);
+    expect(MAX_DIMENSION).toBe(4096);
+    expect(JPEG_QUALITY).toBe(0.92);
+  });
+
+  it('guarda la foto a la resolución completa de la cámara (12 MP) y con calidad 0,92', async () => {
+    mockCanvasPipeline();
+    vi.spyOn(window.HTMLVideoElement.prototype, 'videoWidth', 'get').mockReturnValue(4032);
+    vi.spyOn(window.HTMLVideoElement.prototype, 'videoHeight', 'get').mockReturnValue(3024);
+    const encoded: Array<{ width: number; height: number; quality: number | undefined }> = [];
+    vi.spyOn(window.HTMLCanvasElement.prototype, 'toBlob').mockImplementation(function (
+      this: HTMLCanvasElement,
+      callback: BlobCallback,
+      _type?: string,
+      quality?: number,
+    ) {
+      encoded.push({ width: this.width, height: this.height, quality });
+      callback(new Blob(['fake-jpeg'], { type: 'image/jpeg' }));
+    });
+    mockCamera(makeTrack({}));
+    const user = userEvent.setup();
+    render(<CameraCapture token="tok123" quota={{ quota: 5, used: 2 }} onClose={() => {}} />);
+
+    const shutter = await screen.findByRole('button', { name: /disparar/i });
+    await waitFor(() => expect(shutter).toBeEnabled());
+    await user.click(shutter);
+    await screen.findByRole('button', { name: /repetir/i });
+
+    // El original no se achica; la copia liviana para la cartelera sigue en 640 px.
+    expect(encoded[0]).toEqual({ width: 4032, height: 3024, quality: 0.92 });
+    expect(Math.max(encoded[1].width, encoded[1].height)).toBe(640);
   });
 
   it('shows an icon button (not a text link) to flip between front and back camera', async () => {
